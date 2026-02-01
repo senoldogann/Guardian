@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-border-main: var(--border-main);
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  --guide-bg: var(--guide-bg-raw);
+  --guide-radius: 2rem;
+}
+
+@layer base {
+  :root {
+    /* Dark Mode (Default) */
+    --background: #09090b;
+    --surface: #121216;
+    --border-main: rgba(255, 255, 255, 0.06);
+    --text-main: #e4e4e7;
+    --text-muted: #a1a1aa;
+    --guide-bg-raw: #0c0c0e;
+    --accent-500: #38bdf8;
+    --edge-muted: #3f3f46;
+  }
+
+  :root[data-theme="light"] {
+    /* Light Mode */
+    --background: #ffffff;
+    --surface: #f4f4f5;
+    --border-main: rgba(0, 0, 0, 0.08);
+    --text-main: #18181b;
+    --text-muted: #71717a;
+    --guide-bg-raw: #f9f9fb;
+    --accent-500: #0284c7;
+    --edge-muted: #cbd5e1;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    background-color: var(--background);
+    color: var(--text-muted);
+    /* User Request: Use muted text everywhere */
+    font-size: 14px;
+  }
+
+  * {
+    @apply border-border-main;
+  }
+}
+
+.hide-mobile {
+  @media (max-width: 768px) {
+    display: none !important;
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
