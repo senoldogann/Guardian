@@ -1,61 +1,73 @@
-# 🛡️ Guardian: Advanced Code Security & Architectural Governance
+# Guardian
+### Advanced Architectural Governance and Code Security Protocol
 
-Guardian is a proactive development supervisor designed to enforce architectural standards and detect security vulnerabilities in real-time. By utilizing a dual-engine protocol, it ensures your codebase remains clean, safe, and aligned with your system design.
+Guardian is a sophisticated development supervisor engineered to maintain system integrity through real-time architectural oversight and automated remediation. It bridges the gap between static analysis and active governance.
 
 ---
 
-## 🚀 Quick Start
+## Executive Summary
 
-Get Guardian up and running in your local environment.
+In modern software engineering, technical debt and architectural drift are the primary inhibitors of velocity. Guardian addresses these challenges by implementing a zero-trust surveillance layer over the project's codebase, ensuring that every modification aligns with the predefined system design and security standards.
 
-### 1. Prerequisites
-- **Node.js** (v18+)
-- **Rust** (v1.75+)
-- **Tauri CLI**: `npm install -g @tauri-apps/cli`
+---
 
-### 2. Installation
+## Core Operational Components
+
+### The Sentry Engine
+The Sentry Engine provides continuous, passive monitoring of the file system. It identifies anti-patterns, performance regressions, and security vulnerabilities as they are introduced. On detection of critical violations, the engine enforces a developmental lockdown, mandating immediate resolution before the progression of the development cycle.
+
+### Architect Intelligence
+Utilizing deep project context and structural awareness, the Architect Intelligence component analyzes the project's design documentation to provide verified, context-sensitive patches. This ensures that autonomous fixes do not just resolve the immediate issue but do so in a manner that respects the established architectural patterns.
+
+---
+
+## Technical Specifications
+
+- **Runtime Environment**: Built on Tauri for high-performance, low-latency system-level interaction.
+- **Frontend Architecture**: Engineered with React and TypeScript, leveraging Tailwind CSS for a refined, responsive interface.
+- **Integration Layer**: Standardized for seamless inclusion in modern full-stack workflows.
+
+---
+
+## Implementation Guide
+
+### Prerequisites
+- Node.js Environment (v18 or higher)
+- Rust Toolchain (v1.75 or higher)
+- Tauri Command Line Interface
+
+### Installation
+Initialize the environment by cloning the repository and installing the necessary dependencies:
+
 ```bash
-git clone https://github.com/your-username/guardian.git
+git clone https://github.com/senoldogann/Guardian.git
 cd guardian
 npm install
 ```
 
-### 3. Configuration
-Rename `.env.example` to `.env` and provide your API keys:
+### Environment Configuration
+Deploy the configuration template and specify the required system parameters:
+
 ```bash
 cp .env.example .env
 ```
 
-### 4. Launch
+### Local Execution
+Initiate the development environment:
+
 ```bash
 npm run tauri dev
 ```
 
 ---
 
-## ✨ Core Engines
+## Governance and Contribution
 
-### 🛡️ Sentry Engine
-- **Active Monitoring**: Watches for anti-patterns and performance bottlenecks as you code.
-- **Workflow Protection**: Automatically pauses cycles on critical violations to ensure immediate remediation.
+Guardian is an open-initiative project. We welcome contributions that align with our commitment to engineering excellence and code sovereignty.
 
-### 🧠 Architect Intelligence
-- **Context-Aware Analysis**: Deeply understands project structure and design intent.
-- **Automated Fixes**: Generates verified patches that respect the existing system architecture.
+### Licensing
+Transparently licensed under the MIT License. Detailed information is available in the LICENSE file.
 
 ---
 
-## 🛠️ Tech Stack
-
-- **Core**: Rust (Tauri) for high-performance system monitoring.
-- **Frontend**: React + TypeScript with Tailwind CSS v4.
-- **Animation**: Motion for seamless interface transitions.
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request or open an issue for any bugs or feature requests.
-
-## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Copyright 2026 Guardian Protocol. All rights reserved.

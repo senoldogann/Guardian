@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: 18
           cache: 'npm'
-          cache-dependency-path: guardian/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -25,16 +25,12 @@ jobs:
           toolchain: stable
 
       - name: Install dependencies
-        run: |
-          cd guardian
-          npm install
+        run: npm install
 
       - name: Build Web
-        run: |
-          cd guardian
-          npm run build
+        run: npm run build
 
       - name: Rust Check
         run: |
-          cd guardian/src-tauri
+          cd src-tauri
           cargo check
