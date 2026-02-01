@@ -3,6 +3,8 @@
 
 Guardian is a sophisticated development supervisor engineered to maintain system integrity through real-time architectural oversight and automated remediation. It bridges the gap between static analysis and active governance.
 
+![Guardian Dashboard](assets/screenshot.png)
+
 ---
 
 ## Executive Summary
