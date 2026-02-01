@@ -6,8 +6,14 @@ Guardian is a sophisticated development supervisor engineered to maintain system
 
 Guardian, gerçek zamanlı mimari denetim ve otomatik iyileştirme yoluyla sistem bütünlüğünü korumak için tasarlanmış gelişmiş bir geliştirme denetçisidir. Statik analiz ile aktif yönetişim arasındaki boşluğu doldurur.
 
-![Guardian Control Hub](assets/screenshot.png)
-![Guardian Real-time Monitoring](assets/monitor.png)
+<p align="center">
+  <img src="assets/screenshot.png" width="48%" />
+  <img src="assets/monitor.png" width="48%" />
+</p>
+<p align="center">
+  <img src="assets/map.png" width="48%" />
+  <img src="assets/guru.png" width="48%" />
+</p>
 
 ---
 
