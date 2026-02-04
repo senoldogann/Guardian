@@ -113,6 +113,15 @@ npx playwright install
 npm run test:e2e
 ```
 
+## PR Workflow / PR Akışı
+
+Main branch korumalıdır. Değişiklikler için önerilen akış:
+- `git switch -c feature/<kisa-aciklama>`
+- `npm run test` ve `cargo check` çalıştır
+- `git commit -m "..."`  
+- `git push -u origin feature/<kisa-aciklama>`
+- PR oluştur ve gerekli CI kontrollerinin (ör. `build-and-test`) geçmesini bekle
+
 ## Governance / Yönetişim
 
 Guardian is an open-initiative project licensed under the MIT License. / Guardian, MIT Lisansı altında lisanslanmış bir açık kaynak girişimidir.
