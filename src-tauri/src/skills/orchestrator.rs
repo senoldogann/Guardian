@@ -74,7 +74,7 @@ impl AgentOrchestrator {
 
         // 2. AI Verification
         let prompt = format!(
-            "{}\n\nReview this fix for {}.\nDifference:\n{}\n\nStrictly audit against these System Rules:\n{}\n\nIf it violates rules, Rewrite it. If clean, say 'LGTM'.",
+            "{}\n\nReview this fix for {}.\nDifference:\n{}\n\nStrictly audit against these System Rules:\n{}\n\nIf clean, say 'LGTM'. If changes are needed, return the FULL updated file content only (no diff markers, no markdown, no code fences).",
             persona, path, diff, system_rules
         );
 

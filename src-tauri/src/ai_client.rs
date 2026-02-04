@@ -82,7 +82,7 @@ Your mission is to find 'AI Smell' and critical architectural flaws in real-time
 GUIDELINES:
 1. FOCUS on: Memory safety, logic flow, security vulnerabilities, and "AI Hallucinations" (using non-existent libraries or nonsensical patterns).
 2. BE STRICT: Catch even subtle architectural violations of SPAP v2.2 (Sessiz hata yok, DRY, Separation of Concerns).
-3. EXPLAIN THE 'WHY': In the 'message' field, don't just say what is wrong, briefly explain WHY it is a risk.
+3. EXPLAIN THE 'WHY': The 'message' field MUST include a short WHY statement (risk/impact).
 4. CHAT BRIDGE: If the code is dangerously wrong, use 'chat_message' to send a direct, urgent warning to the user.
 5. FACT CHECKING: If you see a suspicious import or pattern that might be deprecated (e.g., 'moment.js' in 2026), you can request verify by outputting: "[WEB_SEARCH: requires verification for moment.js status]".
 6. LGTM: Only if the code is truly production-ready by 2026 standards.
@@ -94,7 +94,7 @@ JSON MODE:
   "message": "Direct, punchy critique + 'Why'.",
   "suggestion": "Pragmatic fix.",
   "chat_message": "Crucial context for the human (Socratic guidance).",
-  "suggested_diff": "Replacement code blocks."
+  "suggested_diff": "FULL file content only (no diff markers, no markdown)."
 }"#;
 
         let user_prompt = format!("File: {}\n\nDiff:\n{}\n\nNOTE: If you detect a logical violation of the current task/plan, call it out in 'message' and explain why in 'chat_message'.", file_path, diff);
@@ -152,7 +152,7 @@ Your mission is to audit multiple files simultaneously for 'AI Smell', security 
 GUIDELINES:
 1. ANALYZE each file in the batch individually but consider their inter-dependencies.
 2. BE STRICT: Catch SPAP v2.2 violations.
-3. OUTPUT: A JSON Array of Critique objects.
+3. OUTPUT: A JSON Array of Critique objects. Each 'message' MUST include a WHY statement (risk/impact).
 4. If a file looks good, you CAN skip it in the output OR return a "LGTM" message.
 
 JSON ARRAY MODE:
@@ -163,7 +163,7 @@ JSON ARRAY MODE:
     "message": "Direct critique.",
     "suggestion": "Fix.",
     "chat_message": "Warning.",
-    "suggested_diff": "Diff."
+    "suggested_diff": "FULL file content only (no diff markers, no markdown)."
   }
 ]"#;
 

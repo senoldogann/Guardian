@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { useState, useEffect, useRef, type ReactElement } from "react";
+import { invoke, listen } from "../lib/tauri";
 import clsx from "clsx";
 import {
     Bot,
@@ -21,7 +20,10 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface ReviewDecisionPayload {
     file_path: string;
-    decision: "Approve" | "Reject";
+    status?: "APPROVED" | "MODIFIED";
+    diff?: string;
+    message?: string;
+    decision?: "Approve" | "Reject";
 }
 
 interface ChatMessage {
@@ -37,76 +39,89 @@ interface ChatMessage {
 
 interface ChatViewProps {
     path: string;
+    autoPrompt?: string | null;
+    onAutoPromptConsumed?: () => void;
 }
 
-export function ChatView({ path }: ChatViewProps) {
+export function ChatView({ path, autoPrompt, onAutoPromptConsumed }: ChatViewProps): ReactElement {
     const [chatInput, setChatInput] = useState("");
     const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
     const [chatLoading, setChatLoading] = useState(false);
     const [appliedFixes, setAppliedFixes] = useState<Set<number>>(new Set());
+    const [rejectedFixes, setRejectedFixes] = useState<Set<number>>(new Set());
     const [guideOpen, setGuideOpen] = useState(false);
     const [sessionPaused, setSessionPaused] = useState(false);
     const sessionPausedRef = useRef(false);
+    const autoPromptRef = useRef<string | null>(null);
 
     useEffect(() => {
         sessionPausedRef.current = sessionPaused;
     }, [sessionPaused]);
 
     useEffect(() => {
-        // Listen for Review Decisions from Orchestrator
-        interface ReviewDecisionEvent {
-            payload: {
-                status: "APPROVED" | "MODIFIED";
-                file_path: string;
-                diff: string;
-                message: string;
-            };
-        }
-        
-        const unlisten = listen<ReviewDecisionEvent["payload"]>("guardian:review-decision", (event) => {
+        const unlisten = listen<ReviewDecisionPayload>("guardian:review-decision", (event) => {
             if (sessionPausedRef.current) return;
             const payload = event.payload;
 
-            setChatHistory(prev => [...prev, {
-                role: "guru",
-                content: payload.message,
-                action: {
-                    status: payload.status,
-                    file_path: payload.file_path,
-                    diff: payload.diff
-                }
-            }]);
-        });
+            const status = payload.status;
+            const diff = payload.diff;
+            const message = payload.message;
 
-        // Review Decision Listener (SPAP v2.2): Use explicit interface
-        const unlistenDecision = listen<ReviewDecisionPayload>("guardian:review-decision", (event) => {
-            if (sessionPausedRef.current) return;
-            setChatHistory((prev) => [
-                ...prev,
-                {
-                    role: "guardian",
-                    content: `Decision received for ${event.payload.file_path}: **${event.payload.decision}**`,
-                    timestamp: new Date().toLocaleTimeString(),
-                },
-            ]);
+            if (
+                (status === "APPROVED" || status === "MODIFIED") &&
+                typeof diff === "string" &&
+                typeof message === "string"
+            ) {
+                setChatHistory(prev => [...prev, {
+                    role: "guru",
+                    content: message,
+                    action: {
+                        status,
+                        file_path: payload.file_path,
+                        diff
+                    }
+                }]);
+                return;
+            }
+
+            if (payload.decision) {
+                setChatHistory((prev) => [
+                    ...prev,
+                    {
+                        role: "guardian",
+                        content: `Decision received for ${payload.file_path}: **${payload.decision}**`,
+                        timestamp: new Date().toLocaleTimeString(),
+                    },
+                ]);
+            }
         });
 
         return () => {
             unlisten.then(f => f());
-            unlistenDecision.then(f => f()); // Cleanup for the new listener
         };
     }, []);
 
-    const askGuru = async () => {
-        if (sessionPaused || !chatInput.trim() || chatLoading) return;
+    const submitPrompt = async (prompt: string, force = false): Promise<void> => {
+        if (chatLoading || !prompt.trim()) return;
+        if (!force && sessionPausedRef.current) return;
 
-        const userMsg = chatInput;
-        setChatInput("");
-        setChatHistory(prev => [...prev, { role: "user", content: userMsg }]);
+        if (!path) {
+            setChatHistory(prev => [
+                ...prev,
+                {
+                    role: "guardian",
+                    content: "Select a workspace path to ask the Guru.",
+                    timestamp: new Date().toLocaleTimeString(),
+                },
+            ]);
+            return;
+        }
+
+        setChatHistory(prev => [...prev, { role: "user", content: prompt }]);
         setChatLoading(true);
 
         try {
-            const answer = await invoke<string>("ask_guru", { path, query: userMsg });
+            const answer = await invoke<string>("ask_guru", { path, query: prompt });
             if (!sessionPausedRef.current) {
                 setChatHistory(prev => [...prev, { role: "guru", content: answer }]);
             }
@@ -127,9 +142,38 @@ export function ChatView({ path }: ChatViewProps) {
         }
     };
 
-    const confirmFix = async (index: number, filePath: string, diff: string) => {
+    const askGuru = async (): Promise<void> => {
+        if (sessionPaused || !chatInput.trim() || chatLoading) return;
+        const userMsg = chatInput;
+        setChatInput("");
+        await submitPrompt(userMsg);
+    };
+
+    useEffect(() => {
+        if (!autoPrompt) return;
+        if (autoPromptRef.current === autoPrompt) return;
+        autoPromptRef.current = autoPrompt;
+        onAutoPromptConsumed?.();
+
+        sessionPausedRef.current = false;
+        setSessionPaused(false);
+        void submitPrompt(autoPrompt, true);
+    }, [autoPrompt, onAutoPromptConsumed]);
+
+    const confirmFix = async (index: number, filePath: string, diff: string): Promise<void> => {
         try {
-            await invoke("confirm_fix", { filePath: filePath, newContent: diff });
+            if (!path) {
+                setChatHistory(prev => [
+                    ...prev,
+                    {
+                        role: "guardian",
+                        content: "Cannot apply fix: workspace path is missing.",
+                        timestamp: new Date().toLocaleTimeString(),
+                    },
+                ]);
+                return;
+            }
+            await invoke("confirm_fix", { filePath: filePath, newContent: diff, root: path });
             setAppliedFixes(prev => new Set(prev).add(index));
             setChatHistory(prev => [...prev, { role: "guru", content: `Applied fix to ${filePath.split('/').pop()} successfully! 🚀` }]);
         } catch (e) {
@@ -137,11 +181,23 @@ export function ChatView({ path }: ChatViewProps) {
         }
     };
 
-    const toggleSessionPause = () => {
+    const rejectFix = (index: number, filePath: string): void => {
+        setRejectedFixes(prev => new Set(prev).add(index));
+        setChatHistory(prev => [
+            ...prev,
+            {
+                role: "guardian",
+                content: `Rejected proposed fix for ${filePath.split('/').pop()}.`,
+                timestamp: new Date().toLocaleTimeString(),
+            },
+        ]);
+    };
+
+    const toggleSessionPause = (): void => {
         setSessionPaused((prev) => !prev);
     };
 
-    const endSession = () => {
+    const endSession = (): void => {
         setChatHistory([]);
         setAppliedFixes(new Set());
         setChatInput("");
@@ -228,6 +284,10 @@ export function ChatView({ path }: ChatViewProps) {
                                             <div className="flex items-center gap-2 text-xs text-sky-500 font-bold bg-sky-500/10 px-3 py-1.5 rounded-md border border-sky-500/20">
                                                 <CheckCircle className="w-3 h-3" /> Successfully Applied
                                             </div>
+                                        ) : rejectedFixes.has(i) ? (
+                                            <div className="flex items-center gap-2 text-xs text-rose-400 font-bold bg-rose-500/10 px-3 py-1.5 rounded-md border border-rose-500/20">
+                                                <XCircle className="w-3 h-3" /> Rejected
+                                            </div>
                                         ) : (
                                             <>
                                                 <button
@@ -236,7 +296,10 @@ export function ChatView({ path }: ChatViewProps) {
                                                 >
                                                     <CheckCircle className="w-3 h-3" /> Confirm & Apply
                                                 </button>
-                                                <button className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/70 text-xs rounded-md transition-colors flex items-center gap-1.5 cursor-pointer">
+                                                <button
+                                                    onClick={() => rejectFix(i, msg.action!.file_path)}
+                                                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/70 text-xs rounded-md transition-colors flex items-center gap-1.5 cursor-pointer"
+                                                >
                                                     <XCircle className="w-3 h-3" /> Reject
                                                 </button>
                                             </>
@@ -395,7 +458,7 @@ interface GuideOptionProps {
     onClick: () => void;
 }
 
-function GuideOption({ icon: Icon, title, desc, color, onClick }: GuideOptionProps) {
+function GuideOption({ icon: Icon, title, desc, color, onClick }: GuideOptionProps): ReactElement {
     const colorStyles = {
         sky: "bg-sky-600/10 text-sky-600 dark:text-sky-400 group-hover:bg-sky-600 dark:group-hover:text-white",
         rose: "bg-rose-600/10 text-rose-600 dark:text-rose-400 group-hover:bg-rose-600 dark:group-hover:text-white",

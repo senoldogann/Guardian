@@ -3,9 +3,10 @@ use std::path::{Path, PathBuf};
 use std::sync::mpsc::channel;
 use std::time::{Duration, Instant};
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::collections::HashMap;
 use tokio::time::sleep;
-use tokio::sync::{Semaphore};
+use tokio::sync::Semaphore;
 use crate::ai_client::OllamaClient;
 use crate::context::ProjectContext;
 use crate::executor;
@@ -18,11 +19,99 @@ use once_cell::sync::Lazy;
 use serde_json::json;
 use sha2::{Sha256, Digest};
 use hex;
+use chrono::Utc;
+use std::fs::OpenOptions;
 
 // GLOBAL STATE for active critiques to enable "real-time sync/delete"
 static ACTIVE_CRITIQUES: Lazy<Arc<Mutex<HashMap<String, crate::ai_client::Critique>>>> = Lazy::new(|| {
     Arc::new(Mutex::new(HashMap::new()))
 });
+
+const NON_LOGIC_EXTENSIONS: &[&str] = &[
+    "css", "json", "md", "svg", "lock", "log", "patch",
+    "png", "jpg", "jpeg", "gif", "ico"
+];
+
+const IGNORED_PATH_MARKERS: &[&str] = &[
+    ".git", "target", "node_modules", "_library", ".agent", ".shared", "build",
+    "dist", ".vscode", "benchmarks", ".next", "coverage", ".guardian", "docs/legacy", ".env"
+];
+
+fn is_significant_warning(critique: &crate::ai_client::Critique) -> bool {
+    let msg = critique.message.to_lowercase();
+    let suggestion = critique
+        .suggestion
+        .as_ref()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_default();
+    let combined = format!("{} {}", msg, suggestion);
+
+    let keywords = [
+        "security", "vulnerability", "exploit", "injection", "auth", "permission",
+        "leak", "secret", "credential", "token", "password", "path traversal",
+        "privilege", "sandbox", "memory", "overflow", "corruption", "data loss",
+        "deadlock", "race", "infinite", "crash", "panic", "performance", "latency",
+        "architectural", "srp", "god component", "dependency", "supply chain",
+    ];
+
+    keywords.iter().any(|k| combined.contains(k))
+}
+
+fn should_surface_critique(critique: &crate::ai_client::Critique) -> bool {
+    let severity = critique.severity.to_lowercase();
+    if severity == "critical" {
+        return true;
+    }
+    if severity == "warning" {
+        return is_significant_warning(critique);
+    }
+    false
+}
+
+#[derive(Clone, Copy)]
+struct DebounceState {
+    last_event: Instant,
+    last_emit: Instant,
+    burst_count: u32,
+}
+
+#[derive(Clone)]
+struct StallInfo {
+    file_path: String,
+    reason: String,
+}
+
+fn is_guardian_chat(path: &Path) -> bool {
+    let path_str = path.to_string_lossy();
+    path_str.ends_with(".guardian/chat.md") || path_str.ends_with(".guardian\\chat.md")
+}
+
+fn has_ignored_marker(path: &str) -> bool {
+    IGNORED_PATH_MARKERS.iter().any(|marker| path.contains(marker))
+}
+
+fn is_non_logic_extension(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| {
+            let lowered = ext.to_lowercase();
+            NON_LOGIC_EXTENSIONS.contains(&lowered.as_str())
+        })
+        .unwrap_or(false)
+}
+
+pub(crate) fn should_skip_path(path: &Path, is_chat: bool) -> bool {
+    if is_chat {
+        return false;
+    }
+
+    let path_str = path.to_string_lossy();
+    if has_ignored_marker(&path_str) {
+        return true;
+    }
+
+    is_non_logic_extension(path)
+}
 
 #[allow(dead_code)]
 pub struct WatcherState {
@@ -35,12 +124,13 @@ pub async fn start_watching(
     api_key: String,
     model: String,
     host: String,
+    shutdown: Arc<AtomicBool>,
 ) {
     let (batch_tx, batch_rx) = tokio::sync::mpsc::channel(100);
     
     let client = Arc::new(OllamaClient::new(host, model, api_key));
-    let debouncer = Arc::new(Mutex::new(HashMap::new()));
-    let _semaphore = Arc::new(Semaphore::new(2)); 
+    let debouncer: Arc<Mutex<HashMap<PathBuf, DebounceState>>> = Arc::new(Mutex::new(HashMap::new()));
+    let semaphore = Arc::new(Semaphore::new(4));
     
     let project_context = Arc::new(ProjectContext::index_path(&target_path));
     println!("Cognitive Indexing Complete: {} files found.", project_context.total_files);
@@ -68,8 +158,9 @@ pub async fn start_watching(
     let batch_client = client.clone();
     let batch_ctx = project_context.clone();
     let batch_root = target_path.clone();
+    let batch_shutdown = shutdown.clone();
     tokio::spawn(async move {
-        batch_processing_loop(batch_rx, batch_app, batch_client, batch_ctx, batch_root).await;
+        batch_processing_loop(batch_rx, batch_app, batch_client, batch_ctx, batch_root, batch_shutdown).await;
     });
 
     // UX IMPROVEMENT: Initial Scan
@@ -77,6 +168,8 @@ pub async fn start_watching(
     let scan_app = app.clone();
     let scan_tx = batch_tx.clone();
 
+    let scan_shutdown = shutdown.clone();
+    let scan_semaphore = semaphore.clone();
     tokio::task::spawn_blocking(move || {
         println!("Performing Initial Scan...");
         let walker = ignore::WalkBuilder::new(&scan_root)
@@ -86,30 +179,26 @@ pub async fn start_watching(
 
         let mut count = 0;
         for result in walker {
+            if scan_shutdown.load(Ordering::Relaxed) {
+                break;
+            }
             if count > 200 { break; } 
             if let Ok(entry) = result {
                 if entry.file_type().map(|ft| ft.is_file()).unwrap_or(false) {
                     let path = entry.path().to_path_buf();
-                    let path_str = path.to_string_lossy().to_string();
-                    
-                    // Comprehensive ignore list for non-essential files
-                    if path_str.contains(".git") || path_str.contains("target") || path_str.contains("node_modules") ||
-                       path_str.contains("_library") || path_str.contains(".agent") || path_str.contains(".shared") ||
-                       path_str.contains("build") || path_str.contains("dist") || path_str.contains(".vscode") ||
-                       path_str.contains("benchmarks") || path_str.contains(".next") || path_str.contains("coverage") ||
-                       path_str.ends_with(".css") || path_str.ends_with(".json") || path_str.ends_with(".md") ||
-                       path_str.ends_with(".patch") || path_str.ends_with(".lock") || path_str.ends_with(".log") ||
-                       path_str.contains(".guardian") {
+                    let is_chat = is_guardian_chat(&path);
+                    if should_skip_path(&path, is_chat) {
                         continue;
                     }
 
                     // Pre-process (Hash Check) -> Send to Batch
                     let a_app = scan_app.clone();
                     let a_tx = scan_tx.clone();
+                    let a_sem = scan_semaphore.clone();
                     let a_path = path;
                     
                     tokio::spawn(async move {
-                         audit_file_logic(a_path, a_app, a_tx).await;
+                         audit_file_logic(a_path, a_app, a_tx, a_sem).await;
                     });
                     
                     count += 1;
@@ -147,19 +236,30 @@ pub async fn start_watching(
     let watch_app = app.clone();
     let watch_tx = batch_tx.clone();
     let watch_debouncer = debouncer.clone();
+    let watch_semaphore = semaphore.clone();
+    let watch_shutdown = shutdown.clone();
 
     tokio::task::spawn_blocking(move || {
-        for res in rx {
-            match res {
-                Ok(event) => {
-                    handle_event(event, watch_app.clone(), watch_debouncer.clone(), watch_tx.clone());
+        use std::sync::mpsc::RecvTimeoutError;
+        loop {
+            if watch_shutdown.load(Ordering::Relaxed) {
+                break;
+            }
+
+            match rx.recv_timeout(Duration::from_millis(400)) {
+                Ok(res) => match res {
+                    Ok(event) => {
+                        handle_event(event, watch_app.clone(), watch_debouncer.clone(), watch_tx.clone(), watch_semaphore.clone());
+                    },
+                    Err(e) => println!("watch error: {:?}", e),
                 },
-                Err(e) => println!("watch error: {:?}", e),
+                Err(RecvTimeoutError::Timeout) => continue,
+                Err(RecvTimeoutError::Disconnected) => break,
             }
         }
     });
 
-    loop {
+    while !shutdown.load(Ordering::Relaxed) {
         sleep(Duration::from_secs(10)).await;
     }
 }
@@ -167,37 +267,26 @@ pub async fn start_watching(
 fn handle_event(
     event: Event, 
     app: AppHandle, 
-    debouncer: Arc<Mutex<HashMap<PathBuf, Instant>>>,
+    debouncer: Arc<Mutex<HashMap<PathBuf, DebounceState>>>,
     tx: tokio::sync::mpsc::Sender<BatchItem>,
+    semaphore: Arc<Semaphore>,
 ) {
     if !event.kind.is_modify() {
         return;
     }
 
     for path in event.paths {
-        let path_str = path.display().to_string();
-        
-        let is_chat = path_str.contains("chat.md");
-        // Comprehensive ignore list for file watcher
-        if !is_chat && (
-           path_str.contains(".git") || 
-           path_str.contains("target") || path_str.contains("node_modules") ||
-           path_str.contains("_library") || path_str.contains(".agent") || path_str.contains(".shared") ||
-           path_str.contains("build") || path_str.contains("dist") || path_str.contains(".vscode") ||
-           path_str.contains("benchmarks") || path_str.contains(".next") || path_str.contains("coverage") ||
-           path_str.ends_with(".css") || path_str.ends_with(".json") || path_str.ends_with(".md") ||
-           path_str.ends_with(".patch") || path_str.ends_with(".lock") || path_str.ends_with(".log") ||
-           path_str.contains(".guardian")
-        ) {
+        let is_chat = is_guardian_chat(&path);
+        if should_skip_path(&path, is_chat) {
             continue;
         }
 
-        if path_str.ends_with(".guardian/chat.md") {
+        if is_chat {
             println!("Neuro-Link: Chat detected!");
             app.emit("guardian:analyzing", "Neuro-Link: Processing...".to_string()).ok();
         }
         
-        // Debounce Logic
+        // Adaptive Debounce Logic (vibe coding throttling)
         let now = Instant::now();
         {
             // SAFETY: Handle std::sync::Mutex poisoning gracefully
@@ -208,18 +297,33 @@ fn handle_event(
                     poisoned.into_inner()
                 }
             };
-            
-            let cooldown = if let Some(last_time) = map.get(&path) {
-                let diff = now.duration_since(*last_time).as_secs();
-                if diff < 10 { 10 } else { 5 }
-            } else { 5 };
 
-            if let Some(last_time) = map.get(&path) {
-                if now.duration_since(*last_time).as_secs() < cooldown {
-                    return; 
-                }
+            let entry = map.entry(path.clone()).or_insert(DebounceState {
+                last_event: now,
+                last_emit: now - Duration::from_secs(60),
+                burst_count: 0,
+            });
+
+            let since_last = now.duration_since(entry.last_event);
+            if since_last < Duration::from_millis(900) {
+                entry.burst_count = entry.burst_count.saturating_add(1);
+            } else {
+                entry.burst_count = 0;
             }
-            map.insert(path.clone(), now);
+            entry.last_event = now;
+
+            let cooldown_secs = if entry.burst_count >= 5 {
+                12
+            } else if entry.burst_count >= 2 {
+                6
+            } else {
+                2
+            };
+
+            if now.duration_since(entry.last_emit) < Duration::from_secs(cooldown_secs) {
+                return;
+            }
+            entry.last_emit = now;
         }
 
         println!("Detected change: {:?}", path);
@@ -227,8 +331,9 @@ fn handle_event(
         
         let a_app = app.clone();
         let a_tx = tx.clone();
+        let a_sem = semaphore.clone();
         tokio::spawn(async move {
-            audit_file_logic(path, a_app, a_tx).await;
+            audit_file_logic(path, a_app, a_tx, a_sem).await;
         });
     }
 }
@@ -246,12 +351,16 @@ async fn batch_processing_loop(
     client: Arc<OllamaClient>,
     _context: Arc<ProjectContext>,
     root: String,
+    shutdown: Arc<AtomicBool>,
 ) {
     let mut batch: Vec<BatchItem> = Vec::new();
     let flush_interval = Duration::from_secs(5); // 5s timeout
     let mut interval = tokio::time::interval(flush_interval);
 
     loop {
+        if shutdown.load(Ordering::Relaxed) {
+            break;
+        }
         tokio::select! {
             _ = interval.tick() => {
                 if !batch.is_empty() {
@@ -286,6 +395,8 @@ async fn process_batch(
     
     // Prepare Prompt Data
     let mut prompt_data = Vec::new();
+    let mut estimated_tokens: u64 = 0;
+    let mut hash_by_path: HashMap<String, String> = HashMap::new();
     for item in batch.iter() {
         // Truncate logic
         let truncated = if item.content.len() > 10000 {
@@ -293,6 +404,8 @@ async fn process_batch(
         } else {
              item.content.clone()
         };
+        estimated_tokens += estimate_tokens(&truncated);
+        hash_by_path.insert(item.path.to_string_lossy().to_string(), item.hash.clone());
         prompt_data.push((item.path.to_string_lossy().to_string(), truncated));
     }
 
@@ -308,20 +421,61 @@ async fn process_batch(
             };
             let storage_state = app.state::<Arc<Mutex<StorageManager>>>();
             
+            let mut critical_info: Option<StallInfo> = None;
             // Process Results
             for critique in critiques {
                  // Critiques for specific files
                  let path_key = critique.file_path.clone();
-                 if critique.message.to_uppercase().trim() == "LGTM" {
+                if critique.message.to_uppercase().trim() == "LGTM" {
                       active_lock.remove(&path_key);
-                      app.emit("guardian:clear", path_key).ok();
+                      app.emit("guardian:clear", path_key.clone()).ok();
+                      append_agent_event(root, &json!({
+                          "timestamp": Utc::now().to_rfc3339(),
+                          "event": "clear",
+                          "file_path": path_key
+                      }));
+                 } else if !should_surface_critique(&critique) {
+                      if active_lock.remove(&path_key).is_some() {
+                          app.emit("guardian:clear", path_key.clone()).ok();
+                          append_agent_event(root, &json!({
+                              "timestamp": Utc::now().to_rfc3339(),
+                              "event": "clear",
+                              "file_path": path_key,
+                              "reason": "suppressed"
+                          }));
+                      }
                  } else {
                       active_lock.insert(path_key.clone(), critique.clone());
                       app.emit("guardian:critique", critique.clone()).ok();
                       append_history_log(root, &critique);
+                      append_agent_event(root, &json!({
+                          "timestamp": Utc::now().to_rfc3339(),
+                          "event": "critique",
+                          "file_path": critique.file_path,
+                          "severity": critique.severity,
+                          "message": critique.message,
+                          "suggestion": critique.suggestion,
+                          "suggested_diff": critique.suggested_diff
+                      }));
+
+                      if let Ok(storage) = storage_state.lock() {
+                          let payload = json!({
+                              "file_path": critique.file_path,
+                              "severity": critique.severity,
+                              "content_hash": hash_by_path.get(&path_key),
+                              "timestamp": Utc::now().to_rfc3339()
+                          });
+                          let _ = storage.enqueue_telemetry("critique", &payload.to_string());
+                      }
 
                       // Autonomous Verification Trigger
                       if critique.severity == "Critical" && critique.message != "LGTM" {
+                           if critical_info.is_none() {
+                               critical_info = Some(StallInfo {
+                                   file_path: critique.file_path.clone(),
+                                   reason: critique.message.clone(),
+                               });
+                           }
                            let r_clone = root.to_string();
                            let a_clone = app.clone();
                            std::thread::spawn(move || {
@@ -334,12 +488,29 @@ async fn process_batch(
                                        }
                                    },
                                    Err(err) => {
-                                       a_clone.emit("guardian:error", format!("COMPILER/LINT CONFIRMED: {}", err)).ok();
+                                       a_clone.emit("guardian:verification", format!("Verification failed: {}", err)).ok();
                                    }
                                }
                            });
-                      }
+                     }
                  }
+            }
+
+            let stale_paths: Vec<String> = active_lock
+                .keys()
+                .filter(|p| !Path::new(p.as_str()).exists())
+                .cloned()
+                .collect();
+
+            for path in stale_paths {
+                active_lock.remove(&path);
+                app.emit("guardian:clear", path.clone()).ok();
+                append_agent_event(root, &json!({
+                    "timestamp": Utc::now().to_rfc3339(),
+                    "event": "clear",
+                    "file_path": path,
+                    "reason": "missing_or_moved"
+                }));
             }
             
             // SUCCESS: Update Hashes for ALL items in batch
@@ -351,14 +522,20 @@ async fn process_batch(
                 }
             }
             
-            sync_guardian_logs(root, &active_lock);
-            app.emit("guardian:usage", json!({ "tokens": 0, "calls": batch.len() })).ok();
+            let stall = sync_guardian_logs(root, &active_lock);
+            if let Some(stall) = stall.or(critical_info) {
+                app.emit("guardian:stall-requested", json!({ "file_path": stall.file_path, "reason": stall.reason })).ok();
+            } else {
+                app.emit("guardian:stall-released", json!({})).ok();
+            }
+
+            app.emit("guardian:usage", json!({ "tokens": estimated_tokens, "calls": batch.len() })).ok();
         },
         Err(e) => {
              println!("Batch Audit Failed: {}", e);
-             app.emit("guardian:error", format!("Batch Audit Failed. Check logs. error: {}", e)).ok();
+             app.emit("guardian:warning", format!("Batch audit failed (AI response parse). {}", e)).ok();
              // Still count the usage because we made the call
-             app.emit("guardian:usage", json!({ "tokens": 0, "calls": batch.len() })).ok();
+             app.emit("guardian:usage", json!({ "tokens": estimated_tokens, "calls": batch.len() })).ok();
         }
     }
     
@@ -370,7 +547,9 @@ async fn audit_file_logic(
     path: PathBuf,
     app: AppHandle,
     tx: tokio::sync::mpsc::Sender<BatchItem>,
+    semaphore: Arc<Semaphore>,
 ) {
+    let _permit = semaphore.acquire_owned().await;
     let content_res = std::fs::read_to_string(&path);
     if let Ok(content) = content_res {
         // 1. Hash Check
@@ -405,7 +584,7 @@ async fn audit_file_logic(
     }
 }
 
-fn sync_guardian_logs(root: &str, critiques: &HashMap<String, crate::ai_client::Critique>) {
+fn sync_guardian_logs(root: &str, critiques: &HashMap<String, crate::ai_client::Critique>) -> Option<StallInfo> {
     let root_path = Path::new(root);
     let guardian_dir = root_path.join(".guardian");
     
@@ -416,13 +595,31 @@ fn sync_guardian_logs(root: &str, critiques: &HashMap<String, crate::ai_client::
     let critiques_path = guardian_dir.join("critiques.md");
     let chat_path = guardian_dir.join("chat_queue.md");
 
+    let mut critical_info: Option<StallInfo> = None;
+
     // Rewrite critiques.md
     if let Ok(mut file) = fs::File::create(&critiques_path) {
-        let _ = writeln!(file, "# Guardian Active Critiques\n*Last Updated: {:?}\n", Instant::now());
+        let _ = writeln!(file, "# Guardian Active Critiques");
+        let _ = writeln!(file, "Updated: {}\n", Utc::now().to_rfc3339());
+        let _ = writeln!(file, "```json");
         for (path, c) in critiques {
-            let _ = writeln!(file, "---\n### {}\n**Severity**: {}\n**Message**: {}\n**Suggestion**: {:?}\n", 
-                path, c.severity, c.message, c.suggestion);
+            if critical_info.is_none() && c.severity == "Critical" && c.message != "LGTM" {
+                critical_info = Some(StallInfo {
+                    file_path: path.clone(),
+                    reason: c.message.clone(),
+                });
+            }
+            let json_line = json!({
+                "file_path": path,
+                "severity": c.severity,
+                "message": c.message,
+                "suggestion": c.suggestion,
+                "chat_message": c.chat_message,
+                "suggested_diff": c.suggested_diff
+            });
+            let _ = writeln!(file, "{}", json_line);
         }
+        let _ = writeln!(file, "```\n");
     }
 
     // Rewrite chat_queue.md
@@ -434,14 +631,47 @@ fn sync_guardian_logs(root: &str, critiques: &HashMap<String, crate::ai_client::
             }
         }
     }
+
+    let stall_path = guardian_dir.join("STALL");
+    if let Some(info) = &critical_info {
+        if let Ok(mut file) = fs::File::create(&stall_path) {
+            let payload = json!({
+                "status": "stalled",
+                "file_path": info.file_path,
+                "reason": info.reason,
+                "updated_at": Utc::now().to_rfc3339()
+            });
+            let _ = writeln!(file, "{}", payload);
+        }
+    } else {
+        let _ = fs::remove_file(&stall_path);
+    }
     
     // DEFENSIVE CLEANUP: Ensure root files are gone
     let _ = fs::remove_file(root_path.join(".guardian_critiques.md"));
     let _ = fs::remove_file(root_path.join(".guardian_chat_queue.md"));
+
+    critical_info
 }
 
 fn calculate_hash(content: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(content);
     hex::encode(hasher.finalize())
+}
+
+fn append_agent_event(root: &str, payload: &serde_json::Value) {
+    let guardian_dir = Path::new(root).join(".guardian");
+    if !guardian_dir.exists() {
+        let _ = fs::create_dir_all(&guardian_dir);
+    }
+    let queue_path = guardian_dir.join("agent_queue.jsonl");
+    if let Ok(mut file) = OpenOptions::new().create(true).append(true).open(&queue_path) {
+        let _ = writeln!(file, "{}", payload);
+    }
+}
+
+fn estimate_tokens(content: &str) -> u64 {
+    let rough_tokens = (content.len() as f64 / 4.0).ceil() as u64;
+    rough_tokens.max(1)
 }

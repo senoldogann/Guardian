@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useEffect } from 'react';
+import { useCallback, useMemo, useEffect, type ReactElement } from 'react';
 import {
     ReactFlow,
     useNodesState,
@@ -25,7 +25,11 @@ type FileNodeData = {
 };
 
 // --- Layout Logic (Dagre) ---
-const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => {
+const getLayoutedElements = (
+    nodes: Node[],
+    edges: Edge[],
+    direction = 'LR'
+): { nodes: Node[]; edges: Edge[] } => {
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
 
@@ -70,7 +74,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
 };
 
 // --- Custom Node Component ---
-const CollapsibleNode = ({ id, data }: { id: string, data: FileNodeData }) => {
+const CollapsibleNode = ({ id, data }: { id: string, data: FileNodeData }): ReactElement => {
     return (
         <div className={`
             flex items-center gap-2 px-3 py-2 rounded-lg border shadow-sm bg-white dark:bg-zinc-900 min-w-[160px] cursor-pointer hover:shadow-md transition-all
@@ -107,7 +111,11 @@ const nodeTypes = {
 
 // --- Graph Builder Logic ---
 // Revised to be simpler: Just build the flat list, we manage visibility in the View
-const buildGraphFromPaths = (paths: string[], rootLabel: string = 'Project Root') => {
+const buildGraphFromPaths = (
+    paths: string[],
+    rootLabel: string = 'Project Root',
+    autoExpandAll: boolean = false
+): { nodes: Node[]; edges: Edge[] } => {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
     const createdNodes = new Set<string>();
@@ -116,7 +124,7 @@ const buildGraphFromPaths = (paths: string[], rootLabel: string = 'Project Root'
     nodes.push({
         id: rootId,
         type: 'custom',
-        data: { label: rootLabel, type: 'folder', expanded: true }, // Root always expanded initially? No, let's control logic in component
+        data: { label: rootLabel, type: 'folder', expanded: true },
         position: { x: 0, y: 0 }
     });
     createdNodes.add(rootId);
@@ -136,9 +144,9 @@ const buildGraphFromPaths = (paths: string[], rootLabel: string = 'Project Root'
                     data: {
                         label: part,
                         type: isFile ? 'file' : 'folder',
-                        expanded: false // Default collapsed
+                        expanded: autoExpandAll && !isFile
                     },
-                    hidden: index > 0, // Hide deeper levels initially (Depth 0 = Root, Depth 1 = First Level Visible)
+                    hidden: autoExpandAll ? false : index > 0,
                     position: { x: 0, y: 0 }
                 });
 
@@ -161,7 +169,15 @@ const buildGraphFromPaths = (paths: string[], rootLabel: string = 'Project Root'
 };
 
 // --- Inner Component that uses ReactFlow Store ---
-const DiagramContent = ({ filePaths, rootName }: { filePaths?: string[], rootName?: string }) => {
+const DiagramContent = ({
+    filePaths,
+    rootName,
+    autoExpandAll,
+}: {
+    filePaths?: string[];
+    rootName?: string;
+    autoExpandAll?: boolean;
+}): ReactElement => {
     const { fitView } = useReactFlow();
 
     // Demo Paths if none provided
@@ -172,19 +188,29 @@ const DiagramContent = ({ filePaths, rootName }: { filePaths?: string[], rootNam
         "src-tauri/src/main.rs",
     ], [filePaths]);
 
+    const shouldExpandAll = autoExpandAll ?? paths.length <= 300;
+
     // Initialize Graph
     const { initialNodes, initialEdges } = useMemo(() => {
-        const { nodes, edges } = buildGraphFromPaths(paths, rootName || "Project Root");
+        const { nodes, edges } = buildGraphFromPaths(paths, rootName || "Project Root", shouldExpandAll);
         const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, edges, 'LR');
         // Root should be expanded by default so we can see children
         const root = layoutedNodes.find(n => n.id === 'root');
         if (root) root.data.expanded = true;
 
         return { initialNodes: layoutedNodes, initialEdges: layoutedEdges };
-    }, [paths]);
+    }, [paths, rootName, shouldExpandAll]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-    const [edges, , onEdgesChange] = useEdgesState(initialEdges);
+    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+    useEffect(() => {
+        setNodes(initialNodes);
+        setEdges(initialEdges);
+        window.requestAnimationFrame(() => {
+            fitView({ duration: 600, padding: 0.2 });
+        });
+    }, [initialNodes, initialEdges, setNodes, setEdges, fitView]);
 
     // Re-layout when hidden states change? No, we handle that in toggle
 
@@ -312,11 +338,19 @@ const DiagramContent = ({ filePaths, rootName }: { filePaths?: string[], rootNam
 };
 
 // --- Main Export ---
-export default function DiagramView({ filePaths, rootName }: { filePaths?: string[], rootName?: string }) {
+export default function DiagramView({
+    filePaths,
+    rootName,
+    autoExpandAll,
+}: {
+    filePaths?: string[];
+    rootName?: string;
+    autoExpandAll?: boolean;
+}): ReactElement {
     return (
         <div className="w-full h-full bg-background transition-colors duration-300">
             <ReactFlowProvider>
-                <DiagramContent filePaths={filePaths} rootName={rootName} />
+                <DiagramContent filePaths={filePaths} rootName={rootName} autoExpandAll={autoExpandAll} />
             </ReactFlowProvider>
         </div>
     );

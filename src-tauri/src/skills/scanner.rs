@@ -1,6 +1,8 @@
 use ignore::WalkBuilder;
 use std::sync::Arc;
+use std::path::Path;
 use crate::kernel::bus::{EventBus, GuardianEvent};
+use crate::watcher::should_skip_path;
 
 #[allow(dead_code)]
 pub struct ProjectScanner {
@@ -39,8 +41,8 @@ impl ProjectScanner {
             if let Ok(entry) = result {
                 if entry.file_type().map(|f| f.is_file()).unwrap_or(false) {
                     let path = entry.path().to_string_lossy().to_string();
-                    
-                    if path.contains(".git") || path.contains("target") || path.contains("node_modules") {
+
+                    if should_skip_path(Path::new(&path), false) {
                         continue;
                     }
                     if !path.ends_with(".rs") && !path.ends_with(".tsx") && !path.ends_with(".ts") {

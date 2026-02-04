@@ -1,4 +1,5 @@
-import { invoke } from "@tauri-apps/api/core";
+import type { ReactElement, MouseEvent } from "react";
+import { invoke } from "../lib/tauri";
 import clsx from "clsx";
 import {
     ShieldAlert,
@@ -28,7 +29,7 @@ interface CritiqueAccordionRowProps {
     onFix: () => void; // Clean Code: Callback for UI update
 }
 
-export function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onFix }: CritiqueAccordionRowProps) {
+export function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onFix }: CritiqueAccordionRowProps): ReactElement {
     const isCritical = log.severity === "Critical";
     const isWarning = log.severity === "Warning";
 
@@ -47,7 +48,7 @@ export function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onFix }
             ? `${parentDir}/`
             : "./";
 
-    const applyFix = async (e: React.MouseEvent) => {
+    const applyFix = async (e: MouseEvent): Promise<void> => {
         e.stopPropagation();
         if (!log.suggested_diff) return;
         try {

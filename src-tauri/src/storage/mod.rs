@@ -53,6 +53,17 @@ impl StorageManager {
             [],
         )?;
 
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS telemetry_queue (
+                id INTEGER PRIMARY KEY,
+                event_type TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                status TEXT DEFAULT 'pending',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )",
+            [],
+        )?;
+
         Ok(Self { conn })
     }
 
@@ -125,6 +136,14 @@ impl StorageManager {
         self.conn.execute(
             "UPDATE issues SET status = 'Fixed' WHERE file_path = ?1",
             params![path],
+        )?;
+        Ok(())
+    }
+
+    pub fn enqueue_telemetry(&self, event_type: &str, payload: &str) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO telemetry_queue (event_type, payload, status) VALUES (?1, ?2, 'pending')",
+            params![event_type, payload],
         )?;
         Ok(())
     }

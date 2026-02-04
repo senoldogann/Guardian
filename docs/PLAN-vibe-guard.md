@@ -4,25 +4,25 @@
 Transform Guardian into a high-authority, cost-efficient security guard for real-time AI development sessions.
 
 ## Phase 1: Context & Discovery
-- [ ] Read `watcher.rs` and `ai_client.rs` to map current analysis flow. → Verify: Done.
-- [ ] Identify all non-logic file extensions to be excluded from auto-scan. → Verify: List created.
+- [x] Read `watcher.rs` and `ai_client.rs` to map current analysis flow. → Verify: Done.
+- [x] Identify all non-logic file extensions to be excluded from auto-scan. → Verify: List created (css/json/md/svg/lock/log/patch/images).
 
 ## Phase 2: Backend Optimization (Efficiency)
-- [ ] Implement `LogicFilter` in `watcher.rs`: Skip `.css`, `.json`, `.md`, `.svg` by default. → Verify: Only code changes trigger AI.
-- [ ] Implement `AdaptiveDebounce`: Throttling based on character change frequency to batch edits during "vibe coding" sessions. → Verify: Reduced AI call count during heavy typing.
+- [x] Implement `LogicFilter` in `watcher.rs`: Skip `.css`, `.json`, `.md`, `.svg` by default. → Verify: Only code changes trigger AI.
+- [x] Implement `AdaptiveDebounce`: Throttling based on change frequency to batch edits during "vibe coding" sessions. → Verify: Reduced AI call count during heavy typing.
 
 ## Phase 3: High-Authority Persona & Handshake
-- [ ] Update `ai_client.rs` prompt to strictly enforce SPAP v2.2 and "Architect's Why". (Implemented, but needs refinement). → Verify: Critiques are educational.
-- [ ] Ensure `.guardian/STALL` and `.guardian/critiques.md` are formatted for AI Assistant consumption. → Verify: Handshake bridge works.
+- [x] Update `ai_client.rs` prompt to strictly enforce SPAP v2.2 and "Architect's Why". → Verify: Critiques are educational.
+- [x] Ensure `.guardian/STALL` and `.guardian/critiques.md` are formatted for AI Assistant consumption. → Verify: Handshake bridge works.
 
 ## Phase 4: Frontend (Visibility & Metrics)
-- [ ] Add `TokenUsageTracker` state in `App.tsx`. → Verify: State tracks count.
-- [ ] Create `CostMetric` component in UI. → Verify: User sees usage.
-- [ ] Implement "Critical Stall Overlay" for high-severity issues. → Verify: UI visually "stops" the user on critical errors.
+- [x] Add `TokenUsageTracker` state in `App.tsx`. → Verify: State tracks count.
+- [x] Create `CostMetric` component in UI. → Verify: User sees usage.
+- [x] Implement "Critical Stall Overlay" for high-severity issues. → Verify: UI visually "stops" the user on critical errors.
 
 ## Phase 5: Verification (Final Audit)
-- [ ] Run `cargo check` and `npm run build`.
-- [ ] Execute `security_scan.py` and `lint_runner.py`.
+- [x] Run `cargo check` and `npm run build`.
+- [x] Execute `security_scan.py` and `lint_runner.py`.
 - [ ] Manual "Vibe Coding" test to verify cost savings.
 
 ## Done When

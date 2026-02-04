@@ -5,6 +5,7 @@ mod ai_client;
 mod executor;
 mod context;
 mod config;
+mod auth;
 #[cfg(test)]
 mod tests_watcher;
 mod patcher;
@@ -16,21 +17,147 @@ mod history_logger;
 
 use tauri::AppHandle;
 use std::sync::{Mutex, Arc};
+use std::sync::atomic::{AtomicBool, Ordering};
 use anyhow::{Context, Result as AnyhowResult};
+use serde::Serialize;
+
+struct WatcherSupervisor {
+    shutdown: Arc<AtomicBool>,
+    handle: Mutex<Option<tauri::async_runtime::JoinHandle<()>>>,
+}
+
+struct AuthState {
+    session: Mutex<Option<auth::github::AuthSession>>,
+}
+
+impl AuthState {
+    fn new() -> Self {
+        Self {
+            session: Mutex::new(None),
+        }
+    }
+
+    fn set_session(&self, session: auth::github::AuthSession) {
+        if let Ok(mut guard) = self.session.lock() {
+            *guard = Some(session);
+        }
+    }
+
+    fn clear(&self) {
+        if let Ok(mut guard) = self.session.lock() {
+            *guard = None;
+        }
+    }
+
+    fn get_user(&self) -> Option<auth::github::GithubUser> {
+        self.session
+            .lock()
+            .ok()
+            .and_then(|guard| guard.as_ref().map(|s| s.user.clone()))
+    }
+}
+
+#[derive(Serialize)]
+struct AuthSessionView {
+    user: auth::github::GithubUser,
+}
+
+impl WatcherSupervisor {
+    fn new() -> Self {
+        Self {
+            shutdown: Arc::new(AtomicBool::new(false)),
+            handle: Mutex::new(None),
+        }
+    }
+
+    fn start(&self, app: AppHandle, path: String, api_key: String, model: String, host: String) {
+        self.stop();
+        self.shutdown.store(false, Ordering::Relaxed);
+
+        let shutdown = self.shutdown.clone();
+        let handle = tauri::async_runtime::spawn(async move {
+            watcher::start_watching(app, path, api_key, model, host, shutdown).await;
+        });
+
+        if let Ok(mut guard) = self.handle.lock() {
+            *guard = Some(handle);
+        }
+    }
+
+    fn stop(&self) {
+        self.shutdown.store(true, Ordering::Relaxed);
+        if let Ok(mut guard) = self.handle.lock() {
+            if let Some(handle) = guard.take() {
+                handle.abort();
+            }
+        }
+    }
+}
 
 
 #[tauri::command]
-async fn start_monitoring(app: AppHandle, path: String) -> Result<(), String> {
+async fn start_monitoring(
+    app: AppHandle,
+    path: String,
+    watcher: tauri::State<'_, WatcherSupervisor>,
+) -> Result<(), String> {
+    let path_buf = std::path::Path::new(&path);
+    if !path_buf.exists() {
+        return Err("Workspace path does not exist.".to_string());
+    }
+    if !path_buf.is_dir() {
+        return Err("Workspace path is not a directory.".to_string());
+    }
+
     println!("Starting monitoring on: {}", path);
     let api_key = config::api_key().map_err(|e| e.to_string())?;
     let model = config::DEFAULT_MODEL.to_string();
     let host = config::DEFAULT_HOST.to_string();
     
-    tauri::async_runtime::spawn(async move {
-        watcher::start_watching(app, path, api_key, model, host).await;
-    });
+    watcher.start(app, path, api_key, model, host);
 
     Ok(())
+}
+
+#[tauri::command]
+async fn stop_monitoring(watcher: tauri::State<'_, WatcherSupervisor>) -> Result<(), String> {
+    watcher.stop();
+    Ok(())
+}
+
+#[tauri::command]
+async fn start_github_login() -> Result<auth::github::DeviceCodeResponse, String> {
+    let client_id = config::github_client_id().map_err(|e| e.to_string())?;
+    auth::github::request_device_code(&client_id)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn complete_github_login(
+    device_code: String,
+    auth_state: tauri::State<'_, AuthState>,
+) -> Result<auth::github::GithubUser, String> {
+    let client_id = config::github_client_id().map_err(|e| e.to_string())?;
+    let client_secret = config::github_client_secret();
+    let session = auth::github::complete_device_flow(&client_id, client_secret.as_deref(), &device_code)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let user = session.user.clone();
+    auth_state.set_session(session);
+    Ok(user)
+}
+
+#[tauri::command]
+async fn logout_github(auth_state: tauri::State<'_, AuthState>) -> Result<(), String> {
+    auth_state.clear();
+    Ok(())
+}
+
+#[tauri::command]
+async fn get_auth_session(auth_state: tauri::State<'_, AuthState>) -> Result<Option<AuthSessionView>, String> {
+    Ok(auth_state.get_user().map(|user| AuthSessionView { user }))
 }
 
 #[tauri::command]
@@ -50,22 +177,10 @@ async fn apply_fix(
     Ok("Governance Review Initiated...".to_string())
 }
 
-// request_fix_review is now redundant if apply_fix does the same thing, 
-// but keeping it if we want explicit separation later. 
-// For now, let's strictly use apply_fix as the entry point from UI to keep UI changes minimal.
 #[tauri::command]
-async fn request_fix_review(state_bus: tauri::State<'_, Arc<kernel::bus::EventBus>>, file_path: String, new_content: String) -> Result<String, String> {
-     state_bus.publish(kernel::bus::GuardianEvent::RequestReview { 
-        file_path: file_path.clone(), 
-        diff: new_content 
-    }).await;
-    Ok("Review Started".to_string())
-}
-
-#[tauri::command]
-async fn confirm_fix(file_path: String, new_content: String) -> Result<String, String> {
+async fn confirm_fix(file_path: String, new_content: String, root: String) -> Result<String, String> {
     println!("Autopilot: Fix Confirmed. Applying to {}", file_path);
-    patcher::apply_patch(&file_path, &new_content)
+    patcher::apply_patch(&file_path, &new_content, &root)
         .map_err(|e| e.to_string())
 }
 
@@ -82,6 +197,11 @@ async fn ask_guru(path: String, query: String) -> Result<String, String> {
 
     // 3. Ask
     client.ask_question(&context, &query).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn ping() -> Result<String, String> {
+    Ok("pong".to_string())
 }
 
 #[tauri::command]
@@ -128,6 +248,8 @@ pub fn run() -> AnyhowResult<()> {
     tauri::Builder::default()
         .manage(storage) 
         .manage(bus) // Manage Bus so commands can use it
+        .manage(WatcherSupervisor::new())
+        .manage(AuthState::new())
         .setup(move |app| {
             let handle = app.handle().clone();
             
@@ -152,7 +274,20 @@ pub fn run() -> AnyhowResult<()> {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![start_monitoring, apply_fix, ask_guru, search_web, request_fix_review, confirm_fix, get_project_context])
+        .invoke_handler(tauri::generate_handler![
+            start_monitoring,
+            stop_monitoring,
+            start_github_login,
+            complete_github_login,
+            logout_github,
+            get_auth_session,
+            apply_fix,
+            ask_guru,
+            search_web,
+            confirm_fix,
+            ping,
+            get_project_context
+        ])
         .run(tauri::generate_context!())
         .context("error while running tauri application")?;
 
@@ -201,8 +336,9 @@ mod tests {
 
         let new_content = "Patched Content";
         let path_str = file_path.to_str().unwrap();
-        
-        let res = patcher::apply_patch(path_str, new_content);
+
+        let root = env::current_dir().unwrap();
+        let res = patcher::apply_patch(path_str, new_content, root.to_str().unwrap());
         assert!(res.is_ok(), "Patch failed: {:?}", res);
 
         let final_content = fs::read_to_string(&file_path).unwrap();
@@ -214,7 +350,8 @@ mod tests {
 
     #[test]
     fn test_patcher_file_not_found() {
-        let res = patcher::apply_patch("/tmp/this_file_does_not_exist_12345.txt", "content");
+        let root = std::env::current_dir().unwrap();
+        let res = patcher::apply_patch("/tmp/this_file_does_not_exist_12345.txt", "content", root.to_str().unwrap());
         assert!(res.is_err());
         let err_msg = res.unwrap_err().to_string();
         assert!(err_msg.contains("Security Violation"));

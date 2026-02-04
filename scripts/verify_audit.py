@@ -2,8 +2,10 @@ import json
 import os
 import sys
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-def analyze_history(root_path):
+
+def analyze_history(root_path: str) -> None:
     history_path = os.path.join(root_path, ".guardian", "history.jsonl")
     
     if not os.path.exists(history_path):
@@ -12,15 +14,15 @@ def analyze_history(root_path):
 
     print(f"🔍 Analyzing Log: {history_path}")
     
-    sessions = []
-    current_session = []
-    last_time = None
+    sessions: List[List[Dict[str, Any]]] = []
+    current_session: List[Dict[str, Any]] = []
+    last_time: Optional[datetime] = None
 
-    with open(history_path, 'r') as f:
+    with open(history_path, "r", encoding="utf-8") as f:
         for line in f:
             try:
                 entry = json.loads(line)
-                timestamp = datetime.fromisoformat(entry['timestamp'].replace('Z', '+00:00'))
+                timestamp = datetime.fromisoformat(entry["timestamp"].replace("Z", "+00:00"))
                 
                 # Split sessions if > 1 minute gap
                 if last_time and (timestamp - last_time).total_seconds() > 60:
@@ -29,7 +31,7 @@ def analyze_history(root_path):
                 
                 current_session.append(entry)
                 last_time = timestamp
-            except Exception as e:
+            except Exception:
                 pass
     
     if current_session:

@@ -30,6 +30,8 @@ Guardian, gerçek zamanlı mimari denetim ve otomatik iyileştirme yoluyla siste
 ### Sentry Engine / Sentry Motoru
 **[EN]** The Sentry Engine provides continuous, passive monitoring of the file system. It identifies anti-patterns, performance regressions, and security vulnerabilities as they are introduced. On detection of critical violations, the engine enforces a developmental lockdown.
 
+**[EN]** AI editor integration: Guardian writes structured events to `.guardian/agent_queue.jsonl` so AI coding agents can consume real-time critiques and resolution signals.
+
 **[TR]** Sentry Motoru, dosya sisteminin sürekli ve pasif olarak izlenmesini sağlar. Anti-pattern'leri, performans düşüşlerini ve güvenlik açıklarını oluştukları anda tespit eder. Kritik ihlaller saptandığında, sistem geliştirme döngüsünü askıya alarak güvenliği sağlar.
 
 ### Architect Intelligence / Mimari Zeka
@@ -44,6 +46,18 @@ Guardian, gerçek zamanlı mimari denetim ve otomatik iyileştirme yoluyla siste
 - **Runtime**: Built on Tauri for high-performance system interaction. / Yüksek performanslı sistem etkileşimi için Tauri üzerine inşa edilmiştir.
 - **Frontend**: Engineered with React, TypeScript, and Tailwind CSS v4. / React, TypeScript ve Tailwind CSS v4 ile geliştirilmiştir.
 - **Security**: Real-time diff analysis and automated policy enforcement. / Gerçek zamanlı diff analizi ve otomatik politika uygulama.
+
+---
+
+## Desktop-only Mode (Web Unsupported) / Masaüstü-odaklı Mod (Web Desteklenmez)
+
+- **GitHub Login**: Device Flow ile giriş (env: `GITHUB_CLIENT_ID`).
+- **Offline-first Telemetry**: Metadata-only (path + hash + severity) yerel kuyrukta tutulur.
+- **Realtime Monitoring**: İzleme daima yerelde çalışır, bulut bağlantısı opsiyoneldir.
+- **Security Headers**: Üretim reverse proxy için `nginx.conf` şablonu hazırdır.
+- **Web UI**: Sadece dahili UI regresyon testleri için; ürün olarak desteklenmez.
+- **Monitoring UI**: İzleme aktifken orta alanda canlı aktivite animasyonu görünür.
+- **Project Map**: 300 dosyaya kadar otomatik genişler; daha büyük projelerde performans için kademeli görünür.
 
 ---
 
@@ -66,12 +80,38 @@ npm install
 cp .env.example .env
 ```
 
+Env değişkenleri:
+- `GUARDIAN_API_KEY` (AI kritik çağrıları için)
+- `TAVILY_API_KEYS` (web arama yedekleri)
+- `GITHUB_CLIENT_ID` (GitHub login için)
+- `GITHUB_CLIENT_SECRET` (opsiyonel, GitHub login için)
+
 ### Execution / Çalıştırma
 ```bash
 npm run tauri dev
 ```
 
+Not: `npm run dev` yalnızca UI/regresyon kontrolleri için uygundur; gerçek kullanım masaüstü uygulamasındadır.
+
 ---
+
+## Testing / Testler
+
+### Unit + Integration
+```bash
+npm run test
+```
+
+### Coverage
+```bash
+npm run test:coverage
+```
+
+### E2E (Playwright)
+```bash
+npx playwright install
+npm run test:e2e
+```
 
 ## Governance / Yönetişim
 
