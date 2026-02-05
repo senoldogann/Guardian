@@ -45,6 +45,7 @@ function App(): ReactElement {
   const [stallOverlayOpen, setStallOverlayOpen] = useState(false);
   const [stallBannerVisible, setStallBannerVisible] = useState(true);
   const stallSignatureRef = useRef<string | null>(null);
+  const stallSignature = stallSignatureRef.current ?? "";
   const [pendingGuruPrompt, setPendingGuruPrompt] = useState<string | null>(null);
   const [usage, setUsage] = useState({ tokens: 0, calls: 0 });
   const [context, setContext] = useState<ProjectContext | null>(null);
@@ -361,6 +362,7 @@ function App(): ReactElement {
   return (
     <div className="flex h-screen w-full bg-background text-text-main flex-col font-sans overflow-hidden transition-colors duration-300">
       <StallOverlay
+        key={stallSignature}
         stalled={stalled}
         open={stallOverlayOpen}
         onResolve={() => {
