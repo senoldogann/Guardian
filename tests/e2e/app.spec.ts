@@ -46,7 +46,7 @@ test.describe("Settings", () => {
 
     // Switch to Updates tab
     await page.getByRole("button", { name: /Updates/i }).click();
-    await expect(page.getByText("Provide an update feed URL")).toBeVisible();
+    await expect(page.getByText("Updates are delivered from GitHub Releases")).toBeVisible();
 
     // Switch to Export tab
     await page.getByRole("button", { name: /Export/i }).click();
