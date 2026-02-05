@@ -2,7 +2,7 @@ use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::channel;
 use std::time::{Duration, Instant};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::collections::HashMap;
 use tokio::time::sleep;
@@ -25,8 +25,9 @@ use std::fs::OpenOptions;
 use tracing::{info, warn, error, debug};
 
 // GLOBAL STATE for active critiques to enable "real-time sync/delete"
-static ACTIVE_CRITIQUES: Lazy<Arc<Mutex<HashMap<String, crate::ai_client::Critique>>>> = Lazy::new(|| {
-    Arc::new(Mutex::new(HashMap::new()))
+// OPTIMIZATION: Using RwLock instead of Mutex for better read concurrency
+static ACTIVE_CRITIQUES: Lazy<Arc<RwLock<HashMap<String, crate::ai_client::Critique>>>> = Lazy::new(|| {
+    Arc::new(RwLock::new(HashMap::new()))
 });
 
 const NON_LOGIC_EXTENSIONS: &[&str] = &[
@@ -141,7 +142,7 @@ pub async fn start_watching(
 ) {
     let (batch_tx, batch_rx) = tokio::sync::mpsc::channel(100);
     
-    let client = match AiClient::new(provider_id, host, model, api_key) {
+    let client = match AiClient::new(provider_id, host, model, api_key.into()) {
         Ok(client) => Arc::new(client),
         Err(err) => {
             error!(target: "guardian::watcher", "Failed to init AI client: {}", err);
@@ -222,7 +223,7 @@ pub async fn start_watching(
                     });
                     
                     count += 1;
-                    std::thread::sleep(Duration::from_millis(20)); // Gentle pacing
+                    std::thread::sleep(Duration::from_millis(20));
                 }
             }
         }
@@ -482,10 +483,11 @@ fn handle_critiques(
     critiques: Vec<crate::ai_client::Critique>,
     estimated_tokens: u64,
 ) {
-    let mut active_lock = match ACTIVE_CRITIQUES.lock() {
+    // OPTIMIZATION: Use write lock only when necessary
+    let mut active_lock = match ACTIVE_CRITIQUES.write() {
         Ok(guard) => guard,
         Err(poisoned) => {
-            warn!(target: "guardian::watcher", "ACTIVE_CRITIQUES mutex poisoned, recovering");
+            warn!(target: "guardian::watcher", "ACTIVE_CRITIQUES rwlock poisoned, recovering");
             poisoned.into_inner()
         }
     };
@@ -613,6 +615,18 @@ async fn audit_file_logic(
     semaphore: Arc<Semaphore>,
 ) {
     let _permit = semaphore.acquire_owned().await;
+
+    // PII Filter: Skip sensitive files
+    if should_exclude_file(&path) {
+        debug!(
+            target: "guardian::watcher",
+            "Skipping sensitive file: {}",
+            safe_path_label(&path)
+        );
+        app.emit("guardian:info", format!("Skipped (Sensitive): {:?}", path.file_name().unwrap_or_default())).ok();
+        return;
+    }
+
     let content_res = tokio::fs::read_to_string(&path).await;
     if let Ok(content) = content_res {
         // 1. Hash Check
@@ -764,10 +778,43 @@ fn build_prompt_data(
     (prompt_data, estimated_tokens, hash_by_path)
 }
 
+const SENSITIVE_FILE_NAMES: &[&str] = &[".env", ".env.local", ".env.production", "config.json", "secrets.yaml", "secrets.yml", ".credentials", "credentials.json"];
+const SENSITIVE_EXTENSIONS: &[&str] = &[".key", ".pem", ".p12", ".pfx", ".pkcs12", ".jks", ".keystore"];
+
+fn should_exclude_file(path: &Path) -> bool {
+    if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
+        if SENSITIVE_FILE_NAMES.iter().any(|&name| file_name == name || file_name.ends_with(name)) {
+            return true;
+        }
+    }
+    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+        if SENSITIVE_EXTENSIONS.iter().any(|&e| ext.eq_ignore_ascii_case(e)) {
+            return true;
+        }
+    }
+    false
+}
+
+fn filter_pii(content: &str) -> String {
+    use regex::Regex;
+    lazy_static::lazy_static! {
+        static ref API_KEY_RE: Regex = Regex::new(r"[A-Za-z0-9_-]{20,}").unwrap();
+        static ref EMAIL_RE: Regex = Regex::new(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}").unwrap();
+        static ref PHONE_RE: Regex = Regex::new(r"\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b").unwrap();
+    }
+
+    let mut filtered = content.to_string();
+    filtered = API_KEY_RE.replace_all(&filtered, "[REDACTED_API_KEY]").to_string();
+    filtered = EMAIL_RE.replace_all(&filtered, "[REDACTED_EMAIL]").to_string();
+    filtered = PHONE_RE.replace_all(&filtered, "[REDACTED_PHONE]").to_string();
+    filtered
+}
+
 fn truncate_content(content: &str) -> String {
     let max_content_lines = config::max_content_lines();
     let max_content_chars = config::max_content_chars();
-    let mut lines: Vec<&str> = content.lines().collect();
+    let filtered = filter_pii(content);
+    let mut lines: Vec<&str> = filtered.lines().collect();
     if lines.len() > max_content_lines {
         lines.truncate(max_content_lines);
     }

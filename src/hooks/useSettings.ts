@@ -57,34 +57,34 @@ export interface UseSettingsReturn {
   providerModels: string[];
   providerModelLoading: boolean;
   providerModelError: string | null;
-  
+
   // API Key
   apiKeyStatus: ApiKeyStatus | null;
   apiKeyInput: string;
   apiKeyMasked: boolean;
   apiKeyError: string | null;
   apiKeySaving: boolean;
-  
+
   // Tavily
   tavilyKeyStatus: TavilyKeyStatus | null;
   tavilyKeyInput: string;
   tavilyKeyMasked: boolean;
   tavilyKeyError: string | null;
   tavilyKeySaving: boolean;
-  
+
   // Web Search
   webSearchEnabled: boolean;
-  
+
   // Updates
   updateInfo: UpdateCheckResult | null;
   updateDismissed: boolean;
   updateInstalling: boolean;
   updateError: string | null;
   updateChecking: boolean;
-  
+
   // Tab
   settingsTab: SettingsTab;
-  
+
   // Actions
   setSettingsTab: (tab: SettingsTab) => void;
   setProviderDraft: React.Dispatch<React.SetStateAction<ProviderConfig | null>>;
@@ -107,7 +107,7 @@ export interface UseSettingsReturn {
   setUpdateDismissed: React.Dispatch<React.SetStateAction<boolean>>;
   checkForUpdates: () => Promise<void>;
   installUpdate: () => Promise<void>;
-  
+
   // Derived
   providerLabel: string;
   requiresApiKey: boolean;
@@ -119,7 +119,7 @@ export function useSettings(
   settingsOpen = false
 ): UseSettingsReturn {
   const isDesktop = isTauriRuntime();
-  
+
   // Provider state
   const [providerDraft, setProviderDraft] = useState<ProviderConfig | null>(null);
   const [providerError, setProviderError] = useState<string | null>(null);
@@ -129,21 +129,21 @@ export function useSettings(
   const [providerModelError, setProviderModelError] = useState<string | null>(null);
   const providerModelCacheRef = useRef<Map<string, string[]>>(new Map());
   const providerIdentityRef = useRef<{ id: string; base_url: string } | null>(null);
-  
+
   // API Key state
   const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus | null>(null);
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [apiKeyMasked, setApiKeyMasked] = useState(false);
   const [apiKeyError, setApiKeyError] = useState<string | null>(null);
   const [apiKeySaving, setApiKeySaving] = useState(false);
-  
+
   // Tavily state
   const [tavilyKeyStatus, setTavilyKeyStatus] = useState<TavilyKeyStatus | null>(null);
   const [tavilyKeyInput, setTavilyKeyInput] = useState("");
   const [tavilyKeyMasked, setTavilyKeyMasked] = useState(false);
   const [tavilyKeyError, setTavilyKeyError] = useState<string | null>(null);
   const [tavilyKeySaving, setTavilyKeySaving] = useState(false);
-  
+
   // Web Search state
   const [webSearchEnabled, setWebSearchEnabled] = useState(() => {
     if (typeof window !== "undefined") {
@@ -151,14 +151,14 @@ export function useSettings(
     }
     return false;
   });
-  
+
   // Update state
   const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
   const [updateInstalling, setUpdateInstalling] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [updateChecking, setUpdateChecking] = useState(false);
-  
+
   // Tab state
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("provider");
 
@@ -185,11 +185,11 @@ export function useSettings(
 
   // Load API key status when needed
   useEffect(() => {
-    if (!isDesktop || !settingsOpen) return;
+    if (!isDesktop || !settingsOpen || !providerDraft) return;
     const loadApiKeyStatus = async (): Promise<void> => {
       try {
         const res = await invoke<ApiKeyStatus>("get_api_key_status", {
-          providerId: providerDraft?.provider_id,
+          providerId: providerDraft.provider_id,
         });
         applyApiKeyStatus(res);
       } catch (e: unknown) {
@@ -217,7 +217,7 @@ export function useSettings(
   useEffect(() => {
     if (!isDesktop) return;
     void checkForUpdates();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDesktop]);
 
   // Provider identity tracking for model refresh
@@ -230,7 +230,14 @@ export function useSettings(
     providerIdentityRef.current = { id, base_url: baseUrl };
   }, [isDesktop, providerDraft?.provider_id, providerDraft?.base_url]);
 
-  const applyApiKeyStatus = useCallback((status: ApiKeyStatus): void => {
+  const applyApiKeyStatus = useCallback((status: ApiKeyStatus | null | undefined): void => {
+    if (!status || typeof status.has_key !== "boolean") {
+      setApiKeyStatus(null);
+      setApiKeyError("API key status could not be loaded.");
+      setApiKeyMasked(false);
+      setApiKeyInput("");
+      return;
+    }
     setApiKeyStatus(status);
     if (status.warning) {
       setApiKeyError(status.warning);
@@ -246,7 +253,15 @@ export function useSettings(
     }
   }, []);
 
-  const applyTavilyStatus = useCallback((status: TavilyKeyStatus): void => {
+  const applyTavilyStatus = useCallback((status: TavilyKeyStatus | null | undefined): void => {
+    if (!status || typeof status.has_key !== "boolean") {
+      setTavilyKeyStatus(null);
+      setTavilyKeyError("Tavily key status could not be loaded.");
+      setTavilyKeyMasked(false);
+      setTavilyKeyInput("");
+      setWebSearchEnabled(false);
+      return;
+    }
     setTavilyKeyStatus(status);
     setTavilyKeyError(null);
     if (status.has_key) {
@@ -477,11 +492,17 @@ export function useSettings(
     if (!isDesktop) return;
     setUpdateChecking(true);
     try {
-      const res = await invoke<UpdateCheckResult>("check_app_update");
-      setUpdateInfo(res);
-      setUpdateError(res.error ?? null);
-    } catch {
-      // ignore update errors for now
+      const res = await invoke<UpdateCheckResult | null>("check_app_update");
+      if (res && typeof res.status === "string") {
+        setUpdateInfo(res);
+        setUpdateError(res.error ?? null);
+      } else {
+        setUpdateInfo(null);
+        setUpdateError(null);
+      }
+    } catch (e: unknown) {
+      // Non-critical: update check failures are logged but don't block user
+      console.warn("[Guardian] Update check failed:", e instanceof Error ? e.message : String(e));
     } finally {
       setUpdateChecking(false);
     }

@@ -203,7 +203,12 @@ impl StorageManager {
         Ok(())
     }
 
-    pub fn load_chat_messages(&self, workspace: &str, limit: usize, offset: usize) -> Result<Vec<ChatMessage>> {
+    pub fn load_chat_messages(
+        &self,
+        workspace: &str,
+        limit: usize,
+        offset: usize,
+    ) -> Result<Vec<ChatMessage>> {
         let mut stmt = self.conn.prepare(
             "SELECT role, content, timestamp, action_json
              FROM chat_messages
@@ -234,8 +239,10 @@ impl StorageManager {
     }
 
     pub fn clear_chat_messages(&self, workspace: &str) -> Result<()> {
-        self.conn
-            .execute("DELETE FROM chat_messages WHERE workspace = ?1", params![workspace])?;
+        self.conn.execute(
+            "DELETE FROM chat_messages WHERE workspace = ?1",
+            params![workspace],
+        )?;
         Ok(())
     }
 }

@@ -20,23 +20,25 @@ mod validation;
 
 use tauri::{AppHandle, Manager};
 use std::path::PathBuf;
-use std::sync::{Mutex, Arc};
+use std::sync::{Arc, Mutex};
+use tokio::sync::RwLock;
 use std::sync::atomic::{AtomicBool, Ordering};
 use anyhow::{Context, Result as AnyhowResult};
 use serde::{Serialize, Deserialize};
 use std::fs;
 use keyring::{Entry, Error as KeyringError};
+use secrecy::ExposeSecret;
 use sha2::{Digest, Sha256};
 use hex;
 use tracing::{info, warn, error};
 
 struct WatcherSupervisor {
     shutdown: Arc<AtomicBool>,
-    handle: Mutex<Option<tauri::async_runtime::JoinHandle<()>>>,
+    handle: RwLock<Option<tauri::async_runtime::JoinHandle<()>>>,
 }
 
-const SESSION_MAX_HOURS: i64 = 12;
-const TOKEN_ROTATION_HOURS: i64 = 168;
+const SESSION_MAX_HOURS: i64 = 4;
+const TOKEN_ROTATION_HOURS: i64 = 24;
 
 struct AuthSessionState {
     user: auth::github::GithubUser,
@@ -44,44 +46,41 @@ struct AuthSessionState {
 }
 
 struct AuthState {
-    session: Mutex<Option<AuthSessionState>>,
+    session: RwLock<Option<AuthSessionState>>,
 }
 
 impl AuthState {
     fn new() -> Self {
         Self {
-            session: Mutex::new(None),
+            session: RwLock::new(None),
         }
     }
 
-    fn set_session(&self, user: auth::github::GithubUser) {
-        self.set_session_at(user, chrono::Utc::now());
+    async fn set_session(&self, user: auth::github::GithubUser) {
+        self.set_session_at(user, chrono::Utc::now()).await;
     }
 
-    fn set_session_at(&self, user: auth::github::GithubUser, verified_at: chrono::DateTime<chrono::Utc>) {
-        if let Ok(mut guard) = self.session.lock() {
-            *guard = Some(AuthSessionState { user, verified_at });
-        }
+    async fn set_session_at(&self, user: auth::github::GithubUser, verified_at: chrono::DateTime<chrono::Utc>) {
+        let mut guard = self.session.write().await;
+        *guard = Some(AuthSessionState { user, verified_at });
     }
 
-    fn clear(&self) {
-        if let Ok(mut guard) = self.session.lock() {
-            *guard = None;
-        }
+    async fn clear(&self) {
+        let mut guard = self.session.write().await;
+        *guard = None;
     }
 
-    fn get_user(&self) -> Option<auth::github::GithubUser> {
-        if let Ok(mut guard) = self.session.lock() {
-            if let Some(session) = guard.as_ref() {
-                let age_hours = chrono::Utc::now()
-                    .signed_duration_since(session.verified_at)
-                    .num_hours();
-                if age_hours > SESSION_MAX_HOURS {
-                    *guard = None;
-                    return None;
-                }
-                return Some(session.user.clone());
+    async fn get_user(&self) -> Option<auth::github::GithubUser> {
+        let mut guard = self.session.write().await;
+        if let Some(session) = guard.as_ref() {
+            let age_hours = chrono::Utc::now()
+                .signed_duration_since(session.verified_at)
+                .num_hours();
+            if age_hours > SESSION_MAX_HOURS {
+                *guard = None;
+                return None;
             }
+            return Some(session.user.clone());
         }
         None
     }
@@ -205,12 +204,12 @@ impl WatcherSupervisor {
     fn new() -> Self {
         Self {
             shutdown: Arc::new(AtomicBool::new(false)),
-            handle: Mutex::new(None),
+            handle: RwLock::new(None),
         }
     }
 
-    fn start(&self, app: AppHandle, path: String, api_key: String, model: String, host: String, provider_id: String) {
-        self.stop();
+    async fn start(&self, app: AppHandle, path: String, api_key: String, model: String, host: String, provider_id: String) {
+        self.stop().await;
         self.shutdown.store(false, Ordering::Relaxed);
 
         let shutdown = self.shutdown.clone();
@@ -218,17 +217,15 @@ impl WatcherSupervisor {
             watcher::start_watching(app, path, api_key, model, host, provider_id, shutdown).await;
         });
 
-        if let Ok(mut guard) = self.handle.lock() {
-            *guard = Some(handle);
-        }
+        let mut guard = self.handle.write().await;
+        *guard = Some(handle);
     }
 
-    fn stop(&self) {
+    async fn stop(&self) {
         self.shutdown.store(true, Ordering::Relaxed);
-        if let Ok(mut guard) = self.handle.lock() {
-            if let Some(handle) = guard.take() {
-                handle.abort();
-            }
+        let mut guard = self.handle.write().await;
+        if let Some(handle) = guard.take() {
+            handle.abort();
         }
     }
 }
@@ -248,7 +245,7 @@ async fn start_monitoring(
     if !path_buf.is_dir() {
         return Err("Workspace path is not a directory.".to_string());
     }
-    if auth_state.get_user().is_none() {
+    if auth_state.get_user().await.is_none() {
         let refreshed = refresh_auth_session(app.clone(), auth_state).await?;
         if refreshed.is_none() {
             return Err("GitHub login is required before starting monitoring.".to_string());
@@ -259,14 +256,23 @@ async fn start_monitoring(
     let provider = provider::resolve_provider_config(&app).map_err(|e| e.to_string())?;
     let api_key = config::api_key_for_provider(&provider.provider_id).map_err(|e| e.to_string())?;
 
-    watcher.start(app, path, api_key, provider.model, provider.base_url, provider.provider_id);
+    watcher
+        .start(
+            app,
+            path,
+            api_key.expose_secret().to_string(),
+            provider.model,
+            provider.base_url,
+            provider.provider_id,
+        )
+        .await;
 
     Ok(())
 }
 
 #[tauri::command]
 async fn stop_monitoring(watcher: tauri::State<'_, WatcherSupervisor>) -> Result<(), String> {
-    watcher.stop();
+    watcher.stop().await;
     Ok(())
 }
 
@@ -289,7 +295,7 @@ async fn complete_github_login(
     let client_secret = config::github_client_secret();
     let session = auth::github::complete_device_flow(
         &client_id,
-        client_secret.as_deref(),
+        client_secret.map(|s| s.expose_secret().to_string()).as_deref(),
         &device_code,
         max_wait_seconds,
     )
@@ -297,7 +303,7 @@ async fn complete_github_login(
         .map_err(|e| e.to_string())?;
 
     let user = session.user.clone();
-    auth_state.set_session(user.clone());
+    auth_state.set_session(user.clone()).await;
     let mut warning: Option<String> = None;
     if let Err(err) = store_access_token(&session.access_token) {
         warning = Some(format!("Keychain error: {}", err));
@@ -321,7 +327,7 @@ async fn logout_github(
     app: AppHandle,
     auth_state: tauri::State<'_, AuthState>,
 ) -> Result<(), String> {
-    auth_state.clear();
+    auth_state.clear().await;
     if let Err(err) = clear_auth_session(&app) {
         warn!(target: "guardian::auth", "Failed to clear GitHub session: {}", err);
     }
@@ -336,7 +342,7 @@ async fn get_auth_session(
 ) -> Result<Option<AuthSessionView>, String> {
     const OFFLINE_MAX_HOURS: i64 = 72;
     let cached_only = cached_only.unwrap_or(false);
-    if auth_state.get_user().is_none() {
+    if auth_state.get_user().await.is_none() {
         if let Ok(Some(cached)) = load_cached_user(&app) {
             let mut allow_cached = false;
             if let Some(issued_at) = cached.issued_at.as_ref().or(cached.verified_at.as_ref()) {
@@ -386,7 +392,7 @@ async fn get_auth_session(
             }
             match auth::github::verify_access_token(&token).await {
                 Ok(user) => {
-                    auth_state.set_session(user.clone());
+                    auth_state.set_session(user.clone()).await;
                     let _ = persist_auth_user(&app, &user, &token);
                     return Ok(Some(AuthSessionView { user, verified: true, warning: None }));
                 }
@@ -414,7 +420,7 @@ async fn get_auth_session(
                             return Err("Offline verification expired. Connect to the internet to re-verify.".to_string());
                         }
 
-                        auth_state.set_session(cached.user.clone());
+                        auth_state.set_session(cached.user.clone()).await;
                         return Ok(Some(AuthSessionView {
                             user: cached.user,
                             verified: false,
@@ -430,7 +436,7 @@ async fn get_auth_session(
         }
     }
 
-    Ok(auth_state.get_user().map(|user| AuthSessionView { user, verified: true, warning: None }))
+    Ok(auth_state.get_user().await.map(|user| AuthSessionView { user, verified: true, warning: None }))
 }
 
 #[tauri::command]
@@ -458,7 +464,7 @@ async fn refresh_auth_session(
         }
         match auth::github::verify_access_token(&token).await {
             Ok(user) => {
-                auth_state.set_session(user.clone());
+                auth_state.set_session(user.clone()).await;
                 let _ = persist_auth_user(&app, &user, &token);
                 return Ok(Some(AuthSessionView { user, verified: true, warning: None }));
             }
@@ -486,7 +492,7 @@ async fn refresh_auth_session(
                         return Err("Offline verification expired. Connect to the internet to re-verify.".to_string());
                     }
 
-                    auth_state.set_session(cached.user.clone());
+                    auth_state.set_session(cached.user.clone()).await;
                     return Ok(Some(AuthSessionView {
                         user: cached.user,
                         verified: false,
@@ -652,8 +658,14 @@ fn append_issue_file_context(
             continue;
         }
         let Ok(meta) = std::fs::metadata(path) else { continue; };
-        if meta.len() > 200_000 {
+        // Security: Limit file size to 50KB to prevent DoS and reduce token usage
+        if meta.len() > 50_000 {
             context.push_str(&format!("#### File: {} (skipped: large file)\n\n", file));
+            continue;
+        }
+        // Security: Detect and skip binary files
+        if is_binary_file(path) {
+            context.push_str(&format!("#### File: {} (skipped: binary file)\n\n", file));
             continue;
         }
         if let Ok(content) = std::fs::read_to_string(path) {
@@ -668,6 +680,36 @@ fn is_sensitive_path(path: &std::path::Path) -> bool {
         .and_then(|name| name.to_str())
         .map(|name| name.starts_with(".env"))
         .unwrap_or(false)
+}
+
+// Security: Detect binary files by extension and content analysis
+fn is_binary_file(path: &std::path::Path) -> bool {
+    const BINARY_EXTENSIONS: &[&str] = &[
+        "exe", "dll", "so", "dylib", "bin", "o", "a", "lib",
+        "png", "jpg", "jpeg", "gif", "bmp", "ico", "svg",
+        "mp3", "mp4", "wav", "avi", "mov", "mkv",
+        "zip", "tar", "gz", "rar", "7z", "bz2",
+        "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+        "wasm", "class", "jar", "pyc", "pyo"
+    ];
+
+    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+        if BINARY_EXTENSIONS.iter().any(|&bin_ext| ext.eq_ignore_ascii_case(bin_ext)) {
+            return true;
+        }
+    }
+
+    if let Ok(data) = std::fs::read(path) {
+        let sample = &data[..data.len().min(1024)];
+        if sample.contains(&0u8) {
+            return true;
+        }
+        if std::str::from_utf8(sample).is_err() {
+            return true;
+        }
+    }
+
+    false
 }
 
 #[tauri::command]
@@ -708,6 +750,7 @@ async fn list_provider_models(
     }
     let config = provider::apply_defaults(config);
     let api_key = config::user_api_key_for_provider(&config.provider_id)
+        .map(|opt| opt.map(|s| s.expose_secret().to_string()))
         .map_err(|e| e.to_string())?;
     provider::list_provider_models(&config, api_key).await
 }
@@ -726,7 +769,7 @@ async fn get_api_key_status(provider_id: Option<String>, app: AppHandle) -> Resu
         }),
         Ok(None) => {
             let env_key = config::env_api_key();
-            let trimmed = env_key.trim();
+            let trimmed = env_key.expose_secret().trim();
             if config::is_placeholder_key(trimmed) {
                 Ok(ApiKeyStatus {
                     has_key: false,
@@ -828,7 +871,7 @@ struct TavilyKeyStatus {
 #[tauri::command]
 async fn get_tavily_key_status() -> Result<TavilyKeyStatus, String> {
     if let Some(key) = config::user_tavily_key().map_err(|e| e.to_string())? {
-        if !config::is_placeholder_key(&key) {
+        if !config::is_placeholder_key(key.expose_secret()) {
             return Ok(TavilyKeyStatus { has_key: true, source: "user".to_string() });
         }
     }
@@ -1018,8 +1061,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_auth_state_expires_session() {
+    #[tokio::test]
+    async fn test_auth_state_expires_session() {
         let state = AuthState::new();
         let user = auth::github::GithubUser {
             login: "tester".to_string(),
@@ -1027,12 +1070,12 @@ mod tests {
             avatar_url: None,
         };
         let expired_at = chrono::Utc::now() - chrono::Duration::hours(SESSION_MAX_HOURS + 1);
-        state.set_session_at(user, expired_at);
-        assert!(state.get_user().is_none(), "Expired session should be cleared");
+        state.set_session_at(user, expired_at).await;
+        assert!(state.get_user().await.is_none(), "Expired session should be cleared");
     }
 
-    #[test]
-    fn test_auth_state_keeps_fresh_session() {
+    #[tokio::test]
+    async fn test_auth_state_keeps_fresh_session() {
         let state = AuthState::new();
         let user = auth::github::GithubUser {
             login: "tester".to_string(),
@@ -1040,8 +1083,8 @@ mod tests {
             avatar_url: None,
         };
         let fresh_at = chrono::Utc::now() - chrono::Duration::hours(1);
-        state.set_session_at(user.clone(), fresh_at);
-        let resolved = state.get_user();
+        state.set_session_at(user.clone(), fresh_at).await;
+        let resolved = state.get_user().await;
         assert!(resolved.is_some(), "Fresh session should be available");
         assert_eq!(resolved.unwrap().login, user.login);
     }

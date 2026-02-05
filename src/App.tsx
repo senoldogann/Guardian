@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo, useRef, useCallback, type ReactElement } from "react";
+import { FixedSizeList as List, ListChildComponentProps } from "react-window";
 import { invoke, listen, openDialog, type UnlistenFn } from "./lib/tauri";
 import { exportAuditToPdf } from "./lib/exportAuditPdf";
+import { handleError } from "./lib/error";
+import { useToast } from "./hooks/useToast";
 import {
   Shield,
   Play,
@@ -17,16 +20,18 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import clsx from "clsx";
-import { CritiqueAccordionRow, Critique } from "./components/CritiqueAccordionRow";
+import { CritiqueAccordionRow } from "./components/CritiqueAccordionRow";
 import { ChatView } from "./components/ChatView";
 import DiagramView from "./components/DiagramView";
 import { Header } from "./components/Header";
 import { AuthGate } from "./components/AuthGate";
 import { SettingsModal } from "./components/SettingsModal";
 import { StallOverlay } from "./components/StallOverlay";
+import { ToastContainer } from "./components/Toast";
 import { useAuth } from "./hooks/useAuth";
-import { useSettings, type ApiKeyStatus } from "./hooks/useSettings";
-import type { ProjectContext } from "./types/guardian";
+import { useSettings } from "./hooks/useSettings";
+import type { ProjectContext, Critique, ApiKeyStatus } from "./types";
+import { STORAGE_KEYS } from "./constants";
 
 function App(): ReactElement {
   // Core state
@@ -35,7 +40,7 @@ function App(): ReactElement {
   const [status, setStatus] = useState("Idle");
   const [path, setPath] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("guardian_last_path") || "";
+      return localStorage.getItem(STORAGE_KEYS.LAST_PATH) || "";
     }
     return "";
   });
@@ -57,7 +62,7 @@ function App(): ReactElement {
   // Theme state
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     if (typeof window !== "undefined") {
-      return (localStorage.getItem("guardian_theme") as "dark" | "light") || "dark";
+      return (localStorage.getItem(STORAGE_KEYS.THEME) as "dark" | "light") || "dark";
     }
     return "dark";
   });
@@ -76,13 +81,13 @@ function App(): ReactElement {
   // Theme effect
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("guardian_theme", theme);
+    localStorage.setItem(STORAGE_KEYS.THEME, theme);
   }, [theme]);
 
   // Persist path
   useEffect(() => {
     if (!path) return;
-    localStorage.setItem("guardian_last_path", path);
+    localStorage.setItem(STORAGE_KEYS.LAST_PATH, path);
   }, [path]);
 
   const toggleTheme = useCallback((): void => {
@@ -153,8 +158,8 @@ function App(): ReactElement {
         } else {
           unlisteners.push(unlisten);
         }
-      } catch {
-        // Non-fatal: listener registration failure shouldn't crash the UI
+      } catch (error) {
+        handleError(error, `EventListener:${event}`);
       }
     };
 
@@ -301,7 +306,8 @@ function App(): ReactElement {
             providerId: activeProviderId,
           });
           hasApiKey = Boolean(status.has_key);
-        } catch {
+        } catch (error) {
+          handleError(error, "ApiKeyStatusCheck");
           hasApiKey = false;
         }
       }
@@ -358,6 +364,30 @@ function App(): ReactElement {
     );
   }, [visibleLogs, filter]);
 
+  // Virtualized log list row renderer
+  const LogRow = useCallback(({ index, style }: ListChildComponentProps) => {
+    const log = filteredLogs[index];
+    return (
+      <div style={style}>
+        <CritiqueAccordionRow
+          key={log.file_path}
+          log={log}
+          index={index + 1}
+          isExpanded={expandedFile === log.file_path}
+          onToggle={() => setExpandedFile(expandedFile === log.file_path ? null : log.file_path)}
+          onFix={() => {
+            setLogs(prev => {
+              const newLogs = { ...prev };
+              delete newLogs[log.file_path];
+              return newLogs;
+            });
+            if (expandedFile === log.file_path) setExpandedFile(null);
+          }}
+        />
+      </div>
+    );
+  }, [filteredLogs, expandedFile]);
+
   const stats = useMemo(() => {
     const vals = visibleLogs;
     return {
@@ -371,8 +401,11 @@ function App(): ReactElement {
   const engineModel = settings.providerDraft?.model?.trim() || "Not set";
   const canToggleMonitoring = Boolean(path) && Boolean(settings.providerDraft) && !auth.showAuthGate && !auth.requiresVerified && !settings.requiresApiKey;
 
+  useToast();
+
   return (
     <div className="flex h-screen w-full bg-background text-text-main flex-col font-sans overflow-hidden transition-colors duration-300">
+      <ToastContainer />
       <StallOverlay
         key={stallSignature}
         stalled={stalled}
@@ -656,7 +689,7 @@ function App(): ReactElement {
             <div className="flex-1 min-w-0 px-4">Core Violation Message</div>
             <div className="w-40 text-right shrink-0">Actions / Sev</div>
           </div>
-          
+
           {active && filteredLogs.length !== 0 && (
             <div
               className={clsx(
@@ -667,7 +700,7 @@ function App(): ReactElement {
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto custom-scrollbar px-2 py-2 space-y-1">
+          <div className="flex-1 overflow-hidden px-2 py-2">
             {filteredLogs.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-6">
                 {active ? (
@@ -687,23 +720,14 @@ function App(): ReactElement {
                 </div>
               </div>
             ) : (
-              filteredLogs.map((log, index) => (
-                <CritiqueAccordionRow
-                  key={log.file_path}
-                  log={log}
-                  index={index + 1}
-                  isExpanded={expandedFile === log.file_path}
-                  onToggle={() => setExpandedFile(expandedFile === log.file_path ? null : log.file_path)}
-                  onFix={() => {
-                    setLogs(prev => {
-                      const newLogs = { ...prev };
-                      delete newLogs[log.file_path];
-                      return newLogs;
-                    });
-                    if (expandedFile === log.file_path) setExpandedFile(null);
-                  }}
-                />
-              ))
+              <List
+                height={window.innerHeight - 200}
+                itemCount={filteredLogs.length}
+                itemSize={60}
+                width="100%"
+              >
+                {LogRow}
+              </List>
             )}
           </div>
         </section>

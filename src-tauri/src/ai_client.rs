@@ -5,6 +5,7 @@ use std::time::Duration;
 use std::fs;
 use anyhow::{Result, Context};
 use tracing::{debug, error};
+use secrecy::{SecretString, ExposeSecret};
 use crate::config;
 
 #[derive(Debug, Clone)]
@@ -13,7 +14,7 @@ pub struct AiClient {
     client: Client,
     base_url: String,
     model: String,
-    api_key: String,
+    api_key: SecretString,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -27,7 +28,7 @@ pub struct Critique {
 }
 
 impl AiClient {
-    pub fn new(provider_id: String, base_url: String, model: String, api_key: String) -> Result<Self> {
+    pub fn new(provider_id: String, base_url: String, model: String, api_key: SecretString) -> Result<Self> {
         let normalized = provider_id.trim().to_lowercase();
         let timeout_secs = config::provider_timeout_seconds(&normalized);
 
@@ -56,7 +57,7 @@ impl AiClient {
     }
 
     fn ensure_valid_api_key(&self) -> Result<()> {
-        if config::is_placeholder_key(&self.api_key) && config::is_production() {
+        if config::is_placeholder_key(self.api_key.expose_secret()) && config::is_production() {
             anyhow::bail!("GUARDIAN_API_KEY is missing or still a placeholder");
         }
         Ok(())
@@ -108,7 +109,7 @@ impl AiClient {
                 }
                 let url = format!("{}/api/chat", self.base_url.trim_end_matches('/'));
                 let response = self.client.post(&url)
-                    .header("Authorization", format!("Bearer {}", self.api_key))
+                    .header("Authorization", format!("Bearer {}", self.api_key.expose_secret()))
                     .json(&payload)
                     .send()
                     .await
@@ -137,7 +138,7 @@ impl AiClient {
                 }
                 let url = format!("{}/chat/completions", self.base_url.trim_end_matches('/'));
                 let response = self.client.post(&url)
-                    .bearer_auth(&self.api_key)
+                    .bearer_auth(self.api_key.expose_secret())
                     .json(&payload)
                     .send()
                     .await
@@ -163,7 +164,7 @@ impl AiClient {
                 });
                 let url = format!("{}/messages", self.base_url.trim_end_matches('/'));
                 let response = self.client.post(&url)
-                    .header("x-api-key", &self.api_key)
+                    .header("x-api-key", self.api_key.expose_secret())
                     .header("anthropic-version", "2023-06-01")
                     .json(&payload)
                     .send()
@@ -201,7 +202,7 @@ impl AiClient {
                 });
                 let url = format!("{}/{}:generateContent", self.base_url.trim_end_matches('/'), model_path);
                 let response = self.client.post(&url)
-                    .header("x-goog-api-key", &self.api_key)
+                    .header("x-goog-api-key", self.api_key.expose_secret())
                     .json(&payload)
                     .send()
                     .await
@@ -241,7 +242,7 @@ impl AiClient {
                 let response = self.client.post(&url)
                     .header("accept", "application/vnd.github+json")
                     .header("x-github-api-version", "2022-11-28")
-                    .bearer_auth(&self.api_key)
+                    .bearer_auth(self.api_key.expose_secret())
                     .json(&payload)
                     .send()
                     .await

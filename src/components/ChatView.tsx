@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback, type ReactElement, type ReactNode, isValidElement } from "react";
+import { useState, useEffect, useRef, useCallback, type ReactElement, type ReactNode, isValidElement, useMemo } from "react";
+import { FixedSizeList as List, ListChildComponentProps } from "react-window";
 import { invoke, listen, isTauriRuntime } from "../lib/tauri";
 import clsx from "clsx";
 import {
@@ -23,6 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
+import rehypeSanitize from "rehype-sanitize";
 
 interface ReviewDecisionPayload {
     file_path: string;
@@ -181,7 +183,7 @@ export function ChatView({
 
         if (isDesktop) {
             if (!path) return;
-            void invoke("append_chat_message", { path, message: normalized }).catch(() => {});
+            void invoke("append_chat_message", { path, message: normalized }).catch(() => { });
         } else {
             persistLocal(normalized);
         }
@@ -352,21 +354,7 @@ export function ChatView({
         void submitPrompt(autoPrompt);
     }, [autoPrompt, onAutoPromptConsumed]);
 
-    useEffect(() => {
-        if (!chatHistory.length && !chatLoading) {
-            if (scrollAreaRef.current) {
-                scrollAreaRef.current.scrollTop = 0;
-            }
-            forceScrollRef.current = false;
-            return;
-        }
-        if (forceScrollRef.current || shouldAutoScroll()) {
-            scrollToBottom(forceScrollRef.current ? "smooth" : "auto");
-            forceScrollRef.current = false;
-        }
-    }, [chatHistory.length, chatLoading, scrollToBottom, shouldAutoScroll]);
-
-    const confirmFix = async (index: number, filePath: string, diff: string): Promise<void> => {
+    const confirmFix = useCallback(async (index: number, filePath: string, diff: string): Promise<void> => {
         try {
             if (!path) {
                 appendMessage({
@@ -382,16 +370,63 @@ export function ChatView({
         } catch (e) {
             appendMessage({ role: "guru", content: `Failed to apply fix: ${e}`, timestamp: nowIso() });
         }
-    };
+    }, [path, appendMessage, nowIso]);
 
-    const rejectFix = (index: number, filePath: string): void => {
+    const rejectFix = useCallback((index: number, filePath: string): void => {
         setRejectedFixes(prev => new Set(prev).add(index));
         appendMessage({
             role: "guardian",
             content: `Rejected proposed fix for ${filePath.split('/').pop()}.`,
             timestamp: nowIso(),
         });
-    };
+    }, [appendMessage, nowIso]);
+
+    // Virtualized chat history - show last 50 messages with lazy loading
+    const visibleMessages = useMemo(() => {
+        const MAX_VISIBLE = 50;
+        if (chatHistory.length <= MAX_VISIBLE) return chatHistory;
+        return chatHistory.slice(-MAX_VISIBLE);
+    }, [chatHistory]);
+
+    const messageStartIndex = useMemo(() => {
+        const MAX_VISIBLE = 50;
+        return Math.max(0, chatHistory.length - MAX_VISIBLE);
+    }, [chatHistory.length]);
+
+    const ChatRow = useCallback(({ index, style }: ListChildComponentProps) => {
+        const actualIndex = messageStartIndex + index;
+        const msg = visibleMessages[index];
+        return (
+            <div style={style}>
+                <ChatMessageRow
+                    msg={msg}
+                    index={actualIndex}
+                    appliedFixes={appliedFixes}
+                    rejectedFixes={rejectedFixes}
+                    copiedSnippet={copiedSnippet}
+                    onCopy={handleCopy}
+                    onConfirmFix={confirmFix}
+                    onRejectFix={rejectFix}
+                    extractText={extractText}
+                    formatTimestamp={formatTimestamp}
+                />
+            </div>
+        );
+    }, [visibleMessages, messageStartIndex, appliedFixes, rejectedFixes, copiedSnippet, handleCopy, confirmFix, rejectFix, extractText, formatTimestamp]);
+
+    useEffect(() => {
+        if (!chatHistory.length && !chatLoading) {
+            if (scrollAreaRef.current) {
+                scrollAreaRef.current.scrollTop = 0;
+            }
+            forceScrollRef.current = false;
+            return;
+        }
+        if (forceScrollRef.current || shouldAutoScroll()) {
+            scrollToBottom(forceScrollRef.current ? "smooth" : "auto");
+            forceScrollRef.current = false;
+        }
+    }, [chatHistory.length, chatLoading, scrollToBottom, shouldAutoScroll]);
 
     return (
         <section className="flex-1 flex flex-col bg-background relative overflow-hidden">
@@ -472,97 +507,16 @@ export function ChatView({
                     </div>
                 )}
 
-                {chatHistory.map((msg, i) => (
-                    <div key={i} className={clsx("flex gap-5 max-w-4xl", msg.role === "user" ? "ml-auto flex-row-reverse" : "")}>
-                        <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm", msg.role === "user" ? "bg-zinc-100 dark:bg-white/10 text-zinc-600 dark:text-white/80" : "bg-white dark:bg-[var(--accent-200)] text-[var(--accent-500)]")}>
-                            {msg.role === "user" ? <UserIcon className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
-                        </div>
-                        <div className="flex flex-col gap-3 max-w-full">
-                            <div className={clsx("p-5 rounded-2xl text-sm leading-relaxed font-sans shadow-sm", msg.role === "user" ? "bg-white dark:bg-white/5 text-text-main" : "bg-white dark:bg-white/5 text-text-main")}>
-                                <div className="guardian-markdown">
-                                    <ReactMarkdown
-                                        remarkPlugins={[remarkGfm]}
-                                        rehypePlugins={[rehypeHighlight]}
-                                        components={{
-                                            pre: ({ children }) => {
-                                                const text = extractText(children);
-                                                return (
-                                                    <div className="guardian-code-block">
-                                                        <button
-                                                            className="guardian-copy-btn"
-                                                            onClick={() => handleCopy(text)}
-                                                            title="Copy code"
-                                                        >
-                                                            <Copy className="w-3 h-3" />
-                                                            {copiedSnippet === text ? "Copied" : "Copy"}
-                                                        </button>
-                                                        <pre>{children}</pre>
-                                                    </div>
-                                                );
-                                            },
-                                        }}
-                                    >
-                                        {msg.content}
-                                    </ReactMarkdown>
-                                </div>
-                                {msg.timestamp && (
-                                    <div className={clsx("mt-3 text-[10px] text-text-muted/80", msg.role === "user" ? "text-right" : "text-left")}>
-                                        {formatTimestamp(msg.timestamp)}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Action Block (Smart Review) */}
-                            {msg.action && (
-                                <div className="flex flex-col items-center justify-center p-12 bg-[var(--guide-bg)] border border-white/5 rounded-[var(--guide-radius)] text-center space-y-8 animate-in fade-in zoom-in duration-700">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        {msg.action.status === "MODIFIED" ? (
-                                            <AlertTriangle className="w-4 h-4 text-amber-500" />
-                                        ) : (
-                                            <CheckCircle className="w-4 h-4 text-[var(--accent-500)]" />
-                                        )}
-                                        <span className={clsx("text-xs font-bold uppercase", msg.action.status === "MODIFIED" ? "text-amber-500" : "text-[var(--accent-500)]")}>
-                                            {msg.action.status === "MODIFIED" ? "Guardian Auto-Corrected" : "Verified Safe"}
-                                        </span>
-                                    </div>
-
-                                    <div className="bg-black/10 dark:bg-black/30 rounded p-2 mb-3 max-h-40 overflow-y-auto border border-border-main">
-                                        <pre className="text-[10px] font-mono text-[color:var(--text-main)] opacity-80 whitespace-pre-wrap">
-                                            {msg.action.diff}
-                                        </pre>
-                                    </div>
-
-                                    <div className="flex gap-2">
-                                        {appliedFixes.has(i) ? (
-                                            <div className="flex items-center gap-2 text-xs text-[var(--accent-500)] font-bold bg-[var(--accent-200)] px-3 py-1.5 rounded-md border border-[var(--accent-400)]">
-                                                <CheckCircle className="w-3 h-3" /> Successfully Applied
-                                            </div>
-                                        ) : rejectedFixes.has(i) ? (
-                                            <div className="flex items-center gap-2 text-xs text-rose-400 font-bold bg-rose-500/10 px-3 py-1.5 rounded-md border border-rose-500/20">
-                                                <XCircle className="w-3 h-3" /> Rejected
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <button
-                                                    onClick={() => confirmFix(i, msg.action!.file_path, msg.action!.diff)}
-                                                    className="px-3 py-1.5 bg-[var(--accent-500)] hover:opacity-90 text-background text-xs rounded-md shadow-lg shadow-black/30 transition-colors flex items-center gap-1.5 cursor-pointer"
-                                                >
-                                                    <CheckCircle className="w-3 h-3" /> Confirm & Apply
-                                                </button>
-                                                <button
-                                                    onClick={() => rejectFix(i, msg.action!.file_path)}
-                                                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/70 text-xs rounded-md transition-colors flex items-center gap-1.5 cursor-pointer"
-                                                >
-                                                    <XCircle className="w-3 h-3" /> Reject
-                                                </button>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                ))}
+                {chatHistory.length > 0 && (
+                    <List
+                        height={window.innerHeight - 280}
+                        itemCount={visibleMessages.length}
+                        itemSize={120}
+                        width="100%"
+                    >
+                        {ChatRow}
+                    </List>
+                )}
 
                 {chatLoading && (
                     <div className="flex gap-4 max-w-3xl">
@@ -753,4 +707,122 @@ function GuideOption({ icon: Icon, title, desc, color, onClick }: GuideOptionPro
             </div>
         </div>
     )
+}
+
+// Virtualized Chat Message Row Component
+interface ChatMessageRowProps {
+    msg: ChatMessage;
+    index: number;
+    appliedFixes: Set<number>;
+    rejectedFixes: Set<number>;
+    copiedSnippet: string | null;
+    onCopy: (text: string) => void;
+    onConfirmFix: (index: number, filePath: string, diff: string) => Promise<void>;
+    onRejectFix: (index: number, filePath: string) => void;
+    extractText: (node: ReactNode) => string;
+    formatTimestamp: (value?: string) => string;
+}
+
+function ChatMessageRow({
+    msg,
+    index,
+    appliedFixes,
+    rejectedFixes,
+    copiedSnippet,
+    onCopy,
+    onConfirmFix,
+    onRejectFix,
+    extractText,
+    formatTimestamp
+}: ChatMessageRowProps): ReactElement {
+    return (
+        <div className={clsx("flex gap-5 max-w-4xl", msg.role === "user" ? "ml-auto flex-row-reverse" : "")}>
+            <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm", msg.role === "user" ? "bg-zinc-100 dark:bg-white/10 text-zinc-600 dark:text-white/80" : "bg-white dark:bg-[var(--accent-200)] text-[var(--accent-500)]")}>
+                {msg.role === "user" ? <UserIcon className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
+            </div>
+            <div className="flex flex-col gap-3 max-w-full">
+                <div className={clsx("p-5 rounded-2xl text-sm leading-relaxed font-sans shadow-sm", msg.role === "user" ? "bg-white dark:bg-white/5 text-text-main" : "bg-white dark:bg-white/5 text-text-main")}>
+                    <div className="guardian-markdown">
+                        <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeHighlight, rehypeSanitize]}
+                            components={{
+                                pre: ({ children }) => {
+                                    const text = extractText(children);
+                                    return (
+                                        <div className="guardian-code-block">
+                                            <button
+                                                className="guardian-copy-btn"
+                                                onClick={() => onCopy(text)}
+                                                title="Copy code"
+                                            >
+                                                <Copy className="w-3 h-3" />
+                                                {copiedSnippet === text ? "Copied" : "Copy"}
+                                            </button>
+                                            <pre>{children}</pre>
+                                        </div>
+                                    );
+                                },
+                            }}
+                        >
+                            {msg.content}
+                        </ReactMarkdown>
+                    </div>
+                    {msg.timestamp && (
+                        <div className={clsx("mt-3 text-[10px] text-text-muted/80", msg.role === "user" ? "text-right" : "text-left")}>
+                            {formatTimestamp(msg.timestamp)}
+                        </div>
+                    )}
+                </div>
+
+                {msg.action && (
+                    <div className="flex flex-col items-center justify-center p-12 bg-[var(--guide-bg)] border border-white/5 rounded-[var(--guide-radius)] text-center space-y-8 animate-in fade-in zoom-in duration-700">
+                        <div className="flex items-center gap-2 mb-3">
+                            {msg.action.status === "MODIFIED" ? (
+                                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                            ) : (
+                                <CheckCircle className="w-4 h-4 text-[var(--accent-500)]" />
+                            )}
+                            <span className={clsx("text-xs font-bold uppercase", msg.action.status === "MODIFIED" ? "text-amber-500" : "text-[var(--accent-500)]")}>
+                                {msg.action.status === "MODIFIED" ? "Guardian Auto-Corrected" : "Verified Safe"}
+                            </span>
+                        </div>
+
+                        <div className="bg-black/10 dark:bg-black/30 rounded p-2 mb-3 max-h-40 overflow-y-auto border border-border-main">
+                            <pre className="text-[10px] font-mono text-[color:var(--text-main)] opacity-80 whitespace-pre-wrap">
+                                {msg.action.diff}
+                            </pre>
+                        </div>
+
+                        <div className="flex gap-2">
+                            {appliedFixes.has(index) ? (
+                                <div className="flex items-center gap-2 text-xs text-[var(--accent-500)] font-bold bg-[var(--accent-200)] px-3 py-1.5 rounded-md border border-[var(--accent-400)]">
+                                    <CheckCircle className="w-3 h-3" /> Successfully Applied
+                                </div>
+                            ) : rejectedFixes.has(index) ? (
+                                <div className="flex items-center gap-2 text-xs text-rose-400 font-bold bg-rose-500/10 px-3 py-1.5 rounded-md border border-rose-500/20">
+                                    <XCircle className="w-3 h-3" /> Rejected
+                                </div>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => onConfirmFix(index, msg.action!.file_path, msg.action!.diff)}
+                                        className="px-3 py-1.5 bg-[var(--accent-500)] hover:opacity-90 text-background text-xs rounded-md shadow-lg shadow-black/30 transition-colors flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                        <CheckCircle className="w-3 h-3" /> Confirm & Apply
+                                    </button>
+                                    <button
+                                        onClick={() => onRejectFix(index, msg.action!.file_path)}
+                                        className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/70 text-xs rounded-md transition-colors flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                        <XCircle className="w-3 h-3" /> Reject
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
 }

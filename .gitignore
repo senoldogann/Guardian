@@ -8,6 +8,9 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+website/node_modules
+website/.next
+website/.env.local
 dist
 dist-ssr
 coverage
@@ -23,7 +26,6 @@ playwright-report
 !.vscode/extensions.json
 .idea
 .DS_Store
-*.suo
 *.ntvs*
 *.njsproj
 *.sln
@@ -32,3 +34,7 @@ playwright-report
 .guardian/
 DEVELOPMENT_GUIDE.md
 .DS_Store
+
+# Lock files - COMMITTED for reproducible builds
+# DO NOT ignore Cargo.lock or package-lock.json
+# See README.md for details

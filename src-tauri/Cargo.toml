@@ -1,6 +1,6 @@
 [package]
 name = "Guardian"
-version = "0.2.3"
+version = "0.2.5"
 description = "Guardian is a desktop application that monitors your file system and detects changes in your projects. It uses AI to analyze the changes and provides you with insights about your projects."
 authors = ["Senol Dogan"]
 edition = "2021"
@@ -23,36 +23,41 @@ tauri-build = { version = "2", features = [] }
 
 
 [dependencies]
-tauri = { version = "2", features = [] }
-tauri-plugin-opener = "2"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+tauri = { version = "2.0.0", features = [] }
+tauri-plugin-opener = "2.0.0"
+serde = { version = "1.0.200", features = ["derive"] }
+serde_json = "1.0.120"
 notify = "7.0.0"
-reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
-tokio = { version = "1", features = ["full"] }
-tempfile = "3"
-chrono = "0.4"
-base64 = "0.22"
-anyhow = "1.0"
-tauri-plugin-fs = "2"
+reqwest = { version = "0.12.5", features = ["json", "rustls-tls"] }
+tokio = { version = "1.35.0", features = ["full"] }
+tempfile = "3.10.0"
+chrono = "0.4.33"
+base64 = "0.22.1"
+anyhow = "1.0.79"
+tauri-plugin-fs = "2.0.0"
 walkdir = "2.5.0"
-once_cell = "1.19"
-dirs = "5"
+once_cell = "1.19.0"
+dirs = "5.0.1"
 tauri-plugin-dialog = "2.6.0"
-tauri-plugin-updater = "2"
+tauri-plugin-updater = "2.0.0"
 ignore = "0.4.25"
 rusqlite = { version = "0.38.0", features = ["bundled"] }
 async-channel = "2.5.0"
-sha2 = "0.10"
-hex = "0.4"
+sha2 = "0.10.8"
+hex = "0.4.3"
 dotenvy = "0.15.7"
 screenshots = "0.8.10"
 tokio-tungstenite = "0.28.0"
 url = "2.5.8"
 futures-util = "0.3.31"
 image = "0.24.9"
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-keyring = "2"
-semver = "1"
-jsonschema = "0.29"
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+keyring = "2.3.0"
+semver = "1.0.23"
+jsonschema = "0.29.0"
+secrecy = "0.10"
+ed25519-dalek = "2"
+rand = "0.8"
+regex = "1.10"
+lazy_static = "1.4"

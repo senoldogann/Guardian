@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from "react";
+import React, { type ReactElement, ReactNode, useMemo } from "react";
 import clsx from "clsx";
 import { Shield, ShieldAlert, AlertCircle, Cpu, Settings } from "lucide-react";
 
@@ -44,6 +44,11 @@ export interface HeaderProps {
   onSettingsClick: () => void;
 }
 
+// Memoized icon components to prevent unnecessary re-renders
+const ShieldAlertIcon = React.memo(() => <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />);
+const AlertCircleIcon = React.memo(() => <AlertCircle className="w-3.5 h-3.5 text-amber-400" />);
+const CpuIcon = React.memo(() => <Cpu className="w-3.5 h-3.5 text-[var(--accent-500)]" />);
+
 export function Header({
   active,
   stats,
@@ -54,6 +59,11 @@ export function Header({
   onLogout,
   onSettingsClick,
 }: HeaderProps): ReactElement {
+  // Memoize stat icons to prevent inline object recreation
+  const criticalIcon = useMemo(() => <ShieldAlertIcon />, []);
+  const warningIcon = useMemo(() => <AlertCircleIcon />, []);
+  const cpuIcon = useMemo(() => <CpuIcon />, []);
+
   return (
     <header className="guardian-topbar justify-between shrink-0 z-20">
       <div className="flex items-center gap-3">
@@ -76,9 +86,9 @@ export function Header({
         </button>
 
         <div className="flex gap-4 border-r border-border-main pr-6 hide-mobile">
-          <StatMini icon={<ShieldAlert className="w-3.5 h-3.5 text-rose-400" />} count={stats.critical} label="Critical" color="text-rose-400" />
-          <StatMini icon={<AlertCircle className="w-3.5 h-3.5 text-amber-400" />} count={stats.warning} label="Warning" color="text-amber-400" />
-          <StatMini icon={<Cpu className="w-3.5 h-3.5 text-[var(--accent-500)]" />} count={usage.calls} label="AI Calls" color="text-[var(--accent-500)]" />
+          <StatMini icon={criticalIcon} count={stats.critical} label="Critical" color="text-rose-400" />
+          <StatMini icon={warningIcon} count={stats.warning} label="Warning" color="text-amber-400" />
+          <StatMini icon={cpuIcon} count={usage.calls} label="AI Calls" color="text-[var(--accent-500)]" />
         </div>
         <div className="flex items-center gap-2 ml-auto">
           {authSession && (

@@ -1,5 +1,6 @@
 use anyhow::{bail, Result};
 use keyring::{Entry, Error as KeyringError};
+use secrecy::{ExposeSecret, SecretString};
 use std::env;
 use std::path::Path;
 
@@ -14,6 +15,7 @@ const DEFAULT_GITHUB_CLIENT_ID: &str = "Ov23liQHOy4TmPsvqLxV";
 const KEYCHAIN_SERVICE: &str = "guardian";
 const KEYCHAIN_AI_ACCOUNT_LEGACY: &str = "ai_api_key";
 const KEYCHAIN_TAVILY_ACCOUNT: &str = "tavily_api_key";
+const KEYCHAIN_GITHUB_SECRET_ACCOUNT: &str = "github_client_secret";
 const DEFAULT_TIMEOUT_SECS: u64 = 60;
 const MIN_TIMEOUT_SECS: u64 = 5;
 const MAX_TIMEOUT_SECS: u64 = 180;
@@ -66,6 +68,11 @@ fn ai_key_entry_legacy() -> Result<Entry> {
 
 fn tavily_key_entry() -> Result<Entry> {
     Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_TAVILY_ACCOUNT)
+        .map_err(|e| anyhow::anyhow!(e.to_string()))
+}
+
+fn github_secret_entry() -> Result<Entry> {
+    Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_GITHUB_SECRET_ACCOUNT)
         .map_err(|e| anyhow::anyhow!(e.to_string()))
 }
 
@@ -169,15 +176,15 @@ pub fn clear_user_api_key_for_provider(provider_id: &str) -> Result<()> {
     Ok(())
 }
 
-pub fn user_api_key_for_provider(provider_id: &str) -> Result<Option<String>> {
+pub fn user_api_key_for_provider(provider_id: &str) -> Result<Option<SecretString>> {
     let entry = ai_key_entry(provider_id)?;
     match entry.get_password() {
-        Ok(token) => Ok(Some(token)),
+        Ok(token) => Ok(Some(SecretString::new(token.into()))),
         Err(KeyringError::NoEntry) => {
             if normalize_provider_id(provider_id) == "ollama" {
                 if let Ok(legacy) = ai_key_entry_legacy() {
                     match legacy.get_password() {
-                        Ok(token) => return Ok(Some(token)),
+                        Ok(token) => return Ok(Some(SecretString::new(token.into()))),
                         Err(KeyringError::NoEntry) => {}
                         Err(err) => return Err(anyhow::anyhow!(err.to_string())),
                     }
@@ -207,36 +214,45 @@ pub fn clear_user_tavily_key() -> Result<()> {
     Ok(())
 }
 
-pub fn user_tavily_key() -> Result<Option<String>> {
+pub fn user_tavily_key() -> Result<Option<SecretString>> {
     let entry = tavily_key_entry()?;
     match entry.get_password() {
-        Ok(token) => Ok(Some(token)),
+        Ok(token) => Ok(Some(SecretString::new(token.into()))),
         Err(KeyringError::NoEntry) => Ok(None),
         Err(err) => Err(anyhow::anyhow!(err.to_string())),
     }
 }
 
-pub fn env_api_key() -> String {
-    env::var("GUARDIAN_API_KEY").unwrap_or_default()
+#[allow(dead_code)]
+pub fn set_github_client_secret(secret: &str) -> Result<()> {
+    let entry = github_secret_entry()?;
+    entry
+        .set_password(secret)
+        .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+    Ok(())
 }
 
-pub fn api_key_for_provider(provider_id: &str) -> Result<String> {
+pub fn env_api_key() -> SecretString {
+    SecretString::new(env::var("GUARDIAN_API_KEY").unwrap_or_default().into())
+}
+
+pub fn api_key_for_provider(provider_id: &str) -> Result<SecretString> {
     if let Some(key) = user_api_key_for_provider(provider_id)? {
-        let trimmed = key.trim();
+        let trimmed = key.expose_secret().trim();
         if !is_placeholder_key(trimmed) {
-            return Ok(trimmed.to_string());
+            return Ok(SecretString::new(trimmed.to_string().into()));
         }
     }
 
     bail!("User API key is missing. Set your own key in Settings.")
 }
 
-pub fn tavily_keys() -> Result<Vec<String>> {
-    let mut keys: Vec<String> = Vec::new();
+pub fn tavily_keys() -> Result<Vec<SecretString>> {
+    let mut keys: Vec<SecretString> = Vec::new();
     if let Some(key) = user_tavily_key()? {
-        let trimmed = key.trim();
+        let trimmed = key.expose_secret().trim();
         if !is_placeholder_key(trimmed) {
-            keys.push(trimmed.to_string());
+            keys.push(SecretString::new(trimmed.to_string().into()));
         }
     }
 
@@ -270,55 +286,130 @@ pub fn github_client_id() -> Result<String> {
     Ok(String::new())
 }
 
-pub fn github_client_secret() -> Option<String> {
+pub fn github_client_secret() -> Option<SecretString> {
+    // First check keyring
+    if let Ok(entry) = github_secret_entry() {
+        match entry.get_password() {
+            Ok(secret) if !secret.trim().is_empty() => {
+                return Some(SecretString::new(secret.into()));
+            }
+            _ => {}
+        }
+    }
+
+    // Fallback to env var (only for development)
     for key in ["GITHUB_CLIENT_SECRET", "GUARDIAN_GITHUB_CLIENT_SECRET"] {
         let raw = env::var(key).unwrap_or_default();
         let trimmed = raw.trim();
         if !trimmed.is_empty() && !is_placeholder_key(trimmed) {
-            return Some(trimmed.to_string());
+            // In production, warn about env var usage
+            if is_production() {
+                tracing::warn!(target: "guardian::config", "GITHUB_CLIENT_SECRET should be stored in keyring, not env var");
+            }
+            return Some(SecretString::new(trimmed.to_string().into()));
         }
     }
     None
 }
 
 pub fn max_batch_size() -> usize {
-    env::var("GUARDIAN_MAX_BATCH_SIZE")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(DEFAULT_MAX_BATCH_SIZE)
+    match env::var("GUARDIAN_MAX_BATCH_SIZE") {
+        Ok(val) => match val.parse::<usize>() {
+            Ok(n) => n,
+            Err(e) => {
+                tracing::warn!(
+                    "Invalid GUARDIAN_MAX_BATCH_SIZE value '{}': {}. Using default.",
+                    val,
+                    e
+                );
+                DEFAULT_MAX_BATCH_SIZE
+            }
+        },
+        Err(_) => DEFAULT_MAX_BATCH_SIZE,
+    }
 }
 
 pub fn max_content_chars() -> usize {
-    env::var("GUARDIAN_MAX_CONTENT_CHARS")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(DEFAULT_MAX_CONTENT_CHARS)
+    match env::var("GUARDIAN_MAX_CONTENT_CHARS") {
+        Ok(val) => match val.parse::<usize>() {
+            Ok(n) => n,
+            Err(e) => {
+                tracing::warn!(
+                    "Invalid GUARDIAN_MAX_CONTENT_CHARS value '{}': {}. Using default.",
+                    val,
+                    e
+                );
+                DEFAULT_MAX_CONTENT_CHARS
+            }
+        },
+        Err(_) => DEFAULT_MAX_CONTENT_CHARS,
+    }
 }
 
 pub fn max_content_lines() -> usize {
-    env::var("GUARDIAN_MAX_CONTENT_LINES")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(DEFAULT_MAX_CONTENT_LINES)
+    match env::var("GUARDIAN_MAX_CONTENT_LINES") {
+        Ok(val) => match val.parse::<usize>() {
+            Ok(n) => n,
+            Err(e) => {
+                tracing::warn!(
+                    "Invalid GUARDIAN_MAX_CONTENT_LINES value '{}': {}. Using default.",
+                    val,
+                    e
+                );
+                DEFAULT_MAX_CONTENT_LINES
+            }
+        },
+        Err(_) => DEFAULT_MAX_CONTENT_LINES,
+    }
 }
 
 pub fn min_batch_interval_secs() -> u64 {
-    env::var("GUARDIAN_MIN_BATCH_INTERVAL_SECS")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(DEFAULT_MIN_BATCH_INTERVAL_SECS)
+    match env::var("GUARDIAN_MIN_BATCH_INTERVAL_SECS") {
+        Ok(val) => match val.parse::<u64>() {
+            Ok(n) => n,
+            Err(e) => {
+                tracing::warn!(
+                    "Invalid GUARDIAN_MIN_BATCH_INTERVAL_SECS value '{}': {}. Using default.",
+                    val,
+                    e
+                );
+                DEFAULT_MIN_BATCH_INTERVAL_SECS
+            }
+        },
+        Err(_) => DEFAULT_MIN_BATCH_INTERVAL_SECS,
+    }
 }
 
 pub fn rate_limit_retries() -> u32 {
-    env::var("GUARDIAN_RATE_LIMIT_RETRIES")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(DEFAULT_RATE_LIMIT_RETRIES)
+    match env::var("GUARDIAN_RATE_LIMIT_RETRIES") {
+        Ok(val) => match val.parse::<u32>() {
+            Ok(n) => n,
+            Err(e) => {
+                tracing::warn!(
+                    "Invalid GUARDIAN_RATE_LIMIT_RETRIES value '{}': {}. Using default.",
+                    val,
+                    e
+                );
+                DEFAULT_RATE_LIMIT_RETRIES
+            }
+        },
+        Err(_) => DEFAULT_RATE_LIMIT_RETRIES,
+    }
 }
 
 pub fn rate_limit_backoff_secs() -> u64 {
-    env::var("GUARDIAN_RATE_LIMIT_BACKOFF_SECS")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(DEFAULT_RATE_LIMIT_BACKOFF_SECS)
+    match env::var("GUARDIAN_RATE_LIMIT_BACKOFF_SECS") {
+        Ok(val) => match val.parse::<u64>() {
+            Ok(n) => n,
+            Err(e) => {
+                tracing::warn!(
+                    "Invalid GUARDIAN_RATE_LIMIT_BACKOFF_SECS value '{}': {}. Using default.",
+                    val,
+                    e
+                );
+                DEFAULT_RATE_LIMIT_BACKOFF_SECS
+            }
+        },
+        Err(_) => DEFAULT_RATE_LIMIT_BACKOFF_SECS,
+    }
 }

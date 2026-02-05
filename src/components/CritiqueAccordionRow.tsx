@@ -1,4 +1,4 @@
-import type { ReactElement, MouseEvent } from "react";
+import React, { type ReactElement, MouseEvent } from "react";
 import { invoke } from "../lib/tauri";
 import clsx from "clsx";
 import {
@@ -29,7 +29,7 @@ interface CritiqueAccordionRowProps {
     onFix: () => void; // Clean Code: Callback for UI update
 }
 
-export function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onFix }: CritiqueAccordionRowProps): ReactElement {
+export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onFix }: CritiqueAccordionRowProps): ReactElement {
     const isCritical = log.severity === "Critical";
     const isWarning = log.severity === "Warning";
 
@@ -185,5 +185,5 @@ export function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onFix }
             )
             }
         </div >
-    )
-}
+    );
+});

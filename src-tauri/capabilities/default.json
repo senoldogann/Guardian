@@ -1,14 +1,19 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": [
-    "main"
-  ],
+  "description": "Default capabilities for Guardian main window",
+  "local": true,
+  "windows": ["main"],
   "permissions": [
     "core:default",
     "opener:default",
     "dialog:default",
-    "updater:default"
+    "updater:default",
+    "fs:default",
+    "fs:allow-read",
+    "fs:allow-write",
+    "fs:allow-read-dir",
+    "fs:allow-copy-file",
+    "fs:allow-remove"
   ]
 }

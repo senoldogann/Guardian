@@ -1,7 +1,7 @@
 use std::process::Command;
 
 #[allow(dead_code)]
-pub fn run_command(command: &str, args: &[&str]) -> Result<String, String> {
+pub async fn run_command(command: &str, args: &[&str]) -> Result<String, String> {
     // SECURITY: Strictly allowlist binaries and patterns
     let allowed_binaries = [
         "cargo", "npm", "npx", "go", "python3", "python", "pip", "pytest",
@@ -13,16 +13,22 @@ pub fn run_command(command: &str, args: &[&str]) -> Result<String, String> {
         ));
     }
 
-    let output = Command::new(command)
-        .args(args)
-        .output()
-        .map_err(|e| e.to_string())?;
+    let cmd = command.to_string();
+    let args_vec: Vec<String> = args.iter().map(|&s| s.to_string()).collect();
+    
+    // OPTIMIZATION: Use spawn_blocking for CPU-intensive blocking operations
+    tokio::task::spawn_blocking(move || {
+        let output = Command::new(&cmd)
+            .args(&args_vec)
+            .output()
+            .map_err(|e| e.to_string())?;
 
-    if output.status.success() {
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
-    } else {
-        Err(String::from_utf8_lossy(&output.stderr).to_string())
-    }
+        if output.status.success() {
+            Ok(String::from_utf8_lossy(&output.stdout).to_string())
+        } else {
+            Err(String::from_utf8_lossy(&output.stderr).to_string())
+        }
+    }).await.map_err(|e| e.to_string())?
 }
 
 pub fn verify_rust_project(root: &str) -> Result<String, String> {

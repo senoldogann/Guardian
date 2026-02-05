@@ -1,10 +1,45 @@
 use reqwest::Client;
 use serde_json::json;
+use secrecy::ExposeSecret;
 use crate::config;
 use tracing::{debug, warn};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
+use tokio::time::{Instant, Duration};
 
 pub struct WebSearch {
     client: Client,
+    rate_limiter: Arc<RateLimiter>,
+}
+
+struct RateLimiter {
+    last_request: AtomicU64,
+    min_interval_ms: u64,
+}
+
+impl RateLimiter {
+    fn new(min_interval_ms: u64) -> Self {
+        Self {
+            last_request: AtomicU64::new(0),
+            min_interval_ms,
+        }
+    }
+
+    async fn check_and_wait(&self) {
+        let now = Instant::now();
+        let now_ms = now.elapsed().as_millis() as u64;
+        let last = self.last_request.load(Ordering::Relaxed);
+        
+        if last > 0 {
+            let elapsed = now_ms.saturating_sub(last);
+            if elapsed < self.min_interval_ms {
+                let wait_ms = self.min_interval_ms - elapsed;
+                tokio::time::sleep(Duration::from_millis(wait_ms)).await;
+            }
+        }
+        
+        self.last_request.store(now_ms, Ordering::Relaxed);
+    }
 }
 
 impl WebSearch {
@@ -25,7 +60,10 @@ impl WebSearch {
             .build()
             .map_err(|e| format!("Failed to build web search client: {}", e))?;
 
-        Ok(Self { client })
+        // Rate limit: max 1 request per second per key
+        let rate_limiter = Arc::new(RateLimiter::new(1000));
+
+        Ok(Self { client, rate_limiter })
     }
 
     pub async fn search(&self, query: &str) -> Result<String, String> {
@@ -39,8 +77,11 @@ impl WebSearch {
         for (i, key) in keys.iter().enumerate() {
             debug!(target: "guardian::search", "Attempting search with key #{}", i + 1);
 
+            // Apply rate limiting before each request
+            self.rate_limiter.check_and_wait().await;
+
             let payload = json!({
-                "api_key": key,
+                "api_key": key.expose_secret(),
                 "query": query,
                 "search_depth": "basic",
                 "include_answer": true,
@@ -79,9 +120,13 @@ impl WebSearch {
                         
                         return Ok(summary);
 
+                    } else if resp.status().as_u16() == 429 {
+                        // Rate limited - try next key
+                        warn!(target: "guardian::search", "Key #{} rate limited, switching", i + 1);
+                        continue;
                     } else {
-                         // Specific Error Handling for Failover
-                         warn!(target: "guardian::search", "Key #{} failed ({}), switching", i + 1, resp.status());
+                        // Specific Error Handling for Failover
+                        warn!(target: "guardian::search", "Key #{} failed ({}), switching", i + 1, resp.status());
                     }
                 },
                 Err(e) => {

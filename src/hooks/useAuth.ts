@@ -1,49 +1,18 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke, isTauriRuntime } from "../lib/tauri";
-
-export type GithubUser = {
-  login: string;
-  id: number;
-  avatar_url?: string;
-};
-
-export type DeviceCodeResponse = {
-  device_code: string;
-  user_code: string;
-  verification_uri: string;
-  expires_in: number;
-  interval: number;
-};
-
-export type AuthSessionResponse = {
-  user: GithubUser;
-  verified: boolean;
-  warning?: string | null;
-};
-
-export type AuthLoginResult = {
-  user: GithubUser;
-  warning?: string | null;
-};
+import type { GithubUser, DeviceCodeResponse, AuthSessionResponse, AuthLoginResult } from "../types";
 
 export interface UseAuthReturn {
-  // Session
   authSession: GithubUser | null;
   authVerified: boolean;
   authWarning: string | null;
-  
-  // Device flow
   authDevice: DeviceCodeResponse | null;
   authLoading: boolean;
   authError: string | null;
   authCountdown: number | null;
-  
-  // UI State
   authGateVisible: boolean;
   showAuthGate: boolean;
   requiresVerified: boolean;
-  
-  // Actions
   refreshAuthSession: () => Promise<AuthSessionResponse | null>;
   startGithubLogin: () => Promise<void>;
   completeGithubLogin: () => Promise<void>;
@@ -64,10 +33,23 @@ export function useAuth(): UseAuthReturn {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authGateVisible, setAuthGateVisible] = useState(false);
   const [authCountdown, setAuthCountdown] = useState<number | null>(null);
+  
+  // Refs for cleanup and race condition prevention
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
+  const intervalRef = useRef<number | null>(null);
 
   const refreshAuthSession = useCallback(async (): Promise<AuthSessionResponse | null> => {
+    // Cancel any pending request
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+    
     try {
       const res = await invoke<AuthSessionResponse | null>("refresh_auth_session");
+      
+      // Prevent state updates if unmounted
+      if (!mountedRef.current) return null;
+      
       setAuthSession(res?.user ?? null);
       setAuthVerified(Boolean(res?.verified));
       setAuthWarning(res?.warning ?? null);
@@ -76,6 +58,7 @@ export function useAuth(): UseAuthReturn {
       }
       return res;
     } catch (e: unknown) {
+      if (!mountedRef.current) return null;
       setAuthError(e instanceof Error ? e.message : String(e));
       setAuthGateVisible(true);
       return null;
@@ -84,33 +67,63 @@ export function useAuth(): UseAuthReturn {
 
   // Load initial session
   useEffect(() => {
+    mountedRef.current = true;
+    
     const loadSession = async (): Promise<void> => {
       try {
         const res = await invoke<AuthSessionResponse | null>("get_auth_session", { cachedOnly: true });
+        if (!mountedRef.current) return;
         setAuthSession(res?.user ?? null);
         setAuthVerified(Boolean(res?.verified));
         setAuthWarning(res?.warning ?? null);
       } catch (e) {
+        if (!mountedRef.current) return;
         setAuthError(e instanceof Error ? e.message : String(e));
       }
     };
+    
     loadSession();
+    
+    return () => {
+      mountedRef.current = false;
+      abortControllerRef.current?.abort();
+    };
   }, [isDesktop]);
 
-  // Countdown timer for device code
+  // Countdown timer for device code - fixed cleanup
   useEffect(() => {
+    // Clear any existing interval first
+    if (intervalRef.current) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    
     if (!authDevice) {
       setAuthCountdown(null);
       return;
     }
+    
     setAuthCountdown(authDevice.expires_in);
-    const timer = window.setInterval(() => {
+    
+    intervalRef.current = window.setInterval(() => {
       setAuthCountdown(prev => {
-        if (prev === null) return null;
+        if (prev === null || prev <= 0) {
+          if (intervalRef.current) {
+            window.clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          return null;
+        }
         return Math.max(prev - 1, 0);
       });
     }, 1000);
-    return () => window.clearInterval(timer);
+    
+    return () => {
+      if (intervalRef.current) {
+        window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, [authDevice]);
 
   // Clear device when session is established
@@ -130,17 +143,26 @@ export function useAuth(): UseAuthReturn {
     setAuthWarning(null);
     try {
       const device = await invoke<DeviceCodeResponse>("start_github_login");
+      if (!mountedRef.current) return;
       setAuthDevice(device);
     } catch (e: unknown) {
+      if (!mountedRef.current) return;
       setAuthError(e instanceof Error ? e.message : String(e));
     } finally {
-      setAuthLoading(false);
+      if (mountedRef.current) {
+        setAuthLoading(false);
+      }
     }
   }, [isDesktop]);
 
   const completeGithubLogin = useCallback(async (): Promise<void> => {
     if (!isDesktop) return;
     if (!authDevice) return;
+    
+    // Cancel any pending login
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+    
     setAuthLoading(true);
     setAuthError(null);
     try {
@@ -148,15 +170,19 @@ export function useAuth(): UseAuthReturn {
         deviceCode: authDevice.device_code,
         maxWaitSeconds: 60
       });
+      if (!mountedRef.current) return;
       setAuthSession(result.user);
       setAuthWarning(result.warning ?? null);
       setAuthVerified(true);
       setAuthDevice(null);
     } catch (e: unknown) {
+      if (!mountedRef.current) return;
       const msg = e instanceof Error ? e.message : String(e);
       setAuthError(msg);
     } finally {
-      setAuthLoading(false);
+      if (mountedRef.current) {
+        setAuthLoading(false);
+      }
     }
   }, [isDesktop, authDevice]);
 
@@ -166,13 +192,17 @@ export function useAuth(): UseAuthReturn {
     setAuthError(null);
     try {
       await invoke("logout_github");
+      if (!mountedRef.current) return;
       setAuthSession(null);
       setAuthVerified(false);
       setAuthWarning(null);
     } catch (e: unknown) {
+      if (!mountedRef.current) return;
       setAuthError(e instanceof Error ? e.message : String(e));
     } finally {
-      setAuthLoading(false);
+      if (mountedRef.current) {
+        setAuthLoading(false);
+      }
     }
   }, [isDesktop]);
 

@@ -8,7 +8,10 @@ on:
 
 jobs:
   verify:
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -29,6 +32,12 @@ jobs:
 
       - name: Install Playwright browsers
         run: npx playwright install
+
+      - name: Security Audit
+        run: |
+          npm audit --audit-level=moderate
+          cargo install cargo-audit
+          cargo audit
 
       - name: Verify
         run: npm run verify

@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  guardian-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: guardian-dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/src-tauri/target
+    ports:
+      - "1420:1420"
+      - "1421:1421"
+    environment:
+      - NODE_ENV=development
+      - TAURI_DEV_HOST=true
+    command: npm run tauri dev
+    stdin_open: true
+    tty: true
+
+  guardian-build:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: guardian-build
+    volumes:
+      - ./dist:/app/dist
+    environment:
+      - NODE_ENV=production

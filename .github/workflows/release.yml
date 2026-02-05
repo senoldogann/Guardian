@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (for manual runs), e.g. v0.2.4"
+        description: "Release tag (for manual runs), e.g. v0.2.5"
         required: true
         type: string
   push:
@@ -25,7 +25,7 @@ jobs:
           - platform: macos-15-intel
             args: "--target x86_64-apple-darwin"
           - platform: windows-latest
-            args: ""
+            args: "--target x86_64-pc-windows-msvc"
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -99,7 +99,7 @@ jobs:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_TEAM_ID: 79DZ4AA4DW
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
@@ -114,3 +114,69 @@ jobs:
           releaseName: "${{ steps.release_tag.outputs.tag }}"
           generateReleaseNotes: true
           includeUpdaterJson: true
+
+  publish_distribution:
+    name: Publish Public Distribution
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve release tag
+        id: release_tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${{ github.ref_name }}"
+          fi
+
+          if [ -z "$TAG" ]; then
+            echo "Release tag is empty."
+            exit 1
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Validate distribution configuration
+        shell: bash
+        run: |
+          if [ -z "${{ vars.PUBLIC_DIST_REPO }}" ]; then
+            echo "Missing repository variable PUBLIC_DIST_REPO (example: senoldogann/guardian-distribution)."
+            exit 1
+          fi
+          if [ -z "${{ secrets.PUBLIC_DIST_REPO_TOKEN }}" ]; then
+            echo "Missing secret PUBLIC_DIST_REPO_TOKEN (PAT with repo write on distribution repo)."
+            exit 1
+          fi
+
+      - name: Download release assets from source repo
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          TAG="${{ steps.release_tag.outputs.tag }}"
+          mkdir -p dist-assets
+          gh release download "$TAG" --repo "${{ github.repository }}" --dir dist-assets
+          ls -la dist-assets
+
+      - name: Prepare public release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          TAG="${{ steps.release_tag.outputs.tag }}"
+          gh release view "$TAG" --repo "${{ github.repository }}" --json body -q '.body // ""' > RELEASE_NOTES.md
+
+      - name: Publish assets to public distribution repo
+        env:
+          GH_TOKEN: ${{ secrets.PUBLIC_DIST_REPO_TOKEN }}
+        shell: bash
+        run: |
+          TAG="${{ steps.release_tag.outputs.tag }}"
+          DIST_REPO="${{ vars.PUBLIC_DIST_REPO }}"
+
+          if ! gh release view "$TAG" --repo "$DIST_REPO" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$DIST_REPO" --title "$TAG" --notes-file RELEASE_NOTES.md
+          fi
+
+          gh release upload "$TAG" dist-assets/* --repo "$DIST_REPO" --clobber

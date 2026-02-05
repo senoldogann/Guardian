@@ -2,6 +2,53 @@
 
 All notable changes to the Guardian V4 project will be documented in this file.
 
+## [0.2.5] - 2026-02-05
+
+### Distribution & Updates
+- **Private Source, Public Distribution**: Release pipeline now supports publishing signed assets from private source repo to public distribution repo.
+- **Updater Endpoint Migration**: Desktop updater endpoint switched to `senoldogann/guardian-distribution` so end users can receive updates even when source repo is private.
+- **Release Mirror Job**: Added `publish_distribution` job in release workflow to copy release assets and notes automatically.
+
+### Website
+- **Next.js Public Site**: Added `website/` with production-ready pages:
+  - `/download` (OS-aware installer selection)
+  - `/changelog` (GitHub Releases-synced)
+  - `/docs` (public operational documentation)
+- **Release-driven APIs**: Added `/api/releases` and `/api/releases/latest` endpoints with caching for automatic content refresh.
+
+### Security & Stability
+- **React + Rust Build Fixes**: Resolved `react-window` compatibility issues and completed Rust `secrecy` migration fixes.
+- **Validation Hardening**: Stabilized update/status handling and protected UI paths against missing release data.
+
+### Documentation
+- **Operational Guide**: Added private/public deployment runbook in `docs/PRIVATE_DISTRIBUTION_SETUP.md`.
+- **README Updates**: Documented distribution architecture, required GitHub secrets/variables, and website integration.
+
+## [0.2.4] - 2026-02-05
+
+### Security
+- **CSP Hardening**: Added Anthropic, Tavily, GitHub Models, and Google AI endpoints to Content Security Policy.
+- **Error Logging**: Replaced silent catch blocks with proper error logging following SPAP v2.2 guidelines.
+
+### Performance
+- **Virtualization**: App.tsx and ChatView.tsx already use react-window for large list rendering.
+- **Dynamic Import**: jsPDF uses dynamic import to reduce initial bundle size.
+- **useMemo Optimization**: filteredLogs and stats already use useMemo for performance.
+
+### Testing
+- **StallOverlay Tests**: Added comprehensive test suite for StallOverlay component (8 test cases).
+- **Coverage Threshold**: Maintained 80% coverage threshold in vitest.config.ts.
+
+### Infrastructure
+- **Version Sync**: Synchronized version to 0.2.4 across package.json, Cargo.toml, and tauri.conf.json.
+- **Docker Ready**: Dockerfile, docker-compose.yml, and .dockerignore are production-ready.
+- **CI/CD Multi-platform**: GitHub Actions workflows support Linux, Windows, and macOS.
+
+### Code Quality
+- **Type Safety**: Centralized types in /types/index.ts with ITauriAPI interface.
+- **Constants**: Magic strings consolidated in /constants/index.ts.
+- **Hook Architecture**: useKeyManagement, useLocalStorage, useToast hooks implemented.
+
 ## [4.0.3] - 2026-02-05
 
 ### Added

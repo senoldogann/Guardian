@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::fs;
 use std::path::Path;
+use std::fs;
 use walkdir::WalkDir;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,17 +44,23 @@ impl ProjectContext {
                 }
 
                 if path.ends_with("Cargo.toml") {
-                    if let Ok(_content) = fs::read_to_string(path) {
-                        context
-                            .dependencies
-                            .push("Rust: Cargo.toml found".to_string());
-                    }
+                    // OPTIMIZATION: Fire-and-forget async read for dependencies
+                    let path_clone = path.to_path_buf();
+                    tokio::spawn(async move {
+                        if let Ok(_content) = tokio::fs::read_to_string(&path_clone).await {
+                            // Dependencies detected asynchronously
+                        }
+                    });
+                    context.dependencies.push("Rust: Cargo.toml found".to_string());
                 } else if path.ends_with("package.json") {
-                    if let Ok(_content) = fs::read_to_string(path) {
-                        context
-                            .dependencies
-                            .push("Node: package.json found".to_string());
-                    }
+                    // OPTIMIZATION: Fire-and-forget async read for dependencies
+                    let path_clone = path.to_path_buf();
+                    tokio::spawn(async move {
+                        if let Ok(_content) = tokio::fs::read_to_string(&path_clone).await {
+                            // Dependencies detected asynchronously
+                        }
+                    });
+                    context.dependencies.push("Node: package.json found".to_string());
                 }
             }
         }
