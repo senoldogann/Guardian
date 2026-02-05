@@ -61,13 +61,13 @@ jobs:
         include:
           - platform: macos-latest
             args: "--target aarch64-apple-darwin"
-            notarize: true
+            notarize: "true"
           - platform: macos-15-intel
             args: "--target x86_64-apple-darwin"
-            notarize: false
+            notarize: "false"
           - platform: windows-latest
             args: "--target x86_64-pc-windows-msvc"
-            notarize: false
+            notarize: "false"
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -93,7 +93,7 @@ jobs:
         run: npm ci
 
       - name: Write Apple API Key (macOS notarized targets)
-        if: runner.os == 'macOS' && matrix.notarize
+        if: runner.os == 'macOS' && matrix.notarize == 'true'
         id: apple_api_key
         env:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
@@ -115,7 +115,8 @@ jobs:
           )
           echo "key_path=$KEY_PATH" >> "$GITHUB_OUTPUT"
 
-      - name: Build + Release (Tauri)
+      - name: Build + Release (Tauri, notarized)
+        if: matrix.notarize == 'true'
         uses: tauri-apps/tauri-action@action-v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.SOURCE_REPO_TOKEN || github.token }}
@@ -125,11 +126,30 @@ jobs:
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_ID: ${{ matrix.notarize && secrets.APPLE_ID || '' }}
-          APPLE_PASSWORD: ${{ matrix.notarize && secrets.APPLE_PASSWORD || '' }}
-          APPLE_API_KEY: ${{ matrix.notarize && secrets.APPLE_API_KEY || '' }}
-          APPLE_API_ISSUER: ${{ matrix.notarize && secrets.APPLE_API_ISSUER || '' }}
-          APPLE_API_KEY_PATH: ${{ matrix.notarize && steps.apple_api_key.outputs.key_path || '' }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_PATH: ${{ steps.apple_api_key.outputs.key_path }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        with:
+          args: ${{ matrix.args }}
+          tagName: ${{ needs.prepare_release.outputs.tag }}
+          releaseDraft: false
+          releaseName: "${{ needs.prepare_release.outputs.tag }}"
+          generateReleaseNotes: true
+          includeUpdaterJson: true
+
+      - name: Build + Release (Tauri, standard)
+        if: matrix.notarize != 'true'
+        uses: tauri-apps/tauri-action@action-v0.6.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.SOURCE_REPO_TOKEN || github.token }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         with:
