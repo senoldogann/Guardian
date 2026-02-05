@@ -39,14 +39,18 @@ jobs:
 
       - name: Ensure source release exists
         env:
-          GH_TOKEN: ${{ secrets.SOURCE_REPO_TOKEN || secrets.PUBLIC_DIST_REPO_TOKEN || github.token }}
+          GH_TOKEN: ${{ secrets.SOURCE_REPO_TOKEN || github.token }}
         shell: bash
         run: |
           TAG="${{ steps.release_tag.outputs.tag }}"
           REPO="${{ github.repository }}"
 
           if ! gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
-            gh release create "$TAG" --repo "$REPO" --title "$TAG" --notes "Automated release for $TAG"
+            if ! gh release create "$TAG" --repo "$REPO" --title "$TAG" --notes "Automated release for $TAG"; then
+              echo "Failed to create source release in $REPO."
+              echo "Set SOURCE_REPO_TOKEN (PAT with repo write on source repo) or enable release creation for GITHUB_TOKEN."
+              exit 1
+            fi
           fi
 
   build:
@@ -111,7 +115,7 @@ jobs:
       - name: Build + Release (Tauri)
         uses: tauri-apps/tauri-action@action-v0.6.1
         env:
-          GITHUB_TOKEN: ${{ secrets.SOURCE_REPO_TOKEN || secrets.PUBLIC_DIST_REPO_TOKEN || github.token }}
+          GITHUB_TOKEN: ${{ secrets.SOURCE_REPO_TOKEN || github.token }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
