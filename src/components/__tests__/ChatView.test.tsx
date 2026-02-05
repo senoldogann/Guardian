@@ -10,9 +10,24 @@ describe("ChatView", () => {
   it("sends message and renders guru response", async () => {
     const user = userEvent.setup();
 
-    invokeMock.mockResolvedValue("Short answer from Guru");
+    invokeMock.mockImplementation((cmd: string) => {
+      if (cmd === "get_chat_history") {
+        return Promise.resolve([]);
+      }
+      if (cmd === "ask_guru") {
+        return Promise.resolve("Short answer from Guru");
+      }
+      return Promise.resolve(null);
+    });
 
-    render(<ChatView path="/tmp/project" />);
+    render(
+      <ChatView
+        path="/tmp/project"
+        webSearchEnabled={false}
+        webSearchReady={false}
+        onWebSearchToggle={() => {}}
+      />
+    );
 
     const input = screen.getByPlaceholderText(/Ask the Guru/i);
     await user.type(input, "Hello Guardian");
@@ -21,19 +36,37 @@ describe("ChatView", () => {
     expect(invokeMock).toHaveBeenCalledWith("ask_guru", {
       path: "/tmp/project",
       query: "Hello Guardian",
+      webSearch: false,
     });
 
     expect(await screen.findByText("Short answer from Guru")).toBeInTheDocument();
   });
 
   it("auto-sends the prompt when provided", async () => {
-    invokeMock.mockResolvedValue("Auto response from Guru");
+    invokeMock.mockImplementation((cmd: string) => {
+      if (cmd === "get_chat_history") {
+        return Promise.resolve([]);
+      }
+      if (cmd === "ask_guru") {
+        return Promise.resolve("Auto response from Guru");
+      }
+      return Promise.resolve(null);
+    });
 
-    render(<ChatView path="/tmp/project" autoPrompt="Resolve the stall" />);
+    render(
+      <ChatView
+        path="/tmp/project"
+        autoPrompt="Resolve the stall"
+        webSearchEnabled={false}
+        webSearchReady={false}
+        onWebSearchToggle={() => {}}
+      />
+    );
 
     expect(invokeMock).toHaveBeenCalledWith("ask_guru", {
       path: "/tmp/project",
       query: "Resolve the stall",
+      webSearch: false,
     });
 
     expect(await screen.findByText("Auto response from Guru")).toBeInTheDocument();

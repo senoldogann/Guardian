@@ -48,6 +48,7 @@ Object.defineProperty(window, "matchMedia", {
 Object.defineProperty(window, "__TAURI_INTERNALS__", {
   value: {},
   writable: true,
+  configurable: true,
 });
 
 class ResizeObserver {
@@ -59,6 +60,8 @@ class ResizeObserver {
 window.ResizeObserver = ResizeObserver as unknown as typeof ResizeObserver;
 
 window.alert = vi.fn();
+
+Element.prototype.scrollIntoView = vi.fn();
 
 beforeEach(() => {
   vi.clearAllMocks();

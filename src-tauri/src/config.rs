@@ -1,5 +1,6 @@
+use anyhow::{bail, Result};
+use keyring::{Entry, Error as KeyringError};
 use std::env;
-use anyhow::{Result, bail};
 
 pub const DEFAULT_MODEL: &str = "gemini-3-flash-preview:cloud";
 pub const DEFAULT_HOST: &str = "https://ollama.com";
@@ -8,6 +9,20 @@ const PLACEHOLDER_API_KEY: &str = "PLACEHOLDER_KEY";
 const PLACEHOLDER_TAVILY_KEYS: [&str; 2] = ["PLACEHOLDER_TAVILY_1", "PLACEHOLDER_TAVILY_2"];
 const PLACEHOLDER_GITHUB_CLIENT_ID: &str = "PLACEHOLDER_GITHUB_CLIENT_ID";
 const PLACEHOLDER_GITHUB_CLIENT_SECRET: &str = "PLACEHOLDER_GITHUB_CLIENT_SECRET";
+const KEYCHAIN_SERVICE: &str = "guardian";
+const KEYCHAIN_AI_ACCOUNT_LEGACY: &str = "ai_api_key";
+const KEYCHAIN_TAVILY_ACCOUNT: &str = "tavily_api_key";
+const DEFAULT_TIMEOUT_SECS: u64 = 60;
+const MIN_TIMEOUT_SECS: u64 = 5;
+const MAX_TIMEOUT_SECS: u64 = 180;
+
+// Watcher Configuration
+pub const DEFAULT_MAX_BATCH_SIZE: usize = 2;
+pub const DEFAULT_MAX_CONTENT_CHARS: usize = 6000;
+pub const DEFAULT_MAX_CONTENT_LINES: usize = 220;
+pub const DEFAULT_MIN_BATCH_INTERVAL_SECS: u64 = 2;
+pub const DEFAULT_RATE_LIMIT_RETRIES: u32 = 2;
+pub const DEFAULT_RATE_LIMIT_BACKOFF_SECS: u64 = 2;
 
 pub fn is_production() -> bool {
     !cfg!(debug_assertions)
@@ -23,31 +38,187 @@ pub fn is_placeholder_key(value: &str) -> bool {
         || trimmed.starts_with("PLACEHOLDER_")
 }
 
-pub fn api_key() -> Result<String> {
-    let key = env::var("GUARDIAN_API_KEY").unwrap_or_default();
-    let trimmed = key.trim();
+fn normalize_provider_id(provider_id: &str) -> String {
+    let trimmed = provider_id.trim().to_lowercase();
+    if trimmed.is_empty() {
+        "ollama".to_string()
+    } else {
+        trimmed
+    }
+}
 
-    if is_placeholder_key(trimmed) {
-        if is_production() {
-            bail!("GUARDIAN_API_KEY is missing or still a placeholder");
+fn ai_key_account(provider_id: &str) -> String {
+    let id = normalize_provider_id(provider_id);
+    format!("ai_api_key_{}", id)
+}
+
+fn ai_key_entry(provider_id: &str) -> Result<Entry> {
+    let account = ai_key_account(provider_id);
+    Entry::new(KEYCHAIN_SERVICE, &account).map_err(|e| anyhow::anyhow!(e.to_string()))
+}
+
+fn ai_key_entry_legacy() -> Result<Entry> {
+    Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_AI_ACCOUNT_LEGACY)
+        .map_err(|e| anyhow::anyhow!(e.to_string()))
+}
+
+fn tavily_key_entry() -> Result<Entry> {
+    Entry::new(KEYCHAIN_SERVICE, KEYCHAIN_TAVILY_ACCOUNT)
+        .map_err(|e| anyhow::anyhow!(e.to_string()))
+}
+
+fn parse_timeout_env(key: &str) -> Option<u64> {
+    env::var(key).ok().and_then(|raw| {
+        let trimmed = raw.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            trimmed.parse::<u64>().ok()
         }
-        return Ok(trimmed.to_string());
+    })
+}
+
+fn clamp_timeout(value: u64) -> u64 {
+    value.clamp(MIN_TIMEOUT_SECS, MAX_TIMEOUT_SECS)
+}
+
+fn non_empty_env(key: &str) -> Option<String> {
+    env::var(key).ok().and_then(|raw| {
+        let trimmed = raw.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    })
+}
+
+pub fn provider_timeout_seconds(provider_id: &str) -> u64 {
+    let default = parse_timeout_env("GUARDIAN_TIMEOUT_DEFAULT").unwrap_or(DEFAULT_TIMEOUT_SECS);
+    let normalized = normalize_provider_id(provider_id);
+    let env_key = format!(
+        "GUARDIAN_TIMEOUT_{}",
+        normalized.replace('-', "_").to_uppercase()
+    );
+    let provider_timeout = parse_timeout_env(&env_key).unwrap_or(default);
+    clamp_timeout(provider_timeout)
+}
+
+pub fn provider_pinned_cert_path(provider_id: &str) -> Option<String> {
+    let normalized = normalize_provider_id(provider_id);
+    let env_key = format!(
+        "GUARDIAN_TLS_PINNED_CERT_{}",
+        normalized.replace('-', "_").to_uppercase()
+    );
+    non_empty_env(&env_key).or_else(|| non_empty_env("GUARDIAN_TLS_PINNED_CERT"))
+}
+
+pub fn set_user_api_key_for_provider(provider_id: &str, key: &str) -> Result<()> {
+    let entry = ai_key_entry(provider_id)?;
+    entry
+        .set_password(key)
+        .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+    if normalize_provider_id(provider_id) == "ollama" {
+        if let Ok(legacy) = ai_key_entry_legacy() {
+            let _ = legacy.set_password(key);
+        }
+    }
+    Ok(())
+}
+
+pub fn clear_user_api_key_for_provider(provider_id: &str) -> Result<()> {
+    let entry = ai_key_entry(provider_id)?;
+    match entry.delete_password() {
+        Ok(()) => {}
+        Err(KeyringError::NoEntry) => {}
+        Err(err) => return Err(anyhow::anyhow!(err.to_string())),
     }
 
-    Ok(trimmed.to_string())
+    if normalize_provider_id(provider_id) == "ollama" {
+        if let Ok(legacy) = ai_key_entry_legacy() {
+            match legacy.delete_password() {
+                Ok(()) => {}
+                Err(KeyringError::NoEntry) => {}
+                Err(err) => return Err(anyhow::anyhow!(err.to_string())),
+            }
+        }
+    }
+    Ok(())
+}
+
+pub fn user_api_key_for_provider(provider_id: &str) -> Result<Option<String>> {
+    let entry = ai_key_entry(provider_id)?;
+    match entry.get_password() {
+        Ok(token) => Ok(Some(token)),
+        Err(KeyringError::NoEntry) => {
+            if normalize_provider_id(provider_id) == "ollama" {
+                if let Ok(legacy) = ai_key_entry_legacy() {
+                    match legacy.get_password() {
+                        Ok(token) => return Ok(Some(token)),
+                        Err(KeyringError::NoEntry) => {}
+                        Err(err) => return Err(anyhow::anyhow!(err.to_string())),
+                    }
+                }
+            }
+            Ok(None)
+        }
+        Err(err) => Err(anyhow::anyhow!(err.to_string())),
+    }
+}
+
+pub fn set_user_tavily_key(key: &str) -> Result<()> {
+    let entry = tavily_key_entry()?;
+    entry
+        .set_password(key)
+        .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+    Ok(())
+}
+
+pub fn clear_user_tavily_key() -> Result<()> {
+    let entry = tavily_key_entry()?;
+    match entry.delete_password() {
+        Ok(()) => {}
+        Err(KeyringError::NoEntry) => {}
+        Err(err) => return Err(anyhow::anyhow!(err.to_string())),
+    }
+    Ok(())
+}
+
+pub fn user_tavily_key() -> Result<Option<String>> {
+    let entry = tavily_key_entry()?;
+    match entry.get_password() {
+        Ok(token) => Ok(Some(token)),
+        Err(KeyringError::NoEntry) => Ok(None),
+        Err(err) => Err(anyhow::anyhow!(err.to_string())),
+    }
+}
+
+pub fn env_api_key() -> String {
+    env::var("GUARDIAN_API_KEY").unwrap_or_default()
+}
+
+pub fn api_key_for_provider(provider_id: &str) -> Result<String> {
+    if let Some(key) = user_api_key_for_provider(provider_id)? {
+        let trimmed = key.trim();
+        if !is_placeholder_key(trimmed) {
+            return Ok(trimmed.to_string());
+        }
+    }
+
+    bail!("User API key is missing. Set your own key in Settings.")
 }
 
 pub fn tavily_keys() -> Result<Vec<String>> {
-    let raw = env::var("TAVILY_API_KEYS").unwrap_or_default();
-    let keys = raw
-        .split(',')
-        .map(|s| s.trim())
-        .filter(|s| !is_placeholder_key(s))
-        .map(|s| s.to_string())
-        .collect::<Vec<_>>();
+    let mut keys: Vec<String> = Vec::new();
+    if let Some(key) = user_tavily_key()? {
+        let trimmed = key.trim();
+        if !is_placeholder_key(trimmed) {
+            keys.push(trimmed.to_string());
+        }
+    }
 
-    if keys.is_empty() && is_production() {
-        bail!("TAVILY_API_KEYS is missing or still a placeholder");
+    if keys.is_empty() {
+        bail!("Tavily API key is missing. Add your key in Settings to enable web search.");
     }
 
     Ok(keys)
@@ -76,4 +247,46 @@ pub fn github_client_secret() -> Option<String> {
     }
 
     Some(trimmed.to_string())
+}
+
+pub fn max_batch_size() -> usize {
+    env::var("GUARDIAN_MAX_BATCH_SIZE")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_MAX_BATCH_SIZE)
+}
+
+pub fn max_content_chars() -> usize {
+    env::var("GUARDIAN_MAX_CONTENT_CHARS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_MAX_CONTENT_CHARS)
+}
+
+pub fn max_content_lines() -> usize {
+    env::var("GUARDIAN_MAX_CONTENT_LINES")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_MAX_CONTENT_LINES)
+}
+
+pub fn min_batch_interval_secs() -> u64 {
+    env::var("GUARDIAN_MIN_BATCH_INTERVAL_SECS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_MIN_BATCH_INTERVAL_SECS)
+}
+
+pub fn rate_limit_retries() -> u32 {
+    env::var("GUARDIAN_RATE_LIMIT_RETRIES")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_RATE_LIMIT_RETRIES)
+}
+
+pub fn rate_limit_backoff_secs() -> u64 {
+    env::var("GUARDIAN_RATE_LIMIT_BACKOFF_SECS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(DEFAULT_RATE_LIMIT_BACKOFF_SECS)
 }

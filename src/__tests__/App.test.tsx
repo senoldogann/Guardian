@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, within, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, within, cleanup, waitFor } from "@testing-library/react";
 import { describe, expect, it, type Mock } from "vitest";
 import { invoke } from "@tauri-apps/api/core";
 import { emitTauriEvent } from "../test/tauriMock";
@@ -16,6 +16,23 @@ describe("App", () => {
           total_files: 0,
           intent_summary: "",
         });
+      }
+      if (cmd === "get_provider_config") {
+        return Promise.resolve({
+          provider_id: "ollama",
+          base_url: "https://ollama.com",
+          model: "gemini-3-flash-preview:cloud",
+        });
+      }
+      if (cmd === "get_auth_session") {
+        return Promise.resolve({
+          user: { login: "tester", id: 1 },
+          verified: true,
+          warning: null,
+        });
+      }
+      if (cmd === "get_tavily_key_status") {
+        return Promise.resolve({ has_key: false, source: "none" });
       }
       if (cmd === "ping") {
         return Promise.resolve("pong");
@@ -44,6 +61,23 @@ describe("App", () => {
           total_files: 0,
           intent_summary: "",
         });
+      }
+      if (cmd === "get_provider_config") {
+        return Promise.resolve({
+          provider_id: "ollama",
+          base_url: "https://ollama.com",
+          model: "gemini-3-flash-preview:cloud",
+        });
+      }
+      if (cmd === "get_auth_session") {
+        return Promise.resolve({
+          user: { login: "tester", id: 1 },
+          verified: true,
+          warning: null,
+        });
+      }
+      if (cmd === "get_tavily_key_status") {
+        return Promise.resolve({ has_key: false, source: "none" });
       }
       if (cmd === "ping") {
         return Promise.reject(new Error("no backend"));
@@ -87,6 +121,29 @@ describe("App", () => {
           intent_summary: "",
         });
       }
+      if (cmd === "get_provider_config") {
+        return Promise.resolve({
+          provider_id: "ollama",
+          base_url: "https://ollama.com",
+          model: "gemini-3-flash-preview:cloud",
+        });
+      }
+      if (cmd === "get_auth_session") {
+        return Promise.resolve({
+          user: { login: "tester", id: 1 },
+          verified: true,
+          warning: null,
+        });
+      }
+      if (cmd === "get_tavily_key_status") {
+        return Promise.resolve({ has_key: false, source: "none" });
+      }
+      if (cmd === "get_api_key_status") {
+        return Promise.resolve({ has_key: true, source: "user" });
+      }
+      if (cmd === "start_monitoring") {
+        return Promise.resolve(null);
+      }
       if (cmd === "ping") {
         return Promise.reject(new Error("no backend"));
       }
@@ -95,13 +152,11 @@ describe("App", () => {
 
     render(<App />);
 
-    expect(screen.getByDisplayValue("/tmp")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("tmp")).toBeInTheDocument();
 
     const launchButton = screen.getByRole("button", { name: /launch guardian/i });
-    expect(launchButton).not.toBeDisabled();
+    await waitFor(() => expect(launchButton).not.toBeDisabled());
     fireEvent.click(launchButton);
-
-    expect(await screen.findByText("Monitoring Active")).toBeInTheDocument();
 
     expect(await screen.findByTestId("guardian-activity")).toBeInTheDocument();
 

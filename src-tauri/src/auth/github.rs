@@ -1,5 +1,5 @@
 use anyhow::{bail, Context, Result};
-use reqwest::Client;
+use reqwest::{Client, StatusCode};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use tokio::time::{sleep, Duration, Instant};
@@ -103,20 +103,70 @@ pub async fn request_device_code(client_id: &str) -> Result<DeviceCodeResponse> 
     })
 }
 
-pub async fn complete_device_flow(client_id: &str, client_secret: Option<&str>, device_code: &str) -> Result<AuthSession> {
-    let token = poll_access_token(client_id, client_secret, device_code).await?;
+pub async fn complete_device_flow(
+    client_id: &str,
+    client_secret: Option<&str>,
+    device_code: &str,
+    max_wait_seconds: Option<u64>,
+) -> Result<AuthSession> {
+    let token = poll_access_token(client_id, client_secret, device_code, max_wait_seconds).await?;
     let user = fetch_user(&token).await?;
     Ok(AuthSession { access_token: token, user })
 }
 
-async fn poll_access_token(client_id: &str, client_secret: Option<&str>, device_code: &str) -> Result<String> {
+#[derive(Debug)]
+pub enum VerifyError {
+    Unauthorized,
+    Offline(String),
+    Other(String),
+}
+
+pub async fn verify_access_token(access_token: &str) -> std::result::Result<GithubUser, VerifyError> {
+    let client = Client::new();
+    let response = client
+        .get("https://api.github.com/user")
+        .header("User-Agent", "Guardian")
+        .bearer_auth(access_token)
+        .send()
+        .await;
+
+    let response = match response {
+        Ok(resp) => resp,
+        Err(err) => {
+            if err.is_connect() || err.is_timeout() {
+                return Err(VerifyError::Offline(err.to_string()));
+            }
+            return Err(VerifyError::Other(err.to_string()));
+        }
+    };
+
+    if response.status() == StatusCode::UNAUTHORIZED {
+        return Err(VerifyError::Unauthorized);
+    }
+    if !response.status().is_success() {
+        return Err(VerifyError::Other(format!("GitHub user fetch failed: {}", response.status())));
+    }
+
+    response
+        .json::<GithubUser>()
+        .await
+        .map_err(|e| VerifyError::Other(e.to_string()))
+}
+
+async fn poll_access_token(
+    client_id: &str,
+    client_secret: Option<&str>,
+    device_code: &str,
+    max_wait_seconds: Option<u64>,
+) -> Result<String> {
     let client = Client::new();
     let start = Instant::now();
     let mut interval_secs = 5u64;
+    let timeout_secs = max_wait_seconds.unwrap_or(600);
 
     loop {
-        if start.elapsed().as_secs() > 600 {
-            anyhow::bail!("Device code expired. Please restart login.");
+        if start.elapsed().as_secs() > timeout_secs {
+            anyhow::bail!("Authorization pending. Please complete GitHub verification and try again.");
         }
 
         let mut params = vec![
@@ -147,10 +197,16 @@ async fn poll_access_token(client_id: &str, client_secret: Option<&str>, device_
 
         match payload.error.as_deref() {
             Some("authorization_pending") => {
+                if start.elapsed().as_secs() + interval_secs > timeout_secs {
+                    anyhow::bail!("Authorization pending. Please complete GitHub verification and try again.");
+                }
                 sleep(Duration::from_secs(interval_secs)).await;
             }
             Some("slow_down") => {
                 interval_secs = (interval_secs + 5).min(20);
+                if start.elapsed().as_secs() + interval_secs > timeout_secs {
+                    anyhow::bail!("Authorization pending. Please complete GitHub verification and try again.");
+                }
                 sleep(Duration::from_secs(interval_secs)).await;
             }
             Some(err) => {
@@ -173,6 +229,13 @@ async fn fetch_user(access_token: &str) -> Result<GithubUser> {
         .send()
         .await
         .context("GitHub user fetch failed")?;
+
+    if response.status() == StatusCode::UNAUTHORIZED {
+        bail!("GitHub auth error: unauthorized");
+    }
+    if !response.status().is_success() {
+        bail!("GitHub user fetch failed: {}", response.status());
+    }
 
     response
         .json::<GithubUser>()

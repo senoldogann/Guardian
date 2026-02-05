@@ -7,7 +7,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::collections::HashMap;
 use tokio::time::sleep;
 use tokio::sync::Semaphore;
-use crate::ai_client::OllamaClient;
+use crate::ai_client::AiClient;
+use crate::config;
 use crate::context::ProjectContext;
 use crate::executor;
 use crate::history_logger::append_history_log;
@@ -21,6 +22,7 @@ use sha2::{Sha256, Digest};
 use hex;
 use chrono::Utc;
 use std::fs::OpenOptions;
+use tracing::{info, warn, error, debug};
 
 // GLOBAL STATE for active critiques to enable "real-time sync/delete"
 static ACTIVE_CRITIQUES: Lazy<Arc<Mutex<HashMap<String, crate::ai_client::Critique>>>> = Lazy::new(|| {
@@ -36,6 +38,8 @@ const IGNORED_PATH_MARKERS: &[&str] = &[
     ".git", "target", "node_modules", "_library", ".agent", ".shared", "build",
     "dist", ".vscode", "benchmarks", ".next", "coverage", ".guardian", "docs/legacy", ".env"
 ];
+
+// Note: Configuration constants moved to config.rs, accessed via config::*() functions
 
 fn is_significant_warning(critique: &crate::ai_client::Critique) -> bool {
     let msg = critique.message.to_lowercase();
@@ -100,6 +104,14 @@ fn is_non_logic_extension(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
+fn safe_path_label(path: &Path) -> String {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .filter(|name| !name.is_empty())
+        .map(|name| name.to_string())
+        .unwrap_or_else(|| "<unknown>".to_string())
+}
+
 pub(crate) fn should_skip_path(path: &Path, is_chat: bool) -> bool {
     if is_chat {
         return false;
@@ -124,18 +136,26 @@ pub async fn start_watching(
     api_key: String,
     model: String,
     host: String,
+    provider_id: String,
     shutdown: Arc<AtomicBool>,
 ) {
     let (batch_tx, batch_rx) = tokio::sync::mpsc::channel(100);
     
-    let client = Arc::new(OllamaClient::new(host, model, api_key));
+    let client = match AiClient::new(provider_id, host, model, api_key) {
+        Ok(client) => Arc::new(client),
+        Err(err) => {
+            error!(target: "guardian::watcher", "Failed to init AI client: {}", err);
+            app.emit("guardian:info", format!("AI client init failed: {}", err)).ok();
+            return;
+        }
+    };
     let debouncer: Arc<Mutex<HashMap<PathBuf, DebounceState>>> = Arc::new(Mutex::new(HashMap::new()));
     let semaphore = Arc::new(Semaphore::new(4));
     
     let project_context = Arc::new(ProjectContext::index_path(&target_path));
-    println!("Cognitive Indexing Complete: {} files found.", project_context.total_files);
+    info!(target: "guardian::watcher", "Cognitive indexing complete: {} files", project_context.total_files);
 
-    println!("Guardian Watcher started on: {}", target_path);
+    info!(target: "guardian::watcher", "Watcher started on: {}", target_path);
 
     // UNIVERSAL BOOTSTRAP: Neuro-Link
     let guardian_path = Path::new(&target_path).join(".guardian");
@@ -150,7 +170,7 @@ pub async fn start_watching(
 **User**: System Check.
 **Guardian**: I am listening.
 "#;
-        let _ = fs::write(&chat_link_path, welcome_msg);
+        let _ = tokio::fs::write(&chat_link_path, welcome_msg).await;
     }
 
     // Spawn Batch Processor
@@ -171,7 +191,7 @@ pub async fn start_watching(
     let scan_shutdown = shutdown.clone();
     let scan_semaphore = semaphore.clone();
     tokio::task::spawn_blocking(move || {
-        println!("Performing Initial Scan...");
+        info!(target: "guardian::watcher", "Performing initial scan");
         let walker = ignore::WalkBuilder::new(&scan_root)
             .hidden(false) 
             .git_ignore(true)
@@ -214,20 +234,20 @@ pub async fn start_watching(
     let mut watcher = match RecommendedWatcher::new(
         move |res| {
             if let Err(e) = tx.send(res) {
-                eprintln!("[Watcher] Internal Send Error: {}", e);
+                error!(target: "guardian::watcher", "Internal send error: {}", e);
             }
         },
         Config::default(),
     ) {
         Ok(w) => w,
         Err(e) => {
-            eprintln!("[Watcher] Initialization Failure: {}", e);
+            error!(target: "guardian::watcher", "Initialization failure: {}", e);
             return;
         }
     };
 
     if let Err(e) = watcher.watch(Path::new(&target_path), RecursiveMode::Recursive) {
-        eprintln!("[Watcher] Watch Start Failure: {}", e);
+        error!(target: "guardian::watcher", "Watch start failure: {}", e);
         return;
     }
     // The original line `watcher.watch(Path::new(&target_path), RecursiveMode::Recursive).expect("Failed to start watching path");`
@@ -251,7 +271,7 @@ pub async fn start_watching(
                     Ok(event) => {
                         handle_event(event, watch_app.clone(), watch_debouncer.clone(), watch_tx.clone(), watch_semaphore.clone());
                     },
-                    Err(e) => println!("watch error: {:?}", e),
+                    Err(e) => warn!(target: "guardian::watcher", "Watch error: {:?}", e),
                 },
                 Err(RecvTimeoutError::Timeout) => continue,
                 Err(RecvTimeoutError::Disconnected) => break,
@@ -282,7 +302,7 @@ fn handle_event(
         }
 
         if is_chat {
-            println!("Neuro-Link: Chat detected!");
+            debug!(target: "guardian::watcher", "Neuro-Link: Chat detected");
             app.emit("guardian:analyzing", "Neuro-Link: Processing...".to_string()).ok();
         }
         
@@ -293,7 +313,9 @@ fn handle_event(
             let mut map = match debouncer.lock() {
                 Ok(guard) => guard,
                 Err(poisoned) => {
-                    eprintln!("[WARN] Mutex was poisoned, recovering gracefully");
+                    warn!(target: "guardian::watcher", "Mutex was poisoned, recovering with caution");
+                    // Log the incident for monitoring
+                    error!(target: "guardian::watcher", "Mutex poison detected - this may indicate a panic in the debouncer logic");
                     poisoned.into_inner()
                 }
             };
@@ -326,7 +348,7 @@ fn handle_event(
             entry.last_emit = now;
         }
 
-        println!("Detected change: {:?}", path);
+        debug!(target: "guardian::watcher", "Detected change: {:?}", path);
         app.emit("guardian:analyzing", path.to_string_lossy().to_string()).ok();
         
         let a_app = app.clone();
@@ -348,7 +370,7 @@ struct BatchItem {
 async fn batch_processing_loop(
     mut rx: tokio::sync::mpsc::Receiver<BatchItem>,
     app: AppHandle,
-    client: Arc<OllamaClient>,
+    client: Arc<AiClient>,
     _context: Arc<ProjectContext>,
     root: String,
     shutdown: Arc<AtomicBool>,
@@ -356,6 +378,7 @@ async fn batch_processing_loop(
     let mut batch: Vec<BatchItem> = Vec::new();
     let flush_interval = Duration::from_secs(5); // 5s timeout
     let mut interval = tokio::time::interval(flush_interval);
+    let mut last_request = Instant::now() - Duration::from_secs(10);
 
     loop {
         if shutdown.load(Ordering::Relaxed) {
@@ -364,7 +387,7 @@ async fn batch_processing_loop(
         tokio::select! {
             _ = interval.tick() => {
                 if !batch.is_empty() {
-                    process_batch(&mut batch, &app, &client, &root).await;
+                    process_batch(&mut batch, &app, &client, &root, &mut last_request).await;
                 }
             },
             Some(item) = rx.recv() => {
@@ -373,9 +396,9 @@ async fn batch_processing_loop(
                      batch.push(item);
                 }
 
-                if batch.len() >= 3 {
+                if batch.len() >= config::max_batch_size() {
                     // FLUSH
-                    process_batch(&mut batch, &app, &client, &root).await;
+                    process_batch(&mut batch, &app, &client, &root, &mut last_request).await;
                     interval.reset();
                 }
             }
@@ -386,160 +409,200 @@ async fn batch_processing_loop(
 async fn process_batch(
     batch: &mut Vec<BatchItem>,
     app: &AppHandle,
-    client: &Arc<OllamaClient>,
+    client: &Arc<AiClient>,
     root: &str,
+    last_request: &mut Instant,
 ) {
     if batch.is_empty() { return; }
 
-    println!("Batch Processor: Flushing {} files...", batch.len());
-    
-    // Prepare Prompt Data
-    let mut prompt_data = Vec::new();
-    let mut estimated_tokens: u64 = 0;
-    let mut hash_by_path: HashMap<String, String> = HashMap::new();
-    for item in batch.iter() {
-        // Truncate logic
-        let truncated = if item.content.len() > 10000 {
-             format!("{}... (truncated)", &item.content[0..10000])
-        } else {
-             item.content.clone()
-        };
-        estimated_tokens += estimate_tokens(&truncated);
-        hash_by_path.insert(item.path.to_string_lossy().to_string(), item.hash.clone());
-        prompt_data.push((item.path.to_string_lossy().to_string(), truncated));
+    let elapsed = last_request.elapsed();
+    let min_batch_interval = Duration::from_secs(config::min_batch_interval_secs());
+    if elapsed < min_batch_interval {
+        sleep(min_batch_interval - elapsed).await;
     }
 
-    // Call AI
-    match client.analyze_batch(prompt_data).await {
-        Ok(critiques) => {
-            let mut active_lock = match ACTIVE_CRITIQUES.lock() {
-                Ok(guard) => guard,
-                Err(poisoned) => {
-                    eprintln!("[WARN] ACTIVE_CRITIQUES mutex poisoned, recovering");
-                    poisoned.into_inner()
-                }
-            };
-            let storage_state = app.state::<Arc<Mutex<StorageManager>>>();
-            
-            let mut critical_info: Option<StallInfo> = None;
-            // Process Results
-            for critique in critiques {
-                 // Critiques for specific files
-                 let path_key = critique.file_path.clone();
-                if critique.message.to_uppercase().trim() == "LGTM" {
-                      active_lock.remove(&path_key);
-                      app.emit("guardian:clear", path_key.clone()).ok();
-                      append_agent_event(root, &json!({
-                          "timestamp": Utc::now().to_rfc3339(),
-                          "event": "clear",
-                          "file_path": path_key
-                      }));
-                 } else if !should_surface_critique(&critique) {
-                      if active_lock.remove(&path_key).is_some() {
-                          app.emit("guardian:clear", path_key.clone()).ok();
-                          append_agent_event(root, &json!({
-                              "timestamp": Utc::now().to_rfc3339(),
-                              "event": "clear",
-                              "file_path": path_key,
-                              "reason": "suppressed"
-                          }));
-                      }
-                 } else {
-                      active_lock.insert(path_key.clone(), critique.clone());
-                      app.emit("guardian:critique", critique.clone()).ok();
-                      append_history_log(root, &critique);
-                      append_agent_event(root, &json!({
-                          "timestamp": Utc::now().to_rfc3339(),
-                          "event": "critique",
-                          "file_path": critique.file_path,
-                          "severity": critique.severity,
-                          "message": critique.message,
-                          "suggestion": critique.suggestion,
-                          "suggested_diff": critique.suggested_diff
-                      }));
+    let items = std::mem::take(batch);
+    info!(target: "guardian::watcher", "Batch processor flushing {} files", items.len());
+    
+    // Prepare Prompt Data
+    let (prompt_data, estimated_tokens, hash_by_path) = build_prompt_data(&items);
 
-                      if let Ok(storage) = storage_state.lock() {
-                          let payload = json!({
-                              "file_path": critique.file_path,
-                              "severity": critique.severity,
-                              "content_hash": hash_by_path.get(&path_key),
-                              "timestamp": Utc::now().to_rfc3339()
-                          });
-                          let _ = storage.enqueue_telemetry("critique", &payload.to_string());
-                      }
-
-                      // Autonomous Verification Trigger
-                      if critique.severity == "Critical" && critique.message != "LGTM" {
-                           if critical_info.is_none() {
-                               critical_info = Some(StallInfo {
-                                   file_path: critique.file_path.clone(),
-                                   reason: critique.message.clone(),
-                               });
-                           }
-                           let r_clone = root.to_string();
-                           let a_clone = app.clone();
-                           std::thread::spawn(move || {
-                               a_clone.emit("guardian:analyzing", "Running Automatic Verification...".to_string()).ok();
-                               let verify_res = executor::auto_verify_project(&r_clone);
-                               match verify_res {
-                                   Ok(msg) => {
-                                       if msg.contains("Passed") {
-                                           a_clone.emit("guardian:info", format!("VERIFICATION PASSED: {}", msg)).ok();
-                                       }
-                                   },
-                                   Err(err) => {
-                                       a_clone.emit("guardian:verification", format!("Verification failed: {}", err)).ok();
-                                   }
-                               }
-                           });
-                     }
-                 }
+    let mut attempt = 0;
+    loop {
+        let call = client.analyze_batch(prompt_data.clone()).await;
+        *last_request = Instant::now();
+        match call {
+            Ok(critiques) => {
+                handle_critiques(app, root, &items, &hash_by_path, critiques, estimated_tokens);
+                return;
             }
+            Err(e) => {
+                let err = e.to_string();
+                if is_rate_limit_error(&err) && attempt < config::rate_limit_retries() {
+                    let backoff = Duration::from_secs(config::rate_limit_backoff_secs().saturating_mul((attempt + 1) as u64));
+                    app.emit("guardian:warning", format!("Rate limited. Retrying in {}s...", backoff.as_secs())).ok();
+                    sleep(backoff).await;
+                    attempt += 1;
+                    continue;
+                }
 
-            let stale_paths: Vec<String> = active_lock
-                .keys()
-                .filter(|p| !Path::new(p.as_str()).exists())
-                .cloned()
-                .collect();
+                if is_token_limit_error(&err) && items.len() > 1 {
+                    app.emit("guardian:warning", "Batch too large. Falling back to per-file audit.".to_string()).ok();
+                    for item in items {
+                        let single_items = vec![item.clone()];
+                        let (single_prompt, single_tokens, single_hash) = build_prompt_data(&single_items);
+                        match client.analyze_batch(single_prompt).await {
+                            Ok(critiques) => {
+                                handle_critiques(app, root, &single_items, &single_hash, critiques, single_tokens);
+                            }
+                            Err(err) => {
+                                app.emit("guardian:warning", format!("Single-file audit failed. {}", err)).ok();
+                            }
+                        }
+                        *last_request = Instant::now();
+                    }
+                    return;
+                }
 
-            for path in stale_paths {
-                active_lock.remove(&path);
-                app.emit("guardian:clear", path.clone()).ok();
+                error!(target: "guardian::watcher", "Batch audit failed: {}", err);
+                app.emit("guardian:warning", format!("Batch audit failed. {}", err)).ok();
+                // Still count the usage because we made the call
+                app.emit("guardian:usage", json!({ "tokens": estimated_tokens, "calls": items.len() })).ok();
+                return;
+            }
+        }
+    }
+}
+
+fn handle_critiques(
+    app: &AppHandle,
+    root: &str,
+    items: &[BatchItem],
+    hash_by_path: &HashMap<String, String>,
+    critiques: Vec<crate::ai_client::Critique>,
+    estimated_tokens: u64,
+) {
+    let mut active_lock = match ACTIVE_CRITIQUES.lock() {
+        Ok(guard) => guard,
+        Err(poisoned) => {
+            warn!(target: "guardian::watcher", "ACTIVE_CRITIQUES mutex poisoned, recovering");
+            poisoned.into_inner()
+        }
+    };
+    let storage_state = app.state::<Arc<Mutex<StorageManager>>>();
+
+    let mut critical_info: Option<StallInfo> = None;
+    // Process Results
+    for critique in critiques {
+        // Critiques for specific files
+        let path_key = critique.file_path.clone();
+        if critique.message.to_uppercase().trim() == "LGTM" {
+            active_lock.remove(&path_key);
+            app.emit("guardian:clear", path_key.clone()).ok();
+            append_agent_event(root, &json!({
+                "timestamp": Utc::now().to_rfc3339(),
+                "event": "clear",
+                "file_path": path_key
+            }));
+        } else if !should_surface_critique(&critique) {
+            if active_lock.remove(&path_key).is_some() {
+                app.emit("guardian:clear", path_key.clone()).ok();
                 append_agent_event(root, &json!({
                     "timestamp": Utc::now().to_rfc3339(),
                     "event": "clear",
-                    "file_path": path,
-                    "reason": "missing_or_moved"
+                    "file_path": path_key,
+                    "reason": "suppressed"
                 }));
             }
-            
-            // SUCCESS: Update Hashes for ALL items in batch
-            // Even if no critique returned (LGTM implicit), we update hash
+        } else {
+            active_lock.insert(path_key.clone(), critique.clone());
+            app.emit("guardian:critique", critique.clone()).ok();
+            append_history_log(root, &critique);
+            append_agent_event(root, &json!({
+                "timestamp": Utc::now().to_rfc3339(),
+                "event": "critique",
+                "file_path": critique.file_path,
+                "severity": critique.severity,
+                "message": critique.message,
+                "suggestion": critique.suggestion,
+                "suggested_diff": critique.suggested_diff
+            }));
+
             if let Ok(storage) = storage_state.lock() {
-                for item in batch.iter() {
-                    let _ = storage.update_file_hash(&item.path.to_string_lossy(), &item.hash);
-                    println!("Memory Guard: Hash Updated -> {:?}", item.path);
-                }
-            }
-            
-            let stall = sync_guardian_logs(root, &active_lock);
-            if let Some(stall) = stall.or(critical_info) {
-                app.emit("guardian:stall-requested", json!({ "file_path": stall.file_path, "reason": stall.reason })).ok();
-            } else {
-                app.emit("guardian:stall-released", json!({})).ok();
+                let payload = json!({
+                    "file_path": critique.file_path,
+                    "severity": critique.severity,
+                    "content_hash": hash_by_path.get(&path_key),
+                    "timestamp": Utc::now().to_rfc3339()
+                });
+                let _ = storage.enqueue_telemetry("critique", &payload.to_string());
             }
 
-            app.emit("guardian:usage", json!({ "tokens": estimated_tokens, "calls": batch.len() })).ok();
-        },
-        Err(e) => {
-             println!("Batch Audit Failed: {}", e);
-             app.emit("guardian:warning", format!("Batch audit failed (AI response parse). {}", e)).ok();
-             // Still count the usage because we made the call
-             app.emit("guardian:usage", json!({ "tokens": estimated_tokens, "calls": batch.len() })).ok();
+            // Autonomous Verification Trigger
+            if critique.severity == "Critical" && critique.message != "LGTM" {
+                if critical_info.is_none() {
+                    critical_info = Some(StallInfo {
+                        file_path: critique.file_path.clone(),
+                        reason: critique.message.clone(),
+                    });
+                }
+                let r_clone = root.to_string();
+                let a_clone = app.clone();
+                std::thread::spawn(move || {
+                    a_clone.emit("guardian:analyzing", "Running Automatic Verification...".to_string()).ok();
+                    let verify_res = executor::auto_verify_project(&r_clone);
+                    match verify_res {
+                        Ok(msg) => {
+                            if msg.contains("Passed") {
+                                a_clone.emit("guardian:info", format!("VERIFICATION PASSED: {}", msg)).ok();
+                            }
+                        }
+                        Err(err) => {
+                            a_clone.emit("guardian:verification", format!("Verification failed: {}", err)).ok();
+                        }
+                    }
+                });
+            }
         }
     }
-    
-    batch.clear();
+
+    let stale_paths: Vec<String> = active_lock
+        .keys()
+        .filter(|p| !Path::new(p.as_str()).exists())
+        .cloned()
+        .collect();
+
+    for path in stale_paths {
+        active_lock.remove(&path);
+        app.emit("guardian:clear", path.clone()).ok();
+        append_agent_event(root, &json!({
+            "timestamp": Utc::now().to_rfc3339(),
+            "event": "clear",
+            "file_path": path,
+            "reason": "missing_or_moved"
+        }));
+    }
+
+    // Update hashes after successful audit
+    if let Ok(storage) = storage_state.lock() {
+        for item in items.iter() {
+            let _ = storage.update_file_hash(&item.path.to_string_lossy(), &item.hash);
+            debug!(
+                target: "guardian::watcher",
+                "Memory Guard: hash updated (file={})",
+                safe_path_label(&item.path)
+            );
+        }
+    }
+
+    let stall = sync_guardian_logs(root, &active_lock);
+    if let Some(stall) = stall.or(critical_info) {
+        app.emit("guardian:stall-requested", json!({ "file_path": stall.file_path, "reason": stall.reason })).ok();
+    } else {
+        app.emit("guardian:stall-released", json!({})).ok();
+    }
+
+    app.emit("guardian:usage", json!({ "tokens": estimated_tokens, "calls": items.len() })).ok();
 }
 
 // Replaces analyze_file
@@ -550,7 +613,7 @@ async fn audit_file_logic(
     semaphore: Arc<Semaphore>,
 ) {
     let _permit = semaphore.acquire_owned().await;
-    let content_res = std::fs::read_to_string(&path);
+    let content_res = tokio::fs::read_to_string(&path).await;
     if let Ok(content) = content_res {
         // 1. Hash Check
         let current_hash = calculate_hash(&content);
@@ -561,7 +624,11 @@ async fn audit_file_logic(
                 // If check_file_hash returns Ok(true), it matches -> Skip
                 // If Ok(false) -> New/Changed -> Audit
                 if let Ok(true) = storage.check_file_hash(&path.to_string_lossy(), &current_hash) {
-                    println!("Memory Guard: Skipping unchanged file -> {:?}", path);
+                    debug!(
+                        target: "guardian::watcher",
+                        "Memory Guard: skipping unchanged file (file={})",
+                        safe_path_label(&path)
+                    );
                     app.emit("guardian:info", format!("Skipped (Unchanged): {:?}", path.file_name().unwrap_or_default())).ok();
                     false
                 } else {
@@ -573,7 +640,11 @@ async fn audit_file_logic(
         };
 
         if should_audit {
-             println!("Auditing Change: {:?}", path);
+             debug!(
+                 target: "guardian::watcher",
+                 "Auditing change (file={})",
+                 safe_path_label(&path)
+             );
              let item = BatchItem {
                  path,
                  content,
@@ -674,4 +745,46 @@ fn append_agent_event(root: &str, payload: &serde_json::Value) {
 fn estimate_tokens(content: &str) -> u64 {
     let rough_tokens = (content.len() as f64 / 4.0).ceil() as u64;
     rough_tokens.max(1)
+}
+
+fn build_prompt_data(
+    items: &[BatchItem],
+) -> (Vec<(String, String)>, u64, HashMap<String, String>) {
+    let mut prompt_data = Vec::new();
+    let mut estimated_tokens: u64 = 0;
+    let mut hash_by_path: HashMap<String, String> = HashMap::new();
+
+    for item in items.iter() {
+        let truncated = truncate_content(&item.content);
+        estimated_tokens += estimate_tokens(&truncated);
+        hash_by_path.insert(item.path.to_string_lossy().to_string(), item.hash.clone());
+        prompt_data.push((item.path.to_string_lossy().to_string(), truncated));
+    }
+
+    (prompt_data, estimated_tokens, hash_by_path)
+}
+
+fn truncate_content(content: &str) -> String {
+    let max_content_lines = config::max_content_lines();
+    let max_content_chars = config::max_content_chars();
+    let mut lines: Vec<&str> = content.lines().collect();
+    if lines.len() > max_content_lines {
+        lines.truncate(max_content_lines);
+    }
+    let mut joined = lines.join("\n");
+    if joined.len() > max_content_chars {
+        joined.truncate(max_content_chars);
+        joined.push_str("\n... (truncated)");
+    }
+    joined
+}
+
+fn is_rate_limit_error(err: &str) -> bool {
+    let lower = err.to_lowercase();
+    lower.contains("too many requests") || lower.contains("rate limit") || lower.contains("429")
+}
+
+fn is_token_limit_error(err: &str) -> bool {
+    let lower = err.to_lowercase();
+    lower.contains("tokens_limit_reached") || lower.contains("request body too large")
 }

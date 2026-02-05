@@ -1,5 +1,6 @@
 use tokio::sync::broadcast;
 use serde::{Deserialize, Serialize};
+use tracing::error;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GuardianEvent {
@@ -30,7 +31,7 @@ impl EventBus {
 
     pub async fn publish(&self, event: GuardianEvent) {
         if let Err(e) = self.tx.send(event) {
-            eprintln!("EventBus Error: Failed to broadcast event: {}", e);
+            error!(target: "guardian::bus", "Failed to broadcast event: {}", e);
         }
     }
 

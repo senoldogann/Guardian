@@ -80,14 +80,14 @@ export function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onFix }
                 <div className={clsx(
                     "absolute left-0 top-0 bottom-0 w-0.5 transition-all",
                     isExpanded ? "w-1" : "group-hover:w-1",
-                    isCritical ? "bg-rose-500" : isWarning ? "bg-amber-500" : "bg-sky-500"
+                    isCritical ? "bg-rose-500" : isWarning ? "bg-amber-500" : "bg-[var(--accent-500)]"
                 )} />
 
                 <div className="w-8 shrink-0 text-xs font-mono opacity-20">{index.toString().padStart(2, '0')}</div>
 
                 <div className="w-48 shrink-0 pr-4">
                     <div className="flex items-center gap-2">
-                        <FileCode className={clsx("w-3.5 h-3.5", isCritical ? "text-rose-400" : isWarning ? "text-amber-400" : "text-sky-400")} />
+                        <FileCode className={clsx("w-3.5 h-3.5", isCritical ? "text-rose-400" : isWarning ? "text-amber-400" : "text-[var(--accent-500)]")} />
                         <span className="font-bold text-sm truncate" title={log.file_path}>{fileName}</span>
                     </div>
                     <div className="text-xs opacity-30 font-mono pl-5 truncate">{dirDisplay}</div>
@@ -103,7 +103,7 @@ export function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onFix }
                     {log.suggested_diff && (
                         <button
                             onClick={applyFix}
-                            className="flex items-center gap-1.5 text-xs font-bold text-sky-400 bg-sky-500/10 px-2.5 py-1.5 rounded-lg border border-sky-500/20 animate-pulse hover:bg-sky-500/20 hover:scale-105 transition-all cursor-pointer z-10"
+                            className="flex items-center gap-1.5 text-xs font-bold text-[var(--accent-500)] bg-[var(--accent-200)] px-2.5 py-1.5 rounded-lg border border-[var(--accent-400)] hover:opacity-90 hover:scale-105 transition-all cursor-pointer z-10"
                             title="Quick Fix: Apply this patch immediately"
                         >
                             <Hammer className="w-3.5 h-3.5" /> FIX
@@ -113,7 +113,7 @@ export function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onFix }
                         "px-2 py-1 rounded-md text-xs font-bold uppercase tracking-widest border shrink-0",
                         isCritical ? "bg-rose-500/10 text-rose-500 border-rose-500/20" :
                             isWarning ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
-                                "bg-sky-500/10 text-sky-400 border-sky-500/20"
+                                "bg-[var(--accent-200)] text-[var(--accent-500)] border-[var(--accent-400)]"
                     )}>
                         {log.severity}
                     </span>
@@ -131,11 +131,11 @@ export function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onFix }
                                 <div className="flex items-start gap-4 mb-4">
                                     <div className={clsx(
                                         "p-2 rounded-lg",
-                                        isCritical ? "bg-rose-500/10" : isWarning ? "bg-amber-500/10" : "bg-sky-500/10"
+                                        isCritical ? "bg-rose-500/10" : isWarning ? "bg-amber-500/10" : "bg-[var(--accent-200)]"
                                     )}>
                                         {isCritical ? <ShieldAlert className="w-5 h-5 text-rose-500" /> :
                                             isWarning ? <AlertCircle className="w-5 h-5 text-amber-500" /> :
-                                                <BadgeInfo className="w-5 h-5 text-sky-500" />}
+                                                <BadgeInfo className="w-5 h-5 text-[var(--accent-500)]" />}
                                     </div>
                                     <div>
                                         <h4 className="text-xs font-bold opacity-60 uppercase tracking-widest mb-1 flex items-center gap-2">
@@ -160,11 +160,11 @@ export function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onFix }
                                 {log.suggested_diff && (
                                     <div className="mt-4 space-y-3">
                                         <div className="h-px w-full bg-border-main" />
-                                        <div className="flex items-center gap-2 text-[10px] font-bold text-sky-400 uppercase tracking-widest">
+                                        <div className="flex items-center gap-2 text-[10px] font-bold text-[var(--accent-500)] uppercase tracking-widest">
                                             <Hammer className="w-3 h-3" /> Autopilot: Proposed Fix
                                         </div>
-                                        <div className="bg-[#050506] border border-sky-500/20 p-4 rounded-xl font-mono text-xs overflow-x-auto">
-                                            <pre className="text-sky-300/80">{log.suggested_diff}</pre>
+                                        <div className="bg-surface border border-border-main p-4 rounded-xl font-mono text-xs overflow-x-auto">
+                                            <pre className="text-text-main opacity-80">{log.suggested_diff}</pre>
                                         </div>
                                         <button
                                             onClick={() => {
@@ -172,7 +172,7 @@ export function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onFix }
                                                     .then(() => alert("Review Requested! 🛡️\nPlease confirm the final patch in the Chat view."))
                                                     .catch(e => alert("Failed to start review: " + e));
                                             }}
-                                            className="w-full py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg text-xs transition-colors shadow-lg shadow-sky-900/20 flex items-center justify-center gap-2 cursor-pointer"
+                                            className="w-full py-2 bg-[var(--accent-500)] hover:opacity-90 text-background font-bold rounded-lg text-xs transition-colors shadow-lg shadow-black/40 flex items-center justify-center gap-2 cursor-pointer"
                                         >
                                             <Hammer className="w-3 h-3 fill-current" /> APPLY THIS FIX
                                         </button>
