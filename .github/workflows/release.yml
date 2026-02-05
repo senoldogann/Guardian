@@ -1,22 +1,36 @@
-name: Release Build & Test
+name: Release
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
 
 jobs:
-  build-and-test:
-    runs-on: macos-latest
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: "--target aarch64-apple-darwin"
+          - platform: macos-15-intel
+            args: "--target x86_64-apple-darwin"
+          - platform: windows-latest
+            args: ""
+
+    runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: 'npm'
+          node-version: 20.19.0
+          cache: npm
           cache-dependency-path: package-lock.json
 
       - name: Install Rust
@@ -24,13 +38,51 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Install Rust target (macOS)
+        if: runner.os == 'macOS'
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Build Web
-        run: npm run build
-
-      - name: Rust Check
+      - name: Write Apple API Key (macOS)
+        if: runner.os == 'macOS'
+        id: apple_api_key
+        env:
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
         run: |
-          cd src-tauri
-          cargo check
+          if [ -z "${APPLE_API_KEY_P8}" ]; then
+            echo "APPLE_API_KEY_P8 not set; skipping API key file creation."
+            exit 0
+          fi
+          mkdir -p private_keys
+          KEY_PATH=$(python - <<'PY'
+          import base64, os, pathlib
+          data = os.environ.get("APPLE_API_KEY_P8", "")
+          key_id = os.environ.get("APPLE_API_KEY", "")
+          path = pathlib.Path("private_keys") / f"AuthKey_{key_id}.p8"
+          path.write_bytes(base64.b64decode(data))
+          print(path.resolve())
+          PY
+          )
+          echo "key_path=$KEY_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Build + Release (Tauri)
+        uses: tauri-apps/tauri-action@action-v0.6.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_TEAM_ID: 79DZ4AA4DW
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_PATH: ${{ steps.apple_api_key.outputs.key_path }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        with:
+          args: ${{ matrix.args }}
+          releaseDraft: true
