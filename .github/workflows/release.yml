@@ -46,12 +46,16 @@ jobs:
         run: npm ci
 
       - name: Write Apple API Key (macOS)
-        if: runner.os == 'macOS' && secrets.APPLE_API_KEY_P8 != ''
+        if: runner.os == 'macOS'
         id: apple_api_key
         env:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
         run: |
+          if [ -z "${APPLE_API_KEY_P8}" ]; then
+            echo "APPLE_API_KEY_P8 not set; skipping API key file creation."
+            exit 0
+          fi
           mkdir -p private_keys
           KEY_PATH=$(python - <<'PY'
           import base64, os, pathlib
