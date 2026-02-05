@@ -69,7 +69,7 @@ jobs:
           echo "key_path=$KEY_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Build + Release (Tauri)
-        uses: tauri-apps/tauri-action@v1
+        uses: tauri-apps/tauri-action@action-v0.6.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
