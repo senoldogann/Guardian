@@ -114,7 +114,10 @@ export interface UseSettingsReturn {
   webSearchReady: boolean;
 }
 
-export function useSettings(exportPdfFn: (args: { logs: Record<string, Critique>; path: string }) => void): UseSettingsReturn {
+export function useSettings(
+  exportPdfFn: (args: { logs: Record<string, Critique>; path: string }) => void,
+  settingsOpen = false
+): UseSettingsReturn {
   const isDesktop = isTauriRuntime();
   
   // Provider state
@@ -182,7 +185,7 @@ export function useSettings(exportPdfFn: (args: { logs: Record<string, Critique>
 
   // Load API key status when needed
   useEffect(() => {
-    if (!isDesktop) return;
+    if (!isDesktop || !settingsOpen) return;
     const loadApiKeyStatus = async (): Promise<void> => {
       try {
         const res = await invoke<ApiKeyStatus>("get_api_key_status", {
@@ -194,11 +197,11 @@ export function useSettings(exportPdfFn: (args: { logs: Record<string, Critique>
       }
     };
     loadApiKeyStatus();
-  }, [isDesktop, providerDraft?.provider_id]);
+  }, [isDesktop, settingsOpen, providerDraft?.provider_id]);
 
   // Load Tavily status
   useEffect(() => {
-    if (!isDesktop) return;
+    if (!isDesktop || !settingsOpen) return;
     const loadTavilyStatus = async (): Promise<void> => {
       try {
         const res = await invoke<TavilyKeyStatus>("get_tavily_key_status");
@@ -208,7 +211,7 @@ export function useSettings(exportPdfFn: (args: { logs: Record<string, Critique>
       }
     };
     loadTavilyStatus();
-  }, [isDesktop]);
+  }, [isDesktop, settingsOpen]);
 
   // Check for updates on mount
   useEffect(() => {
@@ -496,6 +499,29 @@ export function useSettings(exportPdfFn: (args: { logs: Record<string, Critique>
       setUpdateInstalling(false);
     }
   }, [isDesktop, updateInfo?.status]);
+
+  useEffect(() => {
+    if (!isDesktop) return;
+
+    const onForeground = (): void => {
+      if (document.visibilityState === "visible") {
+        void checkForUpdates();
+      }
+    };
+
+    const interval = window.setInterval(() => {
+      void checkForUpdates();
+    }, 15 * 60 * 1000);
+
+    window.addEventListener("focus", onForeground);
+    document.addEventListener("visibilitychange", onForeground);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onForeground);
+      document.removeEventListener("visibilitychange", onForeground);
+    };
+  }, [isDesktop, checkForUpdates]);
 
   const providerLabel = providerDraft ? getProviderDefaults(providerDraft.provider_id).label : "provider";
   const requiresApiKey = isDesktop && Boolean(providerDraft) && apiKeyStatus?.has_key === false;

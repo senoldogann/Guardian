@@ -873,7 +873,7 @@ async fn search_web(query: String) -> Result<String, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> AnyhowResult<()> {
     // 0. Initialize Environment Variables
-    dotenvy::dotenv().ok();
+    config::load_runtime_env();
 
     // 0.1 Initialize Tracing Subscriber (SPAP v2.2: Structured Logging)
     // Dev: RUST_LOG=guardian=debug for verbose. Production defaults to info+.

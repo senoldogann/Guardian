@@ -25,7 +25,7 @@ import { AuthGate } from "./components/AuthGate";
 import { SettingsModal } from "./components/SettingsModal";
 import { StallOverlay } from "./components/StallOverlay";
 import { useAuth } from "./hooks/useAuth";
-import { useSettings } from "./hooks/useSettings";
+import { useSettings, type ApiKeyStatus } from "./hooks/useSettings";
 import type { ProjectContext } from "./types/guardian";
 
 function App(): ReactElement {
@@ -64,7 +64,7 @@ function App(): ReactElement {
 
   // Hooks
   const auth = useAuth();
-  const settings = useSettings(exportAuditToPdf);
+  const settings = useSettings(exportAuditToPdf, settingsOpen);
 
   const scopeLabel = useMemo(() => {
     if (!path) return "";
@@ -294,7 +294,19 @@ function App(): ReactElement {
         return;
       }
 
-      if (!settings.apiKeyStatus?.has_key) {
+      let hasApiKey = settings.apiKeyStatus?.has_key ?? null;
+      if (hasApiKey === null) {
+        try {
+          const status = await invoke<ApiKeyStatus>("get_api_key_status", {
+            providerId: activeProviderId,
+          });
+          hasApiKey = Boolean(status.has_key);
+        } catch {
+          hasApiKey = false;
+        }
+      }
+
+      if (!hasApiKey) {
         setLogs(prev => ({
           ...prev,
           ["System:APIKey"]: {

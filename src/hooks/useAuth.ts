@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke, isTauriRuntime } from "../lib/tauri";
 
 export type GithubUser = {
@@ -64,7 +64,6 @@ export function useAuth(): UseAuthReturn {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authGateVisible, setAuthGateVisible] = useState(false);
   const [authCountdown, setAuthCountdown] = useState<number | null>(null);
-  const authRefreshAttemptedRef = useRef(false);
 
   const refreshAuthSession = useCallback(async (): Promise<AuthSessionResponse | null> => {
     try {
@@ -91,16 +90,12 @@ export function useAuth(): UseAuthReturn {
         setAuthSession(res?.user ?? null);
         setAuthVerified(Boolean(res?.verified));
         setAuthWarning(res?.warning ?? null);
-        if (isDesktop && res?.user && !res.verified && !authRefreshAttemptedRef.current) {
-          authRefreshAttemptedRef.current = true;
-          void refreshAuthSession();
-        }
       } catch (e) {
         setAuthError(e instanceof Error ? e.message : String(e));
       }
     };
     loadSession();
-  }, [isDesktop, refreshAuthSession]);
+  }, [isDesktop]);
 
   // Countdown timer for device code
   useEffect(() => {

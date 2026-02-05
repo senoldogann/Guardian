@@ -58,6 +58,7 @@ Guardian, gerçek zamanlı mimari denetim ve otomatik iyileştirme yoluyla siste
 - **Web UI**: Sadece dahili UI regresyon testleri için; ürün olarak desteklenmez.
 - **Monitoring UI**: İzleme aktifken orta alanda canlı aktivite animasyonu görünür.
 - **Project Map**: 300 dosyaya kadar otomatik genişler; daha büyük projelerde performans için kademeli görünür.
+- **Marketing Website**: `website/` klasöründeki statik landing sayfası GitHub Releases API ile en güncel sürümü otomatik algılar.
 
 ---
 

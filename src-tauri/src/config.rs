@@ -1,6 +1,7 @@
 use anyhow::{bail, Result};
 use keyring::{Entry, Error as KeyringError};
 use std::env;
+use std::path::Path;
 
 pub const DEFAULT_MODEL: &str = "gemini-3-flash-preview:cloud";
 pub const DEFAULT_HOST: &str = "https://ollama.com";
@@ -9,6 +10,7 @@ const PLACEHOLDER_API_KEY: &str = "PLACEHOLDER_KEY";
 const PLACEHOLDER_TAVILY_KEYS: [&str; 2] = ["PLACEHOLDER_TAVILY_1", "PLACEHOLDER_TAVILY_2"];
 const PLACEHOLDER_GITHUB_CLIENT_ID: &str = "PLACEHOLDER_GITHUB_CLIENT_ID";
 const PLACEHOLDER_GITHUB_CLIENT_SECRET: &str = "PLACEHOLDER_GITHUB_CLIENT_SECRET";
+const DEFAULT_GITHUB_CLIENT_ID: &str = "Ov23liQHOy4TmPsvqLxV";
 const KEYCHAIN_SERVICE: &str = "guardian";
 const KEYCHAIN_AI_ACCOUNT_LEGACY: &str = "ai_api_key";
 const KEYCHAIN_TAVILY_ACCOUNT: &str = "tavily_api_key";
@@ -91,6 +93,27 @@ fn non_empty_env(key: &str) -> Option<String> {
             Some(trimmed.to_string())
         }
     })
+}
+
+fn load_env_file(path: &Path) {
+    let _ = dotenvy::from_path(path);
+}
+
+pub fn load_runtime_env() {
+    // Development mode: local project .env
+    let _ = dotenvy::dotenv();
+
+    // Installed app override: ~/.guardian/.env
+    if let Some(home) = dirs::home_dir() {
+        load_env_file(&home.join(".guardian").join(".env"));
+    }
+
+    // Portable override: executable sibling .env
+    if let Ok(exe_path) = env::current_exe() {
+        if let Some(dir) = exe_path.parent() {
+            load_env_file(&dir.join(".env"));
+        }
+    }
 }
 
 pub fn provider_timeout_seconds(provider_id: &str) -> u64 {
@@ -225,28 +248,37 @@ pub fn tavily_keys() -> Result<Vec<String>> {
 }
 
 pub fn github_client_id() -> Result<String> {
-    let raw = env::var("GITHUB_CLIENT_ID").unwrap_or_default();
-    let trimmed = raw.trim();
-
-    if is_placeholder_key(trimmed) {
-        if is_production() {
-            bail!("GITHUB_CLIENT_ID is missing or still a placeholder");
+    for key in ["GITHUB_CLIENT_ID", "GUARDIAN_GITHUB_CLIENT_ID"] {
+        let raw = env::var(key).unwrap_or_default();
+        let trimmed = raw.trim();
+        if !is_placeholder_key(trimmed) {
+            return Ok(trimmed.to_string());
         }
-        return Ok(trimmed.to_string());
     }
 
-    Ok(trimmed.to_string())
+    let fallback = DEFAULT_GITHUB_CLIENT_ID.trim();
+    if !is_placeholder_key(fallback) {
+        return Ok(fallback.to_string());
+    }
+
+    if is_production() {
+        bail!(
+            "GITHUB_CLIENT_ID is missing. Set env var or create ~/.guardian/.env with GITHUB_CLIENT_ID=..."
+        );
+    }
+
+    Ok(String::new())
 }
 
 pub fn github_client_secret() -> Option<String> {
-    let raw = env::var("GITHUB_CLIENT_SECRET").unwrap_or_default();
-    let trimmed = raw.trim();
-
-    if trimmed.is_empty() || is_placeholder_key(trimmed) {
-        return None;
+    for key in ["GITHUB_CLIENT_SECRET", "GUARDIAN_GITHUB_CLIENT_SECRET"] {
+        let raw = env::var(key).unwrap_or_default();
+        let trimmed = raw.trim();
+        if !trimmed.is_empty() && !is_placeholder_key(trimmed) {
+            return Some(trimmed.to_string());
+        }
     }
-
-    Some(trimmed.to_string())
+    None
 }
 
 pub fn max_batch_size() -> usize {
