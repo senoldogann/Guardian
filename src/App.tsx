@@ -370,7 +370,10 @@ function App(): ReactElement {
   return (
     <div className="flex h-screen w-full bg-background text-text-main flex-col font-sans overflow-hidden transition-colors duration-300">
       {stalled && stallOverlayOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center">
+        <div
+          key={stallSignature ?? "stall"}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center"
+        >
           <div
             className="max-w-xl w-[90%] bg-surface border border-rose-500/40 rounded-2xl p-8 shadow-2xl shadow-rose-900/40"
             role="dialog"
