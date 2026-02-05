@@ -150,16 +150,24 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Validate distribution configuration
+        id: dist_config
         shell: bash
         run: |
-          if [ -z "${{ vars.PUBLIC_DIST_REPO }}" ]; then
-            echo "Missing repository variable PUBLIC_DIST_REPO (example: senoldogann/guardian-distribution)."
+          DIST_REPO="${{ vars.PUBLIC_DIST_REPO }}"
+          if [ -z "$DIST_REPO" ]; then
+            DIST_REPO="${{ secrets.PUBLIC_DIST_REPO }}"
+          fi
+
+          if [ -z "$DIST_REPO" ]; then
+            echo "Missing PUBLIC_DIST_REPO. Set it as Actions Variable (preferred) or Secret."
             exit 1
           fi
           if [ -z "${{ secrets.PUBLIC_DIST_REPO_TOKEN }}" ]; then
             echo "Missing secret PUBLIC_DIST_REPO_TOKEN (PAT with repo write on distribution repo)."
             exit 1
           fi
+
+          echo "repo=$DIST_REPO" >> "$GITHUB_OUTPUT"
 
       - name: Download release assets from source repo
         env:
@@ -185,7 +193,7 @@ jobs:
         shell: bash
         run: |
           TAG="${{ steps.release_tag.outputs.tag }}"
-          DIST_REPO="${{ vars.PUBLIC_DIST_REPO }}"
+          DIST_REPO="${{ steps.dist_config.outputs.repo }}"
 
           if ! gh release view "$TAG" --repo "$DIST_REPO" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "$DIST_REPO" --title "$TAG" --notes-file RELEASE_NOTES.md
