@@ -161,19 +161,8 @@ jobs:
           generateReleaseNotes: true
           includeUpdaterJson: true
 
-  publish_distribution:
-    name: Publish Public Distribution
-    needs: [prepare_release, build]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Resolve release tag
-        id: release_tag
-        shell: bash
-        run: |
-          TAG="${{ needs.prepare_release.outputs.tag }}"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-
       - name: Validate distribution configuration
+        if: matrix.platform == 'macos-latest'
         id: dist_config
         shell: bash
         run: |
@@ -186,6 +175,7 @@ jobs:
             echo "Missing PUBLIC_DIST_REPO. Set it as Actions Variable (preferred) or Secret."
             exit 1
           fi
+
           if [ -z "${{ secrets.PUBLIC_DIST_REPO_TOKEN }}" ]; then
             echo "Missing secret PUBLIC_DIST_REPO_TOKEN (PAT with repo write on distribution repo)."
             exit 1
@@ -193,30 +183,59 @@ jobs:
 
           echo "repo=$DIST_REPO" >> "$GITHUB_OUTPUT"
 
-      - name: Download release assets from source repo
+      - name: Wait for all platform assets
+        if: matrix.platform == 'macos-latest'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="${{ steps.release_tag.outputs.tag }}"
+          TAG="${{ needs.prepare_release.outputs.tag }}"
+          SRC_REPO="${{ github.repository }}"
+
+          for attempt in $(seq 1 60); do
+            ASSET_LIST="$(gh release view "$TAG" --repo "$SRC_REPO" --json assets -q '.assets[].name' 2>/dev/null || true)"
+
+            if echo "$ASSET_LIST" | grep -q 'aarch64-apple-darwin' \
+              && echo "$ASSET_LIST" | grep -q 'x86_64-apple-darwin' \
+              && echo "$ASSET_LIST" | grep -q 'x86_64-pc-windows-msvc'; then
+              echo "All platform assets are available."
+              exit 0
+            fi
+
+            echo "Waiting for all platform assets (attempt ${attempt}/60)..."
+            sleep 10
+          done
+
+          echo "Timed out waiting for all platform assets in source release."
+          exit 1
+
+      - name: Download release assets from source repo
+        if: matrix.platform == 'macos-latest'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          TAG="${{ needs.prepare_release.outputs.tag }}"
           mkdir -p dist-assets
           gh release download "$TAG" --repo "${{ github.repository }}" --dir dist-assets
           ls -la dist-assets
 
       - name: Prepare public release notes
+        if: matrix.platform == 'macos-latest'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="${{ steps.release_tag.outputs.tag }}"
+          TAG="${{ needs.prepare_release.outputs.tag }}"
           gh release view "$TAG" --repo "${{ github.repository }}" --json body -q '.body // ""' > RELEASE_NOTES.md
 
       - name: Publish assets to public distribution repo
+        if: matrix.platform == 'macos-latest'
         env:
           GH_TOKEN: ${{ secrets.PUBLIC_DIST_REPO_TOKEN }}
         shell: bash
         run: |
-          TAG="${{ steps.release_tag.outputs.tag }}"
+          TAG="${{ needs.prepare_release.outputs.tag }}"
           DIST_REPO="${{ steps.dist_config.outputs.repo }}"
 
           if ! gh release view "$TAG" --repo "$DIST_REPO" >/dev/null 2>&1; then
