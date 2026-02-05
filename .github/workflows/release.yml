@@ -59,9 +59,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Notarization is disabled until Apple notary credentials are rotated/verified.
           - platform: macos-latest
             args: "--target aarch64-apple-darwin"
-            notarize: "true"
+            notarize: "false"
           - platform: macos-15-intel
             args: "--target x86_64-apple-darwin"
             notarize: "false"
