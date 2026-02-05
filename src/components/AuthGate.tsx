@@ -67,7 +67,7 @@ export function AuthGate({
               </button>
             </div>
             <div className="text-[10px] text-text-muted mb-4">
-              Code expires in {formatCountdown(authCountdown ?? authDevice.expires_in)} • Click "I Authorized" to check (waits up to 60s). You can retry if needed.
+              Code expires in {formatCountdown(authCountdown ?? authDevice.expires_in)}. Guardian checks automatically and closes this screen when authorization is complete.
             </div>
             <div className="flex gap-3">
               {!authSession && (
@@ -76,7 +76,7 @@ export function AuthGate({
                   disabled={authLoading}
                   className="px-4 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] hover:opacity-90 text-background rounded-md transition-colors disabled:opacity-50 cursor-pointer"
                 >
-                  I Authorized
+                  {authLoading ? "Checking..." : "Check Now"}
                 </button>
               )}
               <button

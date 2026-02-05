@@ -155,8 +155,8 @@ pub async fn check_app_update(app: &AppHandle) -> Result<UpdateCheckResult, Stri
 
     Ok(UpdateCheckResult {
         status: "up_to_date".to_string(),
-        current_version,
-        latest_version: None,
+        current_version: current_version.clone(),
+        latest_version: Some(current_version),
         download_url: None,
         notes: None,
         error: None,

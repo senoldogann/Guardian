@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useRef, useCallback, type ReactElement } from "react";
-import { FixedSizeList as List, ListChildComponentProps } from "react-window";
 import { invoke, listen, openDialog, type UnlistenFn } from "./lib/tauri";
 import { exportAuditToPdf } from "./lib/exportAuditPdf";
 import { handleError } from "./lib/error";
@@ -364,30 +363,6 @@ function App(): ReactElement {
     );
   }, [visibleLogs, filter]);
 
-  // Virtualized log list row renderer
-  const LogRow = useCallback(({ index, style }: ListChildComponentProps) => {
-    const log = filteredLogs[index];
-    return (
-      <div style={style}>
-        <CritiqueAccordionRow
-          key={log.file_path}
-          log={log}
-          index={index + 1}
-          isExpanded={expandedFile === log.file_path}
-          onToggle={() => setExpandedFile(expandedFile === log.file_path ? null : log.file_path)}
-          onFix={() => {
-            setLogs(prev => {
-              const newLogs = { ...prev };
-              delete newLogs[log.file_path];
-              return newLogs;
-            });
-            if (expandedFile === log.file_path) setExpandedFile(null);
-          }}
-        />
-      </div>
-    );
-  }, [filteredLogs, expandedFile]);
-
   const stats = useMemo(() => {
     const vals = visibleLogs;
     return {
@@ -428,7 +403,7 @@ function App(): ReactElement {
         showAuthGate={auth.showAuthGate}
         onStartLogin={auth.startGithubLogin}
         onCompleteLogin={auth.completeGithubLogin}
-        onCancel={() => auth.setAuthDevice(null)}
+        onCancel={auth.cancelGithubLogin}
       />
 
       <Header
@@ -700,7 +675,7 @@ function App(): ReactElement {
             </div>
           )}
 
-          <div className="flex-1 overflow-hidden px-2 py-2">
+          <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar">
             {filteredLogs.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-6">
                 {active ? (
@@ -720,14 +695,25 @@ function App(): ReactElement {
                 </div>
               </div>
             ) : (
-              <List
-                height={window.innerHeight - 200}
-                itemCount={filteredLogs.length}
-                itemSize={60}
-                width="100%"
-              >
-                {LogRow}
-              </List>
+              <div className="space-y-2">
+                {filteredLogs.map((log, index) => (
+                  <CritiqueAccordionRow
+                    key={log.file_path}
+                    log={log}
+                    index={index + 1}
+                    isExpanded={expandedFile === log.file_path}
+                    onToggle={() => setExpandedFile(expandedFile === log.file_path ? null : log.file_path)}
+                    onFix={() => {
+                      setLogs(prev => {
+                        const newLogs = { ...prev };
+                        delete newLogs[log.file_path];
+                        return newLogs;
+                      });
+                      if (expandedFile === log.file_path) setExpandedFile(null);
+                    }}
+                  />
+                ))}
+              </div>
             )}
           </div>
         </section>

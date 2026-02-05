@@ -49,6 +49,14 @@ const pickDefaultModel = (models: string[]): string => {
 
 const API_KEY_MASK = "••••••";
 
+const buildFallbackUpdateInfo = (version: string): UpdateCheckResult => ({
+  status: "up_to_date",
+  current_version: version,
+  latest_version: version,
+  notes: null,
+  error: null,
+});
+
 export interface UseSettingsReturn {
   // Provider
   providerDraft: ProviderConfig | null;
@@ -158,6 +166,7 @@ export function useSettings(
   const [updateInstalling, setUpdateInstalling] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [updateChecking, setUpdateChecking] = useState(false);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
 
   // Tab state
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("provider");
@@ -212,6 +221,21 @@ export function useSettings(
     };
     loadTavilyStatus();
   }, [isDesktop, settingsOpen]);
+
+  // Check for updates on mount
+  useEffect(() => {
+    if (!isDesktop) return;
+    const loadVersion = async (): Promise<void> => {
+      try {
+        const version = await invoke<string>("get_app_version");
+        setAppVersion(version);
+        setUpdateInfo(prev => prev ?? buildFallbackUpdateInfo(version));
+      } catch {
+        // Non-critical: update panel can still run on demand
+      }
+    };
+    void loadVersion();
+  }, [isDesktop]);
 
   // Check for updates on mount
   useEffect(() => {
@@ -491,22 +515,34 @@ export function useSettings(
   const checkForUpdates = useCallback(async (): Promise<void> => {
     if (!isDesktop) return;
     setUpdateChecking(true);
+    setUpdateError(null);
     try {
       const res = await invoke<UpdateCheckResult | null>("check_app_update");
       if (res && typeof res.status === "string") {
-        setUpdateInfo(res);
+        const latestVersion =
+          res.latest_version ??
+          (res.status === "up_to_date" ? res.current_version : appVersion ?? null);
+        setUpdateInfo({
+          ...res,
+          latest_version: latestVersion,
+        });
         setUpdateError(res.error ?? null);
       } else {
-        setUpdateInfo(null);
-        setUpdateError(null);
+        if (appVersion) {
+          setUpdateInfo(buildFallbackUpdateInfo(appVersion));
+        }
       }
     } catch (e: unknown) {
-      // Non-critical: update check failures are logged but don't block user
-      console.warn("[Guardian] Update check failed:", e instanceof Error ? e.message : String(e));
+      const message = e instanceof Error ? e.message : String(e);
+      setUpdateError(message);
+      if (appVersion) {
+        setUpdateInfo(buildFallbackUpdateInfo(appVersion));
+      }
+      console.warn("[Guardian] Update check failed:", message);
     } finally {
       setUpdateChecking(false);
     }
-  }, [isDesktop]);
+  }, [isDesktop, appVersion]);
 
   const installUpdate = useCallback(async (): Promise<void> => {
     if (!isDesktop || updateInfo?.status !== "available") return;

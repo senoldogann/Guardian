@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke, isTauriRuntime } from "../lib/tauri";
 import type { GithubUser, DeviceCodeResponse, AuthSessionResponse, AuthLoginResult } from "../types";
 
+const isPendingAuthorization = (message: string): boolean =>
+  message.toLowerCase().includes("authorization pending");
+
 export interface UseAuthReturn {
   authSession: GithubUser | null;
   authVerified: boolean;
@@ -16,6 +19,7 @@ export interface UseAuthReturn {
   refreshAuthSession: () => Promise<AuthSessionResponse | null>;
   startGithubLogin: () => Promise<void>;
   completeGithubLogin: () => Promise<void>;
+  cancelGithubLogin: () => void;
   logoutGithub: () => Promise<void>;
   setAuthDevice: (device: DeviceCodeResponse | null) => void;
   setAuthError: (error: string | null) => void;
@@ -38,6 +42,7 @@ export function useAuth(): UseAuthReturn {
   const abortControllerRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
   const intervalRef = useRef<number | null>(null);
+  const authFlowIdRef = useRef(0);
 
   const refreshAuthSession = useCallback(async (): Promise<AuthSessionResponse | null> => {
     // Cancel any pending request
@@ -138,12 +143,14 @@ export function useAuth(): UseAuthReturn {
 
   const startGithubLogin = useCallback(async (): Promise<void> => {
     if (!isDesktop) return;
+    authFlowIdRef.current += 1;
+    const flowId = authFlowIdRef.current;
     setAuthLoading(true);
     setAuthError(null);
     setAuthWarning(null);
     try {
       const device = await invoke<DeviceCodeResponse>("start_github_login");
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || authFlowIdRef.current !== flowId) return;
       setAuthDevice(device);
     } catch (e: unknown) {
       if (!mountedRef.current) return;
@@ -175,16 +182,79 @@ export function useAuth(): UseAuthReturn {
       setAuthWarning(result.warning ?? null);
       setAuthVerified(true);
       setAuthDevice(null);
+      setAuthGateVisible(false);
     } catch (e: unknown) {
       if (!mountedRef.current) return;
       const msg = e instanceof Error ? e.message : String(e);
-      setAuthError(msg);
+      if (isPendingAuthorization(msg)) {
+        setAuthError(null);
+      } else {
+        setAuthError(msg);
+      }
     } finally {
       if (mountedRef.current) {
         setAuthLoading(false);
       }
     }
   }, [isDesktop, authDevice]);
+
+  // Auto-check device authorization and close modal when GitHub confirms login
+  useEffect(() => {
+    if (!isDesktop || !authDevice || authSession) return;
+
+    const flowId = authFlowIdRef.current;
+    let active = true;
+    const pollDelayMs = Math.min(Math.max(authDevice.interval, 2), 10) * 1000;
+    const maxWaitSeconds = Math.max(8, Math.min(25, Math.floor(pollDelayMs / 1000) + 2));
+
+    const run = async (): Promise<void> => {
+      while (active && mountedRef.current && authFlowIdRef.current === flowId) {
+        setAuthLoading(true);
+        try {
+          const result = await invoke<AuthLoginResult>("complete_github_login", {
+            deviceCode: authDevice.device_code,
+            maxWaitSeconds,
+          });
+
+          if (!active || !mountedRef.current || authFlowIdRef.current !== flowId) return;
+
+          setAuthSession(result.user);
+          setAuthWarning(result.warning ?? null);
+          setAuthVerified(true);
+          setAuthDevice(null);
+          setAuthGateVisible(false);
+          setAuthError(null);
+          return;
+        } catch (e: unknown) {
+          if (!active || !mountedRef.current || authFlowIdRef.current !== flowId) return;
+          const msg = e instanceof Error ? e.message : String(e);
+          if (!isPendingAuthorization(msg)) {
+            setAuthError(msg);
+          }
+        } finally {
+          if (active && mountedRef.current && authFlowIdRef.current === flowId) {
+            setAuthLoading(false);
+          }
+        }
+
+        await new Promise<void>((resolve) => {
+          window.setTimeout(() => resolve(), pollDelayMs);
+        });
+      }
+    };
+
+    void run();
+    return () => {
+      active = false;
+    };
+  }, [isDesktop, authDevice, authSession]);
+
+  const cancelGithubLogin = useCallback((): void => {
+    authFlowIdRef.current += 1;
+    setAuthDevice(null);
+    setAuthLoading(false);
+    setAuthError(null);
+  }, []);
 
   const logoutGithub = useCallback(async (): Promise<void> => {
     if (!isDesktop) return;
@@ -225,6 +295,7 @@ export function useAuth(): UseAuthReturn {
     refreshAuthSession,
     startGithubLogin,
     completeGithubLogin,
+    cancelGithubLogin,
     logoutGithub,
     setAuthDevice,
     setAuthError,

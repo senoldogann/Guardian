@@ -163,6 +163,12 @@ export function SettingsModal({
   const API_KEY_MASK = "••••••";
   const providerLabel = providerDraft ? getProviderDefaults(providerDraft.provider_id).label : "provider";
   const requiresApiKey = isDesktop && Boolean(providerDraft) && apiKeyStatus?.has_key === false;
+  const currentVersionLabel = updateInfo?.current_version ?? "Detecting...";
+  const latestVersionLabel = updateInfo?.latest_version
+    ?? (updateInfo?.status === "up_to_date" ? updateInfo.current_version : (updateChecking ? "Checking..." : "Unavailable"));
+  const updateStatusLabel = updateInfo?.status
+    ? updateInfo.status.replace(/_/g, " ")
+    : (updateChecking ? "checking" : "idle");
 
   const settingsTabClass = (tab: SettingsTab) =>
     clsx(
@@ -452,8 +458,11 @@ export function SettingsModal({
               Updates are delivered from GitHub Releases and installed in-app.
             </div>
             <div className="flex flex-wrap items-center gap-3 text-[10px] text-text-muted">
-              <span>Current: {updateInfo?.current_version ?? "Unknown"}</span>
-              <span>Latest: {updateInfo?.latest_version ?? "—"}</span>
+              <span>Current: {currentVersionLabel}</span>
+              <span>Latest: {latestVersionLabel}</span>
+              <span className="px-2 py-0.5 rounded-full bg-white/10 text-[9px] uppercase tracking-widest text-text-main">
+                {updateStatusLabel}
+              </span>
             </div>
             {updateInfo?.notes && (
               <div className="text-[10px] text-text-muted bg-white/5 border border-border-main rounded-lg px-3 py-2">

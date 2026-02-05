@@ -834,6 +834,11 @@ async fn get_update_feed_url(app: AppHandle) -> Result<Option<String>, String> {
     updates::get_update_feed_url(&app)
 }
 
+#[tauri::command]
+fn get_app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
 
 #[tauri::command]
 async fn get_chat_history(
@@ -1020,6 +1025,7 @@ pub fn run() -> AnyhowResult<()> {
             set_update_feed_url,
             download_update,
             get_update_feed_url,
+            get_app_version,
             install_app_update,
             get_chat_history,
             append_chat_message,
