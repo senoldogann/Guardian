@@ -25,7 +25,6 @@ export type UpdateCheckResult = {
   status: string;
   current_version: string;
   latest_version?: string | null;
-  download_url?: string | null;
   notes?: string | null;
   error?: string | null;
 };
@@ -77,12 +76,9 @@ export interface UseSettingsReturn {
   webSearchEnabled: boolean;
   
   // Updates
-  updateFeedUrl: string;
-  updateFeedError: string | null;
-  updateFeedSaving: boolean;
   updateInfo: UpdateCheckResult | null;
   updateDismissed: boolean;
-  updateDownloading: boolean;
+  updateInstalling: boolean;
   updateError: string | null;
   updateChecking: boolean;
   
@@ -107,12 +103,10 @@ export interface UseSettingsReturn {
   clearTavilyKey: () => Promise<void>;
   setWebSearchEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   onWebSearchToggle: () => void;
-  onUpdateFeedChange: (value: string) => void;
-  saveUpdateFeed: () => Promise<void>;
   onExportPDF: (logs: Record<string, Critique>, path: string) => void;
   setUpdateDismissed: React.Dispatch<React.SetStateAction<boolean>>;
   checkForUpdates: () => Promise<void>;
-  downloadUpdate: () => Promise<void>;
+  installUpdate: () => Promise<void>;
   
   // Derived
   providerLabel: string;
@@ -156,12 +150,9 @@ export function useSettings(exportPdfFn: (args: { logs: Record<string, Critique>
   });
   
   // Update state
-  const [updateFeedUrl, setUpdateFeedUrl] = useState("");
-  const [updateFeedError, setUpdateFeedError] = useState<string | null>(null);
-  const [updateFeedSaving, setUpdateFeedSaving] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
-  const [updateDownloading, setUpdateDownloading] = useState(false);
+  const [updateInstalling, setUpdateInstalling] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [updateChecking, setUpdateChecking] = useState(false);
   
@@ -217,20 +208,6 @@ export function useSettings(exportPdfFn: (args: { logs: Record<string, Critique>
       }
     };
     loadTavilyStatus();
-  }, [isDesktop]);
-
-  // Load update feed URL
-  useEffect(() => {
-    if (!isDesktop) return;
-    const loadUpdateFeed = async (): Promise<void> => {
-      try {
-        const res = await invoke<string | null>("get_update_feed_url");
-        if (res) setUpdateFeedUrl(res);
-      } catch {
-        // optional
-      }
-    };
-    loadUpdateFeed();
   }, [isDesktop]);
 
   // Check for updates on mount
@@ -489,33 +466,6 @@ export function useSettings(exportPdfFn: (args: { logs: Record<string, Critique>
     setWebSearchEnabled(prev => !prev);
   }, []);
 
-  const onUpdateFeedChange = useCallback((value: string): void => {
-    setUpdateFeedUrl(value);
-  }, []);
-
-  const saveUpdateFeed = useCallback(async (): Promise<void> => {
-    if (!isDesktop) return;
-    setUpdateFeedSaving(true);
-    setUpdateFeedError(null);
-    try {
-      const trimmed = updateFeedUrl.trim();
-      if (!trimmed) {
-        throw new Error("Update feed URL is required.");
-      }
-      if (!isValidUrl(trimmed)) {
-        throw new Error("Update feed URL must be a valid http/https URL.");
-      }
-      await invoke("set_update_feed_url", { url: trimmed });
-      const res = await invoke<UpdateCheckResult>("check_for_updates");
-      setUpdateInfo(res);
-      if (res.error) setUpdateError(res.error);
-    } catch (e: unknown) {
-      setUpdateFeedError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setUpdateFeedSaving(false);
-    }
-  }, [isDesktop, updateFeedUrl]);
-
   const onExportPDF = useCallback((logs: Record<string, Critique>, path: string): void => {
     void exportPdfFn({ logs, path });
   }, [exportPdfFn]);
@@ -524,7 +474,7 @@ export function useSettings(exportPdfFn: (args: { logs: Record<string, Critique>
     if (!isDesktop) return;
     setUpdateChecking(true);
     try {
-      const res = await invoke<UpdateCheckResult>("check_for_updates");
+      const res = await invoke<UpdateCheckResult>("check_app_update");
       setUpdateInfo(res);
       setUpdateError(res.error ?? null);
     } catch {
@@ -534,20 +484,18 @@ export function useSettings(exportPdfFn: (args: { logs: Record<string, Critique>
     }
   }, [isDesktop]);
 
-  const downloadUpdate = useCallback(async (): Promise<void> => {
-    if (!isDesktop || !updateInfo?.download_url) return;
-    setUpdateDownloading(true);
+  const installUpdate = useCallback(async (): Promise<void> => {
+    if (!isDesktop || updateInfo?.status !== "available") return;
+    setUpdateInstalling(true);
     setUpdateError(null);
     try {
-      const { openExternal } = await import("../lib/tauri");
-      const path = await invoke<string>("download_update", { url: updateInfo.download_url });
-      await openExternal(path);
+      await invoke("install_app_update");
     } catch (e: unknown) {
       setUpdateError(e instanceof Error ? e.message : String(e));
     } finally {
-      setUpdateDownloading(false);
+      setUpdateInstalling(false);
     }
-  }, [isDesktop, updateInfo?.download_url]);
+  }, [isDesktop, updateInfo?.status]);
 
   const providerLabel = providerDraft ? getProviderDefaults(providerDraft.provider_id).label : "provider";
   const requiresApiKey = isDesktop && Boolean(providerDraft) && apiKeyStatus?.has_key === false;
@@ -571,12 +519,9 @@ export function useSettings(exportPdfFn: (args: { logs: Record<string, Critique>
     tavilyKeyError,
     tavilyKeySaving,
     webSearchEnabled,
-    updateFeedUrl,
-    updateFeedError,
-    updateFeedSaving,
     updateInfo,
     updateDismissed,
-    updateDownloading,
+    updateInstalling,
     updateError,
     updateChecking,
     settingsTab,
@@ -597,12 +542,10 @@ export function useSettings(exportPdfFn: (args: { logs: Record<string, Critique>
     clearTavilyKey,
     setWebSearchEnabled,
     onWebSearchToggle,
-    onUpdateFeedChange,
-    saveUpdateFeed,
     onExportPDF,
     setUpdateDismissed,
     checkForUpdates,
-    downloadUpdate,
+    installUpdate,
     providerLabel,
     requiresApiKey,
     webSearchReady,

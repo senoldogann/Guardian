@@ -39,6 +39,7 @@ walkdir = "2.5.0"
 once_cell = "1.19"
 dirs = "5"
 tauri-plugin-dialog = "2.6.0"
+tauri-plugin-updater = "2"
 ignore = "0.4.25"
 rusqlite = { version = "0.38.0", features = ["bundled"] }
 async-channel = "2.5.0"

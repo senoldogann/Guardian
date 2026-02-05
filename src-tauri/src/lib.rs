@@ -767,6 +767,16 @@ async fn check_for_updates(app: AppHandle) -> Result<updates::UpdateCheckResult,
 }
 
 #[tauri::command]
+async fn check_app_update(app: AppHandle) -> Result<updates::UpdateCheckResult, String> {
+    updates::check_app_update(&app).await
+}
+
+#[tauri::command]
+async fn install_app_update(app: AppHandle) -> Result<(), String> {
+    updates::install_app_update(&app).await
+}
+
+#[tauri::command]
 async fn set_update_feed_url(app: AppHandle, url: String) -> Result<(), String> {
     updates::set_update_feed_url(&app, &url)
 }
@@ -904,6 +914,11 @@ pub fn run() -> AnyhowResult<()> {
         .manage(WatcherSupervisor::new())
         .manage(AuthState::new())
         .setup(move |app| {
+            #[cfg(desktop)]
+            app.handle()
+                .plugin(tauri_plugin_updater::Builder::new().build())
+                .map_err(|e| anyhow::anyhow!(e))?;
+
             let handle = app.handle().clone();
             
             // Spawn Orchestrator Here where we have the Handle
@@ -958,9 +973,11 @@ pub fn run() -> AnyhowResult<()> {
             set_user_api_key,
             clear_user_api_key,
             check_for_updates,
+            check_app_update,
             set_update_feed_url,
             download_update,
             get_update_feed_url,
+            install_app_update,
             get_chat_history,
             append_chat_message,
             clear_chat_history,

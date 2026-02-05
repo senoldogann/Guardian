@@ -6,7 +6,6 @@ import {
   Server,
   KeyRound,
   RefreshCw,
-  Link,
   Search,
   Download,
 } from "lucide-react";
@@ -35,7 +34,6 @@ export interface UpdateCheckResult {
   status: string;
   current_version: string;
   latest_version?: string | null;
-  download_url?: string | null;
   notes?: string | null;
   error?: string | null;
 }
@@ -98,11 +96,12 @@ export interface SettingsModalProps {
   onClearTavilyKey: () => void;
   
   // Updates
-  updateFeedUrl: string;
-  updateFeedError: string | null;
-  updateFeedSaving: boolean;
-  onUpdateFeedChange: (value: string) => void;
-  onSaveUpdateFeed: () => void;
+  updateInfo: UpdateCheckResult | null;
+  updateChecking: boolean;
+  updateInstalling: boolean;
+  updateError: string | null;
+  onCheckUpdates: () => void;
+  onInstallUpdate: () => void;
   
   // Export
   onExportPDF: () => void;
@@ -149,11 +148,12 @@ export function SettingsModal({
   onTavilyKeyChange,
   onSaveTavilyKey,
   onClearTavilyKey,
-  updateFeedUrl,
-  updateFeedError,
-  updateFeedSaving,
-  onUpdateFeedChange,
-  onSaveUpdateFeed,
+  updateInfo,
+  updateChecking,
+  updateInstalling,
+  updateError,
+  onCheckUpdates,
+  onInstallUpdate,
   onExportPDF,
   settingsTab,
   onSettingsTabChange,
@@ -448,27 +448,37 @@ export function SettingsModal({
               <RefreshCw className="w-4 h-4 text-[var(--accent-500)]" />
               Updates
             </div>
-            <div className="text-[10px] text-text-muted">Provide an update feed URL to enable in-app update checks.</div>
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="flex-1 relative">
-                <Link className="absolute left-3 top-2.5 w-3 h-3 text-zinc-500" />
-                <input
-                  disabled={!isDesktop}
-                  value={updateFeedUrl}
-                  onChange={(e) => onUpdateFeedChange(e.target.value)}
-                  className="w-full bg-background border border-border-main rounded-lg py-2 pl-8 pr-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
-                  placeholder="https://updates.guardian.app/feed.json"
-                />
-              </div>
-              <button
-                onClick={onSaveUpdateFeed}
-                disabled={!isDesktop || updateFeedSaving}
-                className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
-              >
-                {updateFeedSaving ? "Saving..." : "Save Feed"}
-              </button>
+            <div className="text-[10px] text-text-muted">
+              Updates are delivered from GitHub Releases and installed in-app.
             </div>
-            {updateFeedError && <div className="text-[10px] text-rose-400">{updateFeedError}</div>}
+            <div className="flex flex-wrap items-center gap-3 text-[10px] text-text-muted">
+              <span>Current: {updateInfo?.current_version ?? "Unknown"}</span>
+              <span>Latest: {updateInfo?.latest_version ?? "—"}</span>
+            </div>
+            {updateInfo?.notes && (
+              <div className="text-[10px] text-text-muted bg-white/5 border border-border-main rounded-lg px-3 py-2">
+                {updateInfo.notes}
+              </div>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={onCheckUpdates}
+                disabled={!isDesktop || updateChecking}
+                className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-text-main rounded-md transition-colors disabled:opacity-50"
+              >
+                {updateChecking ? "Checking..." : "Check Now"}
+              </button>
+              {updateInfo?.status === "available" && (
+                <button
+                  onClick={onInstallUpdate}
+                  disabled={!isDesktop || updateInstalling}
+                  className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
+                >
+                  {updateInstalling ? "Updating..." : "Install Update"}
+                </button>
+              )}
+            </div>
+            {updateError && <div className="text-[10px] text-rose-400">{updateError}</div>}
           </div>
         )}
 

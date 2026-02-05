@@ -3,6 +3,7 @@ use semver::Version;
 use std::fs;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
+use tauri_plugin_updater::UpdaterExt;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateFeedEntry {
@@ -127,6 +128,44 @@ pub async fn check_for_updates(app: &AppHandle) -> Result<UpdateCheckResult, Str
         notes: payload.notes,
         error: None,
     })
+}
+
+pub async fn check_app_update(app: &AppHandle) -> Result<UpdateCheckResult, String> {
+    let current_version = env!("CARGO_PKG_VERSION").to_string();
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    let update = updater.check().await.map_err(|e| e.to_string())?;
+
+    if let Some(update) = update {
+        return Ok(UpdateCheckResult {
+            status: "available".to_string(),
+            current_version: update.current_version,
+            latest_version: Some(update.version),
+            download_url: None,
+            notes: update.body,
+            error: None,
+        });
+    }
+
+    Ok(UpdateCheckResult {
+        status: "up_to_date".to_string(),
+        current_version,
+        latest_version: None,
+        download_url: None,
+        notes: None,
+        error: None,
+    })
+}
+
+pub async fn install_app_update(app: &AppHandle) -> Result<(), String> {
+    let updater = app.updater().map_err(|e| e.to_string())?;
+    if let Some(update) = updater.check().await.map_err(|e| e.to_string())? {
+        update
+            .download_and_install(|_, _| {}, || {})
+            .await
+            .map_err(|e| e.to_string())?;
+        app.restart();
+    }
+    Ok(())
 }
 
 pub async fn download_update(app: &AppHandle, url: &str) -> Result<String, String> {

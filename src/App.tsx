@@ -434,11 +434,12 @@ function App(): ReactElement {
         onTavilyKeyChange={settings.onTavilyKeyChange}
         onSaveTavilyKey={settings.saveTavilyKey}
         onClearTavilyKey={settings.clearTavilyKey}
-        updateFeedUrl={settings.updateFeedUrl}
-        updateFeedError={settings.updateFeedError}
-        updateFeedSaving={settings.updateFeedSaving}
-        onUpdateFeedChange={settings.onUpdateFeedChange}
-        onSaveUpdateFeed={settings.saveUpdateFeed}
+        updateInfo={settings.updateInfo}
+        updateChecking={settings.updateChecking}
+        updateInstalling={settings.updateInstalling}
+        updateError={settings.updateError}
+        onCheckUpdates={settings.checkForUpdates}
+        onInstallUpdate={settings.installUpdate}
         onExportPDF={() => settings.onExportPDF(logs, path)}
         settingsTab={settings.settingsTab}
         onSettingsTabChange={settings.setSettingsTab}
@@ -450,15 +451,13 @@ function App(): ReactElement {
             Update available: v{settings.updateInfo.current_version} → v{settings.updateInfo.latest_version}
           </span>
           <div className="flex items-center gap-2">
-            {settings.updateInfo.download_url && (
-              <button
-                onClick={settings.downloadUpdate}
-                disabled={settings.updateDownloading}
-                className="px-3 py-1 rounded-md bg-[var(--accent-500)] text-background hover:opacity-90 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                {settings.updateDownloading ? "Downloading..." : "Download"}
-              </button>
-            )}
+            <button
+              onClick={settings.installUpdate}
+              disabled={settings.updateInstalling}
+              className="px-3 py-1 rounded-md bg-[var(--accent-500)] text-background hover:opacity-90 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {settings.updateInstalling ? "Updating..." : "Install Update"}
+            </button>
             <button
               onClick={() => settings.setUpdateDismissed(true)}
               className="px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
