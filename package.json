@@ -1,7 +1,7 @@
 {
-  "name": "guardian",
+  "name": "Guardian",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,6 +12,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "verify": "bash scripts/verify.sh",
     "tauri": "tauri"
   },
   "dependencies": {
@@ -29,6 +30,9 @@
     "lucide-react": "^0.563.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-markdown": "^9.0.1",
+    "rehype-highlight": "^7.0.2",
+    "remark-gfm": "^4.0.0",
     "tailwind-merge": "^3.4.0",
     "zustand": "^5.0.10"
   },

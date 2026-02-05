@@ -21,6 +21,7 @@ type FileNodeData = {
     label: string;
     type: 'folder' | 'file';
     expanded?: boolean;
+    count?: number;
     onToggle?: (id: string) => void;
 };
 
@@ -74,33 +75,33 @@ const getLayoutedElements = (
 };
 
 // --- Custom Node Component ---
-const CollapsibleNode = ({ id, data }: { id: string, data: FileNodeData }): ReactElement => {
+const CollapsibleNode = ({ data }: { data: FileNodeData }): ReactElement => {
     return (
         <div className={`
-            flex items-center gap-2 px-3 py-2 rounded-lg border shadow-sm bg-white dark:bg-zinc-900 min-w-[160px] cursor-pointer hover:shadow-md transition-all
-            ${data.type === 'folder' ? 'border-sky-500/50' : 'border-zinc-200 dark:border-zinc-800'}
-        `}
-            onClick={() => {
-                if (data.type === 'folder' && data.onToggle) {
-                    data.onToggle(id);
-                }
-            }}
-        >
-            <Handle type="target" position={Position.Left} className="!bg-sky-500 !w-1.5 !h-1.5" />
+            flex items-center gap-2 px-3 py-2 rounded-lg border shadow-sm min-w-[160px] cursor-pointer hover:shadow-md transition-all
+            bg-[var(--map-node-bg)]
+            ${data.type === 'folder' ? 'border-[var(--accent-400)]' : 'border-[var(--border-main)]'}
+        `}>
+            <Handle type="target" position={Position.Left} className="!bg-[var(--accent-500)] !w-1.5 !h-1.5" />
 
             {data.type === 'folder' && (
                 <div className="p-0.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
-                    {data.expanded ? <ChevronDown className="w-4 h-4 text-sky-600" /> : <ChevronRight className="w-4 h-4 text-zinc-400" />}
+                    {data.expanded ? <ChevronDown className="w-4 h-4 text-[var(--accent-500)]" /> : <ChevronRight className="w-4 h-4 text-zinc-400" />}
                 </div>
             )}
 
-            {data.type === 'folder' ? <Folder className="w-4 h-4 text-sky-500" /> : <FileText className="w-3.5 h-3.5 text-zinc-400" />}
+            {data.type === 'folder' ? <Folder className="w-4 h-4 text-[var(--accent-500)]" /> : <FileText className="w-3.5 h-3.5 text-[var(--map-node-muted)]" />}
 
-            <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-200 truncate max-w-[100px] select-none">
+            <span className="text-xs font-semibold text-[var(--map-node-text)] truncate max-w-[100px] select-none">
                 {data.label}
             </span>
+            {data.type === 'folder' && typeof data.count === 'number' && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10 text-[var(--map-node-text)]">
+                    {data.count}
+                </span>
+            )}
 
-            <Handle type="source" position={Position.Right} className="!bg-sky-500 !w-1.5 !h-1.5" />
+            <Handle type="source" position={Position.Right} className="!bg-[var(--accent-500)] !w-1.5 !h-1.5" />
         </div>
     );
 };
@@ -111,7 +112,7 @@ const nodeTypes = {
 
 // --- Graph Builder Logic ---
 // Revised to be simpler: Just build the flat list, we manage visibility in the View
-const buildGraphFromPaths = (
+export const buildGraphFromPaths = (
     paths: string[],
     rootLabel: string = 'Project Root',
     autoExpandAll: boolean = false
@@ -119,6 +120,7 @@ const buildGraphFromPaths = (
     const nodes: Node[] = [];
     const edges: Edge[] = [];
     const createdNodes = new Set<string>();
+    const childMap = new Map<string, Set<string>>();
 
     const rootId = 'root';
     nodes.push({
@@ -131,11 +133,16 @@ const buildGraphFromPaths = (
 
     paths.forEach(path => {
         const parts = path.split('/');
-        let parentId = rootId;
 
         parts.forEach((part, index) => {
             const isFile = index === parts.length - 1 && part.includes('.');
             const id = parts.slice(0, index + 1).join('/');
+            const parentId = index === 0 ? rootId : parts.slice(0, index).join('/');
+
+            if (!childMap.has(parentId)) {
+                childMap.set(parentId, new Set());
+            }
+            childMap.get(parentId)?.add(id);
 
             if (!createdNodes.has(id)) {
                 nodes.push({
@@ -161,9 +168,15 @@ const buildGraphFromPaths = (
 
                 createdNodes.add(id);
             }
-            parentId = id;
         });
     });
+
+    for (const node of nodes) {
+        const data = node.data as FileNodeData;
+        if (data.type === 'folder' && node.id !== rootId) {
+            data.count = childMap.get(node.id)?.size ?? 0;
+        }
+    }
 
     return { nodes, edges };
 };
@@ -180,15 +193,36 @@ const DiagramContent = ({
 }): ReactElement => {
     const { fitView } = useReactFlow();
 
-    // Demo Paths if none provided
-    const paths = useMemo(() => (filePaths && filePaths.length > 0) ? filePaths : [
-        "src/main.rs",
-        "src/lib.rs",
-        "src/components/Header.tsx",
-        "src-tauri/src/main.rs",
-    ], [filePaths]);
+    const paths = useMemo(() => {
+        const rawPaths = (filePaths && filePaths.length > 0) ? filePaths : [
+            "src/main.rs",
+            "src/lib.rs",
+            "src/components/Header.tsx",
+            "src-tauri/src/main.rs",
+        ];
 
-    const shouldExpandAll = autoExpandAll ?? paths.length <= 300;
+        const normalized = rawPaths.map((p) => p.replace(/\\/g, "/"));
+        let filtered = [...normalized];
+
+        const MAX_FILES = 300;
+        const MAX_DEPTH = 4;
+
+        if (filtered.length > MAX_FILES) {
+            filtered = filtered.filter((p) => p.split("/").length <= MAX_DEPTH);
+        }
+
+        if (filtered.length === 0) {
+            filtered = normalized.filter((p) => !p.includes("/"));
+        }
+
+        if (filtered.length > MAX_FILES) {
+            filtered = filtered.slice(0, MAX_FILES);
+        }
+
+        return filtered;
+    }, [filePaths]);
+
+    const shouldExpandAll = (autoExpandAll ?? false) && paths.length <= 120;
 
     // Initialize Graph
     const { initialNodes, initialEdges } = useMemo(() => {
@@ -213,10 +247,6 @@ const DiagramContent = ({
     }, [initialNodes, initialEdges, setNodes, setEdges, fitView]);
 
     // Re-layout when hidden states change? No, we handle that in toggle
-
-    const onNodeClick = useCallback(() => {
-        // This is a backup click handler, usually the node handles it via data.onToggle
-    }, []);
 
     // The Recursive Toggle Function
     const handleToggle = useCallback((nodeId: string) => {
@@ -298,6 +328,13 @@ const DiagramContent = ({
             });
         }, 50);
     }, [handleToggle, fitView]);
+
+    const onNodeClick = useCallback((_: unknown, node: Node) => {
+        const data = node.data as FileNodeData | undefined;
+        if (data?.type === 'folder') {
+            onToggleWrapper(node.id);
+        }
+    }, [onToggleWrapper]);
 
     // Apply Toggle Handler to Node Data
     useEffect(() => {

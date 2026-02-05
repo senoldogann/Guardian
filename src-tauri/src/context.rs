@@ -28,22 +28,18 @@ impl ProjectContext {
         for entry in WalkDir::new(root).into_iter().filter_map(|e| e.ok()) {
             let path = entry.path();
             if path.is_file() {
-                let path_str = path.to_string_lossy().to_string();
-
-                if path_str.contains("node_modules")
-                    || path_str.contains("target")
-                    || path_str.contains(".git")
-                    || path_str.contains(".DS_Store")
-                    || path_str.contains(".guardian")
-                {
-                    continue;
-                }
-
                 if let Ok(relative) = path.strip_prefix(root) {
+                    if is_noise_path(relative) {
+                        continue;
+                    }
                     context
                         .file_structure
                         .push(relative.to_string_lossy().to_string());
                 } else {
+                    if is_noise_path(path) {
+                        continue;
+                    }
+                    let path_str = path.to_string_lossy().to_string();
                     context.file_structure.push(path_str);
                 }
 
@@ -143,4 +139,45 @@ impl ProjectContext {
             extra_msg
         )
     }
+}
+
+fn is_noise_path(path: &Path) -> bool {
+    for component in path.components() {
+        if let Some(part) = component.as_os_str().to_str() {
+            if part.starts_with('.') {
+                return true;
+            }
+            if matches!(
+                part,
+                "node_modules"
+                    | "target"
+                    | "dist"
+                    | "build"
+                    | "out"
+                    | "coverage"
+                    | ".git"
+                    | ".github"
+                    | ".idea"
+                    | ".vscode"
+                    | ".turbo"
+                    | ".next"
+                    | ".cache"
+                    | "tmp"
+                    | "temp"
+            ) {
+                return true;
+            }
+        }
+    }
+
+    if let Some(file_name) = path.file_name().and_then(|name| name.to_str()) {
+        if matches!(
+            file_name,
+            "package-lock.json" | "pnpm-lock.yaml" | "yarn.lock" | "Cargo.lock"
+        ) {
+            return true;
+        }
+    }
+
+    false
 }

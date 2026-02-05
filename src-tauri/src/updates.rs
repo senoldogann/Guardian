@@ -1,0 +1,159 @@
+use serde::{Deserialize, Serialize};
+use semver::Version;
+use std::fs;
+use std::path::PathBuf;
+use tauri::{AppHandle, Manager};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateFeedEntry {
+    pub latest_version: String,
+    pub download_url: String,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct UpdateConfig {
+    feed_url: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateCheckResult {
+    pub status: String,
+    pub current_version: String,
+    pub latest_version: Option<String>,
+    pub download_url: Option<String>,
+    pub notes: Option<String>,
+    pub error: Option<String>,
+}
+
+fn update_config_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let base = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    Ok(base.join("update_config.json"))
+}
+
+pub fn set_update_feed_url(app: &AppHandle, url: &str) -> Result<(), String> {
+    let path = update_config_path(app)?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    let config = UpdateConfig {
+        feed_url: url.to_string(),
+    };
+    let payload = serde_json::to_string(&config).map_err(|e| e.to_string())?;
+    fs::write(path, payload).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+pub fn get_update_feed_url(app: &AppHandle) -> Result<Option<String>, String> {
+    load_update_feed_url(app)
+}
+
+fn load_update_feed_url(app: &AppHandle) -> Result<Option<String>, String> {
+    if let Ok(env_url) = std::env::var("GUARDIAN_UPDATE_FEED_URL") {
+        let trimmed = env_url.trim();
+        if !trimmed.is_empty() {
+            return Ok(Some(trimmed.to_string()));
+        }
+    }
+
+    let path = update_config_path(app)?;
+    if !path.exists() {
+        return Ok(None);
+    }
+    let raw = fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let config: UpdateConfig = serde_json::from_str(&raw).map_err(|e| e.to_string())?;
+    Ok(Some(config.feed_url))
+}
+
+pub async fn check_for_updates(app: &AppHandle) -> Result<UpdateCheckResult, String> {
+    let current_version = env!("CARGO_PKG_VERSION").to_string();
+    let feed_url = load_update_feed_url(app)?;
+    let feed_url = match feed_url {
+        Some(url) => url,
+        None => {
+            return Ok(UpdateCheckResult {
+                status: "not_configured".to_string(),
+                current_version,
+                latest_version: None,
+                download_url: None,
+                notes: None,
+                error: None,
+            });
+        }
+    };
+
+    let response = reqwest::get(&feed_url)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !response.status().is_success() {
+        return Ok(UpdateCheckResult {
+            status: "error".to_string(),
+            current_version,
+            latest_version: None,
+            download_url: None,
+            notes: None,
+            error: Some(format!("Update feed error: {}", response.status())),
+        });
+    }
+
+    let payload = response
+        .json::<UpdateFeedEntry>()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let current = Version::parse(&current_version).map_err(|e| e.to_string())?;
+    let latest = Version::parse(&payload.latest_version).map_err(|e| e.to_string())?;
+
+    if latest > current {
+        return Ok(UpdateCheckResult {
+            status: "available".to_string(),
+            current_version,
+            latest_version: Some(payload.latest_version),
+            download_url: Some(payload.download_url),
+            notes: payload.notes,
+            error: None,
+        });
+    }
+
+    Ok(UpdateCheckResult {
+        status: "up_to_date".to_string(),
+        current_version,
+        latest_version: Some(payload.latest_version),
+        download_url: Some(payload.download_url),
+        notes: payload.notes,
+        error: None,
+    })
+}
+
+pub async fn download_update(app: &AppHandle, url: &str) -> Result<String, String> {
+    let response = reqwest::get(url)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !response.status().is_success() {
+        return Err(format!("Update download failed: {}", response.status()));
+    }
+
+    let bytes = response.bytes().await.map_err(|e| e.to_string())?;
+    let file_name = url
+        .split('/')
+        .last()
+        .filter(|name| !name.is_empty())
+        .unwrap_or("guardian-update.bin");
+
+    let base = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("updates");
+
+    tokio::fs::create_dir_all(&base).await.map_err(|e| e.to_string())?;
+    let target = base.join(file_name);
+    tokio::fs::write(&target, bytes).await.map_err(|e| e.to_string())?;
+
+    Ok(target.to_string_lossy().to_string())
+}

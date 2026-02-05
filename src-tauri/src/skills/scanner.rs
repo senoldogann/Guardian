@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::path::Path;
 use crate::kernel::bus::{EventBus, GuardianEvent};
 use crate::watcher::should_skip_path;
+use tracing::{info, warn, debug};
 
 #[allow(dead_code)]
 pub struct ProjectScanner {
@@ -17,11 +18,11 @@ impl ProjectScanner {
     }
 
     pub async fn scan(&self) {
-        println!("Scanner: Starting deep scan (Hunter Mode) of {}", self.root);
+        info!(target: "guardian::scanner", "Starting deep scan of {}", self.root);
         
         // 1. Load Knowledge Base (Rules)
         let _rules = crate::skills::knowledge::KnowledgeBase::load_system_rules(&self.root);
-        println!("Scanner: Loaded System Rules for Audit.");
+        debug!(target: "guardian::scanner", "Loaded system rules");
 
         let walker = WalkBuilder::new(&self.root)
             .hidden(false)
@@ -34,7 +35,7 @@ impl ProjectScanner {
             // 1. Limit to 1000 files to prevent endless loops or massive costs.
             // 2. Add an async sleep to be 'gentle' on the AI provider and system CPU.
             if count >= 1000 { 
-                println!("Scanner: Limit Reached (1000 files). Stopping background audit.");
+                info!(target: "guardian::scanner", "Limit reached (1000 files)");
                 break; 
             }
 
@@ -49,7 +50,7 @@ impl ProjectScanner {
                         continue;
                     }
 
-                    println!("Hunter Background: Auditing {}", path);
+                    debug!(target: "guardian::scanner", "Auditing {}", path);
 
                     // 1. CACHE CHECK (SPAP v2.2)
                     let current_file_hash = crate::skills::hasher::calculate_file_hash(&path);
@@ -58,12 +59,12 @@ impl ProjectScanner {
                     let is_cached = if let Ok(storage) = self.storage.lock() {
                          storage.check_cache(&path, &current_file_hash, &rules_hash).unwrap_or(false)
                     } else {
-                         eprintln!("Scanner Error: Could not lock storage for cache check.");
+                         warn!(target: "guardian::scanner", "Could not lock storage for cache check");
                          false
                     };
 
                     if is_cached {
-                        println!("Hunter Cache: Skipping {} (No changes detected)", path);
+                        debug!(target: "guardian::scanner", "Cache hit, skipping {}", path);
                         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
                         continue;
                     }
@@ -77,6 +78,6 @@ impl ProjectScanner {
             }
         }
         
-        println!("Scanner: Scan Complete.");
+        info!(target: "guardian::scanner", "Scan complete");
     }
 }

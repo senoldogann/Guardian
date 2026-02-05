@@ -237,8 +237,10 @@ pub fn search_context(path: &str, query: &str) -> String {
     append_package_json_summary(&mut context_accumulator, path);
     append_routes_summary(&mut context_accumulator, path);
 
-    let mut explicit_files = resolve_explicit_files(path, &extract_file_tokens(query));
+    let file_tokens = extract_file_tokens(query);
+    let mut explicit_files = resolve_explicit_files(path, &file_tokens);
     explicit_files.extend(resolve_special_context_files(path, query));
+    append_missing_file_notes(&mut context_accumulator, path, &file_tokens, &explicit_files);
     if !explicit_files.is_empty() {
         context_accumulator.push_str("### Explicit File Context:\n\n");
         for file_path in explicit_files {
@@ -313,4 +315,45 @@ pub fn search_context(path: &str, query: &str) -> String {
     }
 
     context_accumulator
+}
+
+fn append_missing_file_notes(context: &mut String, root: &str, tokens: &[String], resolved: &[PathBuf]) {
+    if tokens.is_empty() {
+        return;
+    }
+    let root_path = Path::new(root);
+    let mut missing: Vec<String> = Vec::new();
+
+    for token in tokens {
+        let token_path = Path::new(token);
+        let matches = resolved.iter().any(|path| {
+            if path == token_path {
+                return true;
+            }
+            if token_path.is_absolute() {
+                return path == token_path;
+            }
+            if let Some(file_name) = token_path.file_name().and_then(|s| s.to_str()) {
+                if path.file_name().and_then(|s| s.to_str()) == Some(file_name) {
+                    return true;
+                }
+            }
+            if let Ok(rel) = path.strip_prefix(root_path) {
+                rel.to_string_lossy() == token.as_str()
+            } else {
+                false
+            }
+        });
+        if !matches {
+            missing.push(token.clone());
+        }
+    }
+
+    if !missing.is_empty() {
+        context.push_str("### Missing Files Notice:\n");
+        for token in missing {
+            context.push_str(&format!("- {} was not found in this workspace.\n", token));
+        }
+        context.push('\n');
+    }
 }
