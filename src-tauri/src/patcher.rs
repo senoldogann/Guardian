@@ -16,6 +16,13 @@ fn validate_path_security(file_path: &str, workspace_root: &str) -> Result<PathB
     })?;
 
     let input_path = Path::new(file_path);
+    if input_path
+        .components()
+        .any(|component| matches!(component, Component::CurDir | Component::ParentDir))
+    {
+        anyhow::bail!("Security Violation: Path contains traversal components.");
+    }
+
     let candidate = if input_path.is_absolute() {
         input_path.to_path_buf()
     } else {
@@ -29,10 +36,7 @@ fn validate_path_security(file_path: &str, workspace_root: &str) -> Result<PathB
         );
     }
 
-    if !candidate.starts_with(&canonical_root) {
-        anyhow::bail!("Security Violation: Target path is outside approved workspace.");
-    }
-
+    #[cfg(unix)]
     ensure_no_symlink_components(&candidate, &canonical_root)?;
 
     let canonical_path = fs::canonicalize(&candidate)
