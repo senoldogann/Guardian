@@ -75,6 +75,8 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare_release.outputs.tag }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -268,6 +270,44 @@ jobs:
           mkdir -p dist-assets
           gh release download "$TAG" --repo "${{ github.repository }}" --dir dist-assets
           ls -la dist-assets
+
+      - name: Rewrite latest.json URLs for distribution repo
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        run: |
+          TAG="${{ needs.prepare_release.outputs.tag }}"
+          SRC_REPO="${{ github.repository }}"
+          DIST_REPO="${{ steps.dist_config.outputs.repo }}"
+          FILE="dist-assets/latest.json"
+
+          if [ ! -f "$FILE" ]; then
+            echo "latest.json not found in dist-assets."
+            exit 1
+          fi
+
+          SRC_BASE="https://github.com/${SRC_REPO}/releases/download/${TAG}/"
+          DIST_BASE="https://github.com/${DIST_REPO}/releases/download/${TAG}/"
+
+          jq --arg source "$SRC_BASE" --arg dist "$DIST_BASE" '
+            .platforms |= with_entries(
+              if ((.value.url // "") | startswith($source)) then
+                .value.url = ($dist + (.value.url | ltrimstr($source)))
+              else
+                .
+              end
+            )
+          ' "$FILE" > "$FILE.tmp"
+          mv "$FILE.tmp" "$FILE"
+
+          if grep -q "$SRC_BASE" "$FILE"; then
+            echo "latest.json still references source repo URLs."
+            exit 1
+          fi
+
+          if ! jq -e --arg dist "$DIST_BASE" '.platforms | all(.[]; (.url // "") | startswith($dist))' "$FILE" >/dev/null; then
+            echo "latest.json contains platform URLs that do not point to distribution repo."
+            exit 1
+          fi
 
       - name: Prepare public release notes
         if: matrix.platform == 'macos-latest'
