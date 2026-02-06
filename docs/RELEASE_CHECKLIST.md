@@ -49,8 +49,10 @@ Scope: macOS (ARM + Intel) and Windows release pipeline, private source + public
    - `x86_64-apple-darwin`
 2. Build must fail if any notarization preflight secret is missing.
 3. Build must pass post-notarization validation:
-   - `xcrun stapler validate`
-   - `spctl --assess`
+   - `.app`: `xcrun stapler validate` + `spctl --assess --type execute`
+   - `.dmg`: `xcrun stapler validate` (DMG ticket) + validate the `.app` inside the DMG (mount + `spctl --assess --type execute`)
+
+Note: `spctl --assess --type open` can report `rejected (source=Insufficient Context)` for DMGs on recent macOS runners even when notarization/stapling succeeded.
 
 ## 5) Release Execution
 
