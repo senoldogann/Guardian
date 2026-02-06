@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { StructuredData } from "./structured-data";
 import type { DocLocale, SiteDictionary } from "../lib/i18n";
@@ -181,7 +182,14 @@ export async function HomePageView({ locale, dict }: HomePageProps) {
             </div>
           </div>
           <article className="hero-surface">
-            <img alt="Guardian monitoring interface" src="/media/guardian-monitor.png" />
+            <Image
+              alt="Guardian monitoring interface"
+              src="/media/guardian-monitor.png"
+              fill
+              priority
+              sizes="(max-width: 1080px) 100vw, 50vw"
+              style={{ objectFit: "cover", objectPosition: "top center" }}
+            />
           </article>
         </div>
       </section>
@@ -220,13 +228,31 @@ export async function HomePageView({ locale, dict }: HomePageProps) {
         </div>
         <div className="screenshot-grid">
           <figure className="media-card">
-            <img alt="Guardian monitor view" loading="lazy" src="/media/guardian-monitor.png" />
+            <Image
+              alt="Guardian monitor view"
+              src="/media/guardian-monitor.png"
+              fill
+              sizes="(max-width: 860px) 100vw, 33vw"
+              style={{ objectFit: "cover" }}
+            />
           </figure>
           <figure className="media-card">
-            <img alt="Guardian auth success screen" loading="lazy" src="/media/guardian-auth-success.png" />
+            <Image
+              alt="Guardian auth success screen"
+              src="/media/guardian-auth-success.png"
+              fill
+              sizes="(max-width: 860px) 100vw, 33vw"
+              style={{ objectFit: "cover" }}
+            />
           </figure>
           <figure className="media-card">
-            <img alt="Guardian macOS safety warning sample" loading="lazy" src="/media/guardian-auth-gatekeeper.png" />
+            <Image
+              alt="Guardian macOS safety warning sample"
+              src="/media/guardian-auth-gatekeeper.png"
+              fill
+              sizes="(max-width: 860px) 100vw, 33vw"
+              style={{ objectFit: "cover" }}
+            />
           </figure>
         </div>
       </section>

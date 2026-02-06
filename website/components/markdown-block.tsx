@@ -29,7 +29,7 @@ export function MarkdownBlock({ value }: { value: string }) {
         rehypePlugins={[rehypeSanitize]}
         remarkPlugins={[remarkGfm]}
         components={{
-          a: ({ node: _node, href, ...props }) => {
+          a: ({ href, ...props }) => {
             const external = typeof href === "string" ? /^https?:\/\//.test(href) : false;
             return (
               <a
