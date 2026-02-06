@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
-import { Fraunces, Manrope } from "next/font/google";
+import { DM_Sans, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "../components/site-header";
 import { SITE_URL } from "../lib/seo";
 
-const fraunces = Fraunces({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-fraunces"
+  variable: "--font-heading"
 });
 
-const manrope = Manrope({
+const dmSans = DM_Sans({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-manrope"
+  variable: "--font-body"
 });
 
 export const metadata: Metadata = {
@@ -52,7 +52,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${fraunces.variable} ${manrope.variable}`}>
+      <body className={`${spaceGrotesk.variable} ${dmSans.variable}`}>
         <div className="site-shell">
           <SiteHeader />
           <main className="page">{children}</main>

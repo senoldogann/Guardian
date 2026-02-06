@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { StructuredData } from "./structured-data";
+import { DownloadPrimaryCta } from "./download/download-primary-cta";
 import type { DocLocale, SiteDictionary } from "../lib/i18n";
 import { buildLocalizedPath } from "../lib/i18n";
 import { buildSoftwareApplicationJsonLd, buildWebsiteJsonLd } from "../lib/seo";
@@ -115,6 +116,30 @@ function getShowcaseMeta(locale: DocLocale) {
   };
 }
 
+const HERO_SPRINKLES: Array<{
+  x: number;
+  y: number;
+  size: number;
+  color: string;
+  driftX: number;
+  driftY: number;
+  delayMs: number;
+}> = [
+  { x: 14, y: 68, size: 5, color: "rgba(50, 121, 249, 0.9)", driftX: -18, driftY: 14, delayMs: 0 },
+  { x: 22, y: 78, size: 3, color: "rgba(18, 19, 23, 0.7)", driftX: -12, driftY: 18, delayMs: 40 },
+  { x: 32, y: 70, size: 4, color: "rgba(50, 121, 249, 0.55)", driftX: -10, driftY: 10, delayMs: 80 },
+  { x: 44, y: 76, size: 2, color: "rgba(244, 114, 182, 0.55)", driftX: 8, driftY: 18, delayMs: 120 },
+  { x: 58, y: 68, size: 4, color: "rgba(50, 121, 249, 0.78)", driftX: 14, driftY: 10, delayMs: 60 },
+  { x: 66, y: 78, size: 3, color: "rgba(18, 19, 23, 0.6)", driftX: 18, driftY: 18, delayMs: 110 },
+  { x: 78, y: 70, size: 4, color: "rgba(249, 115, 22, 0.5)", driftX: 18, driftY: 12, delayMs: 140 },
+  { x: 86, y: 76, size: 3, color: "rgba(50, 121, 249, 0.5)", driftX: 22, driftY: 18, delayMs: 170 },
+  { x: 18, y: 56, size: 2, color: "rgba(50, 121, 249, 0.45)", driftX: -22, driftY: 8, delayMs: 20 },
+  { x: 36, y: 58, size: 3, color: "rgba(18, 19, 23, 0.55)", driftX: -10, driftY: 10, delayMs: 70 },
+  { x: 52, y: 56, size: 2, color: "rgba(244, 114, 182, 0.4)", driftX: 10, driftY: 8, delayMs: 110 },
+  { x: 72, y: 58, size: 3, color: "rgba(50, 121, 249, 0.55)", driftX: 24, driftY: 12, delayMs: 160 },
+  { x: 82, y: 54, size: 2, color: "rgba(18, 19, 23, 0.45)", driftX: 20, driftY: 8, delayMs: 200 }
+];
+
 export async function HomePageView({ locale, dict }: HomePageProps) {
   let latestError: string | null = null;
   let latestTag = "—";
@@ -142,55 +167,67 @@ export async function HomePageView({ locale, dict }: HomePageProps) {
     const latest = await getLatestRelease();
     latestTag = releaseTagToVersion(latest.tag_name);
     latestDate = formatDate(latest.published_at, locale);
-    installers = pickInstallers(latest.assets).slice(0, 4);
+    installers = pickInstallers(latest.assets);
     latestUrl = latest.html_url;
   } catch (error) {
     latestError = error instanceof Error ? error.message : dict.common.releaseNotAvailable;
   }
+
+  const installersPreview = installers.slice(0, 4);
 
   return (
     <>
       <StructuredData payload={buildSoftwareApplicationJsonLd(locale)} />
       <StructuredData payload={buildWebsiteJsonLd(locale)} />
 
-      <section className="hero home-hero section-enter" data-delay="1">
-        <div className="home-hero-grid">
-          <div className="home-hero-copy">
-            <div className="eyebrow">{dict.home.eyebrow}</div>
-            <h1>{dict.home.title}</h1>
-            <p>{dict.home.description}</p>
-            <div className="row" style={{ marginTop: 16 }}>
-              <Link className="button" href={buildLocalizedPath(locale, "/download")}>
-                {dict.home.ctaPrimary}
-              </Link>
-              <Link className="button-subtle" href={buildLocalizedPath(locale, "/docs")}>
-                {dict.home.ctaSecondaryDocs}
-              </Link>
-              <Link className="button-subtle" href={buildLocalizedPath(locale, "/changelog")}>
-                {dict.home.ctaSecondaryChangelog}
-              </Link>
-            </div>
-            <div className="hero-kpi-row">
-              <div className="hero-kpi">
-                <span>v{latestTag}</span>
-                <small>{dict.common.latestVersion}</small>
-              </div>
-              <div className="hero-kpi">
-                <span>{latestDate}</span>
-                <small>{dict.common.updatedAt}</small>
-              </div>
-            </div>
-          </div>
-          <article className="hero-surface">
-            <Image
-              alt="Guardian monitoring interface"
-              src="/media/guardian-monitor.png"
-              fill
-              priority
-              sizes="(max-width: 1080px) 100vw, 50vw"
-              style={{ objectFit: "cover", objectPosition: "top center" }}
+      <section className="hero landing-hero section-enter" data-delay="1">
+        <div aria-hidden="true" className="landing-sprinkles">
+          {HERO_SPRINKLES.map((sprinkle, index) => (
+            <span
+              className="landing-sprinkle"
+              key={`${sprinkle.x}-${sprinkle.y}-${index}`}
+              style={
+                {
+                  "--x": `${sprinkle.x}%`,
+                  "--y": `${sprinkle.y}%`,
+                  "--size": `${sprinkle.size}px`,
+                  "--color": sprinkle.color,
+                  "--dx": `${sprinkle.driftX}px`,
+                  "--dy": `${sprinkle.driftY}px`,
+                  "--delay": `${sprinkle.delayMs}ms`
+                } as React.CSSProperties
+              }
             />
-          </article>
+          ))}
+        </div>
+
+        <div className="landing-hero-inner">
+          <div className="eyebrow">{dict.home.eyebrow}</div>
+          <h1>{dict.home.title}</h1>
+          <p>{dict.home.description}</p>
+
+          <div className="landing-cta-row">
+            <DownloadPrimaryCta
+              assets={installers}
+              className="button"
+              dict={dict}
+              fallbackHref={buildLocalizedPath(locale, "/download")}
+              locale={locale}
+            />
+            <Link className="button-subtle" href={buildLocalizedPath(locale, "/docs")}>
+              {dict.home.ctaSecondaryDocs}
+            </Link>
+            <Link className="button-subtle" href={buildLocalizedPath(locale, "/changelog")}>
+              {dict.home.ctaSecondaryChangelog}
+            </Link>
+          </div>
+
+          <div className="landing-meta-row">
+            <span className="landing-meta-pill">v{latestTag}</span>
+            <span className="landing-meta-pill">{dict.common.updatedAt}: {latestDate}</span>
+          </div>
+
+          {latestError ? <p className="meta" style={{ marginTop: 10 }}>{latestError}</p> : null}
         </div>
       </section>
 
@@ -306,8 +343,8 @@ export async function HomePageView({ locale, dict }: HomePageProps) {
         <article className="panel">
           <div className="eyebrow">{installersTitle}</div>
           <div className="asset-list">
-            {installers.length > 0 ? (
-              installers.map((asset) => (
+            {installersPreview.length > 0 ? (
+              installersPreview.map((asset) => (
                 <div className="asset-item" key={asset.id}>
                   <div className="asset-name">
                     <strong>{asset.name}</strong>

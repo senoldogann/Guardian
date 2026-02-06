@@ -26,7 +26,7 @@ export type AssetKind = "dmg" | "msi" | "exe" | "appimage" | "deb" | "rpm" | "ta
 const OWNER = process.env.GITHUB_RELEASE_OWNER ?? "senoldogann";
 const REPO = process.env.GITHUB_RELEASE_REPO ?? "guardian-distribution";
 const API_BASE = `https://api.github.com/repos/${OWNER}/${REPO}`;
-const DEFAULT_REVALIDATE_SECONDS = 300;
+const DEFAULT_REVALIDATE_SECONDS = 60;
 const INSTALLER_EXTENSIONS = [".dmg", ".msi", ".exe", ".appimage", ".deb", ".rpm", ".zip", ".tar.gz"] as const;
 
 function normalizeAsset(asset: GithubAsset): GithubAsset {

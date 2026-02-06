@@ -18,10 +18,8 @@ export function SiteHeader() {
   const basePath = stripLocale(pathname);
 
   const links = [
-    { href: "/", label: dict.nav.home },
-    { href: "/download", label: dict.nav.download },
-    { href: "/changelog", label: dict.nav.changelog },
-    { href: "/docs", label: dict.nav.docs }
+    { href: "/docs", label: dict.nav.docs },
+    { href: "/changelog", label: dict.nav.changelog }
   ];
 
   return (
@@ -35,9 +33,7 @@ export function SiteHeader() {
         {links.map((link) => {
           const localizedHref = buildLocalizedPath(locale, link.href);
           const active =
-            link.href === "/"
-              ? pathname === localizedHref
-              : pathname === localizedHref || pathname.startsWith(`${localizedHref}/`);
+            pathname === localizedHref || pathname.startsWith(`${localizedHref}/`);
 
           return (
             <Link key={link.href} className="nav-link" data-active={active ? "true" : "false"} href={localizedHref}>
@@ -47,10 +43,18 @@ export function SiteHeader() {
         })}
       </nav>
 
-      <div className="locale-switch">
-        <span>{dict.common.languageSwitch}</span>
-        <Link className="locale-pill" href={buildLocalizedPath(altLocale, basePath)}>
+      <div className="topbar-actions">
+        <Link aria-label={dict.common.languageSwitch} className="locale-pill" href={buildLocalizedPath(altLocale, basePath)}>
           {altLocale === "en" ? dict.common.english : dict.common.turkish}
+        </Link>
+        <Link className="button button-compact" href={buildLocalizedPath(locale, "/download")}>
+          <span>{dict.nav.download}</span>
+          <svg aria-hidden="true" height="18" viewBox="0 0 24 24" width="18">
+            <path
+              d="M12 3v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6V3h2zM5 19h14v2H5v-2z"
+              fill="currentColor"
+            />
+          </svg>
         </Link>
       </div>
     </header>

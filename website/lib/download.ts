@@ -114,7 +114,9 @@ export async function detectPlatform(): Promise<Platform> {
 
   if (fromUa === "unknown" && isMacUserAgent(navigator.userAgent)) {
     const fromRenderer = detectMacArchitectureFromWebGL();
+    // If we cannot reliably detect architecture, default to Apple Silicon. Intel users can switch.
     if (fromRenderer) return fromRenderer;
+    return "mac-arm";
   }
 
   return fromUa;
