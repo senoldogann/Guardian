@@ -2,6 +2,17 @@
 
 All notable changes to the Guardian V4 project will be documented in this file.
 
+## [0.2.7] - 2026-02-06
+
+### Security & CI
+- **Cargo Audit Fix**: Updated `time` to `0.3.47` to address `RUSTSEC-2026-0009`.
+- **DMG Validation Hardening**: Improved macOS DMG notarization validation and re-upload flow in the release pipeline.
+- **macOS Signing Auto-detect**: Release workflow no longer requires `APPLE_SIGNING_IDENTITY` (auto-detects the imported Developer ID cert).
+
+### Website
+- **Build/Lint Stability**: Added ESLint flat config and removed deprecated `next lint` usage for CI-safe lint runs.
+- **Image Optimization**: Switched legacy `<img>` usage to `next/image` to keep Next.js warnings clean.
+
 ## [0.2.6] - 2026-02-06
 
 ### Release & Distribution
