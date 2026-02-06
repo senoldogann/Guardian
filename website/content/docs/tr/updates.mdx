@@ -1,0 +1,21 @@
+---
+title: "Güncellemeler"
+summary: "In-app update akışı, release kaynağı ve güvenli güncelleme davranışı."
+section: "Operasyon"
+order: 3
+---
+
+## Update kaynağı
+
+Guardian, güncelleme metadata bilgisini public distribution release kaynağından okur.
+
+## In-app update akışı
+
+1. Uygulama düzenli aralıklarla yeni sürüm kontrolü yapar.
+2. Yeni sürüm varsa update çağrısı görünür.
+3. Kullanıcı onayıyla paket arka planda indirilir.
+4. Uygulama yeniden başlatılarak yeni sürüme geçilir.
+
+## Operasyon notu
+
+Release üretimi geçici olarak manuel mirror script ile yürütülüyorsa `latest.json` dosyasının distribution repo URL'lerini işaret ettiğini doğrulayın.

@@ -36,6 +36,7 @@ export interface UpdateCheckResult {
   latest_version?: string | null;
   notes?: string | null;
   error?: string | null;
+  last_checked_at?: string | null;
 }
 
 export const PROVIDER_OPTIONS = [
@@ -163,12 +164,19 @@ export function SettingsModal({
   const API_KEY_MASK = "••••••";
   const providerLabel = providerDraft ? getProviderDefaults(providerDraft.provider_id).label : "provider";
   const requiresApiKey = isDesktop && Boolean(providerDraft) && apiKeyStatus?.has_key === false;
-  const currentVersionLabel = updateInfo?.current_version ?? "Detecting...";
+  const currentVersionLabel = updateInfo?.current_version ?? "Unknown";
   const latestVersionLabel = updateInfo?.latest_version
-    ?? (updateInfo?.status === "up_to_date" ? updateInfo.current_version : (updateChecking ? "Checking..." : "Unavailable"));
-  const updateStatusLabel = updateInfo?.status
-    ? updateInfo.status.replace(/_/g, " ")
-    : (updateChecking ? "checking" : "idle");
+    ?? (updateInfo?.status === "up_to_date"
+      ? updateInfo.current_version
+      : (updateChecking ? "Checking..." : "Unavailable"));
+  const updateStatusLabel = updateChecking
+    ? "checking"
+    : updateInfo?.status
+      ? updateInfo.status.replace(/_/g, " ")
+      : "idle";
+  const lastCheckLabel = updateInfo?.last_checked_at
+    ? new Date(updateInfo.last_checked_at).toLocaleString()
+    : "Not checked yet";
 
   const settingsTabClass = (tab: SettingsTab) =>
     clsx(
@@ -460,6 +468,7 @@ export function SettingsModal({
             <div className="flex flex-wrap items-center gap-3 text-[10px] text-text-muted">
               <span>Current: {currentVersionLabel}</span>
               <span>Latest: {latestVersionLabel}</span>
+              <span>Last check: {lastCheckLabel}</span>
               <span className="px-2 py-0.5 rounded-full bg-white/10 text-[9px] uppercase tracking-widest text-text-main">
                 {updateStatusLabel}
               </span>

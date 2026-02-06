@@ -1,71 +1,85 @@
 # Release Checklist (Guardian)
 
-**Scope:** macOS + Windows (Tauri v2)  
-**Team ID:** `79DZ4AA4DW`
+Scope: macOS (ARM + Intel) and Windows release pipeline, private source + public distribution model.
 
-## 1. Versioning
+## 1) Version Sync
 
-1. Confirm version bump across:
+1. Confirm same version in:
    - `package.json`
    - `src-tauri/Cargo.toml`
    - `src-tauri/tauri.conf.json`
-2. Update `CHANGELOG.md` and `RAPOR.md`.
+2. Add a matching entry in `CHANGELOG.md`.
 
-## 2. Pre-Release Verification
+## 2) Local Verification
 
-1. Run full verification:
-   - `npm run verify`
-2. Confirm no blocking warnings.
+1. Run frontend/app checks:
+   - `npm run test`
+   - `npm run build`
+   - `(cd src-tauri && cargo check)`
+2. Run website checks:
+   - `(cd website && npm run build)`
+3. Confirm no TypeScript/build failures before tagging.
 
-## 3. macOS Signing + Notarization
+## 3) Required GitHub Actions Configuration
 
-**Required env vars (Tauri v2):**
+### Variables
+
+- `PUBLIC_DIST_REPO` = `senoldogann/guardian-distribution`
+
+### Secrets
+
+- `PUBLIC_DIST_REPO_TOKEN` (PAT with write access to distribution repo releases)
+- `SOURCE_REPO_TOKEN` (optional; used when default `GITHUB_TOKEN` is insufficient for source release actions)
+- `TAURI_SIGNING_PRIVATE_KEY`
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
 - `APPLE_CERTIFICATE` (base64 `.p12`)
 - `APPLE_CERTIFICATE_PASSWORD`
-- `APPLE_SIGNING_IDENTITY` (optional if cert name matches)
-- `APPLE_TEAM_ID` = `79DZ4AA4DW`
-- Notarization auth:
-  - `APPLE_ID` + `APPLE_PASSWORD` **or**
-  - `APPLE_API_KEY` + `APPLE_API_ISSUER` + `APPLE_API_KEY_PATH`
-
-Tauri uses these variables for signing and notarization. citeturn0search0turn0search5
-
-## 4. Windows Signing (Optional but Recommended)
-
-If you have a Windows code signing certificate:
-1. Prepare `certificateThumbprint`, `digestAlgorithm`, `timestampUrl`
-2. Add them under `bundle.windows` in `src-tauri/tauri.conf.json`
-3. In CI, import `WINDOWS_CERTIFICATE` + `WINDOWS_CERTIFICATE_PASSWORD`
-
-Reference: Tauri Windows signing guide. citeturn0search1
-
-## 5. Build Artifacts (Local)
-
-1. `npm run tauri build`
-2. Collect bundles from:
-   - `src-tauri/target/release/bundle/`
-
-## 6. Release / Deploy
-
-1. Tag release (`vX.Y.Z`)
-2. Push tag to trigger CI release workflow
-3. Confirm GitHub Release assets uploaded
-
-**CI Secrets (GitHub Actions):**
-- `APPLE_CERTIFICATE` (base64 `.p12`)
-- `APPLE_CERTIFICATE_PASSWORD`
-- `APPLE_SIGNING_IDENTITY` (optional)
+- `APPLE_SIGNING_IDENTITY`
 - `APPLE_TEAM_ID`
-- `APPLE_API_KEY` (Key ID)
+- `APPLE_API_KEY` (Apple Key ID)
 - `APPLE_API_ISSUER`
 - `APPLE_API_KEY_P8` (base64 `AuthKey_XXXX.p8`)
-- `WINDOWS_CERTIFICATE` (base64 `.pfx`, optional)
+- `WINDOWS_CERTIFICATE` (optional)
 - `WINDOWS_CERTIFICATE_PASSWORD` (optional)
 
-Release workflow uses Tauri Action. citeturn0search4
+## 4) Notarization Gate (macOS)
 
-## 7. Post-Release
+1. Release workflow must run with notarization enabled for:
+   - `aarch64-apple-darwin`
+   - `x86_64-apple-darwin`
+2. Build must fail if any notarization preflight secret is missing.
+3. Build must pass post-notarization validation:
+   - `.app`: `xcrun stapler validate` + `spctl --assess --type execute`
+   - `.dmg`: `xcrun stapler validate` (DMG ticket) + validate the `.app` inside the DMG (mount + `spctl --assess --type execute`)
 
-1. Validate auto-update feed
-2. Smoke test macOS + Windows installers
-3. Confirm notarization status (macOS)
+Note: `spctl --assess --type open` can report `rejected (source=Insufficient Context)` for DMGs on recent macOS runners even when notarization/stapling succeeded.
+
+## 5) Release Execution
+
+1. Create tag: `vX.Y.Z`
+2. Trigger release workflow (tag push or manual dispatch with `tag` input).
+3. Confirm source release includes:
+   - macOS ARM DMG
+   - macOS Intel DMG
+   - Windows installer (`.msi` or `-setup.exe`)
+   - updater metadata (`latest.json`)
+
+## 6) Public Distribution Publish
+
+Primary path: automatic publish step in `.github/workflows/release.yml`.
+
+Fallback (manual):
+
+```bash
+scripts/publish_distribution.sh vX.Y.Z senoldogann/Guardian senoldogann/guardian-distribution
+```
+
+Manual script validations include required assets, digest checks, `latest.json` rewrite, and distribution URL verification.
+
+## 7) Post-Release Smoke Test
+
+1. Download from website `/download` and verify recommended installer is correct.
+2. On desktop app:
+   - check `Settings > Updates` shows valid `Current` and `Latest`
+   - run update check once
+3. Validate `latest.json` in distribution release points to distribution repo assets only.

@@ -59,20 +59,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Notarization is disabled until Apple notary credentials are rotated/verified.
           - platform: macos-latest
+            target: "aarch64-apple-darwin"
             args: "--target aarch64-apple-darwin"
-            notarize: "false"
+            notarize: "true"
           - platform: macos-15-intel
+            target: "x86_64-apple-darwin"
             args: "--target x86_64-apple-darwin"
-            notarize: "false"
+            notarize: "true"
           - platform: windows-latest
+            target: "x86_64-pc-windows-msvc"
             args: "--target x86_64-pc-windows-msvc"
             notarize: "false"
 
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare_release.outputs.tag }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -93,6 +97,32 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Preflight notarization secrets
+        if: runner.os == 'macOS' && matrix.notarize == 'true'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          missing=0
+          # APPLE_SIGNING_IDENTITY is optional; tauri-action can auto-detect the imported Developer ID Application cert.
+          for key in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_TEAM_ID APPLE_API_KEY APPLE_API_ISSUER APPLE_API_KEY_P8 TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD; do
+            if [ -z "${!key:-}" ]; then
+              echo "Missing required secret: ${key}"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Notarization preflight failed. Configure all required secrets and retry."
+            exit 1
+          fi
+
       - name: Write Apple API Key (macOS notarized targets)
         if: runner.os == 'macOS' && matrix.notarize == 'true'
         id: apple_api_key
@@ -100,10 +130,6 @@ jobs:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
         run: |
-          if [ -z "${APPLE_API_KEY_P8}" ]; then
-            echo "APPLE_API_KEY_P8 not set; skipping API key file creation."
-            exit 0
-          fi
           mkdir -p private_keys
           KEY_PATH=$(python - <<'PY'
           import base64, os, pathlib
@@ -125,7 +151,6 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
@@ -140,6 +165,70 @@ jobs:
           generateReleaseNotes: true
           includeUpdaterJson: true
 
+      - name: Validate notarized macOS artifacts
+        if: runner.os == 'macOS' && matrix.notarize == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SOURCE_REPO_TOKEN || github.token }}
+        shell: bash
+        run: |
+          TARGET="${{ matrix.target }}"
+          DMG_PATH="$(find "src-tauri/target/${TARGET}/release/bundle/dmg" -type f -name "*.dmg" | head -n 1)"
+          APP_PATH="$(find "src-tauri/target/${TARGET}/release/bundle/macos" -maxdepth 1 -type d -name "*.app" | head -n 1)"
+
+          if [ -z "$DMG_PATH" ] || [ ! -f "$DMG_PATH" ]; then
+            echo "No DMG artifact found for target ${TARGET}."
+            exit 1
+          fi
+          if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
+            echo "No .app bundle found for target ${TARGET}."
+            exit 1
+          fi
+
+          xcrun stapler validate "$APP_PATH"
+          spctl --assess --type execute -vv "$APP_PATH"
+
+          # Tauri notarization can result in the .app being stapled while the DMG is not.
+          # To avoid DMG Gatekeeper warnings, explicitly notarize + staple the DMG and re-upload it.
+          echo "Notarizing DMG via notarytool..."
+          xcrun notarytool submit "$DMG_PATH" \
+            --key "${{ steps.apple_api_key.outputs.key_path }}" \
+            --key-id "${{ secrets.APPLE_API_KEY }}" \
+            --issuer "${{ secrets.APPLE_API_ISSUER }}" \
+            --wait
+
+          echo "Stapling DMG ticket..."
+          xcrun stapler staple "$DMG_PATH"
+          xcrun stapler validate "$DMG_PATH"
+
+          # `spctl --assess --type open` is not a reliable DMG check on recent macOS runners and can report:
+          #   rejected (source=Insufficient Context)
+          # even when notarization/stapling succeeded. Instead, validate the notarized .app inside the DMG.
+          echo "Validating notarized app inside DMG..."
+          MOUNT_POINT="$(mktemp -d "/tmp/guardian-dmg.XXXXXX")"
+          cleanup_dmg_mount() {
+            hdiutil detach "$MOUNT_POINT" >/dev/null 2>&1 || true
+            rm -rf "$MOUNT_POINT" >/dev/null 2>&1 || true
+          }
+          trap cleanup_dmg_mount EXIT
+
+          hdiutil attach -nobrowse -readonly -mountpoint "$MOUNT_POINT" "$DMG_PATH" >/dev/null
+
+          DMG_APP_PATH="$(find "$MOUNT_POINT" -maxdepth 2 -type d -name "*.app" | head -n 1)"
+          if [ -z "$DMG_APP_PATH" ] || [ ! -d "$DMG_APP_PATH" ]; then
+            echo "No .app bundle found inside DMG."
+            exit 1
+          fi
+
+          xcrun stapler validate "$DMG_APP_PATH"
+          spctl --assess --type execute -vv "$DMG_APP_PATH"
+
+          cleanup_dmg_mount
+          trap - EXIT
+
+          echo "Re-uploading stapled DMG to source release..."
+          TAG="${{ needs.prepare_release.outputs.tag }}"
+          gh release upload "$TAG" "$DMG_PATH" --repo "${{ github.repository }}" --clobber
+
       - name: Build + Release (Tauri, standard)
         if: matrix.notarize != 'true'
         uses: tauri-apps/tauri-action@action-v0.6.1
@@ -149,7 +238,6 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
@@ -193,20 +281,23 @@ jobs:
           SRC_REPO="${{ github.repository }}"
 
           for attempt in $(seq 1 60); do
-            ASSET_LIST="$(gh release view "$TAG" --repo "$SRC_REPO" --json assets -q '.assets[].name' 2>/dev/null || true)"
+            ASSETS_JSON="$(gh release view "$TAG" --repo "$SRC_REPO" --json assets -q '.assets' 2>/dev/null || echo '[]')"
 
-            if echo "$ASSET_LIST" | grep -q 'aarch64-apple-darwin' \
-              && echo "$ASSET_LIST" | grep -q 'x86_64-apple-darwin' \
-              && echo "$ASSET_LIST" | grep -q 'x86_64-pc-windows-msvc'; then
+            HAS_MAC_ARM="$(echo "$ASSETS_JSON" | jq -r 'any(.[]; (.name | test("aarch64.*\\.dmg$|arm64.*\\.dmg$|_aarch64\\.dmg$")))')"
+            HAS_MAC_INTEL="$(echo "$ASSETS_JSON" | jq -r 'any(.[]; (.name | test("x86_64.*\\.dmg$|intel.*\\.dmg$|_x64\\.dmg$")))')"
+            HAS_WINDOWS="$(echo "$ASSETS_JSON" | jq -r 'any(.[]; (.name | (endswith(".msi") or endswith("-setup.exe"))))')"
+            HAS_UPDATER_JSON="$(echo "$ASSETS_JSON" | jq -r 'any(.[]; .name == "latest.json")')"
+
+            if [ "$HAS_MAC_ARM" = "true" ] && [ "$HAS_MAC_INTEL" = "true" ] && [ "$HAS_WINDOWS" = "true" ] && [ "$HAS_UPDATER_JSON" = "true" ]; then
               echo "All platform assets are available."
               exit 0
             fi
 
-            echo "Waiting for all platform assets (attempt ${attempt}/60)..."
+            echo "Waiting for all platform + updater assets (attempt ${attempt}/60)..."
             sleep 10
           done
 
-          echo "Timed out waiting for all platform assets in source release."
+          echo "Timed out waiting for required release assets in source release."
           exit 1
 
       - name: Download release assets from source repo
@@ -219,6 +310,44 @@ jobs:
           mkdir -p dist-assets
           gh release download "$TAG" --repo "${{ github.repository }}" --dir dist-assets
           ls -la dist-assets
+
+      - name: Rewrite latest.json URLs for distribution repo
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        run: |
+          TAG="${{ needs.prepare_release.outputs.tag }}"
+          SRC_REPO="${{ github.repository }}"
+          DIST_REPO="${{ steps.dist_config.outputs.repo }}"
+          FILE="dist-assets/latest.json"
+
+          if [ ! -f "$FILE" ]; then
+            echo "latest.json not found in dist-assets."
+            exit 1
+          fi
+
+          SRC_BASE="https://github.com/${SRC_REPO}/releases/download/${TAG}/"
+          DIST_BASE="https://github.com/${DIST_REPO}/releases/download/${TAG}/"
+
+          jq --arg source "$SRC_BASE" --arg dist "$DIST_BASE" '
+            .platforms |= with_entries(
+              if ((.value.url // "") | startswith($source)) then
+                .value.url = ($dist + (.value.url | ltrimstr($source)))
+              else
+                .
+              end
+            )
+          ' "$FILE" > "$FILE.tmp"
+          mv "$FILE.tmp" "$FILE"
+
+          if grep -q "$SRC_BASE" "$FILE"; then
+            echo "latest.json still references source repo URLs."
+            exit 1
+          fi
+
+          if ! jq -e --arg dist "$DIST_BASE" '.platforms | all(.[]; (.url // "") | startswith($dist))' "$FILE" >/dev/null; then
+            echo "latest.json contains platform URLs that do not point to distribution repo."
+            exit 1
+          fi
 
       - name: Prepare public release notes
         if: matrix.platform == 'macos-latest'

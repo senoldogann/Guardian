@@ -1,0 +1,21 @@
+---
+title: "Updates"
+summary: "In-app update flow, release source, and operational update behavior."
+section: "Operations"
+order: 3
+---
+
+## Update source
+
+Guardian reads updater metadata from the public distribution release source.
+
+## In-app update flow
+
+1. The app checks for new versions periodically.
+2. An update action appears when a newer release is found.
+3. The package is downloaded in the background after approval.
+4. The app restarts and switches to the new version.
+
+## Operational note
+
+If release mirroring is manual, verify that `latest.json` points to distribution repository URLs.

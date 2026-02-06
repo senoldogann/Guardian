@@ -26,6 +26,13 @@ export interface AuthLoginResult {
   warning?: string | null;
 }
 
+export type AuthState =
+  | "signed_out"
+  | "device_pending"
+  | "verifying"
+  | "signed_in_verified"
+  | "signed_in_offline";
+
 // Settings types
 export interface ProviderConfig {
   provider_id: string;
@@ -52,6 +59,7 @@ export interface UpdateCheckResult {
   latest_version?: string | null;
   notes?: string | null;
   error?: string | null;
+  last_checked_at?: string | null;
 }
 
 // Project types

@@ -1,0 +1,20 @@
+---
+title: "Güvenlik"
+summary: "Repo ayrımı, imzalama modeli ve release güvenliği prensipleri."
+section: "Güvenlik"
+order: 5
+---
+
+## Repo stratejisi
+
+- Kaynak kod reposu private kalabilir.
+- Distribution repo sadece imzalı artefact ve release metadata içerir.
+
+## İmzalama
+
+Release paketleri imzalanır. Uygulama update doğrulamasını public key üzerinden yapar.
+
+## Secret yönetimi
+
+- Private key ve token değerlerini yalnızca GitHub Secrets/Keychain’de tutun.
+- `latest.json` içindeki signature değeri private key değildir; doğrulama verisidir.

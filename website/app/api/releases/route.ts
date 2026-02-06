@@ -1,17 +1,20 @@
 import { NextResponse } from "next/server";
 import { getReleases } from "../../../lib/github";
+import { toReleaseViewModel } from "../../../lib/changelog";
 
 export async function GET() {
   try {
     const releases = await getReleases(30);
     return NextResponse.json(
       releases.map((release) => ({
-        tag: release.tag_name,
-        name: release.name,
-        body: release.body,
-        htmlUrl: release.html_url,
-        publishedAt: release.published_at,
-        prerelease: release.prerelease
+        ...toReleaseViewModel(release),
+        assets: release.assets.map((asset) => ({
+          id: asset.id,
+          name: asset.name,
+          size: asset.size,
+          digest: asset.digest,
+          url: asset.browser_download_url
+        }))
       })),
       {
         headers: {

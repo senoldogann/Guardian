@@ -27,6 +27,7 @@ export type UpdateCheckResult = {
   latest_version?: string | null;
   notes?: string | null;
   error?: string | null;
+  last_checked_at?: string | null;
 };
 
 export const PROVIDER_OPTIONS = [
@@ -49,12 +50,17 @@ const pickDefaultModel = (models: string[]): string => {
 
 const API_KEY_MASK = "••••••";
 
-const buildFallbackUpdateInfo = (version: string): UpdateCheckResult => ({
-  status: "up_to_date",
+const buildFallbackUpdateInfo = (
+  version: string,
+  status: string = "up_to_date",
+  error: string | null = null
+): UpdateCheckResult => ({
+  status,
   current_version: version,
   latest_version: version,
   notes: null,
-  error: null,
+  error,
+  last_checked_at: new Date().toISOString(),
 });
 
 export interface UseSettingsReturn {
@@ -230,8 +236,10 @@ export function useSettings(
         const version = await invoke<string>("get_app_version");
         setAppVersion(version);
         setUpdateInfo(prev => prev ?? buildFallbackUpdateInfo(version));
-      } catch {
-        // Non-critical: update panel can still run on demand
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setAppVersion("Unknown");
+        setUpdateInfo(prev => prev ?? buildFallbackUpdateInfo("Unknown", "unavailable", message));
       }
     };
     void loadVersion();
@@ -516,28 +524,30 @@ export function useSettings(
     if (!isDesktop) return;
     setUpdateChecking(true);
     setUpdateError(null);
+    const checkedAt = new Date().toISOString();
     try {
       const res = await invoke<UpdateCheckResult | null>("check_app_update");
       if (res && typeof res.status === "string") {
+        const currentVersion = res.current_version || appVersion || "Unknown";
         const latestVersion =
           res.latest_version ??
-          (res.status === "up_to_date" ? res.current_version : appVersion ?? null);
+          (res.status === "up_to_date" ? currentVersion : appVersion ?? currentVersion);
         setUpdateInfo({
           ...res,
+          current_version: currentVersion,
           latest_version: latestVersion,
+          last_checked_at: res.last_checked_at ?? checkedAt,
         });
         setUpdateError(res.error ?? null);
       } else {
-        if (appVersion) {
-          setUpdateInfo(buildFallbackUpdateInfo(appVersion));
-        }
+        setUpdateInfo(buildFallbackUpdateInfo(appVersion ?? "Unknown", "unavailable", "Update service unavailable."));
+        setUpdateError("Update service unavailable.");
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      setUpdateError(message);
-      if (appVersion) {
-        setUpdateInfo(buildFallbackUpdateInfo(appVersion));
-      }
+      const displayMessage = "Update service unavailable. Check network and try again.";
+      setUpdateError(displayMessage);
+      setUpdateInfo(buildFallbackUpdateInfo(appVersion ?? "Unknown", "unavailable", displayMessage));
       console.warn("[Guardian] Update check failed:", message);
     } finally {
       setUpdateChecking(false);
