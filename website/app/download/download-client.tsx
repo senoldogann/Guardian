@@ -6,12 +6,6 @@ import { formatBytes, getAssetKind } from "../../lib/github";
 import type { DocLocale, SiteDictionary } from "../../lib/i18n";
 import { detectPlatform, getPlatformLabel, pickBestAsset, type Platform } from "../../lib/download";
 
-function shortenDigest(value?: string): string {
-  if (!value) return "—";
-  const normalized = value.replace(/^sha256:/i, "");
-  return normalized.length > 16 ? `${normalized.slice(0, 16)}...` : normalized;
-}
-
 export function DownloadClient({
   assets,
   locale,
@@ -24,7 +18,6 @@ export function DownloadClient({
   const [platform, setPlatform] = useState<Platform>("unknown");
   const [isDetecting, setIsDetecting] = useState(true);
   const [platformChoice, setPlatformChoice] = useState<Platform | "auto">("auto");
-  const [copiedAssetId, setCopiedAssetId] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -45,6 +38,17 @@ export function DownloadClient({
   }, []);
 
   const effectivePlatform = platformChoice === "auto" ? platform : platformChoice;
+  const showDetectedPlatform = platformChoice !== "auto" || !isDetecting;
+  const headlineLabel =
+    platformChoice === "auto"
+      ? isDetecting
+        ? locale === "tr"
+          ? "Otomatik secim"
+          : "Automatic selection"
+        : locale === "tr"
+          ? "Otomatik secim"
+          : "Automatic selection"
+      : getPlatformLabel(platformChoice);
   const selected = useMemo(() => pickBestAsset(assets, effectivePlatform), [assets, effectivePlatform]);
   const recommendationLabel =
     locale === "tr"
@@ -63,7 +67,7 @@ export function DownloadClient({
     <section className="download-layout section-enter" data-delay="2">
       <article className="panel">
         <div className="eyebrow">{dict.download.recommended}</div>
-        <h2 style={{ marginTop: 8 }}>{getPlatformLabel(effectivePlatform)}</h2>
+        <h2 style={{ marginTop: 8 }}>{headlineLabel}</h2>
         <div className="platform-picker" style={{ marginTop: 12 }}>
           <label htmlFor="platform-picker-select">
             {selectionLabel}
@@ -80,7 +84,7 @@ export function DownloadClient({
             <option value="linux">Linux</option>
           </select>
           <p className="meta">
-            {detectedLabel}: {isDetecting ? dict.download.detecting : getPlatformLabel(platform)}
+            {detectedLabel}: {showDetectedPlatform ? getPlatformLabel(platform) : dict.download.detecting}
           </p>
         </div>
         {selected ? (
@@ -90,7 +94,6 @@ export function DownloadClient({
             </p>
             <div className="asset-meta" style={{ marginTop: 10 }}>
               <span>{dict.download.size}: {formatBytes(selected.size)}</span>
-              <span>{dict.download.checksum}: {shortenDigest(selected.digest)}</span>
             </div>
             <div className="row" style={{ marginTop: 14 }}>
               <a className="button" href={selected.browser_download_url}>
@@ -117,27 +120,9 @@ export function DownloadClient({
                 <div className="asset-meta">
                   <span className="badge">{getAssetKind(asset.name)}</span>
                   <span>{dict.download.size}: {formatBytes(asset.size)}</span>
-                  <span>{dict.download.checksum}: {shortenDigest(asset.digest)}</span>
                 </div>
               </div>
               <div className="asset-actions">
-                {asset.digest ? (
-                  <button
-                    className="button-subtle"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(asset.digest ?? "");
-                        setCopiedAssetId(asset.id);
-                        setTimeout(() => setCopiedAssetId(null), 1200);
-                      } catch {
-                        setCopiedAssetId(null);
-                      }
-                    }}
-                    type="button"
-                  >
-                    {copiedAssetId === asset.id ? (locale === "tr" ? "Kopyalandı" : "Copied") : "SHA-256"}
-                  </button>
-                ) : null}
                 <a className="button-subtle" href={asset.browser_download_url}>
                   {manualDownloadLabel}
                 </a>

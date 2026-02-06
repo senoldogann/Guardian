@@ -1,5 +1,5 @@
 import type { DocLocale, SiteDictionary } from "../../lib/i18n";
-import { getReleases } from "../../lib/github";
+import { fetchReleaseSnapshot } from "../../lib/releases-source";
 import type { ReleaseMonthGroup } from "../../lib/changelog";
 import { groupReleasesByMonth, toReleaseViewModel } from "../../lib/changelog";
 import { ChangelogClient } from "./changelog-client";
@@ -14,7 +14,7 @@ export async function ChangelogPageView({ locale, dict }: Props) {
   let groups: ReleaseMonthGroup[] = [];
 
   try {
-    const releases = await getReleases(40);
+    const releases = await fetchReleaseSnapshot(40);
     const releaseViewModels = releases.map(toReleaseViewModel);
     groups = groupReleasesByMonth(releaseViewModels, locale === "tr" ? "tr-TR" : "en-US");
   } catch (error) {

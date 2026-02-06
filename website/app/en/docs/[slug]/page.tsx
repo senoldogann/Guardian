@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { DocsShell } from "../../../../components/docs/docs-shell";
 import { MarkdownBlock } from "../../../../components/markdown-block";
 import { getDictionary } from "../../../../lib/i18n";
@@ -37,6 +37,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function EnglishDocsDetailPage({ params }: Props) {
   const { slug } = await params;
+  if (slug === "getting-started") {
+    redirect("/en/docs/get-started");
+  }
   const locale = "en";
   const dict = getDictionary(locale);
   const [doc, sections] = await Promise.all([getDoc(locale, slug), getDocSections(locale)]);
