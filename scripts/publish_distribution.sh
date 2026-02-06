@@ -4,10 +4,16 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
+  scripts/publish_distribution.sh <tag> <artifacts_dir> [dist_repo]
   scripts/publish_distribution.sh <tag> [source_repo] [dist_repo]
 
 Examples:
-  scripts/publish_distribution.sh v0.2.5
+  # Local release mode (recommended)
+  scripts/publish_distribution.sh v0.2.7 /path/to/guardian-artifacts
+  scripts/publish_distribution.sh v0.2.7 /path/to/guardian-artifacts senoldogann/guardian-distribution
+
+  # Legacy: mirror from source repo release tag
+  scripts/publish_distribution.sh v0.2.6
   scripts/publish_distribution.sh v0.2.6 senoldogann/Guardian senoldogann/guardian-distribution
 
 Defaults:
@@ -32,6 +38,14 @@ if [[ $# -lt 1 ]]; then
 fi
 
 TAG="$1"
+
+# Local release mode: if arg2 is a directory, publish from local artifacts.
+if [[ -n "${2:-}" && -d "$2" ]]; then
+  ARTIFACTS_DIR="$2"
+  DIST_REPO="${3:-senoldogann/guardian-distribution}"
+  exec "$(cd "$(dirname "$0")" && pwd)/publish_distribution_local.sh" "$TAG" "$ARTIFACTS_DIR" "$DIST_REPO"
+fi
+
 SOURCE_REPO="${2:-senoldogann/Guardian}"
 DIST_REPO="${3:-senoldogann/guardian-distribution}"
 
@@ -145,6 +159,33 @@ if ! gh release view "$TAG" -R "$DIST_REPO" >/dev/null 2>&1; then
 else
   echo "Release $TAG already exists in $DIST_REPO; assets will be replaced."
 fi
+
+echo "Generating releases.json snapshot ..."
+GENERATED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+gh api "repos/${DIST_REPO}/releases?per_page=60" > "$WORK_DIR/dist-releases.raw.json"
+jq --arg generated_at "$GENERATED_AT" --arg repo "$DIST_REPO" '{
+  generated_at: $generated_at,
+  repo: $repo,
+  releases: (map({
+    id,
+    tag_name,
+    name,
+    body,
+    html_url,
+    published_at,
+    prerelease,
+    draft,
+    assets: ((.assets // []) | map({
+      id,
+      name,
+      browser_download_url,
+      size,
+      updated_at,
+      download_count,
+      content_type
+    }))
+  }) // [])
+}' "$WORK_DIR/dist-releases.raw.json" > "$WORK_DIR/assets/releases.json"
 
 echo "Uploading assets to $DIST_REPO:$TAG ..."
 gh release upload "$TAG" "$WORK_DIR"/assets/* -R "$DIST_REPO" --clobber
