@@ -167,6 +167,8 @@ jobs:
 
       - name: Validate notarized macOS artifacts
         if: runner.os == 'macOS' && matrix.notarize == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SOURCE_REPO_TOKEN || github.token }}
         shell: bash
         run: |
           TARGET="${{ matrix.target }}"
@@ -182,10 +184,26 @@ jobs:
             exit 1
           fi
 
-          xcrun stapler validate "$DMG_PATH"
           xcrun stapler validate "$APP_PATH"
-          spctl --assess --type open -vv "$DMG_PATH"
           spctl --assess --type execute -vv "$APP_PATH"
+
+          # Tauri notarization can result in the .app being stapled while the DMG is not.
+          # To avoid DMG Gatekeeper warnings, explicitly notarize + staple the DMG and re-upload it.
+          echo "Notarizing DMG via notarytool..."
+          xcrun notarytool submit "$DMG_PATH" \
+            --key "${{ steps.apple_api_key.outputs.key_path }}" \
+            --key-id "${{ secrets.APPLE_API_KEY }}" \
+            --issuer "${{ secrets.APPLE_API_ISSUER }}" \
+            --wait
+
+          echo "Stapling DMG ticket..."
+          xcrun stapler staple "$DMG_PATH"
+          xcrun stapler validate "$DMG_PATH"
+          spctl --assess --type open -vv "$DMG_PATH"
+
+          echo "Re-uploading stapled DMG to source release..."
+          TAG="${{ needs.prepare_release.outputs.tag }}"
+          gh release upload "$TAG" "$DMG_PATH" --repo "${{ github.repository }}" --clobber
 
       - name: Build + Release (Tauri, standard)
         if: matrix.notarize != 'true'
