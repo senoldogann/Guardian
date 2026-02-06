@@ -204,15 +204,14 @@ jobs:
           #   rejected (source=Insufficient Context)
           # even when notarization/stapling succeeded. Instead, validate the notarized .app inside the DMG.
           echo "Validating notarized app inside DMG..."
-          MOUNT_POINT="$(hdiutil attach -nobrowse -readonly "$DMG_PATH" | awk -F $'\\t' '/\\/Volumes\\// {print $3}' | tail -n 1)"
-          if [ -z "$MOUNT_POINT" ] || [ ! -d "$MOUNT_POINT" ]; then
-            echo "Failed to mount DMG for validation."
-            exit 1
-          fi
+          MOUNT_POINT="$(mktemp -d "/tmp/guardian-dmg.XXXXXX")"
           cleanup_dmg_mount() {
             hdiutil detach "$MOUNT_POINT" >/dev/null 2>&1 || true
+            rm -rf "$MOUNT_POINT" >/dev/null 2>&1 || true
           }
           trap cleanup_dmg_mount EXIT
+
+          hdiutil attach -nobrowse -readonly -mountpoint "$MOUNT_POINT" "$DMG_PATH" >/dev/null
 
           DMG_APP_PATH="$(find "$MOUNT_POINT" -maxdepth 2 -type d -name "*.app" | head -n 1)"
           if [ -z "$DMG_APP_PATH" ] || [ ! -d "$DMG_APP_PATH" ]; then
