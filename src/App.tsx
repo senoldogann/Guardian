@@ -374,7 +374,31 @@ function App(): ReactElement {
   }, [visibleLogs]);
 
   const engineModel = settings.providerDraft?.model?.trim() || "Not set";
-  const canToggleMonitoring = Boolean(path) && Boolean(settings.providerDraft) && !auth.showAuthGate && !auth.requiresVerified && !settings.requiresApiKey;
+  const launchGate = useMemo(() => {
+    if (!path) {
+      return { canLaunch: false, blockingReason: "Select a workspace scope first." };
+    }
+    if (!settings.providerDraft) {
+      return { canLaunch: false, blockingReason: "Provider configuration is still loading." };
+    }
+    if (settings.requiresApiKey) {
+      return { canLaunch: false, blockingReason: `Add your ${settings.providerLabel} API key in Settings.` };
+    }
+    if (auth.requiresVerified) {
+      return { canLaunch: false, blockingReason: "Verify your GitHub session online before monitoring." };
+    }
+    if (auth.authState === "signed_out") {
+      return { canLaunch: false, blockingReason: "Sign in with GitHub to launch monitoring." };
+    }
+    if (auth.authState === "device_pending") {
+      return { canLaunch: false, blockingReason: "Complete the GitHub device authorization screen." };
+    }
+    if (auth.authState === "verifying") {
+      return { canLaunch: false, blockingReason: "GitHub verification is in progress." };
+    }
+    return { canLaunch: true, blockingReason: null };
+  }, [path, settings.providerDraft, settings.requiresApiKey, settings.providerLabel, auth.requiresVerified, auth.authState]);
+  const canToggleMonitoring = active || launchGate.canLaunch;
 
   useToast();
 
@@ -648,6 +672,11 @@ function App(): ReactElement {
             >
               {active ? <><Square className="w-3 h-3 fill-current" /> KILL GUARDIAN</> : <><Play className="w-3 h-3 fill-current" /> LAUNCH GUARDIAN</>}
             </button>
+            {!active && !launchGate.canLaunch && launchGate.blockingReason && (
+              <p className="text-[10px] text-amber-400 px-1">
+                {launchGate.blockingReason}
+              </p>
+            )}
           </section>
         </aside>
 

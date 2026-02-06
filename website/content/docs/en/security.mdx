@@ -1,0 +1,20 @@
+---
+title: "Security"
+summary: "Repository separation, signing model, and release hardening basics."
+section: "Security"
+order: 5
+---
+
+## Repository strategy
+
+- Source repository can remain private.
+- Distribution repository only contains signed artifacts and release metadata.
+
+## Signing model
+
+Release packages are signed, and the updater validates using the public key.
+
+## Secret management
+
+- Keep private keys and tokens in GitHub Secrets/Keychain only.
+- Signature fields in `latest.json` are verification data, not private keys.

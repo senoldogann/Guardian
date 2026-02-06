@@ -6,6 +6,7 @@ use tauri::{AppHandle, Manager};
 use tauri_plugin_updater::UpdaterExt;
 use ed25519_dalek::{VerifyingKey, Signature, Verifier};
 use base64::Engine;
+use chrono::Utc;
 
 // Embedded public key for update signature verification
 // This should be replaced with your actual Ed25519 public key (32 bytes, base64 encoded)
@@ -32,6 +33,7 @@ pub struct UpdateCheckResult {
     pub download_url: Option<String>,
     pub notes: Option<String>,
     pub error: Option<String>,
+    pub last_checked_at: Option<String>,
 }
 
 fn update_config_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -78,6 +80,7 @@ fn load_update_feed_url(app: &AppHandle) -> Result<Option<String>, String> {
 
 pub async fn check_for_updates(app: &AppHandle) -> Result<UpdateCheckResult, String> {
     let current_version = env!("CARGO_PKG_VERSION").to_string();
+    let checked_at = Utc::now().to_rfc3339();
     let feed_url = load_update_feed_url(app)?;
     let feed_url = match feed_url {
         Some(url) => url,
@@ -89,6 +92,7 @@ pub async fn check_for_updates(app: &AppHandle) -> Result<UpdateCheckResult, Str
                 download_url: None,
                 notes: None,
                 error: None,
+                last_checked_at: Some(checked_at),
             });
         }
     };
@@ -105,6 +109,7 @@ pub async fn check_for_updates(app: &AppHandle) -> Result<UpdateCheckResult, Str
             download_url: None,
             notes: None,
             error: Some(format!("Update feed error: {}", response.status())),
+            last_checked_at: Some(checked_at),
         });
     }
 
@@ -124,6 +129,7 @@ pub async fn check_for_updates(app: &AppHandle) -> Result<UpdateCheckResult, Str
             download_url: Some(payload.download_url),
             notes: payload.notes,
             error: None,
+            last_checked_at: Some(checked_at),
         });
     }
 
@@ -134,13 +140,41 @@ pub async fn check_for_updates(app: &AppHandle) -> Result<UpdateCheckResult, Str
         download_url: Some(payload.download_url),
         notes: payload.notes,
         error: None,
+        last_checked_at: Some(checked_at),
     })
 }
 
 pub async fn check_app_update(app: &AppHandle) -> Result<UpdateCheckResult, String> {
     let current_version = env!("CARGO_PKG_VERSION").to_string();
-    let updater = app.updater().map_err(|e| e.to_string())?;
-    let update = updater.check().await.map_err(|e| e.to_string())?;
+    let checked_at = Utc::now().to_rfc3339();
+    let updater = match app.updater() {
+        Ok(updater) => updater,
+        Err(error) => {
+            return Ok(UpdateCheckResult {
+                status: "unavailable".to_string(),
+                current_version: current_version.clone(),
+                latest_version: Some(current_version),
+                download_url: None,
+                notes: None,
+                error: Some(format!("Updater unavailable: {}", error)),
+                last_checked_at: Some(checked_at),
+            });
+        }
+    };
+    let update = match updater.check().await {
+        Ok(update) => update,
+        Err(error) => {
+            return Ok(UpdateCheckResult {
+                status: "unavailable".to_string(),
+                current_version: current_version.clone(),
+                latest_version: Some(current_version),
+                download_url: None,
+                notes: None,
+                error: Some(format!("Update check failed: {}", error)),
+                last_checked_at: Some(checked_at),
+            });
+        }
+    };
 
     if let Some(update) = update {
         return Ok(UpdateCheckResult {
@@ -150,6 +184,7 @@ pub async fn check_app_update(app: &AppHandle) -> Result<UpdateCheckResult, Stri
             download_url: None,
             notes: update.body,
             error: None,
+            last_checked_at: Some(checked_at),
         });
     }
 
@@ -160,6 +195,7 @@ pub async fn check_app_update(app: &AppHandle) -> Result<UpdateCheckResult, Stri
         download_url: None,
         notes: None,
         error: None,
+        last_checked_at: Some(checked_at),
     })
 }
 

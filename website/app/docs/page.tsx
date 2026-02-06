@@ -1,54 +1,55 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { DocsShell } from "../../components/docs/docs-shell";
+import { getDictionary } from "../../lib/i18n";
+import { buildLocalizedPath } from "../../lib/i18n";
+import { getDocs, getDocSections } from "../../lib/docs";
+import { buildPageMetadata } from "../../lib/seo";
 
-export const metadata: Metadata = {
-  title: "Documentation",
-  description: "Guardian documentation for installation, updates and release operations."
-};
+export const metadata: Metadata = buildPageMetadata({
+  locale: "tr",
+  title: "Dokümantasyon",
+  description: "Guardian için kurulum, güncelleme ve güvenlik operasyon rehberi.",
+  path: "/docs"
+});
 
-export default function DocsPage() {
+export default async function DocsPage() {
+  const locale = "tr";
+  const dict = getDictionary(locale);
+  const sections = await getDocSections(locale);
+  const docs = await getDocs(locale);
+
   return (
     <>
-      <section className="hero">
-        <div className="eyebrow">Documentation</div>
-        <h1>Operate Guardian in production safely.</h1>
-        <p className="muted" style={{ maxWidth: 680 }}>
-          This is the public operations surface for end users. Internal development docs can remain in private source repositories.
-        </p>
+      <section className="hero section-enter" data-delay="1">
+        <div className="eyebrow">{dict.docs.eyebrow}</div>
+        <h1>{dict.docs.title}</h1>
+        <p>{dict.docs.description}</p>
       </section>
 
-      <section className="grid-2">
-        <article className="docs-card">
-          <h2>Install</h2>
-          <p className="muted" style={{ marginTop: 10 }}>
-            Use the Download page to install an OS-matched package. If your OS is not recognized,
-            choose a manual installer from the release asset list.
+      <DocsShell dict={dict} locale={locale} sections={sections}>
+        <div className="panel" style={{ border: 0, boxShadow: "none", padding: 0 }}>
+          <h2>{dict.docs.title}</h2>
+          <p className="meta" style={{ marginTop: 10 }}>
+            {docs.length} doküman mevcut. Aşağıdan bir başlık seçerek ayrıntılı rehbere geçebilirsiniz.
           </p>
-        </article>
-
-        <article className="docs-card">
-          <h2>Update Flow</h2>
-          <p className="muted" style={{ marginTop: 10 }}>
-            Guardian checks updater metadata (`latest.json`) and shows an in-app update action when a newer
-            signed version is available.
-          </p>
-        </article>
-
-        <article className="docs-card">
-          <h2>Security Model</h2>
-          <p className="muted" style={{ marginTop: 10 }}>
-            Source repository can stay private. Distribution repository is public and stores only signed build
-            artifacts plus release metadata.
-          </p>
-        </article>
-
-        <article className="docs-card">
-          <h2>Release Ops</h2>
-          <p className="muted" style={{ marginTop: 10 }}>
-            Create a version tag in source repo. CI builds binaries and mirrors release assets to the public
-            distribution repo. Website updates automatically from public releases.
-          </p>
-        </article>
-      </section>
+          <div className="asset-list" style={{ marginTop: 16 }}>
+            {docs.map((doc) => (
+              <div className="asset-item" key={doc.meta.slug}>
+                <div className="asset-name">
+                  <strong>{doc.meta.title}</strong>
+                  <p className="meta">{doc.meta.summary}</p>
+                </div>
+                <div className="asset-actions">
+                  <Link className="button-subtle" href={buildLocalizedPath(locale, `/docs/${doc.meta.slug}`)}>
+                    Aç
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </DocsShell>
     </>
   );
 }

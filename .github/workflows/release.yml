@@ -59,14 +59,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Notarization is disabled until Apple notary credentials are rotated/verified.
           - platform: macos-latest
+            target: "aarch64-apple-darwin"
             args: "--target aarch64-apple-darwin"
-            notarize: "false"
+            notarize: "true"
           - platform: macos-15-intel
+            target: "x86_64-apple-darwin"
             args: "--target x86_64-apple-darwin"
-            notarize: "false"
+            notarize: "true"
           - platform: windows-latest
+            target: "x86_64-pc-windows-msvc"
             args: "--target x86_64-pc-windows-msvc"
             notarize: "false"
 
@@ -93,6 +95,32 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Preflight notarization secrets
+        if: runner.os == 'macOS' && matrix.notarize == 'true'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          missing=0
+          for key in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_TEAM_ID APPLE_API_KEY APPLE_API_ISSUER APPLE_API_KEY_P8 TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD; do
+            if [ -z "${!key:-}" ]; then
+              echo "Missing required secret: ${key}"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Notarization preflight failed. Configure all required secrets and retry."
+            exit 1
+          fi
+
       - name: Write Apple API Key (macOS notarized targets)
         if: runner.os == 'macOS' && matrix.notarize == 'true'
         id: apple_api_key
@@ -100,10 +128,6 @@ jobs:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
         run: |
-          if [ -z "${APPLE_API_KEY_P8}" ]; then
-            echo "APPLE_API_KEY_P8 not set; skipping API key file creation."
-            exit 0
-          fi
           mkdir -p private_keys
           KEY_PATH=$(python - <<'PY'
           import base64, os, pathlib
@@ -139,6 +163,28 @@ jobs:
           releaseName: "${{ needs.prepare_release.outputs.tag }}"
           generateReleaseNotes: true
           includeUpdaterJson: true
+
+      - name: Validate notarized macOS artifacts
+        if: runner.os == 'macOS' && matrix.notarize == 'true'
+        shell: bash
+        run: |
+          TARGET="${{ matrix.target }}"
+          DMG_PATH="$(find "src-tauri/target/${TARGET}/release/bundle/dmg" -type f -name "*.dmg" | head -n 1)"
+          APP_PATH="$(find "src-tauri/target/${TARGET}/release/bundle/macos" -maxdepth 1 -type d -name "*.app" | head -n 1)"
+
+          if [ -z "$DMG_PATH" ] || [ ! -f "$DMG_PATH" ]; then
+            echo "No DMG artifact found for target ${TARGET}."
+            exit 1
+          fi
+          if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
+            echo "No .app bundle found for target ${TARGET}."
+            exit 1
+          fi
+
+          xcrun stapler validate "$DMG_PATH"
+          xcrun stapler validate "$APP_PATH"
+          spctl --assess --type open -vv "$DMG_PATH"
+          spctl --assess --type execute -vv "$APP_PATH"
 
       - name: Build + Release (Tauri, standard)
         if: matrix.notarize != 'true'
@@ -193,20 +239,23 @@ jobs:
           SRC_REPO="${{ github.repository }}"
 
           for attempt in $(seq 1 60); do
-            ASSET_LIST="$(gh release view "$TAG" --repo "$SRC_REPO" --json assets -q '.assets[].name' 2>/dev/null || true)"
+            ASSETS_JSON="$(gh release view "$TAG" --repo "$SRC_REPO" --json assets -q '.assets' 2>/dev/null || echo '[]')"
 
-            if echo "$ASSET_LIST" | grep -q 'aarch64-apple-darwin' \
-              && echo "$ASSET_LIST" | grep -q 'x86_64-apple-darwin' \
-              && echo "$ASSET_LIST" | grep -q 'x86_64-pc-windows-msvc'; then
+            HAS_MAC_ARM="$(echo "$ASSETS_JSON" | jq -r 'any(.[]; (.name | test("aarch64.*\\.dmg$|arm64.*\\.dmg$|_aarch64\\.dmg$")))')"
+            HAS_MAC_INTEL="$(echo "$ASSETS_JSON" | jq -r 'any(.[]; (.name | test("x86_64.*\\.dmg$|intel.*\\.dmg$|_x64\\.dmg$")))')"
+            HAS_WINDOWS="$(echo "$ASSETS_JSON" | jq -r 'any(.[]; (.name | (endswith(".msi") or endswith("-setup.exe"))))')"
+            HAS_UPDATER_JSON="$(echo "$ASSETS_JSON" | jq -r 'any(.[]; .name == "latest.json")')"
+
+            if [ "$HAS_MAC_ARM" = "true" ] && [ "$HAS_MAC_INTEL" = "true" ] && [ "$HAS_WINDOWS" = "true" ] && [ "$HAS_UPDATER_JSON" = "true" ]; then
               echo "All platform assets are available."
               exit 0
             fi
 
-            echo "Waiting for all platform assets (attempt ${attempt}/60)..."
+            echo "Waiting for all platform + updater assets (attempt ${attempt}/60)..."
             sleep 10
           done
 
-          echo "Timed out waiting for all platform assets in source release."
+          echo "Timed out waiting for required release assets in source release."
           exit 1
 
       - name: Download release assets from source repo

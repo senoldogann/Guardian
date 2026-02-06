@@ -2,6 +2,28 @@
 
 All notable changes to the Guardian V4 project will be documented in this file.
 
+## [0.2.6] - 2026-02-06
+
+### Release & Distribution
+- **macOS Notarization Re-enabled**: Release workflow now enforces notarization preflight checks and notarized artifact validation for both Apple Silicon and Intel targets.
+- **Public Distribution Validation**: Added stronger distribution publication checks for required assets, digests, updater metadata, and URL rewrites.
+- **PUBLIC_DIST_REPO Fallback**: Workflow now accepts distribution repo from Actions Variable first, then Secret fallback.
+
+### Auth & UX Stability
+- **Deterministic Auth State**: Added explicit auth states (`signed_out`, `device_pending`, `verifying`, `signed_in_verified`, `signed_in_offline`).
+- **Launch Blocking Reason**: `Launch Guardian` now exposes precise in-UI reasons when disabled.
+- **Logout/Login Flow Cleanup**: Cleans stale flow state and pending login data before re-auth attempts.
+
+### Updates Panel
+- **Current/Latest Fallbacks**: Update section now preserves `current_version`, tracks `last_checked_at`, and shows meaningful unavailable status on network/updater failures.
+- **Rust Updater Result Hardening**: `check_app_update` returns structured unavailable responses instead of empty/unknown UI states.
+
+### Website
+- **Premium Home Redesign**: Rebuilt homepage with modern editorial hero, trust signals, feature cards, screenshot gallery, and video demos.
+- **Media Integration**: Added desktop screenshots and converted demo recordings for web playback (desktop + mobile variants).
+- **Download UX Upgrade**: Added manual platform override while preserving hydration-safe auto-detection and checksum utilities.
+- **Mobile-first Styling**: Completed responsive layout rules for homepage, media sections, and download controls.
+
 ## [0.2.5] - 2026-02-05
 
 ### Distribution & Updates

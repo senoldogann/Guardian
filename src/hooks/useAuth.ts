@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke, isTauriRuntime } from "../lib/tauri";
-import type { GithubUser, DeviceCodeResponse, AuthSessionResponse, AuthLoginResult } from "../types";
+import type { GithubUser, DeviceCodeResponse, AuthSessionResponse, AuthLoginResult, AuthState } from "../types";
 
 const isPendingAuthorization = (message: string): boolean =>
   message.toLowerCase().includes("authorization pending");
 
 export interface UseAuthReturn {
+  authState: AuthState;
   authSession: GithubUser | null;
   authVerified: boolean;
   authWarning: string | null;
@@ -81,6 +82,9 @@ export function useAuth(): UseAuthReturn {
         setAuthSession(res?.user ?? null);
         setAuthVerified(Boolean(res?.verified));
         setAuthWarning(res?.warning ?? null);
+        if (res?.verified) {
+          setAuthGateVisible(false);
+        }
       } catch (e) {
         if (!mountedRef.current) return;
         setAuthError(e instanceof Error ? e.message : String(e));
@@ -148,6 +152,8 @@ export function useAuth(): UseAuthReturn {
     setAuthLoading(true);
     setAuthError(null);
     setAuthWarning(null);
+    setAuthVerified(false);
+    setAuthSession(null);
     try {
       const device = await invoke<DeviceCodeResponse>("start_github_login");
       if (!mountedRef.current || authFlowIdRef.current !== flowId) return;
@@ -254,18 +260,24 @@ export function useAuth(): UseAuthReturn {
     setAuthDevice(null);
     setAuthLoading(false);
     setAuthError(null);
+    setAuthWarning(null);
+    setAuthCountdown(null);
   }, []);
 
   const logoutGithub = useCallback(async (): Promise<void> => {
     if (!isDesktop) return;
+    authFlowIdRef.current += 1;
     setAuthLoading(true);
     setAuthError(null);
     try {
       await invoke("logout_github");
       if (!mountedRef.current) return;
+      setAuthDevice(null);
+      setAuthCountdown(null);
       setAuthSession(null);
       setAuthVerified(false);
       setAuthWarning(null);
+      setAuthGateVisible(true);
     } catch (e: unknown) {
       if (!mountedRef.current) return;
       setAuthError(e instanceof Error ? e.message : String(e));
@@ -280,8 +292,20 @@ export function useAuth(): UseAuthReturn {
   const requiresLogin = isDesktop && !authSession;
   const requiresVerified = isDesktop && Boolean(authSession) && !authVerified && !hasOfflineSession;
   const showAuthGate = requiresLogin && !authDevice;
+  const authState: AuthState = !isDesktop
+    ? "signed_out"
+    : authSession && authVerified
+      ? "signed_in_verified"
+      : authSession && hasOfflineSession
+        ? "signed_in_offline"
+        : authDevice
+          ? "device_pending"
+          : authLoading
+            ? "verifying"
+            : "signed_out";
 
   return {
+    authState,
     authSession,
     authVerified,
     authWarning,

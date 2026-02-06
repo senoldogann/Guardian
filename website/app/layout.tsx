@@ -1,19 +1,47 @@
 import type { Metadata } from "next";
+import { Fraunces, Manrope } from "next/font/google";
 import "./globals.css";
+import { SiteHeader } from "../components/site-header";
+import { SITE_URL } from "../lib/seo";
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-fraunces"
+});
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-manrope"
+});
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://guardian-app.vercel.app"),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "Guardian | Architectural Governance Desktop App",
+    default: "Guardian | Release-Driven Governance Platform",
     template: "%s | Guardian"
   },
   description:
-    "Guardian is a desktop governance app for real-time code auditing, release-driven updates, and production-safe development workflows.",
+    "Guardian is a desktop governance app for architecture quality, secure release operations, and in-app update management.",
+  alternates: {
+    canonical: `${SITE_URL}/`,
+    languages: {
+      tr: `${SITE_URL}/`,
+      en: `${SITE_URL}/en`
+    }
+  },
   openGraph: {
     title: "Guardian",
     description:
-      "Real-time architecture and security governance for modern codebases.",
-    type: "website"
+      "Architecture and security governance with release-driven desktop operations.",
+    type: "website",
+    url: SITE_URL
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Guardian",
+    description: "Release-driven architecture governance for production engineering teams."
   },
   robots: {
     index: true,
@@ -24,18 +52,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <body className={`${fraunces.variable} ${manrope.variable}`}>
         <div className="site-shell">
-          <header className="topbar">
-            <a className="brand" href="/">
-              Guardian
-            </a>
-            <nav className="nav">
-              <a href="/download">Download</a>
-              <a href="/changelog">Changelog</a>
-              <a href="/docs">Docs</a>
-            </nav>
-          </header>
+          <SiteHeader />
           <main className="page">{children}</main>
         </div>
       </body>

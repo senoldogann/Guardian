@@ -1,0 +1,61 @@
+{
+  "localeLabel": "EN",
+  "brandTagline": "Code assurance and release governance",
+  "nav": {
+    "home": "Home",
+    "download": "Download",
+    "changelog": "Changelog",
+    "docs": "Docs"
+  },
+  "home": {
+    "eyebrow": "Desktop Governance Platform",
+    "title": "Keep engineering quality enforced at release speed.",
+    "description": "Guardian audits your codebase through architecture and security guardrails. Download and changelog content stay synchronized with GitHub releases automatically.",
+    "ctaPrimary": "Download Guardian",
+    "ctaSecondaryDocs": "Open Documentation",
+    "ctaSecondaryChangelog": "View Changelog",
+    "trustRelease": "GitHub release-driven content",
+    "trustUpdates": "In-app updates ready",
+    "trustSecurity": "Signed distribution artifacts"
+  },
+  "download": {
+    "eyebrow": "Download Center",
+    "title": "Get the right Guardian build for your operating system.",
+    "description": "Your platform is detected automatically and the best installer is recommended. If detection is uncertain, continue with the manual package list.",
+    "latestLabel": "Latest version",
+    "recommended": "Recommended Download",
+    "manual": "Manual Packages",
+    "noMatch": "Automatic matching was not found. Continue with manual packages below.",
+    "detecting": "Detecting your operating system...",
+    "checksum": "Checksum",
+    "size": "Size"
+  },
+  "changelog": {
+    "eyebrow": "Release History",
+    "title": "Guardian changelog",
+    "description": "All release notes are fetched from GitHub release records in real time.",
+    "all": "All",
+    "stable": "Stable",
+    "prerelease": "Pre-release",
+    "archive": "Archive",
+    "published": "Published",
+    "noNotes": "No notes were provided for this release."
+  },
+  "docs": {
+    "eyebrow": "Documentation",
+    "title": "Operate Guardian safely in production.",
+    "description": "From installation to update strategy, all operational guidance is organized in one place.",
+    "tableOfContents": "On This Page",
+    "sections": "Sections"
+  },
+  "common": {
+    "latestVersion": "Latest version",
+    "viewOnGithub": "View on GitHub",
+    "openDistributionRepo": "Distribution Repo",
+    "releaseNotAvailable": "No release is available yet.",
+    "updatedAt": "Updated",
+    "languageSwitch": "Language",
+    "english": "English",
+    "turkish": "Türkçe"
+  }
+}
