@@ -1,0 +1,285 @@
+{
+  "generated_at": "2026-02-08T17:16:18Z",
+  "repo": "senoldogann/guardian-distribution",
+  "releases": [
+    {
+      "id": 284185824,
+      "tag_name": "v0.2.8",
+      "name": "v0.2.8",
+      "body": "Manual distribution release for v0.2.8",
+      "html_url": "https://github.com/senoldogann/guardian-distribution/releases/tag/v0.2.8",
+      "published_at": "2026-02-08T16:38:58Z",
+      "prerelease": false,
+      "draft": false,
+      "assets": [
+        {
+          "id": 352667442,
+          "name": "Guardian.app.tar.gz",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.8/Guardian.app.tar.gz",
+          "size": 10994862,
+          "updated_at": "2026-02-08T17:13:19Z",
+          "download_count": 0,
+          "content_type": "application/x-gtar"
+        },
+        {
+          "id": 352667440,
+          "name": "Guardian.app.tar.gz.sig",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.8/Guardian.app.tar.gz.sig",
+          "size": 408,
+          "updated_at": "2026-02-08T17:12:58Z",
+          "download_count": 0,
+          "content_type": "application/pgp-signature"
+        },
+        {
+          "id": 352667439,
+          "name": "Guardian_0.2.8_aarch64.dmg",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.8/Guardian_0.2.8_aarch64.dmg",
+          "size": 12163793,
+          "updated_at": "2026-02-08T17:13:20Z",
+          "download_count": 0,
+          "content_type": "application/x-apple-diskimage"
+        },
+        {
+          "id": 352667438,
+          "name": "latest.json",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.8/latest.json",
+          "size": 695,
+          "updated_at": "2026-02-08T17:12:58Z",
+          "download_count": 0,
+          "content_type": "application/json"
+        },
+        {
+          "id": 352667441,
+          "name": "releases.json",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.8/releases.json",
+          "size": 12550,
+          "updated_at": "2026-02-08T17:12:58Z",
+          "download_count": 0,
+          "content_type": "application/json"
+        }
+      ]
+    },
+    {
+      "id": 283772756,
+      "tag_name": "v0.2.7",
+      "name": "v0.2.7",
+      "body": "Automated release for v0.2.7\n",
+      "html_url": "https://github.com/senoldogann/guardian-distribution/releases/tag/v0.2.7",
+      "published_at": "2026-02-06T14:27:15Z",
+      "prerelease": false,
+      "draft": false,
+      "assets": [
+        {
+          "id": 351717721,
+          "name": "Guardian_0.2.7_aarch64.dmg",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.7/Guardian_0.2.7_aarch64.dmg",
+          "size": 12169274,
+          "updated_at": "2026-02-06T14:27:17Z",
+          "download_count": 7,
+          "content_type": "application/x-apple-diskimage"
+        },
+        {
+          "id": 351717723,
+          "name": "Guardian_0.2.7_x64-setup.exe",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.7/Guardian_0.2.7_x64-setup.exe",
+          "size": 6426546,
+          "updated_at": "2026-02-06T14:27:16Z",
+          "download_count": 0,
+          "content_type": "application/x-msdownload"
+        },
+        {
+          "id": 351717722,
+          "name": "Guardian_0.2.7_x64-setup.exe.sig",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.7/Guardian_0.2.7_x64-setup.exe.sig",
+          "size": 420,
+          "updated_at": "2026-02-06T14:27:16Z",
+          "download_count": 0,
+          "content_type": "application/pgp-signature"
+        },
+        {
+          "id": 351717729,
+          "name": "Guardian_0.2.7_x64.dmg",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.7/Guardian_0.2.7_x64.dmg",
+          "size": 12715851,
+          "updated_at": "2026-02-06T14:27:17Z",
+          "download_count": 0,
+          "content_type": "application/x-apple-diskimage"
+        },
+        {
+          "id": 351717724,
+          "name": "Guardian_0.2.7_x64_en-US.msi",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.7/Guardian_0.2.7_x64_en-US.msi",
+          "size": 9109504,
+          "updated_at": "2026-02-06T14:27:16Z",
+          "download_count": 0,
+          "content_type": "application/x-msdownload"
+        },
+        {
+          "id": 351717726,
+          "name": "Guardian_0.2.7_x64_en-US.msi.sig",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.7/Guardian_0.2.7_x64_en-US.msi.sig",
+          "size": 420,
+          "updated_at": "2026-02-06T14:27:16Z",
+          "download_count": 0,
+          "content_type": "application/pgp-signature"
+        },
+        {
+          "id": 351717730,
+          "name": "Guardian_aarch64.app.tar.gz",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.7/Guardian_aarch64.app.tar.gz",
+          "size": 10999489,
+          "updated_at": "2026-02-06T14:27:17Z",
+          "download_count": 0,
+          "content_type": "application/x-gtar"
+        },
+        {
+          "id": 351717731,
+          "name": "Guardian_aarch64.app.tar.gz.sig",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.7/Guardian_aarch64.app.tar.gz.sig",
+          "size": 408,
+          "updated_at": "2026-02-06T14:27:17Z",
+          "download_count": 0,
+          "content_type": "application/pgp-signature"
+        },
+        {
+          "id": 351717732,
+          "name": "Guardian_x64.app.tar.gz",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.7/Guardian_x64.app.tar.gz",
+          "size": 11460040,
+          "updated_at": "2026-02-06T14:27:17Z",
+          "download_count": 0,
+          "content_type": "application/x-gtar"
+        },
+        {
+          "id": 351717734,
+          "name": "Guardian_x64.app.tar.gz.sig",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.7/Guardian_x64.app.tar.gz.sig",
+          "size": 408,
+          "updated_at": "2026-02-06T14:27:17Z",
+          "download_count": 0,
+          "content_type": "application/pgp-signature"
+        },
+        {
+          "id": 351717735,
+          "name": "latest.json",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.7/latest.json",
+          "size": 4230,
+          "updated_at": "2026-02-06T14:27:17Z",
+          "download_count": 36,
+          "content_type": "application/json"
+        }
+      ]
+    },
+    {
+      "id": 283629019,
+      "tag_name": "v0.2.5",
+      "name": "v0.2.5",
+      "body": "Automated release for v0.2.5\n",
+      "html_url": "https://github.com/senoldogann/guardian-distribution/releases/tag/v0.2.5",
+      "published_at": "2026-02-06T06:25:03Z",
+      "prerelease": false,
+      "draft": false,
+      "assets": [
+        {
+          "id": 351545293,
+          "name": "Guardian_0.2.5_aarch64.dmg",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.5/Guardian_0.2.5_aarch64.dmg",
+          "size": 12159054,
+          "updated_at": "2026-02-06T06:32:00Z",
+          "download_count": 4,
+          "content_type": "application/x-apple-diskimage"
+        },
+        {
+          "id": 351545297,
+          "name": "Guardian_0.2.5_x64-setup.exe",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.5/Guardian_0.2.5_x64-setup.exe",
+          "size": 6430151,
+          "updated_at": "2026-02-06T06:31:55Z",
+          "download_count": 0,
+          "content_type": "application/x-msdownload"
+        },
+        {
+          "id": 351545295,
+          "name": "Guardian_0.2.5_x64-setup.exe.sig",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.5/Guardian_0.2.5_x64-setup.exe.sig",
+          "size": 420,
+          "updated_at": "2026-02-06T06:31:45Z",
+          "download_count": 0,
+          "content_type": "application/pgp-signature"
+        },
+        {
+          "id": 351545298,
+          "name": "Guardian_0.2.5_x64.dmg",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.5/Guardian_0.2.5_x64.dmg",
+          "size": 12698452,
+          "updated_at": "2026-02-06T06:32:00Z",
+          "download_count": 0,
+          "content_type": "application/x-apple-diskimage"
+        },
+        {
+          "id": 351545296,
+          "name": "Guardian_0.2.5_x64_en-US.msi",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.5/Guardian_0.2.5_x64_en-US.msi",
+          "size": 9109504,
+          "updated_at": "2026-02-06T06:31:57Z",
+          "download_count": 0,
+          "content_type": "application/x-msdownload"
+        },
+        {
+          "id": 351545304,
+          "name": "Guardian_0.2.5_x64_en-US.msi.sig",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.5/Guardian_0.2.5_x64_en-US.msi.sig",
+          "size": 420,
+          "updated_at": "2026-02-06T06:31:47Z",
+          "download_count": 0,
+          "content_type": "application/pgp-signature"
+        },
+        {
+          "id": 351545307,
+          "name": "Guardian_aarch64.app.tar.gz",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.5/Guardian_aarch64.app.tar.gz",
+          "size": 10993509,
+          "updated_at": "2026-02-06T06:31:54Z",
+          "download_count": 0,
+          "content_type": "application/x-gtar"
+        },
+        {
+          "id": 351545318,
+          "name": "Guardian_aarch64.app.tar.gz.sig",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.5/Guardian_aarch64.app.tar.gz.sig",
+          "size": 408,
+          "updated_at": "2026-02-06T06:31:55Z",
+          "download_count": 0,
+          "content_type": "application/pgp-signature"
+        },
+        {
+          "id": 351545328,
+          "name": "Guardian_x64.app.tar.gz",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.5/Guardian_x64.app.tar.gz",
+          "size": 11451026,
+          "updated_at": "2026-02-06T06:31:59Z",
+          "download_count": 0,
+          "content_type": "application/x-gtar"
+        },
+        {
+          "id": 351545331,
+          "name": "Guardian_x64.app.tar.gz.sig",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.5/Guardian_x64.app.tar.gz.sig",
+          "size": 408,
+          "updated_at": "2026-02-06T06:31:56Z",
+          "download_count": 0,
+          "content_type": "application/pgp-signature"
+        },
+        {
+          "id": 351545337,
+          "name": "latest.json",
+          "browser_download_url": "https://github.com/senoldogann/guardian-distribution/releases/download/v0.2.5/latest.json",
+          "size": 4230,
+          "updated_at": "2026-02-06T06:31:58Z",
+          "download_count": 8,
+          "content_type": "application/json"
+        }
+      ]
+    }
+  ]
+}

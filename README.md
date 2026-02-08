@@ -1,6 +1,10 @@
-# Guardian
+# Guardian v1.0.0 🚀
 ### Advanced Architectural Governance and Code Security Protocol
 ### Gelişmiş Mimari Yönetişim ve Kod Güvenliği Protokolü
+
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](./CHANGELOG.md)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-Self--Hosted%20Runner-success.svg)](./scripts/setup-runner.sh)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Guardian is a sophisticated development supervisor engineered to maintain system integrity through real-time architectural oversight and automated remediation. It bridges the gap between static analysis and active governance.
 
@@ -17,138 +21,172 @@ Guardian, gerçek zamanlı mimari denetim ve otomatik iyileştirme yoluyla siste
 
 ---
 
-## Executive Summary / Yönetici Özeti
+## 🆕 What's New in v1.0.0
 
-**[EN]** In modern software engineering, technical debt and architectural drift are the primary inhibitors of velocity. Guardian addresses these challenges by implementing a zero-trust surveillance layer over the project's codebase, ensuring that every modification aligns with the predefined system design and security standards.
-
-**[TR]** Modern yazılım mühendisliğinde, teknik borç ve mimari sapma hızın önündeki temel engellerdir. Guardian, projenin kod tabanı üzerinde sıfır güvenli bir gözetim katmanı uygulayarak bu zorlukları ele alır ve her değişikliğin önceden tanımlanmış sistem tasarımı ve güvenlik standartlarıyla uyumlu olmasını sağlar.
-
----
-
-## Core Operational Components / Temel Operasyonel Bileşenler
-
-### Sentry Engine / Sentry Motoru
-**[EN]** The Sentry Engine provides continuous, passive monitoring of the file system. It identifies anti-patterns, performance regressions, and security vulnerabilities as they are introduced. On detection of critical violations, the engine enforces a developmental lockdown.
-
-**[EN]** AI editor integration: Guardian writes structured events to `.guardian/agent_queue.jsonl` so AI coding agents can consume real-time critiques and resolution signals.
-
-**[TR]** Sentry Motoru, dosya sisteminin sürekli ve pasif olarak izlenmesini sağlar. Anti-pattern'leri, performans düşüşlerini ve güvenlik açıklarını oluştukları anda tespit eder. Kritik ihlaller saptandığında, sistem geliştirme döngüsünü askıya alarak güvenliği sağlar.
-
-### Architect Intelligence / Mimari Zeka
-**[EN]** Utilizing deep project context and structural awareness, the Architect Intelligence component analyzes the project's design documentation to provide verified, context-sensitive patches.
-
-**[TR]** Derin proje bağlamı ve yapısal farkındalık kullanan Mimari Zeka bileşeni, doğrulanmış ve bağlama duyarlı yamalar sağlamak için projenin tasarım dokümantasyonunu analiz eder.
+### Major Changes
+- ✅ **Self-Hosted CI/CD**: Zero GitHub Actions minutes with local runner
+- ✅ **Production Ready**: Stable 1.0.0 release
+- ✅ **Enhanced Security**: Improved CSP and authentication flow
+- ✅ **Website v1.0.0**: Public website with download/changelog/docs
 
 ---
 
-## Technical Specifications / Teknik Özellikler
+## 🏗️ Architecture
 
-- **Runtime**: Built on Tauri for high-performance system interaction. / Yüksek performanslı sistem etkileşimi için Tauri üzerine inşa edilmiştir.
-- **Frontend**: Engineered with React, TypeScript, and Tailwind CSS v4. / React, TypeScript ve Tailwind CSS v4 ile geliştirilmiştir.
-- **Security**: Real-time diff analysis and automated policy enforcement. / Gerçek zamanlı diff analizi ve otomatik politika uygulama.
+### Core Components
 
----
+#### Sentry Engine / Sentry Motoru
+**[EN]** Continuous, passive monitoring of the file system. Identifies anti-patterns, performance regressions, and security vulnerabilities.
 
-## Desktop-only Mode (Web Unsupported) / Masaüstü-odaklı Mod (Web Desteklenmez)
+**[TR]** Dosya sisteminin sürekli izlenmesi. Anti-pattern'leri ve güvenlik açıklarını tespit eder.
 
-- **GitHub Login**: Device Flow ile giriş (env: `GITHUB_CLIENT_ID`).
-- **Offline-first Telemetry**: Metadata-only (path + hash + severity) yerel kuyrukta tutulur.
-- **Realtime Monitoring**: İzleme daima yerelde çalışır, bulut bağlantısı opsiyoneldir.
-- **Security Headers**: Üretim reverse proxy için `nginx.conf` şablonu hazırdır.
-- **Web UI**: Sadece dahili UI regresyon testleri için; ürün olarak desteklenmez.
-- **Monitoring UI**: İzleme aktifken orta alanda canlı aktivite animasyonu görünür.
-- **Project Map**: 300 dosyaya kadar otomatik genişler; daha büyük projelerde performans için kademeli görünür.
-- **Public Website**: `website/` klasöründeki Next.js site, download/changelog/docs sayfalarını GitHub Release verisiyle otomatik günceller.
+#### Architect Intelligence / Mimari Zeka
+Context-sensitive patches and automated remediation based on project documentation.
 
 ---
 
-## Implementation Guide / Kurulum Rehberi
+## 🚀 Quick Start
 
-### Prerequisites / Ön Koşullar
-- Node.js (v18+)
-- Rust Toolchain (v1.75+)
-- Tauri CLI
+### Prerequisites
+- Node.js v18+
+- Rust v1.75+
+- macOS 12+ (Apple Silicon or Intel)
 
-> **Note / Not:** Reproducible builds için `Cargo.lock` ve `package-lock.json` dosyaları Git reposuna eklenmiştir. Bu lock dosyaları bağımlılık versiyonlarını sabitler ve tutarlı derlemeler sağlar.
-
-### Installation / Kurulum
+### Installation
 ```bash
 git clone https://github.com/senoldogann/Guardian.git
 cd guardian
 npm install
 ```
 
-### Configuration / Yapılandırma
+### Development
 ```bash
-cp .env.example .env
-```
-
-Env değişkenleri:
-- `GUARDIAN_API_KEY` (AI kritik çağrıları için)
-- `TAVILY_API_KEYS` (web arama yedekleri)
-- `GITHUB_CLIENT_ID` (GitHub login için)
-- `GITHUB_CLIENT_SECRET` (opsiyonel, GitHub login için)
-
-## Private Source + Public Distribution / Private Kod + Public Dağıtım
-
-Guardian kaynağı private kalabilir. Otomatik update ve web indirme akışı için:
-
-- `source repo` (private): uygulama kodu ve CI
-- `distribution repo` (public): sadece release asset'leri (`.dmg`, `.msi`, `latest.json`, imza dosyaları)
-- updater endpoint: public distribution repo'daki `latest.json`
-
-Bu repo workflow'u (`.github/workflows/release.yml`) release asset'lerini public distribution repo'ya mirror edecek şekilde hazırlanmıştır.
-
-Gerekli GitHub ayarları:
-- Repository Variable: `PUBLIC_DIST_REPO` (ör: `senoldogann/guardian-distribution`)
-- Repository Secret: `PUBLIC_DIST_REPO_TOKEN` (distribution repo'ya write yetkili PAT)
-
-Updater endpoint:
-- `src-tauri/tauri.conf.json` -> `https://github.com/senoldogann/guardian-distribution/releases/latest/download/latest.json`
-
-Website:
-- `website/` (Next.js) GitHub API üzerinden distribution repo release verilerini çeker.
-
-### Execution / Çalıştırma
-```bash
+# Desktop app
 npm run tauri dev
-```
 
-Not: `npm run dev` yalnızca UI/regresyon kontrolleri için uygundur; gerçek kullanım masaüstü uygulamasındadır.
+# Website
+cd website && npm run dev
+```
 
 ---
 
-## Testing / Testler
+## 🔧 CI/CD Setup (Self-Hosted)
 
-### Unit + Integration
+We use **self-hosted GitHub Actions runner** to avoid minutes limits. Setup in 3 steps:
+
+### 1. Run Setup Script
 ```bash
+bash scripts/setup-runner.sh
+```
+
+### 2. Configure Runner
+```bash
+cd ~/github-runner-guardian
+./config.sh --url https://github.com/senoldogann/Guardian --token <GITHUB_TOKEN>
+```
+
+### 3. Start Runner
+```bash
+# Manual run
+./run.sh
+
+# Or install as service (recommended)
+./svc.sh install
+./svc.sh start
+```
+
+**✅ Your CI/CD is now live!**
+
+---
+
+## 📊 CI/CD Pipeline
+
+Our zero-cost pipeline runs on your local machine:
+
+| Stage | Description | Trigger |
+|-------|-------------|---------|
+| **Test & Build** | Unit tests, coverage, build | Every push |
+| **Tauri Build** | Desktop app compilation | Main branch |
+| **Website Build** | Next.js static generation | Main branch |
+| **E2E Tests** | Playwright browser tests | PR only |
+| **Security Scan** | npm audit, cargo audit | Every push |
+
+**Workflow file:** `.github/workflows/ci-cd-v1.yml`
+
+---
+
+## 🧪 Testing
+
+```bash
+# Unit tests
 npm run test
-```
 
-### Coverage
-```bash
+# Coverage
 npm run test:coverage
-```
 
-### E2E (Playwright)
-```bash
-npx playwright install
+# E2E tests
 npm run test:e2e
 ```
 
-## PR Workflow / PR Akışı
+---
 
-Main branch korumalıdır. Değişiklikler için önerilen akış:
-- `git switch -c feature/<kisa-aciklama>`
-- `npm run test` ve `cargo check` çalıştır
-- `git commit -m "..."`  
-- `git push -u origin feature/<kisa-aciklama>`
-- PR oluştur ve gerekli CI kontrollerinin (ör. `build-and-test`) geçmesini bekle
+## 📦 Distribution
 
-## Governance / Yönetişim
+Guardian uses **private source + public distribution** model:
 
-Guardian is an open-initiative project licensed under the MIT License. / Guardian, MIT Lisansı altında lisanslanmış bir açık kaynak girişimidir.
+- **Source Repo** (private): This repository
+- **Distribution Repo** (public): [guardian-distribution](https://github.com/senoldogann/guardian-distribution)
+
+### Required Secrets
+```
+PUBLIC_DIST_REPO=senoldogann/guardian-distribution
+PUBLIC_DIST_REPO_TOKEN=<PAT with write access>
+GITHUB_RELEASE_OWNER=senoldogann
+GITHUB_RELEASE_REPO=guardian-distribution
+```
 
 ---
 
-Copyright 2026 Guardian Protocol. All rights reserved.
+## 🛡️ Security
+
+- CSP headers configured
+- Device flow authentication
+- Offline-first telemetry
+- Automated security scanning
+
+See [SECURITY.md](./SECURITY.md) for details.
+
+---
+
+## 📝 Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for version history.
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/amazing-feature`
+3. Run tests: `npm run test && cargo check`
+4. Commit: `git commit -m 'feat: add amazing feature'`
+5. Push: `git push origin feature/amazing-feature`
+6. Open Pull Request
+
+**Note:** Main branch is protected. CI must pass before merge.
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+<p align="center">
+  <strong>Guardian v1.0.0</strong> — Built with ❤️ using Tauri + React + TypeScript
+</p>
+
+<p align="center">
+  Copyright 2026 Guardian Protocol. All rights reserved.
+</p>

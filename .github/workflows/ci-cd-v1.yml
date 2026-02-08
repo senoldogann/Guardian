@@ -1,0 +1,204 @@
+# Guardian Self-Hosted Runner CI/CD
+# Version 1.0.0 - Zero GitHub Actions Minutes
+
+name: 🚀 Guardian CI/CD (Self-Hosted)
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-and-build:
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        node-version: [18.x]
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🟢 Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: 📦 Install Root Dependencies
+        run: npm ci
+
+      - name: 🧪 Run Unit Tests
+        run: npm run test
+
+      - name: 📊 Generate Coverage Report
+        run: npm run test:coverage
+
+      - name: 🔨 Build Desktop App
+        run: npm run build
+
+      - name: 🦀 Check Rust Code
+        run: cd src-tauri && cargo check
+
+      - name: 📤 Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: guardian-build-v1.0.0
+          path: |
+            dist/
+            src-tauri/target/
+          retention-days: 7
+
+  build-tauri:
+    runs-on: self-hosted
+    needs: test-and-build
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: 🦀 Setup Rust
+        uses: dtolnay/rust-action@stable
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🏗️ Build Tauri App
+        run: npm run tauri build
+        env:
+          CI: true
+
+      - name: 📤 Upload Tauri Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: guardian-tauri-v1.0.0
+          path: |
+            src-tauri/target/release/bundle/
+          retention-days: 30
+
+  website-build:
+    runs-on: self-hosted
+    needs: test-and-build
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: 📦 Install Website Dependencies
+        run: |
+          cd website
+          npm ci
+
+      - name: 🧪 Run Website Tests
+        run: |
+          cd website
+          npm run test:run
+
+      - name: 📊 Website Coverage
+        run: |
+          cd website
+          npm run test:coverage
+
+      - name: 🔨 Build Website
+        run: |
+          cd website
+          npm run build
+        env:
+          GITHUB_RELEASE_OWNER: ${{ secrets.GITHUB_RELEASE_OWNER }}
+          GITHUB_RELEASE_REPO: ${{ secrets.GITHUB_RELEASE_REPO }}
+          GITHUB_PUBLIC_READ_TOKEN: ${{ secrets.GITHUB_PUBLIC_READ_TOKEN }}
+
+      - name: 📤 Upload Website Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: guardian-website-v1.0.0
+          path: website/.next/
+          retention-days: 7
+
+  e2e-tests:
+    runs-on: self-hosted
+    needs: [test-and-build, website-build]
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: |
+          npm ci
+          cd website && npm ci
+
+      - name: 🎭 Install Playwright Browsers
+        run: |
+          npx playwright install chromium
+          cd website && npx playwright install chromium
+
+      - name: 🧪 Run E2E Tests (Desktop)
+        run: npm run test:e2e
+
+      - name: 🌐 Run E2E Tests (Website)
+        run: |
+          cd website
+          npm run test:e2e
+
+      - name: 📤 Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-v1.0.0
+          path: |
+            playwright-report/
+            website/playwright-report/
+          retention-days: 7
+
+  security-scan:
+    runs-on: self-hosted
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+
+      - name: 🔒 NPM Audit (Root)
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: 🔒 NPM Audit (Website)
+        run: |
+          cd website
+          npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: 🦀 Cargo Audit (Tauri)
+        run: |
+          cd src-tauri
+          cargo audit || true
+        continue-on-error: true

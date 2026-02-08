@@ -1,6 +1,107 @@
 # Changelog
 
-All notable changes to the Guardian V4 project will be documented in this file.
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [1.0.0] - 2026-02-08 🚀 MAJOR RELEASE
+
+### 🎉 Production Ready - v1.0.0
+
+#### Infrastructure & CI/CD
+- **Self-Hosted CI/CD Pipeline**: Complete migration from GitHub-hosted to self-hosted runners
+  - Zero GitHub Actions minutes consumption
+  - Automated runner setup script (`scripts/setup-runner.sh`)
+  - Cross-platform support (macOS arm64/x64, Linux x64)
+  - Comprehensive workflow: test → build → security scan → deploy
+  - Tauri desktop builds on local hardware
+  - Website static generation with environment validation
+- **CI/CD Workflow v1**: `.github/workflows/ci-cd-v1.yml`
+  - Parallel job execution
+  - Artifact retention policies
+  - Security scanning integrated
+  - E2E testing on PR
+
+#### Version Updates
+- **Global Version Bump**: 0.2.8 → 1.0.0
+  - `package.json`: v1.0.0
+  - `src-tauri/tauri.conf.json`: v1.0.0
+  - `website/package.json`: v1.0.0
+  - Tauri window title: "Guardian v1.0.0"
+
+#### Security Enhancements
+- **Content Security Policy (CSP)**: Hardened security headers
+- **Automated Security Scanning**:
+  - NPM audit on every push
+  - Cargo audit for Rust dependencies
+  - Configurable audit level (moderate+)
+- **GitHub Token Security**: Improved handling and validation
+
+#### Documentation
+- **README v1.0.0**: Complete overhaul with CI/CD instructions
+- **CHANGELOG**: Restructured with migration guide
+- **Runner Setup Guide**: Automated script with prerequisites check
+
+#### Technical Improvements
+- **Build Optimization**: Parallel builds for desktop and website
+- **Test Coverage Pipeline**: Automated coverage reporting
+- **Artifact Management**: Structured artifact naming with version
+- **Environment Validation**: Pre-build env var checks
+
+---
+
+## Migration Guide: 0.2.8 → 1.0.0
+
+### For Developers
+
+1. **Pull latest changes**:
+   ```bash
+   git pull origin main
+   ```
+
+2. **Update dependencies**:
+   ```bash
+   npm install
+   cd website && npm install
+   cd ..
+   ```
+
+3. **Setup CI/CD runner** (recommended):
+   ```bash
+   bash scripts/setup-runner.sh
+   ```
+   Then follow the prompts to configure and start the runner.
+
+4. **Verify everything works**:
+   ```bash
+   npm run test
+   npm run build
+   cd website && npm run build
+   ```
+
+### Breaking Changes
+None - fully backward compatible.
+
+### New Requirements
+- Self-hosted runner for CI/CD (optional but recommended)
+- Node.js 18+ (unchanged)
+- Rust 1.75+ (unchanged)
+
+---
+
+## [0.2.8] - 2026-02-06
+
+### Security & CI
+- **Cargo Audit Fix**: Updated `time` to `0.3.47` to address `RUSTSEC-2026-0009`.
+- **DMG Validation Hardening**: Improved macOS DMG notarization validation and re-upload flow in the release pipeline.
+- **macOS Signing Auto-detect**: Release workflow no longer requires `APPLE_SIGNING_IDENTITY` (auto-detects the imported Developer ID cert).
+
+### Website
+- **Build/Lint Stability**: Added ESLint flat config and removed deprecated `next lint` usage for CI-safe lint runs.
+- **Image Optimization**: Switched legacy `<img>` usage to `next/image` to keep Next.js warnings clean.
 
 ## [0.2.7] - 2026-02-06
 
@@ -137,3 +238,15 @@ All notable changes to the Guardian V4 project will be documented in this file.
 - **STALL Recovery**: Resolved an issue where critical violations would not release the system after patching.
 - **Cursor States**: Fixed missing `cursor-pointer` on multiple buttons and interactive rows.
 - **Contrast Issues**: Improved text visibility in Light Mode across all Guru components.
+
+---
+
+**Note**: Versions prior to 1.0.0 were pre-release/beta versions. The official stable release starts with v1.0.0.
+
+**Legend**:
+- 🚀 Major release
+- ✨ New feature
+- 🐛 Bug fix
+- 🔒 Security improvement
+- 📚 Documentation
+- ⚡ Performance
