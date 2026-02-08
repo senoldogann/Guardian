@@ -5,7 +5,7 @@ use std::env;
 use std::path::Path;
 
 pub const DEFAULT_MODEL: &str = "gemini-3-flash-preview:cloud";
-pub const DEFAULT_HOST: &str = "https://ollama.com";
+pub const DEFAULT_HOST: &str = "http://127.0.0.1:11434";
 
 const PLACEHOLDER_API_KEY: &str = "PLACEHOLDER_KEY";
 const PLACEHOLDER_TAVILY_KEYS: [&str; 2] = ["PLACEHOLDER_TAVILY_1", "PLACEHOLDER_TAVILY_2"];
@@ -27,6 +27,7 @@ pub const DEFAULT_MAX_CONTENT_LINES: usize = 220;
 pub const DEFAULT_MIN_BATCH_INTERVAL_SECS: u64 = 2;
 pub const DEFAULT_RATE_LIMIT_RETRIES: u32 = 2;
 pub const DEFAULT_RATE_LIMIT_BACKOFF_SECS: u64 = 2;
+pub const DEFAULT_MAX_FILE_BYTES: u64 = 512 * 1024; // 512KB
 
 pub fn is_production() -> bool {
     !cfg!(debug_assertions)
@@ -411,5 +412,22 @@ pub fn rate_limit_backoff_secs() -> u64 {
             }
         },
         Err(_) => DEFAULT_RATE_LIMIT_BACKOFF_SECS,
+    }
+}
+
+pub fn max_file_bytes() -> u64 {
+    match env::var("GUARDIAN_MAX_FILE_BYTES") {
+        Ok(val) => match val.parse::<u64>() {
+            Ok(n) => n,
+            Err(e) => {
+                tracing::warn!(
+                    "Invalid GUARDIAN_MAX_FILE_BYTES value '{}': {}. Using default.",
+                    val,
+                    e
+                );
+                DEFAULT_MAX_FILE_BYTES
+            }
+        },
+        Err(_) => DEFAULT_MAX_FILE_BYTES,
     }
 }

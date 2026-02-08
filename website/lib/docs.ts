@@ -2,7 +2,6 @@ import { cache } from "react";
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import matter from "gray-matter";
-import type { DocLocale } from "./i18n";
 
 export type DocMeta = {
   slug: string;
@@ -10,7 +9,6 @@ export type DocMeta = {
   summary: string;
   section: string;
   order: number;
-  locale: DocLocale;
 };
 
 export type DocHeading = {
@@ -26,6 +24,7 @@ export type DocEntry = {
 };
 
 const DOCS_ROOT = path.join(process.cwd(), "content", "docs");
+const DOCS_LOCALE = "en";
 
 function slugify(value: string): string {
   return value
@@ -53,8 +52,8 @@ function parseHeadings(markdown: string): DocHeading[] {
   return headings;
 }
 
-async function readDocFile(locale: DocLocale, fileName: string): Promise<DocEntry> {
-  const filePath = path.join(DOCS_ROOT, locale, fileName);
+async function readDocFile(fileName: string): Promise<DocEntry> {
+  const filePath = path.join(DOCS_ROOT, DOCS_LOCALE, fileName);
   const raw = await fs.readFile(filePath, "utf8");
   const parsed = matter(raw);
   const slug = fileName.replace(/\.mdx?$/i, "");
@@ -65,7 +64,6 @@ async function readDocFile(locale: DocLocale, fileName: string): Promise<DocEntr
     summary: String(parsed.data.summary ?? ""),
     section: String(parsed.data.section ?? "General"),
     order: Number(parsed.data.order ?? 999),
-    locale
   };
 
   return {
@@ -75,13 +73,13 @@ async function readDocFile(locale: DocLocale, fileName: string): Promise<DocEntr
   };
 }
 
-async function readDocs(locale: DocLocale): Promise<DocEntry[]> {
-  const localeDir = path.join(DOCS_ROOT, locale);
+async function readDocs(): Promise<DocEntry[]> {
+  const localeDir = path.join(DOCS_ROOT, DOCS_LOCALE);
   const files = await fs.readdir(localeDir);
   const docs = await Promise.all(
     files
       .filter((file) => file.endsWith(".mdx") || file.endsWith(".md"))
-      .map((file) => readDocFile(locale, file))
+      .map((file) => readDocFile(file))
   );
 
   return docs.sort((a, b) => {
@@ -97,13 +95,13 @@ async function readDocs(locale: DocLocale): Promise<DocEntry[]> {
 
 export const getDocs = cache(readDocs);
 
-export const getDoc = cache(async (locale: DocLocale, slug: string): Promise<DocEntry | null> => {
-  const docs = await getDocs(locale);
+export const getDoc = cache(async (slug: string): Promise<DocEntry | null> => {
+  const docs = await getDocs();
   return docs.find((doc) => doc.meta.slug === slug) ?? null;
 });
 
-export const getDocSections = cache(async (locale: DocLocale): Promise<Array<{ title: string; docs: DocMeta[] }>> => {
-  const docs = await getDocs(locale);
+export const getDocSections = cache(async (): Promise<Array<{ title: string; docs: DocMeta[] }>> => {
+  const docs = await getDocs();
   const map = new Map<string, DocMeta[]>();
   for (const doc of docs) {
     const current = map.get(doc.meta.section) ?? [];

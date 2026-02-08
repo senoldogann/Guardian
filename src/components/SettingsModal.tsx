@@ -5,6 +5,7 @@ import {
   Sun,
   Server,
   KeyRound,
+  ShieldAlert,
   RefreshCw,
   Search,
   Download,
@@ -40,7 +41,7 @@ export interface UpdateCheckResult {
 }
 
 export const PROVIDER_OPTIONS = [
-  { id: "ollama", label: "Ollama (Local/Hosted)", baseUrl: "https://ollama.com" },
+  { id: "ollama", label: "Ollama (Local/Hosted)", baseUrl: "http://127.0.0.1:11434" },
   { id: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1" },
   { id: "anthropic", label: "Anthropic (Claude)", baseUrl: "https://api.anthropic.com/v1" },
   { id: "gemini", label: "Google Gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta" },
@@ -58,7 +59,7 @@ export interface SettingsModalProps {
   theme: "dark" | "light";
   onThemeToggle: () => void;
   isDesktop: boolean;
-  
+
   // Provider
   providerDraft: ProviderConfig | null;
   providerError: string | null;
@@ -71,7 +72,7 @@ export interface SettingsModalProps {
   onModelChange: (value: string) => void;
   onRefreshModels: () => void;
   onSaveProvider: () => void;
-  
+
   // API Key
   apiKeyStatus: ApiKeyStatus | null;
   apiKeyInput: string;
@@ -81,7 +82,7 @@ export interface SettingsModalProps {
   onApiKeyChange: (value: string) => void;
   onSaveApiKey: () => void;
   onClearApiKey: () => void;
-  
+
   // Tavily
   tavilyKeyStatus: TavilyKeyStatus | null;
   tavilyKeyInput: string;
@@ -91,11 +92,13 @@ export interface SettingsModalProps {
   webSearchEnabled: boolean;
   webSearchReady: boolean;
   onWebSearchToggle: () => void;
+  autoVerifyEnabled: boolean;
+  onAutoVerifyToggle: () => void;
   onTavilyKeyFocus: () => void;
   onTavilyKeyChange: (value: string) => void;
   onSaveTavilyKey: () => void;
   onClearTavilyKey: () => void;
-  
+
   // Updates
   updateInfo: UpdateCheckResult | null;
   updateChecking: boolean;
@@ -103,10 +106,10 @@ export interface SettingsModalProps {
   updateError: string | null;
   onCheckUpdates: () => void;
   onInstallUpdate: () => void;
-  
+
   // Export
   onExportPDF: () => void;
-  
+
   // Tab
   settingsTab: SettingsTab;
   onSettingsTabChange: (tab: SettingsTab) => void;
@@ -145,6 +148,8 @@ export function SettingsModal({
   webSearchEnabled,
   webSearchReady,
   onWebSearchToggle,
+  autoVerifyEnabled,
+  onAutoVerifyToggle,
   onTavilyKeyFocus,
   onTavilyKeyChange,
   onSaveTavilyKey,
@@ -262,13 +267,25 @@ export function SettingsModal({
                     ))}
                   </select>
                   <label className="text-[10px] uppercase tracking-widest text-zinc-500">Base URL</label>
-                  <input
-                    disabled={!isDesktop}
-                    value={providerDraft.base_url}
-                    onChange={(e) => onBaseUrlChange(e.target.value)}
-                    className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
-                    placeholder={getProviderDefaults(providerDraft.provider_id).baseUrl}
-                  />
+                  {providerDraft.provider_id === "ollama" ? (
+                    <select
+                      disabled={!isDesktop}
+                      value={providerDraft.base_url}
+                      onChange={(e) => onBaseUrlChange(e.target.value)}
+                      className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
+                    >
+                      <option value="http://127.0.0.1:11434">Local (http://127.0.0.1:11434)</option>
+                      <option value="https://ollama.com">Cloud (https://ollama.com)</option>
+                    </select>
+                  ) : (
+                    <input
+                      disabled={!isDesktop}
+                      value={providerDraft.base_url}
+                      onChange={(e) => onBaseUrlChange(e.target.value)}
+                      className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
+                      placeholder={getProviderDefaults(providerDraft.provider_id).baseUrl}
+                    />
+                  )}
                   <div className="flex items-center justify-between">
                     <label className="text-[10px] uppercase tracking-widest text-zinc-500">Model</label>
                     <button
@@ -383,6 +400,32 @@ export function SettingsModal({
                   className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors disabled:opacity-50"
                 >
                   Clear
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-border-main space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                <ShieldAlert className="w-4 h-4 text-[var(--accent-500)]" />
+                Safety
+              </div>
+              <div className="text-[10px] text-text-muted">
+                Automatic Verification can run project commands (npm/cargo/etc) in your monitored workspace. Keep it off unless you fully trust the repo.
+              </div>
+              <div className="flex items-center justify-between bg-background border border-border-main rounded-lg px-3 py-2">
+                <div className="text-[10px] text-text-muted">
+                  Automatic Verification: {autoVerifyEnabled ? "Enabled" : "Disabled"}
+                </div>
+                <button
+                  onClick={onAutoVerifyToggle}
+                  disabled={!isDesktop}
+                  className={clsx(
+                    "px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md transition-colors",
+                    autoVerifyEnabled ? "bg-[var(--accent-500)] text-background" : "bg-white/10 text-text-main",
+                    !isDesktop && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  {autoVerifyEnabled ? "On" : "Off"}
                 </button>
               </div>
             </div>

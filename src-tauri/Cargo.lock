@@ -12,6 +12,7 @@ dependencies = [
  "chrono",
  "dirs 5.0.1",
  "dotenvy",
+ "dunce",
  "ed25519-dalek",
  "futures-util",
  "hex",

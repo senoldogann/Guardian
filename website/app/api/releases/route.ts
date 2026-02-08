@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { getReleases } from "../../../lib/github";
+import { fetchReleaseSnapshot } from "../../../lib/releases-source";
 import { toReleaseViewModel } from "../../../lib/changelog";
 
 export async function GET() {
   try {
-    const releases = await getReleases(30);
+    const releases = await fetchReleaseSnapshot(30);
     return NextResponse.json(
       releases.map((release) => ({
         ...toReleaseViewModel(release),
@@ -12,13 +12,12 @@ export async function GET() {
           id: asset.id,
           name: asset.name,
           size: asset.size,
-          digest: asset.digest,
           url: asset.browser_download_url
         }))
       })),
       {
         headers: {
-          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600"
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=600"
         }
       }
     );

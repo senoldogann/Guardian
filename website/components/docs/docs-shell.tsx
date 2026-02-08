@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import type { DocLocale, SiteDictionary } from "../../lib/i18n";
-import { buildLocalizedPath } from "../../lib/i18n";
+import type { SiteDictionary } from "../../lib/i18n";
 import type { DocHeading, DocMeta } from "../../lib/docs";
 
 type DocsSection = {
@@ -10,7 +9,6 @@ type DocsSection = {
 };
 
 type Props = {
-  locale: DocLocale;
   dict: SiteDictionary;
   sections: DocsSection[];
   activeSlug?: string;
@@ -18,7 +16,7 @@ type Props = {
   children: ReactNode;
 };
 
-export function DocsShell({ locale, dict, sections, activeSlug, headings = [], children }: Props) {
+export function DocsShell({ dict, sections, activeSlug, headings = [], children }: Props) {
   return (
     <section className="docs-layout section-enter" data-delay="2">
       <aside className="panel docs-side">
@@ -28,7 +26,7 @@ export function DocsShell({ locale, dict, sections, activeSlug, headings = [], c
             <div className="docs-nav-title">{section.title}</div>
             <div className="docs-nav-list">
               {section.docs.map((doc) => {
-                const href = buildLocalizedPath(locale, `/docs/${doc.slug}`);
+                const href = `/docs/${doc.slug}`;
                 const isActive = activeSlug === doc.slug;
                 return (
                   <Link className="docs-nav-link" data-active={isActive ? "true" : "false"} href={href} key={doc.slug}>

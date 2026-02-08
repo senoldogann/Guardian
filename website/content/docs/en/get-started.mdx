@@ -7,23 +7,74 @@ order: 1
 
 ## What is Guardian?
 
-Guardian is a desktop governance app that evaluates codebases against architecture constraints, security expectations, and release quality standards.
+Guardian is a desktop governance application that evaluates codebases against architecture constraints, security expectations, and release quality standards. It provides real-time feedback on code quality, suggests fixes using an AI architect assistant (Guru), and integrates with your existing release workflows.
+
+### Key Capabilities
+
+- **Codebase Scanning**: Analyzes your project for architectural violations, security issues, and quality concerns.
+- **Guru AI Assistant**: An intelligent assistant that explains issues in context and provides actionable fix suggestions.
+- **Release Governance**: Manages the release process with built-in update checking and version management.
+- **In-App Updates**: Automatically checks for and applies updates without leaving the application.
 
 ## Who is it for?
 
-- Technical leads
-- Platform and DevOps teams
-- Security and quality owners
+Guardian is designed for teams and individuals who care about code quality:
+
+| Role | Use Case |
+|------|----------|
+| **Technical Leads** | Enforce architectural standards across the team |
+| **Platform/DevOps Teams** | Integrate quality checks into CI/CD pipelines |
+| **Security Teams** | Monitor for security vulnerabilities and compliance |
+| **Individual Developers** | Get instant feedback on code quality |
 
 ## How it works
 
-1. Scans the codebase and classifies findings.
-2. Prioritizes issues by severity.
-3. Connects with release flows to deliver updates inside the app.
+Guardian follows a three-step governance cycle:
 
-## First 10 minutes
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│    SCAN     │────▶│   ANALYZE   │────▶│    ACT      │
+│ Codebase    │     │ Findings    │     │ Fix/Approve │
+└─────────────┘     └─────────────┘     └─────────────┘
+```
 
-- Install the application.
-- Configure provider settings.
-- Start your first scan.
-- Prioritize findings.
+1. **Scan**: Guardian scans your codebase and classifies findings by type (security, architecture, quality).
+2. **Analyze**: Issues are prioritized by severity, and the Guru assistant provides context and explanations.
+3. **Act**: Review findings, apply suggested fixes, or approve exceptions with documented reasoning.
+
+## First 10 Minutes
+
+Here's what you should do in your first session:
+
+### 1. Install the Application
+Download the installer for your operating system from the Download page. Guardian supports macOS, Windows, and Linux.
+
+### 2. Configure Provider Settings
+
+Navigate to **Settings > Providers** and configure your AI provider credentials. Guardian supports multiple AI providers including cloud-based and local options.
+
+### 3. Start Your First Scan
+Open a project folder using **File > Open Project** or drag and drop a folder onto the app window. The scan will begin automatically.
+
+### 4. Review Findings
+Once the scan completes:
+- Click on any finding to see details
+- Use the Guru chat to ask questions about the issue
+- Apply suggested fixes or mark as an exception
+
+## Application Layout
+
+The Guardian interface consists of four main areas:
+
+| Area | Purpose |
+|------|---------|
+| **Sidebar** | Navigate between scans, settings, and history |
+| **Main Panel** | View findings, code, and analysis results |
+| **Guru Chat** | Interactive AI assistant for getting help |
+| **Status Bar** | Connection status, version info, and quick actions |
+
+## Next Steps
+
+- [Installation Guide](/docs/installation) - Detailed setup instructions
+- [Guru Assistant](/docs/guru) - Learn how to use the AI architect
+- [Security](/docs/security) - Understand the security model

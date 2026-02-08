@@ -1,36 +1,32 @@
-import type { DocLocale, SiteDictionary } from "../../lib/i18n";
 import { fetchReleaseSnapshot } from "../../lib/releases-source";
-import type { ReleaseMonthGroup } from "../../lib/changelog";
 import { groupReleasesByMonth, toReleaseViewModel } from "../../lib/changelog";
+import { getDictionary } from "../../lib/i18n";
 import { ChangelogClient } from "./changelog-client";
 
-type Props = {
-  locale: DocLocale;
-  dict: SiteDictionary;
-};
-
-export async function ChangelogPageView({ locale, dict }: Props) {
+export async function ChangelogPageView() {
   let fetchError: string | null = null;
-  let groups: ReleaseMonthGroup[] = [];
+  const dict = getDictionary();
+  let groups = [];
 
   try {
-    const releases = await fetchReleaseSnapshot(40);
-    const releaseViewModels = releases.map(toReleaseViewModel);
-    groups = groupReleasesByMonth(releaseViewModels, locale === "tr" ? "tr-TR" : "en-US");
+    const rawReleases = await fetchReleaseSnapshot(40);
+    const releaseViewModels = rawReleases.map(toReleaseViewModel);
+    groups = groupReleasesByMonth(releaseViewModels, "en-US");
   } catch (error) {
     fetchError = error instanceof Error ? error.message : "Failed to load releases";
   }
 
   return (
-    <>
-      <section className="hero section-enter" data-delay="1">
-        <div className="eyebrow">{dict.changelog.eyebrow}</div>
-        <h1>{dict.changelog.title}</h1>
-        <p>{dict.changelog.description}</p>
-        {fetchError ? <p className="meta" style={{ marginTop: 10 }}>{fetchError}</p> : null}
-      </section>
+    <div className="min-h-[calc(100vh-200px)] pt-24">
+      {fetchError ? (
+        <div className="container px-4 py-8">
+          <p className="text-red-400 bg-red-500/10 border border-red-500/20 p-4 rounded-lg inline-block">
+            {fetchError}
+          </p>
+        </div>
+      ) : null}
 
-      <ChangelogClient dict={dict} groups={groups} locale={locale} />
-    </>
+      <ChangelogClient dict={dict} groups={groups} />
+    </div>
   );
 }

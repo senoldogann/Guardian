@@ -39,10 +39,7 @@ pub async fn request_device_code(client_id: &str) -> Result<DeviceCodeResponse> 
     let response = client
         .post("https://github.com/login/device/code")
         .header("Accept", "application/json")
-        .form(&[
-            ("client_id", client_id),
-            ("scope", "read:user"),
-        ])
+        .form(&[("client_id", client_id), ("scope", "read:user")])
         .send()
         .await
         .context("GitHub device code request failed")?;
@@ -64,35 +61,39 @@ pub async fn request_device_code(client_id: &str) -> Result<DeviceCodeResponse> 
         error_description: Option<String>,
     }
 
-    let payload: DeviceCodePayload = serde_json::from_str(&body)
-        .context("Invalid device code response")?;
+    let payload: DeviceCodePayload =
+        serde_json::from_str(&body).context("Invalid device code response")?;
 
     if !status.is_success() {
         let err = payload.error.unwrap_or_else(|| "unknown_error".to_string());
-        let detail = payload.error_description.unwrap_or_else(|| "Unknown error".to_string());
+        let detail = payload
+            .error_description
+            .unwrap_or_else(|| "Unknown error".to_string());
         bail!("GitHub device code error: {} ({})", err, detail);
     }
 
     if let Some(err) = payload.error {
-        let detail = payload.error_description.unwrap_or_else(|| "Unknown error".to_string());
+        let detail = payload
+            .error_description
+            .unwrap_or_else(|| "Unknown error".to_string());
         bail!("GitHub device code error: {} ({})", err, detail);
     }
 
-    let device_code = payload
-        .device_code
-        .ok_or_else(|| anyhow::anyhow!("Device code missing. Check OAuth App + Device Flow settings."))?;
-    let user_code = payload
-        .user_code
-        .ok_or_else(|| anyhow::anyhow!("User code missing. Check OAuth App + Device Flow settings."))?;
-    let verification_uri = payload
-        .verification_uri
-        .ok_or_else(|| anyhow::anyhow!("Verification URI missing. Check OAuth App + Device Flow settings."))?;
-    let expires_in = payload
-        .expires_in
-        .ok_or_else(|| anyhow::anyhow!("Expiry missing. Check OAuth App + Device Flow settings."))?;
-    let interval = payload
-        .interval
-        .ok_or_else(|| anyhow::anyhow!("Interval missing. Check OAuth App + Device Flow settings."))?;
+    let device_code = payload.device_code.ok_or_else(|| {
+        anyhow::anyhow!("Device code missing. Check OAuth App + Device Flow settings.")
+    })?;
+    let user_code = payload.user_code.ok_or_else(|| {
+        anyhow::anyhow!("User code missing. Check OAuth App + Device Flow settings.")
+    })?;
+    let verification_uri = payload.verification_uri.ok_or_else(|| {
+        anyhow::anyhow!("Verification URI missing. Check OAuth App + Device Flow settings.")
+    })?;
+    let expires_in = payload.expires_in.ok_or_else(|| {
+        anyhow::anyhow!("Expiry missing. Check OAuth App + Device Flow settings.")
+    })?;
+    let interval = payload.interval.ok_or_else(|| {
+        anyhow::anyhow!("Interval missing. Check OAuth App + Device Flow settings.")
+    })?;
 
     Ok(DeviceCodeResponse {
         device_code,
@@ -111,7 +112,10 @@ pub async fn complete_device_flow(
 ) -> Result<AuthSession> {
     let token = poll_access_token(client_id, client_secret, device_code, max_wait_seconds).await?;
     let user = fetch_user(&token).await?;
-    Ok(AuthSession { access_token: token, user })
+    Ok(AuthSession {
+        access_token: token,
+        user,
+    })
 }
 
 #[derive(Debug)]
@@ -121,7 +125,9 @@ pub enum VerifyError {
     Other(String),
 }
 
-pub async fn verify_access_token(access_token: &str) -> std::result::Result<GithubUser, VerifyError> {
+pub async fn verify_access_token(
+    access_token: &str,
+) -> std::result::Result<GithubUser, VerifyError> {
     let client = Client::new();
     let response = client
         .get("https://api.github.com/user")
@@ -144,7 +150,10 @@ pub async fn verify_access_token(access_token: &str) -> std::result::Result<Gith
         return Err(VerifyError::Unauthorized);
     }
     if !response.status().is_success() {
-        return Err(VerifyError::Other(format!("GitHub user fetch failed: {}", response.status())));
+        return Err(VerifyError::Other(format!(
+            "GitHub user fetch failed: {}",
+            response.status()
+        )));
     }
 
     response
@@ -166,7 +175,9 @@ async fn poll_access_token(
 
     loop {
         if start.elapsed().as_secs() > timeout_secs {
-            anyhow::bail!("Authorization pending. Please complete GitHub verification and try again.");
+            anyhow::bail!(
+                "Authorization pending. Please complete GitHub verification and try again."
+            );
         }
 
         let mut params = vec![
@@ -198,19 +209,25 @@ async fn poll_access_token(
         match payload.error.as_deref() {
             Some("authorization_pending") => {
                 if start.elapsed().as_secs() + interval_secs > timeout_secs {
-                    anyhow::bail!("Authorization pending. Please complete GitHub verification and try again.");
+                    anyhow::bail!(
+                        "Authorization pending. Please complete GitHub verification and try again."
+                    );
                 }
                 sleep(Duration::from_secs(interval_secs)).await;
             }
             Some("slow_down") => {
                 interval_secs = (interval_secs + 5).min(20);
                 if start.elapsed().as_secs() + interval_secs > timeout_secs {
-                    anyhow::bail!("Authorization pending. Please complete GitHub verification and try again.");
+                    anyhow::bail!(
+                        "Authorization pending. Please complete GitHub verification and try again."
+                    );
                 }
                 sleep(Duration::from_secs(interval_secs)).await;
             }
             Some(err) => {
-                let detail = payload.error_description.unwrap_or_else(|| "Unknown error".to_string());
+                let detail = payload
+                    .error_description
+                    .unwrap_or_else(|| "Unknown error".to_string());
                 anyhow::bail!("GitHub auth error: {} ({})", err, detail);
             }
             None => {

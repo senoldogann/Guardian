@@ -39,4 +39,3 @@ export async function fetchReleaseSnapshot(limit = 40): Promise<GithubRelease[]>
 
   return await getReleases(limit);
 }
-

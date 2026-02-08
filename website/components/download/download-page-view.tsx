@@ -1,38 +1,49 @@
-import type { DocLocale, SiteDictionary } from "../../lib/i18n";
-import { getLatestRelease, pickInstallers, releaseTagToVersion } from "../../lib/github";
+import type { SiteDictionary } from "../../lib/i18n";
+import { pickInstallers, releaseTagToVersion } from "../../lib/github";
+import { fetchReleaseSnapshot } from "../../lib/releases-source";
 import { DownloadClient } from "../../app/download/download-client";
 
 type Props = {
-  locale: DocLocale;
   dict: SiteDictionary;
 };
 
-export async function DownloadPageView({ locale, dict }: Props) {
+export async function DownloadPageView({ dict }: Props) {
   let latestTag = "—";
   let installers = [] as ReturnType<typeof pickInstallers>;
   let fetchError: string | null = null;
 
   try {
-    const latest = await getLatestRelease();
-    latestTag = releaseTagToVersion(latest.tag_name);
-    installers = pickInstallers(latest.assets);
+    const releases = await fetchReleaseSnapshot(1);
+    const latest = releases[0];
+    if (latest) {
+      latestTag = releaseTagToVersion(latest.tag_name);
+      installers = pickInstallers(latest.assets);
+    } else {
+      fetchError = dict.common.releaseNotAvailable;
+    }
   } catch (error) {
     fetchError = error instanceof Error ? error.message : dict.common.releaseNotAvailable;
   }
 
   return (
     <>
-      <section className="hero section-enter" data-delay="1">
-        <div className="eyebrow">{dict.download.eyebrow}</div>
-        <h1>{dict.download.title}</h1>
-        <p>{dict.download.description}</p>
-        <p className="meta" style={{ marginTop: 12 }}>
-          {dict.download.latestLabel}: <strong>v{latestTag}</strong>
+      <section className="mx-auto max-w-6xl px-4 pt-28 sm:pt-32">
+        <p className="text-xs font-medium tracking-[0.22em] uppercase text-neutral-500">
+          {dict.download.eyebrow}
         </p>
-        {fetchError ? <p className="meta" style={{ marginTop: 8 }}>{fetchError}</p> : null}
+        <h1 className="mt-4 text-4xl sm:text-5xl font-semibold tracking-tight text-neutral-950">
+          {dict.download.title}
+        </h1>
+        <p className="mt-4 max-w-2xl text-base sm:text-lg text-neutral-600">
+          {dict.download.description}
+        </p>
+        <p className="mt-5 text-sm text-neutral-600">
+          {dict.download.latestLabel}: <span className="font-medium text-neutral-950">v{latestTag}</span>
+        </p>
+        {fetchError ? <p className="mt-2 text-sm text-red-600">{fetchError}</p> : null}
       </section>
 
-      <DownloadClient assets={installers} dict={dict} locale={locale} />
+      <DownloadClient assets={installers} dict={dict} />
     </>
   );
 }

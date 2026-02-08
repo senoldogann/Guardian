@@ -1,10 +1,7 @@
-import tr from "../content/i18n/tr.json";
 import en from "../content/i18n/en.json";
 
-export type DocLocale = "tr" | "en";
-
 export type SiteDictionary = {
-  localeLabel: string;
+  localeLabel?: string;
   brandTagline: string;
   nav: {
     home: string;
@@ -22,6 +19,16 @@ export type SiteDictionary = {
     trustRelease: string;
     trustUpdates: string;
     trustSecurity: string;
+    sections: {
+      guru: {
+        title: string;
+        description: string;
+      };
+      auth: {
+        title: string;
+        description: string;
+      };
+    };
   };
   download: {
     eyebrow: string;
@@ -32,7 +39,6 @@ export type SiteDictionary = {
     manual: string;
     noMatch: string;
     detecting: string;
-    checksum: string;
     size: string;
   };
   changelog: {
@@ -59,41 +65,11 @@ export type SiteDictionary = {
     openDistributionRepo: string;
     releaseNotAvailable: string;
     updatedAt: string;
-    languageSwitch: string;
-    english: string;
-    turkish: string;
   };
 };
 
-const DICTIONARIES: Record<DocLocale, SiteDictionary> = {
-  tr: tr as SiteDictionary,
-  en: en as SiteDictionary
-};
+const DICTIONARY: SiteDictionary = en as SiteDictionary;
 
-export function isLocale(value: string): value is DocLocale {
-  return value === "tr" || value === "en";
-}
-
-export function getDictionary(locale: DocLocale): SiteDictionary {
-  return DICTIONARIES[locale];
-}
-
-export function getAlternateLocale(locale: DocLocale): DocLocale {
-  return locale === "tr" ? "en" : "tr";
-}
-
-export function buildLocalizedPath(locale: DocLocale, pathname: string): string {
-  const cleanPath = pathname.startsWith("/") ? pathname : `/${pathname}`;
-  if (locale === "tr") {
-    if (cleanPath === "/en") return "/";
-    if (cleanPath.startsWith("/en/")) return cleanPath.replace(/^\/en/, "");
-    return cleanPath;
-  }
-  if (cleanPath === "/") return "/en";
-  if (cleanPath.startsWith("/en/")) return cleanPath;
-  return `/en${cleanPath}`;
-}
-
-export function detectLocaleFromPath(pathname: string): DocLocale {
-  return pathname === "/en" || pathname.startsWith("/en/") ? "en" : "tr";
+export function getDictionary(): SiteDictionary {
+  return DICTIONARY;
 }

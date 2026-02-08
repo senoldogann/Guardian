@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
-import { getLatestRelease, pickInstallers } from "../../../../lib/github";
+import { pickInstallers } from "../../../../lib/github";
+import { fetchReleaseSnapshot } from "../../../../lib/releases-source";
 
 export async function GET() {
   try {
-    const latest = await getLatestRelease();
+    const releases = await fetchReleaseSnapshot(1);
+    const latest = releases[0];
+    if (!latest) {
+      return NextResponse.json(
+        { error: "Release data temporarily unavailable. Please try again later." },
+        { status: 503 }
+      );
+    }
     return NextResponse.json(
       {
         tag: latest.tag_name,
@@ -14,7 +22,7 @@ export async function GET() {
       },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600"
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=600"
         }
       }
     );

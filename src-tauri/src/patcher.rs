@@ -4,11 +4,33 @@ use std::io::Write;
 use std::path::{Component, Path, PathBuf};
 use tracing::info;
 
+fn canonicalize_path(path: &Path) -> Result<PathBuf> {
+    #[cfg(windows)]
+    {
+        dunce::canonicalize(path).with_context(|| {
+            format!(
+                "Security Violation: Could not canonicalize path {}",
+                path.display()
+            )
+        })
+    }
+
+    #[cfg(not(windows))]
+    {
+        fs::canonicalize(path).with_context(|| {
+            format!(
+                "Security Violation: Could not canonicalize path {}",
+                path.display()
+            )
+        })
+    }
+}
+
 /// Validates that the target path is within an allowed workspace directory.
 /// Uses strict path canonicalization and symlink checks to prevent traversal.
 fn validate_path_security(file_path: &str, workspace_root: &str) -> Result<PathBuf> {
     let root = Path::new(workspace_root);
-    let canonical_root = fs::canonicalize(root).with_context(|| {
+    let canonical_root = canonicalize_path(root).with_context(|| {
         format!(
             "Security Violation: Could not resolve workspace root {}",
             workspace_root
@@ -39,7 +61,7 @@ fn validate_path_security(file_path: &str, workspace_root: &str) -> Result<PathB
     #[cfg(unix)]
     ensure_no_symlink_components(&candidate, &canonical_root)?;
 
-    let canonical_path = fs::canonicalize(&candidate)
+    let canonical_path = canonicalize_path(&candidate)
         .with_context(|| format!("Security Violation: Could not resolve path {}", file_path))?;
 
     if !canonical_path.starts_with(&canonical_root) {
@@ -66,8 +88,12 @@ fn ensure_no_symlink_components(candidate: &Path, canonical_root: &Path) -> Resu
             _ => {}
         }
 
-        let meta = fs::symlink_metadata(&current)
-            .with_context(|| format!("Security Violation: Could not read metadata for {:?}", current))?;
+        let meta = fs::symlink_metadata(&current).with_context(|| {
+            format!(
+                "Security Violation: Could not read metadata for {:?}",
+                current
+            )
+        })?;
         if meta.file_type().is_symlink() {
             anyhow::bail!("Security Violation: Symlink detected in path.");
         }
@@ -166,7 +192,10 @@ mod tests {
         let mut file = std::fs::File::create(&file_path).unwrap();
         writeln!(file, "Original").unwrap();
 
-        let traversal_path = temp_dir.join("..").join("test_temp").join("patcher_traversal_test.txt");
+        let traversal_path = temp_dir
+            .join("..")
+            .join("test_temp")
+            .join("patcher_traversal_test.txt");
         let res = apply_patch(
             traversal_path.to_str().unwrap(),
             "Patched",

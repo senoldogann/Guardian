@@ -1,11 +1,11 @@
-use reqwest::Client;
-use serde_json::json;
-use secrecy::ExposeSecret;
 use crate::config;
-use tracing::{debug, warn};
+use reqwest::Client;
+use secrecy::ExposeSecret;
+use serde_json::json;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use tokio::time::{Instant, Duration};
+use tokio::time::{Duration, Instant};
+use tracing::{debug, warn};
 
 pub struct WebSearch {
     client: Client,
@@ -29,7 +29,7 @@ impl RateLimiter {
         let now = Instant::now();
         let now_ms = now.elapsed().as_millis() as u64;
         let last = self.last_request.load(Ordering::Relaxed);
-        
+
         if last > 0 {
             let elapsed = now_ms.saturating_sub(last);
             if elapsed < self.min_interval_ms {
@@ -37,7 +37,7 @@ impl RateLimiter {
                 tokio::time::sleep(Duration::from_millis(wait_ms)).await;
             }
         }
-        
+
         self.last_request.store(now_ms, Ordering::Relaxed);
     }
 }
@@ -45,8 +45,7 @@ impl RateLimiter {
 impl WebSearch {
     pub fn new() -> Result<Self, String> {
         let timeout_secs = config::provider_timeout_seconds("tavily");
-        let mut builder = Client::builder()
-            .timeout(std::time::Duration::from_secs(timeout_secs));
+        let mut builder = Client::builder().timeout(std::time::Duration::from_secs(timeout_secs));
 
         if let Some(cert_path) = config::provider_pinned_cert_path("tavily") {
             let cert_bytes = std::fs::read(&cert_path)
@@ -63,7 +62,10 @@ impl WebSearch {
         // Rate limit: max 1 request per second per key
         let rate_limiter = Arc::new(RateLimiter::new(1000));
 
-        Ok(Self { client, rate_limiter })
+        Ok(Self {
+            client,
+            rate_limiter,
+        })
     }
 
     pub async fn search(&self, query: &str) -> Result<String, String> {
@@ -88,38 +90,39 @@ impl WebSearch {
                 "max_results": 5
             });
 
-            let response = self.client.post(url)
-                .json(&payload)
-                .send()
-                .await;
+            let response = self.client.post(url).json(&payload).send().await;
 
             match response {
                 Ok(resp) => {
                     if resp.status().is_success() {
-                        let json: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
-                        
+                        let json: serde_json::Value =
+                            resp.json().await.map_err(|e| e.to_string())?;
+
                         // Extract "answer" or summarize results
                         if let Some(answer) = json.get("answer").and_then(|a| a.as_str()) {
-                             return Ok(answer.to_string());
+                            return Ok(answer.to_string());
                         }
 
                         // Fallback to concatenating snippets
                         let mut summary = String::new();
                         if let Some(results) = json.get("results").and_then(|r| r.as_array()) {
                             for res in results {
-                                let title = res.get("title").and_then(|s| s.as_str()).unwrap_or("No Title");
-                                let content = res.get("content").and_then(|s| s.as_str()).unwrap_or("");
+                                let title = res
+                                    .get("title")
+                                    .and_then(|s| s.as_str())
+                                    .unwrap_or("No Title");
+                                let content =
+                                    res.get("content").and_then(|s| s.as_str()).unwrap_or("");
                                 let url = res.get("url").and_then(|s| s.as_str()).unwrap_or("");
                                 summary.push_str(&format!("- [{}]({}): {}\n", title, url, content));
                             }
                         }
-                        
+
                         if summary.is_empty() {
                             return Ok("No relevant results found.".to_string());
                         }
-                        
-                        return Ok(summary);
 
+                        return Ok(summary);
                     } else if resp.status().as_u16() == 429 {
                         // Rate limited - try next key
                         warn!(target: "guardian::search", "Key #{} rate limited, switching", i + 1);
@@ -128,7 +131,7 @@ impl WebSearch {
                         // Specific Error Handling for Failover
                         warn!(target: "guardian::search", "Key #{} failed ({}), switching", i + 1, resp.status());
                     }
-                },
+                }
                 Err(e) => {
                     warn!(target: "guardian::search", "Connection error with key #{}: {}", i + 1, e);
                 }

@@ -1,0 +1,106 @@
+---
+title: "Configuration"
+summary: "Customize Guardian settings and application preferences."
+section: "Operations"
+order: 4
+---
+
+## Overview
+
+Guardian offers configuration options to tailor the application to your workflow. This guide covers all configurable settings.
+
+## Accessing Settings
+
+Click the **gear icon** (⚙️) in the header to open the Settings modal.
+
+## Provider Configuration
+
+### Selecting a Provider
+
+Choose your AI provider from the dropdown:
+
+| Provider | API Key Required | Local Option |
+|----------|-----------------|--------------|
+| **Ollama** | No (Local) / Yes (Cloud) | Yes (http://127.0.0.1:11434) |
+| **OpenAI** | Yes | No |
+| **Anthropic (Claude)** | Yes | No |
+| **Google Gemini** | Yes | No |
+| **GitHub Models** | Yes | No |
+
+### Model Selection
+
+After selecting a provider, choose a model. Available models are fetched automatically from the provider.
+
+**Popular choices:**
+- **Ollama**: llama3.2, codellama, mistral
+- **OpenAI**: gpt-4o, gpt-4o-mini
+- **Anthropic**: claude-sonnet-4-20250514, claude-haiku
+- **Gemini**: gemini-2.0-flash, gemini-2.5-pro
+- **GitHub Models**: Various hosted models
+
+### API Key Management
+
+For providers requiring API keys:
+
+1. Obtain your API key from the provider dashboard
+2. Enter the key in the "API Key" field
+3. Click **Save** to store securely
+4. Click **Clear** to remove stored key
+
+> **Security**: API keys are stored in platform-native secure storage (Keychain, Credential Manager, or Secret Service).
+
+## Theme Settings
+
+Toggle between **Light** and **Dark** themes:
+- Click the theme toggle in the Settings modal
+- Or use the theme toggle in the header
+
+## Web Search (Tavily)
+
+Enable AI-powered web search for Guru:
+
+1. Get an API key from [tavily.com](https://tavily.com)
+2. Enter the key in "Web Search API Key"
+3. Guru can now search the web for context
+
+## Updates
+
+### Check for Updates
+
+Guardian checks for updates automatically. You can also:
+- Click **Check for Updates** in Settings
+- View current version information
+
+### Update Feed URL
+
+Advanced users can configure a custom update feed URL for self-hosted update servers.
+
+## Configuration Storage
+
+Guardian stores configuration in platform-specific locations:
+
+| Platform | Location |
+|----------|----------|
+| **macOS** | `~/Library/Application Support/Guardian/` |
+| **Windows** | `%APPDATA%\Guardian\` |
+| **Linux** | `~/.config/guardian/` |
+
+## Exporting Settings
+
+You can export your current configuration:
+
+1. Open Settings
+2. Click **Export Settings**
+3. Choose a location to save the JSON file
+
+This exports:
+- Provider configuration (excluding API keys)
+- Theme preference
+- Other application settings
+
+## Best Practices
+
+1. **Backup Configuration**: Export settings before major changes
+2. **Secure API Keys**: Never share or commit API keys
+3. **Test After Changes**: Verify Guru works after changing providers
+4. **Keep Updated**: Enable automatic update checks

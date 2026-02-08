@@ -1,35 +1,30 @@
 import type { Metadata } from "next";
-import type { DocLocale } from "./i18n";
 
 export const SITE_URL = "https://guardian-app.vercel.app";
 
-function localizedPath(locale: DocLocale, path: string): string {
-  if (locale === "tr") return path;
-  if (path === "/") return "/en";
-  return `/en${path}`;
+/**
+ * Generate OpenGraph image URL with dynamic content
+ */
+function generateOgImageUrl(title: string, description: string): string {
+  const encodedTitle = encodeURIComponent(title);
+  const encodedDesc = encodeURIComponent(description);
+  return `${SITE_URL}/og?title=${encodedTitle}&description=${encodedDesc}`;
 }
 
 export function buildPageMetadata(input: {
-  locale: DocLocale;
   title: string;
   description: string;
   path: string;
 }): Metadata {
-  const { locale, title, description, path } = input;
-  const currentPath = localizedPath(locale, path);
-  const currentUrl = `${SITE_URL}${currentPath}`;
-  const trUrl = `${SITE_URL}${localizedPath("tr", path)}`;
-  const enUrl = `${SITE_URL}${localizedPath("en", path)}`;
+  const { title, description, path } = input;
+  const currentUrl = `${SITE_URL}${path}`;
+  const ogImageUrl = generateOgImageUrl(title, description);
 
   return {
     title,
     description,
     alternates: {
-      canonical: currentUrl,
-      languages: {
-        tr: trUrl,
-        en: enUrl
-      }
+      canonical: currentUrl
     },
     openGraph: {
       title,
@@ -37,18 +32,26 @@ export function buildPageMetadata(input: {
       url: currentUrl,
       siteName: "Guardian",
       type: "website",
-      locale: locale === "tr" ? "tr_TR" : "en_US"
+      locale: "en_US",
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
-      description
+      description,
+      images: [ogImageUrl],
     }
   };
 }
 
-export function buildSoftwareApplicationJsonLd(locale: DocLocale): Record<string, unknown> {
-  const tr = locale === "tr";
+export function buildSoftwareApplicationJsonLd(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -60,18 +63,16 @@ export function buildSoftwareApplicationJsonLd(locale: DocLocale): Record<string
       price: "0",
       priceCurrency: "USD"
     },
-    description: tr
-      ? "Guardian, mimari yönetişim ve release kalitesi için masaüstü uygulamasıdır."
-      : "Guardian is a desktop app for architecture governance and release quality.",
-    url: `${SITE_URL}${locale === "en" ? "/en" : "/"}`
+    description: "Guardian is a desktop app for architecture governance and release quality.",
+    url: SITE_URL
   };
 }
 
-export function buildWebsiteJsonLd(locale: DocLocale): Record<string, unknown> {
+export function buildWebsiteJsonLd(): Record<string, unknown> {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: "Guardian",
-    url: `${SITE_URL}${locale === "en" ? "/en" : "/"}`
+    url: SITE_URL
   };
 }

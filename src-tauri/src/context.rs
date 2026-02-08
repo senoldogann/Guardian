@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 use walkdir::WalkDir;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -51,7 +51,9 @@ impl ProjectContext {
                             // Dependencies detected asynchronously
                         }
                     });
-                    context.dependencies.push("Rust: Cargo.toml found".to_string());
+                    context
+                        .dependencies
+                        .push("Rust: Cargo.toml found".to_string());
                 } else if path.ends_with("package.json") {
                     // OPTIMIZATION: Fire-and-forget async read for dependencies
                     let path_clone = path.to_path_buf();
@@ -60,7 +62,9 @@ impl ProjectContext {
                             // Dependencies detected asynchronously
                         }
                     });
-                    context.dependencies.push("Node: package.json found".to_string());
+                    context
+                        .dependencies
+                        .push("Node: package.json found".to_string());
                 }
             }
         }

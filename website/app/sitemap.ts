@@ -3,26 +3,20 @@ import { getDocs } from "../lib/docs";
 import { SITE_URL } from "../lib/seo";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const trDocs = await getDocs("tr");
-  const enDocs = await getDocs("en");
+  const docs = await getDocs();
 
   const staticRoutes = [
     "/",
     "/download",
     "/changelog",
-    "/docs",
-    "/en",
-    "/en/download",
-    "/en/changelog",
-    "/en/docs"
+    "/docs"
   ];
 
-  const trDocRoutes = trDocs.map((doc) => `/docs/${doc.meta.slug}`);
-  const enDocRoutes = enDocs.map((doc) => `/en/docs/${doc.meta.slug}`);
+  const docRoutes = docs.map((doc) => `/docs/${doc.meta.slug}`);
 
-  return [...staticRoutes, ...trDocRoutes, ...enDocRoutes].map((route) => ({
+  return [...staticRoutes, ...docRoutes].map((route) => ({
     url: `${SITE_URL}${route}`,
     changeFrequency: route.includes("changelog") ? "daily" : "weekly",
-    priority: route === "/" || route === "/en" ? 1 : 0.7
+    priority: route === "/" ? 1 : 0.7
   }));
 }

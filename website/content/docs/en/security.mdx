@@ -1,20 +1,157 @@
 ---
 title: "Security"
-summary: "Repository separation, signing model, and release hardening basics."
+summary: "Repository separation, signing model, release hardening, and data protection."
 section: "Security"
 order: 5
 ---
 
-## Repository strategy
+## Security Architecture
 
-- Source repository can remain private.
-- Distribution repository only contains signed artifacts and release metadata.
+Guardian implements a defense-in-depth security model with multiple layers of protection:
 
-## Signing model
+```
+┌──────────────────────────────────────────────┐
+│              🔒 Application Layer             │
+│  • Secure credential storage (Keychain/DPAPI) │
+│  • Input validation & sanitization            │
+│  • CSP-enforced script execution              │
+└──────────────────────────────────────────────┘
+                       │
+┌──────────────────────────────────────────────┐
+│             🔐 Transport Layer               │
+│  • TLS 1.3 for all API communications         │
+│  • Certificate pinning for update checks      │
+│  • Authenticated GitHub API requests          │
+└──────────────────────────────────────────────┘
+                       │
+┌──────────────────────────────────────────────┐
+│              📦 Distribution Layer           │
+│  • Code-signed binaries (Apple/Microsoft)     │
+│  • SHA-256 checksums for all artifacts        │
+│  • Signed release metadata (latest.json)      │
+└──────────────────────────────────────────────┘
+```
 
-Release packages are signed, and the updater validates using the public key.
+## Repository Strategy
 
-## Secret management
+Guardian uses a dual-repository model for maximum security:
 
-- Keep private keys and tokens in GitHub Secrets/Keychain only.
-- Signature fields in `latest.json` are verification data, not private keys.
+### Private Source Repository
+- Contains all source code
+- Access restricted to development team
+- No artifacts or binaries stored here
+- Protected branches with code review requirements
+
+### Public Distribution Repository
+- Contains only signed release artifacts
+- Release metadata in `latest.json`
+- GitHub Releases for version history
+- Public access for download and update checks
+
+> **Key Principle**: Never expose source code in distribution repositories. Only publish compiled, signed artifacts.
+
+## Signing Model
+
+All Guardian releases are cryptographically signed:
+
+### Code Signing
+
+| Platform | Method | Certificate |
+|----------|--------|-------------|
+| macOS | Apple Notarization | Developer ID |
+| Windows | Authenticode | EV Code Signing |
+| Linux | GPG Signature | Project Key |
+
+### Update Verification
+
+The in-app updater validates signatures before applying updates:
+
+```
+1. Download update package
+2. Verify SHA-256 checksum
+3. Validate code signature
+4. Apply update if all checks pass
+```
+
+If any verification fails, the update is rejected and the user is notified.
+
+## Secret Management
+
+### What to Protect
+
+| Secret Type | Storage Location | Never Store In |
+|-------------|-----------------|----------------|
+| API Keys | Keychain/DPAPI | Plain text files |
+| Private Keys | GitHub Secrets | Repository |
+| Auth Tokens | Secure storage | localStorage |
+
+### Configuration Best Practices
+
+1. **Use Environment Variables**: For CI/CD, use encrypted secrets:
+   ```yaml
+   # GitHub Actions example
+   env:
+     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+   ```
+
+2. **Rotate Keys Regularly**: Set calendar reminders for key rotation
+
+3. **Audit Access**: Review who has access to secrets quarterly
+
+## Data Protection
+
+### Local Data
+
+Guardian stores these data types locally:
+
+| Data Type | Location | Encryption |
+|-----------|----------|------------|
+| Settings | App data folder | At rest (AES-256) |
+| Scan history | App data folder | At rest |
+| API credentials | System keychain | Keychain encryption |
+
+### Data Transmission
+
+- All API calls use HTTPS with TLS 1.3
+- No telemetry data is collected without consent
+- Scan results never leave your machine (local processing)
+
+## Content Security Policy
+
+Guardian enforces strict CSP rules:
+
+```
+default-src 'self';
+script-src 'self';
+connect-src https://api.anthropic.com https://api.github.com;
+img-src 'self' data: https:;
+style-src 'self' 'unsafe-inline';
+```
+
+This prevents:
+- Cross-site scripting (XSS) attacks
+- Unauthorized external connections
+- Code injection attempts
+
+## Vulnerability Reporting
+
+Found a security issue? Please report responsibly:
+
+1. **Email**: security@guardian-app.com
+2. **Expected Response**: Within 48 hours
+3. **Disclosure Timeline**: 90 days after fix
+
+**Do Not**:
+- Post vulnerabilities publicly before disclosure timeline
+- Attempt to access other users' data
+- Perform destructive testing
+
+## Security Checklist
+
+Before deploying Guardian in your organization:
+
+- [ ] Review and approve CSP settings
+- [ ] Configure API keys securely (not in plain text)
+- [ ] Enable auto-updates for security patches
+- [ ] Review network access requirements with security team
+- [ ] Document exception handling procedures

@@ -3,6 +3,7 @@ import { invoke, listen, openDialog, type UnlistenFn } from "./lib/tauri";
 import { exportAuditToPdf } from "./lib/exportAuditPdf";
 import { handleError } from "./lib/error";
 import { useToast } from "./hooks/useToast";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Shield,
   Play,
@@ -24,9 +25,10 @@ import { ChatView } from "./components/ChatView";
 import DiagramView from "./components/DiagramView";
 import { Header } from "./components/Header";
 import { AuthGate } from "./components/AuthGate";
-import { SettingsModal } from "./components/SettingsModal";
 import { StallOverlay } from "./components/StallOverlay";
+import { OnboardingWizard } from "./components/OnboardingWizard";
 import { ToastContainer } from "./components/Toast";
+import { SettingsModal } from "./components/SettingsModal";
 import { useAuth } from "./hooks/useAuth";
 import { useSettings } from "./hooks/useSettings";
 import type { ProjectContext, Critique, ApiKeyStatus } from "./types";
@@ -34,6 +36,12 @@ import { STORAGE_KEYS } from "./constants";
 
 function App(): ReactElement {
   // Core state
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(STORAGE_KEYS.ONBOARDING_COMPLETED) !== "true";
+    }
+    return false;
+  });
   const [active, setActive] = useState(false);
   const [logs, setLogs] = useState<Record<string, Critique>>({});
   const [status, setStatus] = useState("Idle");
@@ -66,6 +74,10 @@ function App(): ReactElement {
     return "dark";
   });
 
+  const toggleTheme = () => {
+    setTheme(prev => prev === "dark" ? "light" : "dark");
+  };
+
   // Hooks
   const auth = useAuth();
   const settings = useSettings(exportAuditToPdf, settingsOpen);
@@ -83,15 +95,7 @@ function App(): ReactElement {
     localStorage.setItem(STORAGE_KEYS.THEME, theme);
   }, [theme]);
 
-  // Persist path
-  useEffect(() => {
-    if (!path) return;
-    localStorage.setItem(STORAGE_KEYS.LAST_PATH, path);
-  }, [path]);
 
-  const toggleTheme = useCallback((): void => {
-    setTheme(prev => prev === "dark" ? "light" : "dark");
-  }, []);
 
   const selectScope = async (): Promise<void> => {
     try {
@@ -325,7 +329,7 @@ function App(): ReactElement {
       }
 
       try {
-        await invoke("start_monitoring", { path });
+        await invoke("start_monitoring", { path, autoVerifyEnabled: settings.autoVerifyEnabled });
         setActive(true);
         setStatus("Monitoring Active");
       } catch (e: unknown) {
@@ -405,42 +409,6 @@ function App(): ReactElement {
   return (
     <div className="flex h-screen w-full bg-background text-text-main flex-col font-sans overflow-hidden transition-colors duration-300">
       <ToastContainer />
-      <StallOverlay
-        key={stallSignature}
-        stalled={stalled}
-        open={stallOverlayOpen}
-        onResolve={() => {
-          openGuruForStall();
-          setStallOverlayOpen(false);
-        }}
-        onDismiss={() => setStallOverlayOpen(false)}
-      />
-
-      <AuthGate
-        authDevice={auth.authDevice}
-        authLoading={auth.authLoading}
-        authError={auth.authError}
-        authWarning={auth.authWarning}
-        authCountdown={auth.authCountdown}
-        authSession={auth.authSession}
-        isDesktop={true}
-        showAuthGate={auth.showAuthGate}
-        onStartLogin={auth.startGithubLogin}
-        onCompleteLogin={auth.completeGithubLogin}
-        onCancel={auth.cancelGithubLogin}
-      />
-
-      <Header
-        active={active}
-        stats={stats}
-        usage={usage}
-        authSession={auth.authSession}
-        isDesktop={true}
-        authLoading={auth.authLoading}
-        onLogout={auth.logoutGithub}
-        onSettingsClick={() => setSettingsOpen(true)}
-      />
-
       <SettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
@@ -474,6 +442,8 @@ function App(): ReactElement {
         webSearchEnabled={settings.webSearchEnabled}
         webSearchReady={settings.webSearchReady}
         onWebSearchToggle={settings.onWebSearchToggle}
+        autoVerifyEnabled={settings.autoVerifyEnabled}
+        onAutoVerifyToggle={settings.onAutoVerifyToggle}
         onTavilyKeyFocus={settings.onTavilyKeyFocus}
         onTavilyKeyChange={settings.onTavilyKeyChange}
         onSaveTavilyKey={settings.saveTavilyKey}
@@ -488,29 +458,80 @@ function App(): ReactElement {
         settingsTab={settings.settingsTab}
         onSettingsTabChange={settings.setSettingsTab}
       />
+      <StallOverlay
+        key={stallSignature}
+        stalled={stalled}
+        open={stallOverlayOpen}
+        onResolve={() => {
+          openGuruForStall();
+          setStallOverlayOpen(false);
+        }}
+        onDismiss={() => setStallOverlayOpen(false)}
+      />
 
-      {settings.updateInfo?.status === "available" && !settings.updateDismissed && (
-        <div className="px-6 py-2 text-[10px] font-bold uppercase tracking-widest bg-[var(--accent-200)] text-text-main flex items-center justify-between">
-          <span>
-            Update available: v{settings.updateInfo.current_version} → v{settings.updateInfo.latest_version}
-          </span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={settings.installUpdate}
-              disabled={settings.updateInstalling}
-              className="px-3 py-1 rounded-md bg-[var(--accent-500)] text-background hover:opacity-90 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              {settings.updateInstalling ? "Updating..." : "Install Update"}
-            </button>
-            <button
-              onClick={() => settings.setUpdateDismissed(true)}
-              className="px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 transition-colors cursor-pointer"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
+      {showOnboarding && (
+        <OnboardingWizard onComplete={() => setShowOnboarding(false)} />
       )}
+
+      <AuthGate
+        authDevice={auth.authDevice}
+        authLoading={auth.authLoading}
+        authError={auth.authError}
+        authWarning={auth.authWarning}
+        authCountdown={auth.authCountdown}
+        authSession={auth.authSession}
+        isDesktop={true}
+        showAuthGate={auth.showAuthGate}
+        onStartLogin={auth.startGithubLogin}
+        onCompleteLogin={auth.completeGithubLogin}
+        onCancel={auth.cancelGithubLogin}
+      />
+
+      <Header
+        active={active}
+        stats={stats}
+        usage={usage}
+        authSession={auth.authSession}
+        isDesktop={true}
+        authLoading={auth.authLoading}
+        onLogout={auth.logoutGithub}
+        onSettingsClick={() => setSettingsOpen(true)}
+      />
+
+
+
+
+      <AnimatePresence>
+        {settings.updateInfo?.status === "available" && !settings.updateDismissed && (
+          <motion.div
+            initial={{ y: -80, opacity: 0, scale: 0.95 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: -80, opacity: 0, scale: 0.95 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl bg-gradient-to-r from-[var(--accent-400)] to-[var(--accent-600)] text-white shadow-2xl shadow-black/30 flex items-center gap-4 min-w-[320px]"
+          >
+            <div className="flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Update Available</p>
+              <p className="text-sm font-semibold">v{settings.updateInfo.current_version} → v{settings.updateInfo.latest_version}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={settings.installUpdate}
+                disabled={settings.updateInstalling}
+                className="px-4 py-2 rounded-lg bg-white text-[var(--accent-600)] font-semibold text-sm hover:bg-white/90 transition-all cursor-pointer disabled:opacity-50 shadow-lg"
+              >
+                {settings.updateInstalling ? "Updating..." : "Install Update"}
+              </button>
+              <button
+                onClick={() => settings.setUpdateDismissed(true)}
+                className="px-3 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-medium transition-colors cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {settings.updateChecking && !settings.updateInfo && !settings.updateDismissed && (
         <div className="px-6 py-1 text-[10px] text-text-muted flex items-center gap-2">

@@ -76,8 +76,6 @@ Supported modes:
 Supported providers:
 - Ollama
 - OpenAI
-- Anthropic (Claude)
-- Google Gemini
 - GitHub Models
 
 Model list behavior:

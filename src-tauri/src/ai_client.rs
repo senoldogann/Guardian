@@ -1,12 +1,12 @@
+use crate::config;
+use anyhow::{Context, Result};
 use reqwest::{Certificate, Client};
+use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::time::Duration;
 use std::fs;
-use anyhow::{Result, Context};
+use std::time::Duration;
 use tracing::{debug, error};
-use secrecy::{SecretString, ExposeSecret};
-use crate::config;
 
 #[derive(Debug, Clone)]
 pub struct AiClient {
@@ -28,24 +28,26 @@ pub struct Critique {
 }
 
 impl AiClient {
-    pub fn new(provider_id: String, base_url: String, model: String, api_key: SecretString) -> Result<Self> {
+    pub fn new(
+        provider_id: String,
+        base_url: String,
+        model: String,
+        api_key: SecretString,
+    ) -> Result<Self> {
         let normalized = provider_id.trim().to_lowercase();
         let timeout_secs = config::provider_timeout_seconds(&normalized);
 
-        let mut builder = Client::builder()
-            .timeout(Duration::from_secs(timeout_secs));
+        let mut builder = Client::builder().timeout(Duration::from_secs(timeout_secs));
 
         if let Some(cert_path) = config::provider_pinned_cert_path(&normalized) {
             let cert_bytes = fs::read(&cert_path)
                 .with_context(|| format!("Failed to read pinned cert: {}", cert_path))?;
-            let cert = Certificate::from_pem(&cert_bytes)
-                .context("Failed to parse pinned certificate")?;
+            let cert =
+                Certificate::from_pem(&cert_bytes).context("Failed to parse pinned certificate")?;
             builder = builder.add_root_certificate(cert);
         }
 
-        let client = builder
-            .build()
-            .context("Failed to build HTTP client")?;
+        let client = builder.build().context("Failed to build HTTP client")?;
 
         Ok(Self {
             provider_id: normalized,
@@ -77,7 +79,7 @@ impl AiClient {
 
         let end_brace = content.rfind('}');
         let end_bracket = content.rfind(']');
-        
+
         let end = match (end_brace, end_bracket) {
             (Some(a), Some(b)) => std::cmp::max(a, b),
             (Some(a), None) => a,
@@ -92,7 +94,12 @@ impl AiClient {
         }
     }
 
-    async fn send_chat(&self, system_prompt: &str, user_prompt: &str, json_mode: bool) -> Result<String> {
+    async fn send_chat(
+        &self,
+        system_prompt: &str,
+        user_prompt: &str,
+        json_mode: bool,
+    ) -> Result<String> {
         let provider = self.provider_id.as_str();
         match provider {
             "ollama" => {
@@ -108,8 +115,13 @@ impl AiClient {
                     payload["format"] = json!("json");
                 }
                 let url = format!("{}/api/chat", self.base_url.trim_end_matches('/'));
-                let response = self.client.post(&url)
-                    .header("Authorization", format!("Bearer {}", self.api_key.expose_secret()))
+                let response = self
+                    .client
+                    .post(&url)
+                    .header(
+                        "Authorization",
+                        format!("Bearer {}", self.api_key.expose_secret()),
+                    )
                     .json(&payload)
                     .send()
                     .await
@@ -137,7 +149,9 @@ impl AiClient {
                     payload["response_format"] = json!({ "type": "json_object" });
                 }
                 let url = format!("{}/chat/completions", self.base_url.trim_end_matches('/'));
-                let response = self.client.post(&url)
+                let response = self
+                    .client
+                    .post(&url)
                     .bearer_auth(self.api_key.expose_secret())
                     .json(&payload)
                     .send()
@@ -163,7 +177,9 @@ impl AiClient {
                     ]
                 });
                 let url = format!("{}/messages", self.base_url.trim_end_matches('/'));
-                let response = self.client.post(&url)
+                let response = self
+                    .client
+                    .post(&url)
                     .header("x-api-key", self.api_key.expose_secret())
                     .header("anthropic-version", "2023-06-01")
                     .json(&payload)
@@ -200,8 +216,14 @@ impl AiClient {
                         { "role": "user", "parts": [{ "text": user_prompt }] }
                     ]
                 });
-                let url = format!("{}/{}:generateContent", self.base_url.trim_end_matches('/'), model_path);
-                let response = self.client.post(&url)
+                let url = format!(
+                    "{}/{}:generateContent",
+                    self.base_url.trim_end_matches('/'),
+                    model_path
+                );
+                let response = self
+                    .client
+                    .post(&url)
                     .header("x-goog-api-key", self.api_key.expose_secret())
                     .json(&payload)
                     .send()
@@ -238,8 +260,13 @@ impl AiClient {
                 if json_mode {
                     payload["response_format"] = json!({ "type": "json_object" });
                 }
-                let url = format!("{}/inference/chat/completions", self.base_url.trim_end_matches('/'));
-                let response = self.client.post(&url)
+                let url = format!(
+                    "{}/inference/chat/completions",
+                    self.base_url.trim_end_matches('/')
+                );
+                let response = self
+                    .client
+                    .post(&url)
                     .header("accept", "application/vnd.github+json")
                     .header("x-github-api-version", "2022-11-28")
                     .bearer_auth(self.api_key.expose_secret())
@@ -309,8 +336,12 @@ JSON MODE:
             anyhow::bail!("File path contains potentially dangerous content: {}", e);
         }
 
-        let mut critique: Critique = serde_json::from_str(clean_json)
-             .with_context(|| format!("Failed to parse AI JSON response. Raw content: {}", clean_json))?;
+        let mut critique: Critique = serde_json::from_str(clean_json).with_context(|| {
+            format!(
+                "Failed to parse AI JSON response. Raw content: {}",
+                clean_json
+            )
+        })?;
 
         // SECURITY: Validate and sanitize string fields from AI response
         if let Err(e) = crate::validation::sanitize_string_content(&critique.message, "message") {
@@ -335,7 +366,7 @@ JSON MODE:
         // CRITICAL: Override AI's file_path with the actual system path we analyzed.
         // This prevents the AI from potentially returning a different path (path traversal attack)
         critique.file_path = file_path.to_string();
-            
+
         Ok(critique)
     }
 
@@ -364,7 +395,12 @@ JSON ARRAY MODE:
 
         let mut user_prompt = String::from("Batch Analysis Request:\n\n");
         for (idx, (path, diff)) in batch.iter().enumerate() {
-            user_prompt.push_str(&format!("--- FILE {} ---\nPath: {}\nContent:\n{}\n\n", idx + 1, path, diff));
+            user_prompt.push_str(&format!(
+                "--- FILE {} ---\nPath: {}\nContent:\n{}\n\n",
+                idx + 1,
+                path,
+                diff
+            ));
         }
 
         let content_str = self.send_chat(system_prompt, &user_prompt, true).await?;
@@ -449,7 +485,6 @@ JSON ARRAY MODE:
         let content = self.send_chat(system_prompt, &user_prompt, false).await?;
         Ok(content)
     }
-
 }
 
 fn parse_batch_json(raw: &str, cleaned: &str) -> Result<Vec<Critique>> {
@@ -528,7 +563,7 @@ fn critiques_from_value(value: &serde_json::Value) -> Option<Vec<Critique>> {
     None
 }
 
-fn extract_json_window<'a>(content: &'a str, open: char, close: char) -> Option<&'a str> {
+fn extract_json_window(content: &str, open: char, close: char) -> Option<&str> {
     let start = content.find(open)?;
     let end = content.rfind(close)?;
     if start <= end {

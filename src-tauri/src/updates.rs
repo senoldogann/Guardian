@@ -1,12 +1,12 @@
-use serde::{Deserialize, Serialize};
+use base64::Engine;
+use chrono::Utc;
+use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use semver::Version;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_updater::UpdaterExt;
-use ed25519_dalek::{VerifyingKey, Signature, Verifier};
-use base64::Engine;
-use chrono::Utc;
 
 // Embedded public key for update signature verification
 // This should be replaced with your actual Ed25519 public key (32 bytes, base64 encoded)
@@ -37,10 +37,7 @@ pub struct UpdateCheckResult {
 }
 
 fn update_config_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let base = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?;
+    let base = app.path().app_data_dir().map_err(|e| e.to_string())?;
     Ok(base.join("update_config.json"))
 }
 
@@ -97,9 +94,7 @@ pub async fn check_for_updates(app: &AppHandle) -> Result<UpdateCheckResult, Str
         }
     };
 
-    let response = reqwest::get(&feed_url)
-        .await
-        .map_err(|e| e.to_string())?;
+    let response = reqwest::get(&feed_url).await.map_err(|e| e.to_string())?;
 
     if !response.status().is_success() {
         return Ok(UpdateCheckResult {
@@ -223,16 +218,14 @@ fn get_verifying_key() -> Option<VerifyingKey> {
 }
 
 pub async fn download_update(app: &AppHandle, url: &str) -> Result<String, String> {
-    let response = reqwest::get(url)
-        .await
-        .map_err(|e| e.to_string())?;
+    let response = reqwest::get(url).await.map_err(|e| e.to_string())?;
 
     if !response.status().is_success() {
         return Err(format!("Update download failed: {}", response.status()));
     }
 
     let bytes = response.bytes().await.map_err(|e| e.to_string())?;
-    
+
     // Security: Verify update signature if provided
     // Note: In a complete implementation, the signature should be fetched alongside the update
     // and verified here. For now, we embed the public key and log a warning.
@@ -246,7 +239,7 @@ pub async fn download_update(app: &AppHandle, url: &str) -> Result<String, Strin
 
     let file_name = url
         .split('/')
-        .last()
+        .next_back()
         .filter(|name| !name.is_empty())
         .unwrap_or("guardian-update.bin");
 
@@ -256,9 +249,13 @@ pub async fn download_update(app: &AppHandle, url: &str) -> Result<String, Strin
         .map_err(|e| e.to_string())?
         .join("updates");
 
-    tokio::fs::create_dir_all(&base).await.map_err(|e| e.to_string())?;
+    tokio::fs::create_dir_all(&base)
+        .await
+        .map_err(|e| e.to_string())?;
     let target = base.join(file_name);
-    tokio::fs::write(&target, bytes).await.map_err(|e| e.to_string())?;
+    tokio::fs::write(&target, bytes)
+        .await
+        .map_err(|e| e.to_string())?;
 
     Ok(target.to_string_lossy().to_string())
 }

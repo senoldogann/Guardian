@@ -5,11 +5,18 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 const FILE_TOKEN_EXTENSIONS: &[&str] = &[
-    ".rs", ".tsx", ".ts", ".js", ".jsx", ".py", ".sh", ".md", ".json", ".toml",
-    ".yml", ".yaml", ".go", ".txt", ".css", ".html", ".sql"
+    ".rs", ".tsx", ".ts", ".js", ".jsx", ".py", ".sh", ".md", ".json", ".toml", ".yml", ".yaml",
+    ".go", ".txt", ".css", ".html", ".sql",
 ];
 const ENV_QUERY_KEYWORDS: &[&str] = &[
-    ".env", "dotenv", "environment", "env", "secret", "secrets", "apikey", "api key"
+    ".env",
+    "dotenv",
+    "environment",
+    "env",
+    "secret",
+    "secrets",
+    "apikey",
+    "api key",
 ];
 
 fn is_file_token(token: &str) -> bool {
@@ -75,15 +82,15 @@ fn resolve_explicit_files(root: &str, tokens: &[String]) -> Vec<PathBuf> {
                     break;
                 }
                 if let Ok(entry) = result {
-                    if entry.file_type().map(|f| f.is_file()).unwrap_or(false) {
-                        if entry.file_name().to_string_lossy() == file_name {
-                            let path = entry.path().to_path_buf();
-                            let key = path.to_string_lossy().to_string();
-                            if seen.insert(key) {
-                                results.push(path);
-                            }
-                            break;
+                    if entry.file_type().map(|f| f.is_file()).unwrap_or(false)
+                        && entry.file_name().to_string_lossy() == file_name
+                    {
+                        let path = entry.path().to_path_buf();
+                        let key = path.to_string_lossy().to_string();
+                        if seen.insert(key) {
+                            results.push(path);
                         }
+                        break;
                     }
                 }
             }
@@ -151,7 +158,12 @@ fn append_workspace_snapshot(context: &mut String, root: &str) {
         context.push_str(&format!("- Directories ({}): {}\n", dirs.len(), listing));
     }
     if !files.is_empty() {
-        let listing = files.iter().take(20).cloned().collect::<Vec<_>>().join(", ");
+        let listing = files
+            .iter()
+            .take(20)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join(", ");
         context.push_str(&format!("- Files ({}): {}\n", files.len(), listing));
     }
     context.push('\n');
@@ -162,8 +174,12 @@ fn append_package_json_summary(context: &mut String, root: &str) {
     if !pkg_path.exists() {
         return;
     }
-    let Ok(content) = fs::read_to_string(&pkg_path) else { return; };
-    let Ok(parsed) = serde_json::from_str::<Value>(&content) else { return; };
+    let Ok(content) = fs::read_to_string(&pkg_path) else {
+        return;
+    };
+    let Ok(parsed) = serde_json::from_str::<Value>(&content) else {
+        return;
+    };
 
     context.push_str("### package.json Summary:\n");
     if let Some(name) = parsed.get("name").and_then(|v| v.as_str()) {
@@ -240,7 +256,12 @@ pub fn search_context(path: &str, query: &str) -> String {
     let file_tokens = extract_file_tokens(query);
     let mut explicit_files = resolve_explicit_files(path, &file_tokens);
     explicit_files.extend(resolve_special_context_files(path, query));
-    append_missing_file_notes(&mut context_accumulator, path, &file_tokens, &explicit_files);
+    append_missing_file_notes(
+        &mut context_accumulator,
+        path,
+        &file_tokens,
+        &explicit_files,
+    );
     if !explicit_files.is_empty() {
         context_accumulator.push_str("### Explicit File Context:\n\n");
         for file_path in explicit_files {
@@ -305,19 +326,22 @@ pub fn search_context(path: &str, query: &str) -> String {
         .git_ignore(true)
         .build();
 
-    for result in walker {
-        if let Ok(entry) = result {
-            let depth = entry.depth();
-            let indent = "  ".repeat(depth);
-            let name = entry.file_name().to_string_lossy();
-            context_accumulator.push_str(&format!("{}{}\n", indent, name));
-        }
+    for entry in walker.flatten() {
+        let depth = entry.depth();
+        let indent = "  ".repeat(depth);
+        let name = entry.file_name().to_string_lossy();
+        context_accumulator.push_str(&format!("{}{}\n", indent, name));
     }
 
     context_accumulator
 }
 
-fn append_missing_file_notes(context: &mut String, root: &str, tokens: &[String], resolved: &[PathBuf]) {
+fn append_missing_file_notes(
+    context: &mut String,
+    root: &str,
+    tokens: &[String],
+    resolved: &[PathBuf],
+) {
     if tokens.is_empty() {
         return;
     }

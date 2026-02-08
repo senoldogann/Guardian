@@ -6,6 +6,8 @@ export const STORAGE_KEYS = {
   THEME: "guardian_theme",
   WEB_SEARCH: "guardian_web_search_enabled",
   CHAT_PREFIX: "guardian_chat_",
+  ONBOARDING_COMPLETED: "guardian_onboarding_completed",
+  AUTO_VERIFY_ENABLED: "guardian_auto_verify_enabled",
 } as const;
 
 // Limits
@@ -23,7 +25,8 @@ export const MASK = "••••••";
 
 // Provider options
 export const PROVIDER_OPTIONS = [
-  { id: "ollama", label: "Ollama (Local/Hosted)", baseUrl: "https://ollama.com" },
+  { id: "ollama", label: "Ollama (Local)", baseUrl: "http://127.0.0.1:11434" },
+  { id: "ollama-cloud", label: "Ollama (Cloud)", baseUrl: "https://ollama.com" },
   { id: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1" },
   { id: "anthropic", label: "Anthropic (Claude)", baseUrl: "https://api.anthropic.com/v1" },
   { id: "gemini", label: "Google Gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta" },

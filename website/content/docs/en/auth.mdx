@@ -1,0 +1,114 @@
+---
+title: "Authentication"
+summary: "Configure AI providers, manage API keys, and secure credential storage."
+section: "Operations"
+order: 3
+---
+
+## Overview
+
+Guardian requires authentication credentials to communicate with AI providers. This guide covers how to configure, manage, and secure your authentication setup.
+
+## Supported Providers
+
+Guardian supports multiple AI providers for code analysis:
+
+| Provider | Description | Best For |
+|----------|-------------|----------|
+| **Ollama** | Local or self-hosted models | Privacy-focused, offline use |
+| **OpenAI** | GPT models (gpt-5.2, gpt-5.3) | General purpose, fast responses |
+| **Anthropic** | Claude models (claude-sonnet-4.5, claude-haiku) | Deep code analysis, security review |
+| **Google Gemini** | Gemini models (gemini-3.0-flash, gemini-3-pro) | High speed, multimodal |
+| **GitHub Models** | GitHub-hosted AI models | GitHub ecosystem integration |
+
+## Initial Setup
+
+### Step 1: Obtain API Keys
+
+1. **OpenAI**: Visit [platform.openai.com](https://platform.openai.com)
+2. **Anthropic**: Visit [console.anthropic.com](https://console.anthropic.com)
+3. **Google**: Visit [aistudio.google.com](https://aistudio.google.com)
+4. **GitHub Models**: Visit [github.com/marketplace/models](https://github.com/marketplace/models)
+5. **Ollama**: No API key required for local installation
+
+### Step 2: Configure in Guardian
+
+Open Settings (gear icon) and configure your provider:
+
+1. Select your preferred **Provider** from the dropdown
+2. Enter your **API Key** (if required)
+3. Choose a **Model** from the available options
+4. Click **Save** to apply
+
+### Step 3: Test Connection
+
+The app will automatically validate your credentials when you start monitoring or use Guru.
+
+## Credential Storage
+
+Guardian uses platform-native secure storage:
+
+| Platform | Storage Method | Encryption |
+|----------|---------------|------------|
+| **macOS** | Keychain | AES-256 |
+| **Windows** | Credential Manager (DPAPI) | AES-256 |
+| **Linux** | Secret Service API | AES-256 |
+
+> **Security Note**: API keys are never stored in plain text files or exposed in logs.
+
+## Ollama Configuration
+
+For local AI models using Ollama:
+
+### Local Setup
+1. Install Ollama from [ollama.com](https://ollama.com)
+2. Pull a model: `ollama pull llama3.2`
+3. In Guardian, select **Ollama** provider
+4. Set Base URL to `http://127.0.0.1:11434` (Local) or your cloud endpoint
+
+### Cloud/Remote Setup
+If you have a hosted Ollama instance:
+1. Select **Ollama** provider
+2. Choose "Cloud" from the Base URL dropdown or enter your custom endpoint
+
+## Rate Limit Management
+
+Guardian automatically handles rate limits with exponential backoff. If you encounter rate limiting:
+- Wait a few moments and try again
+- Consider using a different provider temporarily
+
+## API Key Rotation
+
+Regularly rotate your API keys for security:
+
+1. Generate new key from provider dashboard
+2. Update in Guardian Settings
+3. Test by using Guru or starting monitoring
+4. Revoke old key from provider dashboard
+
+## Troubleshooting
+
+### Common Issues
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| "Invalid API Key" | Incorrect or expired key | Verify key in provider dashboard |
+| "Rate Limited" | Too many requests | Wait and try again |
+| "Network Error" | Connectivity issue | Check firewall/proxy settings |
+| "Model Not Found" | Invalid model name | Update to supported model |
+
+### Reset Credentials
+
+To clear stored credentials:
+1. Open Settings
+2. Click "Clear" next to the API Key field
+3. Re-enter new credentials
+
+## Best Practices
+
+1. **Use Separate Keys**: One key per environment (dev, staging, prod)
+2. **Monitor Usage**: Check provider dashboards for usage
+3. **Rotate Quarterly**: Change keys every 3 months
+4. **Limit Scope**: Use provider's API key restrictions if available
+5. **Never Commit**: Keep keys out of version control
+    

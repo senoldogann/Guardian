@@ -15,7 +15,7 @@ pub async fn run_command(command: &str, args: &[&str]) -> Result<String, String>
 
     let cmd = command.to_string();
     let args_vec: Vec<String> = args.iter().map(|&s| s.to_string()).collect();
-    
+
     // OPTIMIZATION: Use spawn_blocking for CPU-intensive blocking operations
     tokio::task::spawn_blocking(move || {
         let output = Command::new(&cmd)
@@ -28,7 +28,9 @@ pub async fn run_command(command: &str, args: &[&str]) -> Result<String, String>
         } else {
             Err(String::from_utf8_lossy(&output.stderr).to_string())
         }
-    }).await.map_err(|e| e.to_string())?
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 pub fn verify_rust_project(root: &str) -> Result<String, String> {
@@ -36,9 +38,9 @@ pub fn verify_rust_project(root: &str) -> Result<String, String> {
 }
 
 pub fn verify_node_project(root: &str) -> Result<String, String> {
+    use serde_json::Value;
     use std::fs;
     use std::path::Path;
-    use serde_json::Value;
 
     let pkg_path = Path::new(root).join("package.json");
     let content = match fs::read_to_string(&pkg_path) {
@@ -51,10 +53,7 @@ pub fn verify_node_project(root: &str) -> Result<String, String> {
         Err(_) => return Ok("NPM Build skipped: package.json parse failed".to_string()),
     };
 
-    let has_build = parsed
-        .get("scripts")
-        .and_then(|s| s.get("build"))
-        .is_some();
+    let has_build = parsed.get("scripts").and_then(|s| s.get("build")).is_some();
 
     if !has_build {
         return Ok("NPM Build skipped: build script not found".to_string());

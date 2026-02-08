@@ -1,21 +1,337 @@
 ---
 title: "Updates"
-summary: "In-app update flow, release source, and operational update behavior."
+summary: "In-app update flow, release source, automatic updates, and operational update behavior."
 section: "Operations"
 order: 3
 ---
 
-## Update source
+## Update Overview
 
-Guardian reads updater metadata from the public distribution release source.
+Guardian uses an automatic update system to ensure you always have the latest features, security patches, and bug fixes. Updates are downloaded and installed seamlessly without disrupting your workflow.
 
-## In-app update flow
+## Update Source
 
-1. The app checks for new versions periodically.
-2. An update action appears when a newer release is found.
-3. The package is downloaded in the background after approval.
-4. The app restarts and switches to the new version.
+Guardian reads updater metadata from the **public distribution repository**.
 
-## Operational note
+### Release Structure
 
-If release mirroring is manual, verify that `latest.json` points to distribution repository URLs.
+```
+Distribution Repository
+├── latest.json          # Current version metadata
+├── Guardian-1.2.3.dmg   # macOS installer
+├── Guardian-1.2.3.msi   # Windows installer
+├── Guardian-1.2.3.AppImage  # Linux installer
+└── checksums.txt        # SHA-256 hashes
+```
+
+### latest.json Format
+
+```json
+{
+  "version": "1.2.3",
+  "releaseDate": "2026-02-07",
+  "minimumVersion": "1.0.0",
+  "notes": "Bug fixes and performance improvements",
+  "downloads": {
+    "darwin": {
+      "url": "https://github.com/.../Guardian-1.2.3.dmg",
+      "checksum": "sha256:abc123..."
+    },
+    "win32": {
+      "url": "https://github.com/.../Guardian-1.2.3.msi",
+      "checksum": "sha256:def456..."
+    },
+    "linux": {
+      "url": "https://github.com/.../Guardian-1.2.3.AppImage",
+      "checksum": "sha256:ghi789..."
+    }
+  }
+}
+```
+
+## In-App Update Flow
+
+### Automatic Update Check
+
+Guardian checks for updates:
+
+1. **On Startup**: Every time you open the app
+2. **Periodically**: Every 4 hours while running
+3. **Manually**: Via **Settings > Updates > Check for Updates**
+
+### Update Notification
+
+When an update is available:
+
+1. **Banner appears** at the top of the window
+2. **Badge** appears on Settings icon
+3. **Version info** shows in Settings > Updates
+
+### Update Installation Process
+
+```
+1. Notification Shown
+       ↓
+2. User Approves
+       ↓
+3. Download in Background
+       ↓
+4. Verify Checksum & Signature
+       ↓
+5. Install Update
+       ↓
+6. Restart Application
+       ↓
+7. New Version Active
+```
+
+**Installation Steps**:
+
+1. **Approval**: Click "Update Now" in banner or Settings
+2. **Download**: Package downloads in background (progress shown)
+3. **Verification**: Checksum and signature validated
+4. **Installation**: Old version backed up, new version installed
+5. **Restart**: App restarts automatically
+6. **Confirmation**: New version number shown in Settings
+
+### Update Verification
+
+Before applying updates, Guardian verifies:
+
+| Check | Purpose |
+|-------|---------|
+| **SHA-256 Checksum** | File integrity verification |
+| **Code Signature** | Authenticity verification |
+| **Version Format** | Prevents invalid updates |
+| **Minimum Version** | Ensures compatibility |
+
+If any check fails, the update is rejected and the user is notified.
+
+## Update Settings
+
+### Auto-Update Modes
+
+Configure in **Settings > Updates**:
+
+| Mode | Behavior | Recommended For |
+|------|----------|-----------------|
+| **Automatic** | Download and install without prompting | Personal use, trusted environments |
+| **Notify Only** | Show notification, manual install | Corporate environments |
+| **Disabled** | No update checks | Air-gapped systems, development |
+
+### Update Channels
+
+Choose your update stream:
+
+| Channel | Description | Stability |
+|---------|-------------|-----------|
+| **Stable** | Production releases only | ★★★★★ |
+| **Beta** | Include pre-release versions | ★★★☆☆ |
+
+**Switching Channels**:
+1. Go to **Settings > Updates**
+2. Select channel from dropdown
+3. Check for updates to see new versions
+
+### Update Schedule
+
+Control when updates are checked:
+
+| Option | Frequency | Best For |
+|--------|-----------|----------|
+| **On Startup** | Every launch | Most users |
+| **Every Hour** | Hourly checks | Fast-paced environments |
+| **Daily** | Once per day | Limited bandwidth |
+
+## Manual Updates
+
+### Checking Manually
+
+**Settings > Updates > Check for Updates**
+
+Forces immediate check regardless of schedule.
+
+### Downloading Manually
+
+If automatic updates fail:
+
+1. Visit [guardian-app.vercel.app/download](https://guardian-app.vercel.app/download)
+2. Download installer for your platform
+3. Run installer (previous version will be replaced)
+
+### Offline Updates
+
+For air-gapped systems:
+
+1. Download installer on connected machine
+2. Transfer via USB/sneakernet
+3. Run installer normally
+
+## Rollback
+
+### Automatic Rollback
+
+If new version fails to start:
+
+1. Guardian detects startup failure
+2. Automatically rolls back to previous version
+3. Notifies user of the issue
+
+### Manual Rollback
+
+**macOS**:
+```bash
+# Restore from Time Machine
+# Or reinstall previous version from backup
+```
+
+**Windows**:
+```powershell
+# Use System Restore
+# Or uninstall and reinstall previous version
+```
+
+**Linux**:
+```bash
+# Keep previous AppImage
+./Guardian-1.2.2.AppImage
+```
+
+## Operational Notes
+
+### Release Mirroring
+
+If release mirroring is manual, verify that:
+
+- `latest.json` points to **distribution repository URLs**
+- Checksums match the actual files
+- Signatures are valid
+- Files are publicly accessible
+
+### Corporate Deployments
+
+For enterprise environments:
+
+1. **Disable Auto-Update**: Use "Notify Only" or "Disabled"
+2. **Internal Mirror**: Host `latest.json` on internal server
+3. **Staging**: Test updates in staging environment first
+4. **Scheduled Deployment**: Plan updates during maintenance windows
+5. **Group Policy**: Configure via MDM or configuration management
+
+**Internal Mirror Setup**:
+
+```json
+{
+  "version": "1.2.3",
+  "downloads": {
+    "darwin": {
+      "url": "https://internal.company.com/guardian/Guardian-1.2.3.dmg"
+    }
+  }
+}
+```
+
+Point Guardian to internal URL in **Settings > Updates > Custom Source**
+
+### Update Notifications
+
+Disable notifications temporarily:
+
+- **Do Not Disturb**: System setting
+- **Focus Mode**: macOS Focus or Windows Focus Assist
+- **In-App**: **Settings > Updates > Show Notifications**
+
+## Troubleshooting Updates
+
+### Update check fails
+
+**Causes**:
+- Network connectivity issues
+- Firewall blocking GitHub
+- Proxy not configured
+
+**Solutions**:
+1. Check internet connection
+2. Verify GitHub accessibility
+3. Configure proxy if behind corporate firewall
+4. Try manual download
+
+### Download stuck or slow
+
+**Solutions**:
+1. Check bandwidth usage
+2. Pause and resume download
+3. Try different network
+4. Use manual download as alternative
+
+### "Update verification failed"
+
+**Cause**: Corrupted download or signature mismatch
+
+**Solutions**:
+1. Clear download cache: **Settings > Updates > Clear Cache**
+2. Retry update
+3. Download manually from website
+
+### Update installed but version unchanged
+
+**Solutions**:
+1. Fully quit Guardian (not just close window)
+2. Restart application
+3. Check if multiple versions installed
+4. Reinstall manually if needed
+
+## Security Considerations
+
+### Signature Verification
+
+All updates are signed:
+- **macOS**: Apple Notarization
+- **Windows**: Authenticode signing
+- **Linux**: GPG signatures
+
+Never install unsigned updates.
+
+### Checksum Validation
+
+Guardian verifies SHA-256 checksums before installation. This prevents:
+- Corrupted downloads
+- Man-in-the-middle attacks
+- Tampered update packages
+
+### Downgrade Prevention
+
+Guardian prevents downgrades to older versions:
+- Maintains update history
+- Prevents known-vulnerable versions
+- Allows forced downgrade only with admin override
+
+## Best Practices
+
+1. **Keep Auto-Update Enabled**: Ensures security patches are applied promptly
+2. **Review Release Notes**: Check what's new before updating
+3. **Update During Downtime**: Choose low-activity periods
+4. **Backup Before Major Updates**: Export settings as precaution
+5. **Test Beta Versions**: In staging environment first
+6. **Monitor Update Status**: Check **Settings > Updates** regularly
+
+## Update History
+
+View past updates:
+
+**Settings > Updates > Update History**
+
+Shows:
+- Version history
+- Installation dates
+- Success/failure status
+- Rollback events
+
+## Getting Update Help
+
+If update issues persist:
+
+1. Check **Settings > Updates** for error messages
+2. Export logs: **Settings > Advanced > Export Logs**
+3. Try manual installation
+4. Contact support with version numbers and error details

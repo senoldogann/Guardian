@@ -29,7 +29,7 @@ export interface UseAuthReturn {
 
 export function useAuth(): UseAuthReturn {
   const isDesktop = isTauriRuntime();
-  
+
   const [authSession, setAuthSession] = useState<GithubUser | null>(null);
   const [authVerified, setAuthVerified] = useState(false);
   const [authWarning, setAuthWarning] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export function useAuth(): UseAuthReturn {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authGateVisible, setAuthGateVisible] = useState(false);
   const [authCountdown, setAuthCountdown] = useState<number | null>(null);
-  
+
   // Refs for cleanup and race condition prevention
   const abortControllerRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
@@ -49,13 +49,13 @@ export function useAuth(): UseAuthReturn {
     // Cancel any pending request
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
-    
+
     try {
       const res = await invoke<AuthSessionResponse | null>("refresh_auth_session");
-      
+
       // Prevent state updates if unmounted
       if (!mountedRef.current) return null;
-      
+
       setAuthSession(res?.user ?? null);
       setAuthVerified(Boolean(res?.verified));
       setAuthWarning(res?.warning ?? null);
@@ -74,7 +74,7 @@ export function useAuth(): UseAuthReturn {
   // Load initial session
   useEffect(() => {
     mountedRef.current = true;
-    
+
     const loadSession = async (): Promise<void> => {
       try {
         const res = await invoke<AuthSessionResponse | null>("get_auth_session", { cachedOnly: true });
@@ -85,14 +85,35 @@ export function useAuth(): UseAuthReturn {
         if (res?.verified) {
           setAuthGateVisible(false);
         }
+
+        // Auto-refresh in background if we have a cached session but not verified
+        // This ensures the user doesn't see "Verify your GitHub session" error after restart
+        if (res?.user && !res?.verified) {
+          // Attempt online verification in background
+          invoke<AuthSessionResponse | null>("refresh_auth_session")
+            .then((refreshed) => {
+              if (!mountedRef.current) return;
+              if (refreshed?.user) {
+                setAuthSession(refreshed.user);
+                setAuthVerified(Boolean(refreshed.verified));
+                setAuthWarning(refreshed.warning ?? null);
+                if (refreshed.verified) {
+                  setAuthGateVisible(false);
+                }
+              }
+            })
+            .catch(() => {
+              // Silently fail - user can manually refresh or re-login if needed
+            });
+        }
       } catch (e) {
         if (!mountedRef.current) return;
         setAuthError(e instanceof Error ? e.message : String(e));
       }
     };
-    
+
     loadSession();
-    
+
     return () => {
       mountedRef.current = false;
       abortControllerRef.current?.abort();
@@ -106,14 +127,14 @@ export function useAuth(): UseAuthReturn {
       window.clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    
+
     if (!authDevice) {
       setAuthCountdown(null);
       return;
     }
-    
+
     setAuthCountdown(authDevice.expires_in);
-    
+
     intervalRef.current = window.setInterval(() => {
       setAuthCountdown(prev => {
         if (prev === null || prev <= 0) {
@@ -126,7 +147,7 @@ export function useAuth(): UseAuthReturn {
         return Math.max(prev - 1, 0);
       });
     }, 1000);
-    
+
     return () => {
       if (intervalRef.current) {
         window.clearInterval(intervalRef.current);
@@ -171,11 +192,11 @@ export function useAuth(): UseAuthReturn {
   const completeGithubLogin = useCallback(async (): Promise<void> => {
     if (!isDesktop) return;
     if (!authDevice) return;
-    
+
     // Cancel any pending login
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
-    
+
     setAuthLoading(true);
     setAuthError(null);
     try {

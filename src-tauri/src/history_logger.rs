@@ -18,6 +18,6 @@ pub fn append_history_log(root: &str, critique: &Critique) {
         .append(true)
         .open(history_path)
     {
-        let _ = writeln!(file, "{}", log_entry.to_string());
+        let _ = writeln!(file, "{log_entry}");
     }
 }

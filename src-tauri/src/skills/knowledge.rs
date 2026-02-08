@@ -48,18 +48,14 @@ impl KnowledgeBase {
             .max_depth(Some(1))
             .build();
 
-        for result in walker {
-            if let Ok(entry) = result {
-                if entry.file_type().map(|f| f.is_file()).unwrap_or(false) {
-                    if let Some(ext) = entry.path().extension() {
-                        if ext == "md" {
-                            if let Ok(content) = fs::read_to_string(entry.path()) {
-                                let filename = entry.file_name().to_string_lossy();
-                                combined_rules.push_str(&format!(
-                                    "\n--- RULE: {} ---\n{}\n",
-                                    filename, content
-                                ));
-                            }
+        for entry in walker.flatten() {
+            if entry.file_type().map(|f| f.is_file()).unwrap_or(false) {
+                if let Some(ext) = entry.path().extension() {
+                    if ext == "md" {
+                        if let Ok(content) = fs::read_to_string(entry.path()) {
+                            let filename = entry.file_name().to_string_lossy();
+                            combined_rules
+                                .push_str(&format!("\n--- RULE: {} ---\n{}\n", filename, content));
                         }
                     }
                 }

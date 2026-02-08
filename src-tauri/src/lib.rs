@@ -1,36 +1,34 @@
-
-mod watcher;
 mod ai_client;
+mod watcher;
 // V2 Modules
-mod executor;
-mod context;
-mod config;
 mod auth;
+mod config;
+mod context;
+mod executor;
+mod history_logger;
+mod kernel;
+mod patcher;
 mod provider;
-mod updates;
+mod rag_lite;
+mod skills;
+mod storage;
 #[cfg(test)]
 mod tests_watcher;
-mod patcher;
-mod rag_lite;
-mod kernel;
-mod storage;
-mod skills;
-mod history_logger;
+mod updates;
 mod validation;
 
-use tauri::{AppHandle, Manager};
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
-use tokio::sync::RwLock;
-use std::sync::atomic::{AtomicBool, Ordering};
 use anyhow::{Context, Result as AnyhowResult};
-use serde::{Serialize, Deserialize};
-use std::fs;
 use keyring::{Entry, Error as KeyringError};
 use secrecy::ExposeSecret;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use hex;
-use tracing::{info, warn, error};
+use std::fs;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use tauri::{AppHandle, Manager};
+use tokio::sync::RwLock;
+use tracing::{error, info, warn};
 
 struct WatcherSupervisor {
     shutdown: Arc<AtomicBool>,
@@ -60,7 +58,11 @@ impl AuthState {
         self.set_session_at(user, chrono::Utc::now()).await;
     }
 
-    async fn set_session_at(&self, user: auth::github::GithubUser, verified_at: chrono::DateTime<chrono::Utc>) {
+    async fn set_session_at(
+        &self,
+        user: auth::github::GithubUser,
+        verified_at: chrono::DateTime<chrono::Utc>,
+    ) {
         let mut guard = self.session.write().await;
         *guard = Some(AuthSessionState { user, verified_at });
     }
@@ -118,10 +120,7 @@ struct StoredAuthUser {
 }
 
 fn auth_user_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let base = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?;
+    let base = app.path().app_data_dir().map_err(|e| e.to_string())?;
     Ok(base.join("github_user.json"))
 }
 
@@ -158,7 +157,11 @@ fn token_hash(token: &str) -> String {
     hex::encode(hasher.finalize())
 }
 
-fn persist_auth_user(app: &AppHandle, user: &auth::github::GithubUser, token: &str) -> Result<(), String> {
+fn persist_auth_user(
+    app: &AppHandle,
+    user: &auth::github::GithubUser,
+    token: &str,
+) -> Result<(), String> {
     let path = auth_user_path(app)?;
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -208,13 +211,13 @@ impl WatcherSupervisor {
         }
     }
 
-    async fn start(&self, app: AppHandle, path: String, api_key: String, model: String, host: String, provider_id: String) {
+    async fn start(&self, app: AppHandle, config: watcher::WatcherRuntimeConfig) {
         self.stop().await;
         self.shutdown.store(false, Ordering::Relaxed);
 
         let shutdown = self.shutdown.clone();
         let handle = tauri::async_runtime::spawn(async move {
-            watcher::start_watching(app, path, api_key, model, host, provider_id, shutdown).await;
+            watcher::start_watching(app, config, shutdown).await;
         });
 
         let mut guard = self.handle.write().await;
@@ -230,11 +233,11 @@ impl WatcherSupervisor {
     }
 }
 
-
 #[tauri::command]
 async fn start_monitoring(
     app: AppHandle,
     path: String,
+    auto_verify_enabled: Option<bool>,
     watcher: tauri::State<'_, WatcherSupervisor>,
     auth_state: tauri::State<'_, AuthState>,
 ) -> Result<(), String> {
@@ -259,11 +262,14 @@ async fn start_monitoring(
     watcher
         .start(
             app,
-            path,
-            api_key.expose_secret().to_string(),
-            provider.model,
-            provider.base_url,
-            provider.provider_id,
+            watcher::WatcherRuntimeConfig {
+                target_path: path,
+                api_key: api_key.expose_secret().to_string(),
+                model: provider.model,
+                host: provider.base_url,
+                provider_id: provider.provider_id,
+                auto_verify_enabled: auto_verify_enabled.unwrap_or(false),
+            },
         )
         .await;
 
@@ -295,12 +301,14 @@ async fn complete_github_login(
     let client_secret = config::github_client_secret();
     let session = auth::github::complete_device_flow(
         &client_id,
-        client_secret.map(|s| s.expose_secret().to_string()).as_deref(),
+        client_secret
+            .map(|s| s.expose_secret().to_string())
+            .as_deref(),
         &device_code,
         max_wait_seconds,
     )
-        .await
-        .map_err(|e| e.to_string())?;
+    .await
+    .map_err(|e| e.to_string())?;
 
     let user = session.user.clone();
     auth_state.set_session(user.clone()).await;
@@ -377,7 +385,9 @@ async fn get_auth_session(
         if let Some(token) = token {
             if let Ok(Some(cached)) = load_cached_user(&app) {
                 if cached.token_hash.as_deref() == Some(token_hash(&token).as_str()) {
-                    if let Some(issued_at) = cached.issued_at.as_ref().or(cached.verified_at.as_ref()) {
+                    if let Some(issued_at) =
+                        cached.issued_at.as_ref().or(cached.verified_at.as_ref())
+                    {
                         if let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(issued_at) {
                             let age_hours = chrono::Utc::now()
                                 .signed_duration_since(parsed.with_timezone(&chrono::Utc))
@@ -394,7 +404,11 @@ async fn get_auth_session(
                 Ok(user) => {
                     auth_state.set_session(user.clone()).await;
                     let _ = persist_auth_user(&app, &user, &token);
-                    return Ok(Some(AuthSessionView { user, verified: true, warning: None }));
+                    return Ok(Some(AuthSessionView {
+                        user,
+                        verified: true,
+                        warning: None,
+                    }));
                 }
                 Err(auth::github::VerifyError::Unauthorized) => {
                     let _ = clear_auth_session(&app);
@@ -410,7 +424,10 @@ async fn get_auth_session(
 
                         let verified_at = cached.verified_at.clone().unwrap_or_default();
                         let verified_at = chrono::DateTime::parse_from_rfc3339(&verified_at)
-                            .map_err(|_| "Offline cache expired. Connect to the internet to re-verify.".to_string())?
+                            .map_err(|_| {
+                                "Offline cache expired. Connect to the internet to re-verify."
+                                    .to_string()
+                            })?
                             .with_timezone(&chrono::Utc);
                         let age_hours = chrono::Utc::now()
                             .signed_duration_since(verified_at)
@@ -424,7 +441,10 @@ async fn get_auth_session(
                         return Ok(Some(AuthSessionView {
                             user: cached.user,
                             verified: false,
-                            warning: Some(format!("Offline verification (last verified {}h ago). {}", age_hours, detail)),
+                            warning: Some(format!(
+                                "Offline verification (last verified {}h ago). {}",
+                                age_hours, detail
+                            )),
                         }));
                     }
                     return Ok(None);
@@ -436,7 +456,11 @@ async fn get_auth_session(
         }
     }
 
-    Ok(auth_state.get_user().await.map(|user| AuthSessionView { user, verified: true, warning: None }))
+    Ok(auth_state.get_user().await.map(|user| AuthSessionView {
+        user,
+        verified: true,
+        warning: None,
+    }))
 }
 
 #[tauri::command]
@@ -466,7 +490,11 @@ async fn refresh_auth_session(
             Ok(user) => {
                 auth_state.set_session(user.clone()).await;
                 let _ = persist_auth_user(&app, &user, &token);
-                return Ok(Some(AuthSessionView { user, verified: true, warning: None }));
+                return Ok(Some(AuthSessionView {
+                    user,
+                    verified: true,
+                    warning: None,
+                }));
             }
             Err(auth::github::VerifyError::Unauthorized) => {
                 let _ = clear_auth_session(&app);
@@ -482,21 +510,30 @@ async fn refresh_auth_session(
 
                     let verified_at = cached.verified_at.clone().unwrap_or_default();
                     let verified_at = chrono::DateTime::parse_from_rfc3339(&verified_at)
-                        .map_err(|_| "Offline cache expired. Connect to the internet to re-verify.".to_string())?
+                        .map_err(|_| {
+                            "Offline cache expired. Connect to the internet to re-verify."
+                                .to_string()
+                        })?
                         .with_timezone(&chrono::Utc);
                     let age_hours = chrono::Utc::now()
                         .signed_duration_since(verified_at)
                         .num_hours();
                     if age_hours > OFFLINE_MAX_HOURS {
                         let _ = clear_auth_session(&app);
-                        return Err("Offline verification expired. Connect to the internet to re-verify.".to_string());
+                        return Err(
+                            "Offline verification expired. Connect to the internet to re-verify."
+                                .to_string(),
+                        );
                     }
 
                     auth_state.set_session(cached.user.clone()).await;
                     return Ok(Some(AuthSessionView {
                         user: cached.user,
                         verified: false,
-                        warning: Some(format!("Offline verification (last verified {}h ago). {}", age_hours, detail)),
+                        warning: Some(format!(
+                            "Offline verification (last verified {}h ago). {}",
+                            age_hours, detail
+                        )),
                     }));
                 }
                 return Ok(None);
@@ -512,26 +549,31 @@ async fn refresh_auth_session(
 
 #[tauri::command]
 async fn apply_fix(
-    state_bus: tauri::State<'_, Arc<kernel::bus::EventBus>>, 
-    file_path: String, 
-    new_content: String
+    state_bus: tauri::State<'_, Arc<kernel::bus::EventBus>>,
+    file_path: String,
+    new_content: String,
 ) -> Result<String, String> {
     info!(target: "guardian::autopilot", "Fix requested for: {}", file_path);
-    
+
     // Publish RequestReview event to the Kernel
-    state_bus.publish(kernel::bus::GuardianEvent::RequestReview { 
-        file_path: file_path.clone(), 
-        diff: new_content 
-    }).await;
+    state_bus
+        .publish(kernel::bus::GuardianEvent::RequestReview {
+            file_path: file_path.clone(),
+            diff: new_content,
+        })
+        .await;
 
     Ok("Governance Review Initiated...".to_string())
 }
 
 #[tauri::command]
-async fn confirm_fix(file_path: String, new_content: String, root: String) -> Result<String, String> {
+async fn confirm_fix(
+    file_path: String,
+    new_content: String,
+    root: String,
+) -> Result<String, String> {
     info!(target: "guardian::autopilot", "Fix confirmed, applying to: {}", file_path);
-    patcher::apply_patch(&file_path, &new_content, &root)
-        .map_err(|e| e.to_string())
+    patcher::apply_patch(&file_path, &new_content, &root).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -560,23 +602,43 @@ async fn ask_guru(
             context.push_str(&results);
         }
     }
-    
+
     // 2. Init AI Client
     let provider = provider::resolve_provider_config(&app).map_err(|e| e.to_string())?;
     let api_key = config::api_key_for_provider(&provider.provider_id).map_err(|e| e.to_string())?;
-    let client = ai_client::AiClient::new(provider.provider_id.clone(), provider.base_url, provider.model, api_key)
-        .map_err(|e| e.to_string())?;
+    let client = ai_client::AiClient::new(
+        provider.provider_id.clone(),
+        provider.base_url,
+        provider.model,
+        api_key,
+    )
+    .map_err(|e| e.to_string())?;
 
     // 3. Ask
-    client.ask_question(&context, &clean_query).await.map_err(|e| e.to_string())
+    client
+        .ask_question(&context, &clean_query)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 fn normalize_web_query(query: &str) -> (String, bool) {
     let trimmed = query.trim();
     let lower = trimmed.to_lowercase();
+
+    // Support "/web " prefix
     if lower.starts_with("/web ") {
         return (trimmed[4..].trim().to_string(), true);
     }
+
+    // Support "@web" anywhere
+    if lower.contains("@web") {
+        let clean = query
+            .replace("@web", "")
+            .replace("@Web", "")
+            .replace("@WEB", "");
+        return (clean.trim().to_string(), true);
+    }
+
     (trimmed.to_string(), false)
 }
 
@@ -616,8 +678,12 @@ fn append_issue_file_context(
     root: &str,
     storage: &tauri::State<'_, Arc<Mutex<storage::StorageManager>>>,
 ) {
-    let Ok(storage) = storage.lock() else { return; };
-    let Ok(issues) = storage.get_active_issues() else { return; };
+    let Ok(storage) = storage.lock() else {
+        return;
+    };
+    let Ok(issues) = storage.get_active_issues() else {
+        return;
+    };
 
     let mut critical_files: Vec<String> = Vec::new();
     let mut warning_files: Vec<String> = Vec::new();
@@ -657,7 +723,9 @@ fn append_issue_file_context(
             context.push_str(&format!("#### File: {} (skipped: sensitive)\n\n", file));
             continue;
         }
-        let Ok(meta) = std::fs::metadata(path) else { continue; };
+        let Ok(meta) = std::fs::metadata(path) else {
+            continue;
+        };
         // Security: Limit file size to 50KB to prevent DoS and reduce token usage
         if meta.len() > 50_000 {
             context.push_str(&format!("#### File: {} (skipped: large file)\n\n", file));
@@ -685,16 +753,17 @@ fn is_sensitive_path(path: &std::path::Path) -> bool {
 // Security: Detect binary files by extension and content analysis
 fn is_binary_file(path: &std::path::Path) -> bool {
     const BINARY_EXTENSIONS: &[&str] = &[
-        "exe", "dll", "so", "dylib", "bin", "o", "a", "lib",
-        "png", "jpg", "jpeg", "gif", "bmp", "ico", "svg",
-        "mp3", "mp4", "wav", "avi", "mov", "mkv",
-        "zip", "tar", "gz", "rar", "7z", "bz2",
-        "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
-        "wasm", "class", "jar", "pyc", "pyo"
+        "exe", "dll", "so", "dylib", "bin", "o", "a", "lib", "png", "jpg", "jpeg", "gif", "bmp",
+        "ico", "svg", "mp3", "mp4", "wav", "avi", "mov", "mkv", "zip", "tar", "gz", "rar", "7z",
+        "bz2", "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "wasm", "class", "jar", "pyc",
+        "pyo",
     ];
 
     if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-        if BINARY_EXTENSIONS.iter().any(|&bin_ext| ext.eq_ignore_ascii_case(bin_ext)) {
+        if BINARY_EXTENSIONS
+            .iter()
+            .any(|&bin_ext| ext.eq_ignore_ascii_case(bin_ext))
+        {
             return true;
         }
     }
@@ -756,7 +825,10 @@ async fn list_provider_models(
 }
 
 #[tauri::command]
-async fn get_api_key_status(provider_id: Option<String>, app: AppHandle) -> Result<ApiKeyStatus, String> {
+async fn get_api_key_status(
+    provider_id: Option<String>,
+    app: AppHandle,
+) -> Result<ApiKeyStatus, String> {
     let provider_id = match provider_id {
         Some(id) => id,
         None => provider::load_provider_config(&app)?.provider_id,
@@ -780,7 +852,9 @@ async fn get_api_key_status(provider_id: Option<String>, app: AppHandle) -> Resu
                 Ok(ApiKeyStatus {
                     has_key: false,
                     source: "env_ignored".to_string(),
-                    warning: Some("Environment API key is ignored. Set your own key in Settings.".to_string()),
+                    warning: Some(
+                        "Environment API key is ignored. Set your own key in Settings.".to_string(),
+                    ),
                 })
             }
         }
@@ -793,14 +867,26 @@ async fn get_api_key_status(provider_id: Option<String>, app: AppHandle) -> Resu
 }
 
 #[tauri::command]
-async fn set_user_api_key(provider_id: Option<String>, api_key: String, app: AppHandle) -> Result<(), String> {
-    let id = provider_id.unwrap_or_else(|| provider::load_provider_config(&app).map(|c| c.provider_id).unwrap_or_else(|_| "ollama".to_string()));
+async fn set_user_api_key(
+    provider_id: Option<String>,
+    api_key: String,
+    app: AppHandle,
+) -> Result<(), String> {
+    let id = provider_id.unwrap_or_else(|| {
+        provider::load_provider_config(&app)
+            .map(|c| c.provider_id)
+            .unwrap_or_else(|_| "ollama".to_string())
+    });
     config::set_user_api_key_for_provider(&id, &api_key).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 async fn clear_user_api_key(provider_id: Option<String>, app: AppHandle) -> Result<(), String> {
-    let id = provider_id.unwrap_or_else(|| provider::load_provider_config(&app).map(|c| c.provider_id).unwrap_or_else(|_| "ollama".to_string()));
+    let id = provider_id.unwrap_or_else(|| {
+        provider::load_provider_config(&app)
+            .map(|c| c.provider_id)
+            .unwrap_or_else(|_| "ollama".to_string())
+    });
     config::clear_user_api_key_for_provider(&id).map_err(|e| e.to_string())
 }
 
@@ -839,7 +925,6 @@ fn get_app_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
-
 #[tauri::command]
 async fn get_chat_history(
     path: String,
@@ -847,7 +932,9 @@ async fn get_chat_history(
     offset: Option<u32>,
     storage: tauri::State<'_, Arc<Mutex<storage::StorageManager>>>,
 ) -> Result<Vec<storage::ChatMessage>, String> {
-    let storage = storage.lock().map_err(|_| "Storage lock poisoned".to_string())?;
+    let storage = storage
+        .lock()
+        .map_err(|_| "Storage lock poisoned".to_string())?;
     let limit = limit.unwrap_or(500) as usize;
     let offset = offset.unwrap_or(0) as usize;
     storage
@@ -861,7 +948,9 @@ async fn append_chat_message(
     message: storage::ChatMessage,
     storage: tauri::State<'_, Arc<Mutex<storage::StorageManager>>>,
 ) -> Result<(), String> {
-    let storage = storage.lock().map_err(|_| "Storage lock poisoned".to_string())?;
+    let storage = storage
+        .lock()
+        .map_err(|_| "Storage lock poisoned".to_string())?;
     storage
         .save_chat_message(&path, &message)
         .map_err(|e| e.to_string())
@@ -877,10 +966,16 @@ struct TavilyKeyStatus {
 async fn get_tavily_key_status() -> Result<TavilyKeyStatus, String> {
     if let Some(key) = config::user_tavily_key().map_err(|e| e.to_string())? {
         if !config::is_placeholder_key(key.expose_secret()) {
-            return Ok(TavilyKeyStatus { has_key: true, source: "user".to_string() });
+            return Ok(TavilyKeyStatus {
+                has_key: true,
+                source: "user".to_string(),
+            });
         }
     }
-    Ok(TavilyKeyStatus { has_key: false, source: "none".to_string() })
+    Ok(TavilyKeyStatus {
+        has_key: false,
+        source: "none".to_string(),
+    })
 }
 
 #[tauri::command]
@@ -898,12 +993,13 @@ async fn clear_chat_history(
     path: String,
     storage: tauri::State<'_, Arc<Mutex<storage::StorageManager>>>,
 ) -> Result<(), String> {
-    let storage = storage.lock().map_err(|_| "Storage lock poisoned".to_string())?;
+    let storage = storage
+        .lock()
+        .map_err(|_| "Storage lock poisoned".to_string())?;
     storage
         .clear_chat_messages(&path)
         .map_err(|e| e.to_string())
 }
-
 
 #[tauri::command]
 async fn search_web(query: String) -> Result<String, String> {
@@ -917,7 +1013,6 @@ async fn search_web(query: String) -> Result<String, String> {
     searcher.search(trimmed).await
 }
 
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> AnyhowResult<()> {
     // 0. Initialize Environment Variables
@@ -926,8 +1021,8 @@ pub fn run() -> AnyhowResult<()> {
     // 0.1 Initialize Tracing Subscriber (SPAP v2.2: Structured Logging)
     // Dev: RUST_LOG=guardian=debug for verbose. Production defaults to info+.
     use tracing_subscriber::{fmt, EnvFilter};
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("guardian=info,warn"));
+    let filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("guardian=info,warn"));
     fmt()
         .with_env_filter(filter)
         .with_target(true)
@@ -938,26 +1033,24 @@ pub fn run() -> AnyhowResult<()> {
     let home = dirs::home_dir().context("Could not find home directory")?;
     let storage = Arc::new(Mutex::new(
         storage::StorageManager::init(&home.to_string_lossy())
-        .context("CRITICAL: Failed to initialize Guardian Memory (SQLite)")?
+            .context("CRITICAL: Failed to initialize Guardian Memory (SQLite)")?,
     ));
 
     info!(target: "guardian", "Memory initialized at ~/.guardian/memory.db");
-    
- 
 
     // 2. Initialize Kernel (Central Nervous System)
     let bus = Arc::new(kernel::bus::EventBus::new());
-    
+
     // 3. Ignite the Brain (Agent Orchestrator)
     // Needs AppHandle, so we must defer orchestrator creation until setup closure or use a lazy static?
     // Actually, we can't create it here if we need AppHandle.
     // We need to use .setup() hook!
-    
+
     let bus_clone = bus.clone();
     let storage_clone = storage.clone();
 
     tauri::Builder::default()
-        .manage(storage) 
+        .manage(storage)
         .manage(bus) // Manage Bus so commands can use it
         .manage(WatcherSupervisor::new())
         .manage(AuthState::new())
@@ -968,7 +1061,7 @@ pub fn run() -> AnyhowResult<()> {
                 .map_err(|e| anyhow::anyhow!(e))?;
 
             let handle = app.handle().clone();
-            
+
             // Spawn Orchestrator Here where we have the Handle
             let orch_bus = bus_clone.clone();
             let orch_storage = storage_clone.clone();
@@ -984,7 +1077,7 @@ pub fn run() -> AnyhowResult<()> {
                     orch_bus,
                     orch_storage,
                     handle,
-                    provider
+                    provider,
                 ) {
                     Ok(orchestrator) => {
                         orchestrator.run().await;
@@ -994,7 +1087,7 @@ pub fn run() -> AnyhowResult<()> {
                     }
                 }
             });
-            
+
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
@@ -1040,7 +1133,6 @@ pub fn run() -> AnyhowResult<()> {
     Ok(())
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1060,7 +1152,10 @@ mod tests {
 
         let received = rx.recv().await.unwrap();
         match (event, received) {
-            (kernel::bus::GuardianEvent::FileModified { path: p1 }, kernel::bus::GuardianEvent::FileModified { path: p2 }) => {
+            (
+                kernel::bus::GuardianEvent::FileModified { path: p1 },
+                kernel::bus::GuardianEvent::FileModified { path: p2 },
+            ) => {
                 assert_eq!(p1, p2);
             }
             _ => panic!("Events did not match"),
@@ -1077,7 +1172,10 @@ mod tests {
         };
         let expired_at = chrono::Utc::now() - chrono::Duration::hours(SESSION_MAX_HOURS + 1);
         state.set_session_at(user, expired_at).await;
-        assert!(state.get_user().await.is_none(), "Expired session should be cleared");
+        assert!(
+            state.get_user().await.is_none(),
+            "Expired session should be cleared"
+        );
     }
 
     #[tokio::test]
@@ -1098,11 +1196,11 @@ mod tests {
     #[test]
     fn test_patcher_success() {
         use std::env;
-        
+
         // Create temp file in current directory (test runs in project root)
         let temp_dir = env::current_dir().unwrap().join("target").join("test_temp");
         fs::create_dir_all(&temp_dir).ok();
-        
+
         let file_path = temp_dir.join("test_file.txt");
         let mut file = fs::File::create(&file_path).unwrap();
         writeln!(file, "Original Content").unwrap();
@@ -1116,7 +1214,7 @@ mod tests {
 
         let final_content = fs::read_to_string(&file_path).unwrap();
         assert_eq!(final_content, new_content);
-        
+
         // Cleanup
         let _ = fs::remove_file(&file_path);
     }
@@ -1124,7 +1222,11 @@ mod tests {
     #[test]
     fn test_patcher_file_not_found() {
         let root = std::env::current_dir().unwrap();
-        let res = patcher::apply_patch("/tmp/this_file_does_not_exist_12345.txt", "content", root.to_str().unwrap());
+        let res = patcher::apply_patch(
+            "/tmp/this_file_does_not_exist_12345.txt",
+            "content",
+            root.to_str().unwrap(),
+        );
         assert!(res.is_err());
         let err_msg = res.unwrap_err().to_string();
         assert!(err_msg.contains("Security Violation"));

@@ -1,0 +1,118 @@
+---
+title: "Project Monitoring"
+summary: "Real-time codebase scanning and AI-powered code analysis."
+section: "Features"
+order: 4
+---
+
+## Overview
+
+Guardian's Project Monitoring feature provides real-time oversight of your codebase, identifying issues as you work using AI-powered analysis.
+
+## Starting Monitoring
+
+### Step 1: Select a Project
+
+1. Click **Browse** or drag a folder onto the app
+2. Select your project's root directory
+3. The path will appear in the project selector
+
+### Step 2: Launch Guardian
+
+Once you have:
+- Selected a valid project path
+- Configured your AI provider
+- Authenticated with GitHub (if required)
+
+Click **Launch Guardian** to start monitoring.
+
+## How Monitoring Works
+
+Guardian watches your project for file changes and analyzes code using your configured AI provider:
+
+1. **File Detection**: Monitors for saved changes in your project
+2. **Batch Processing**: Groups changes for efficient analysis
+3. **AI Analysis**: Sends code to your AI provider for review
+4. **Results Display**: Shows findings in the activity panel
+
+## Understanding Findings
+
+### Severity Levels
+
+| Level | Meaning | Action |
+|-------|---------|--------|
+| **Critical** | Security vulnerability or major issue | Fix immediately |
+| **High** | Significant problem | Address soon |
+| **Medium** | Should be improved | Plan to fix |
+| **Low** | Minor improvement | Consider for cleanup |
+| **Info** | Informational | No action required |
+
+### Finding Categories
+
+Guardian can identify:
+- **Security Issues**: Vulnerabilities, exposed secrets
+- **Code Quality**: Anti-patterns, complexity
+- **Performance**: Inefficient patterns
+- **Best Practices**: Style and convention violations
+
+## Working with Findings
+
+### Viewing Details
+
+Click any finding to see:
+- Description of the issue
+- Affected file and location
+- Suggested fix (if available)
+
+### Applying Fixes
+
+For findings with suggested fixes:
+1. Review the proposed change
+2. Click **Apply Fix** to implement
+3. Or click **Reject** to dismiss
+
+### Ask Guru
+
+Click **Ask Guru** on any finding to get:
+- Detailed explanation of the issue
+- Alternative solutions
+- Best practice recommendations
+
+## Stopping Monitoring
+
+Click **Kill Guardian** to stop monitoring:
+- All file watchers are stopped
+- Pending analyses are cancelled
+- The app returns to idle state
+
+## Activity Panel
+
+The activity panel shows:
+- Real-time monitoring status
+- Recent findings with severity
+- Guru conversation history
+- Applied fixes log
+
+## Chat History
+
+Guardian maintains chat history per project:
+- Conversations persist across sessions
+- Clear history via the chat panel
+- Export conversations as needed
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| No findings appearing | Check that files are being saved |
+| Slow analysis | Consider using a faster AI model |
+| Connection errors | Verify API key and network |
+| High token usage | Reduce monitored file scope |
+
+## Best Practices
+
+1. **Start Small**: Begin with a focused directory
+2. **Review Before Apply**: Always review suggested fixes
+3. **Use Guru**: Ask for explanations on unclear findings
+4. **Monitor Costs**: Track AI provider usage for paid APIs
+5. **Ignore Noise**: Focus on high-severity issues first

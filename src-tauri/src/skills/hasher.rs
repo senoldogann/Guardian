@@ -1,17 +1,27 @@
 use sha2::{Digest, Sha256};
 use std::fs;
+use std::io::{BufReader, Read};
 use std::path::Path;
 use walkdir::WalkDir;
 
 pub fn calculate_file_hash(path: &str) -> String {
-    match fs::read(path) {
-        Ok(content) => {
-            let mut hasher = Sha256::new();
-            hasher.update(content);
-            hex::encode(hasher.finalize())
+    let file = match fs::File::open(path) {
+        Ok(file) => file,
+        Err(_) => return String::new(),
+    };
+
+    let mut reader = BufReader::new(file);
+    let mut hasher = Sha256::new();
+    let mut buf = [0u8; 64 * 1024];
+    loop {
+        match reader.read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => hasher.update(&buf[..n]),
+            Err(_) => return String::new(),
         }
-        Err(_) => String::new(),
     }
+
+    hex::encode(hasher.finalize())
 }
 
 pub fn get_rules_fingerprint(workspace_root: &str) -> String {
@@ -22,9 +32,7 @@ pub fn get_rules_fingerprint(workspace_root: &str) -> String {
     let mut entries: Vec<_> = WalkDir::new(rules_path)
         .into_iter()
         .filter_map(|e| e.ok())
-        .filter(|e| {
-            e.file_type().is_file() && e.path().extension().map_or(false, |ext| ext == "md")
-        })
+        .filter(|e| e.file_type().is_file() && e.path().extension().is_some_and(|ext| ext == "md"))
         .collect();
 
     entries.sort_by(|a, b| a.path().cmp(b.path()));

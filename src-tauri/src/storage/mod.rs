@@ -1,7 +1,6 @@
 use anyhow::Context;
 use rusqlite::{params, Connection, OptionalExtension, Result};
 use serde::{Deserialize, Serialize};
-use serde_json;
 use std::path::Path;
 
 pub struct StorageManager {
@@ -137,6 +136,14 @@ impl StorageManager {
         self.conn.execute(
             "INSERT OR REPLACE INTO file_fingerprints (path, sha256, last_audit_time) VALUES (?1, ?2, CURRENT_TIMESTAMP)",
             params![path, new_hash],
+        )?;
+        Ok(())
+    }
+
+    pub fn remove_file_hash(&self, path: &str) -> Result<()> {
+        self.conn.execute(
+            "DELETE FROM file_fingerprints WHERE path = ?1",
+            params![path],
         )?;
         Ok(())
     }

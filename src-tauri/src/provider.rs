@@ -1,14 +1,15 @@
-use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager};
-use std::fs;
-use std::path::PathBuf;
 use crate::config;
 use reqwest::Client;
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::PathBuf;
+use tauri::{AppHandle, Manager};
 
 pub const OPENAI_BASE_URL: &str = "https://api.openai.com/v1";
 pub const ANTHROPIC_BASE_URL: &str = "https://api.anthropic.com/v1";
 pub const GEMINI_BASE_URL: &str = "https://generativelanguage.googleapis.com/v1beta";
 pub const GITHUB_MODELS_BASE_URL: &str = "https://models.github.ai";
+pub const OLLAMA_CLOUD_BASE_URL: &str = "https://ollama.com";
 
 fn normalize_provider_id(provider_id: &str) -> String {
     let trimmed = provider_id.trim().to_lowercase();
@@ -25,6 +26,7 @@ fn default_base_url(provider_id: &str) -> &'static str {
         "anthropic" => ANTHROPIC_BASE_URL,
         "gemini" => GEMINI_BASE_URL,
         "github-models" => GITHUB_MODELS_BASE_URL,
+        "ollama-cloud" => OLLAMA_CLOUD_BASE_URL,
         _ => config::DEFAULT_HOST,
     }
 }
@@ -66,9 +68,7 @@ fn filter_models(provider_id: &str, models: Vec<String>) -> Vec<String> {
                 is_chat && !is_blocked
             }
             "anthropic" => normalized.contains("claude"),
-            "gemini" => {
-                normalized.contains("gemini") && !normalized.contains("embedding")
-            }
+            "gemini" => normalized.contains("gemini") && !normalized.contains("embedding"),
             _ => true,
         };
         if allowed {
@@ -109,10 +109,7 @@ impl ProviderConfig {
 }
 
 fn provider_config_path(app: &AppHandle) -> Result<PathBuf, String> {
-    let base = app
-        .path()
-        .app_data_dir()
-        .map_err(|e| e.to_string())?;
+    let base = app.path().app_data_dir().map_err(|e| e.to_string())?;
     Ok(base.join("provider.json"))
 }
 
@@ -129,7 +126,10 @@ pub fn load_provider_config(app: &AppHandle) -> Result<ProviderConfig, String> {
     Ok(apply_defaults(parsed))
 }
 
-pub fn save_provider_config(app: &AppHandle, config: ProviderConfig) -> Result<ProviderConfig, String> {
+pub fn save_provider_config(
+    app: &AppHandle,
+    config: ProviderConfig,
+) -> Result<ProviderConfig, String> {
     let path = provider_config_path(app)?;
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -143,7 +143,9 @@ pub fn resolve_provider_config(app: &AppHandle) -> Result<ProviderConfig, String
     let mut config = load_provider_config(app)?;
     config = apply_defaults(config);
     match config.provider_id.as_str() {
-        "ollama" | "openai" | "anthropic" | "gemini" | "github-models" => Ok(config),
+        "ollama" | "ollama-cloud" | "openai" | "anthropic" | "gemini" | "github-models" => {
+            Ok(config)
+        }
         other => Err(format!("Provider '{}' is not supported yet.", other)),
     }
 }
@@ -213,11 +215,7 @@ pub async fn list_openai_models(base_url: &str, api_key: &str) -> Result<Vec<Str
         .await
         .map_err(|e| e.to_string())?;
 
-    let mut names = payload
-        .data
-        .into_iter()
-        .map(|m| m.id)
-        .collect::<Vec<_>>();
+    let mut names = payload.data.into_iter().map(|m| m.id).collect::<Vec<_>>();
     names.sort();
     names.dedup();
     Ok(names)
@@ -254,11 +252,7 @@ pub async fn list_anthropic_models(base_url: &str, api_key: &str) -> Result<Vec<
         .await
         .map_err(|e| e.to_string())?;
 
-    let mut names = payload
-        .data
-        .into_iter()
-        .map(|m| m.id)
-        .collect::<Vec<_>>();
+    let mut names = payload.data.into_iter().map(|m| m.id).collect::<Vec<_>>();
     names.sort();
     names.dedup();
     Ok(names)
@@ -339,7 +333,9 @@ pub async fn list_github_models(base_url: &str, api_key: &str) -> Result<Vec<Str
             let input = model.supported_input_modalities.as_ref();
             let output = model.supported_output_modalities.as_ref();
             let input_ok = input.map(|m| m.iter().any(|v| v == "text")).unwrap_or(true);
-            let output_ok = output.map(|m| m.iter().any(|v| v == "text")).unwrap_or(true);
+            let output_ok = output
+                .map(|m| m.iter().any(|v| v == "text"))
+                .unwrap_or(true);
             input_ok && output_ok
         })
         .map(|m| m.id)
@@ -349,9 +345,16 @@ pub async fn list_github_models(base_url: &str, api_key: &str) -> Result<Vec<Str
     Ok(names)
 }
 
-pub async fn list_provider_models(config: &ProviderConfig, api_key: Option<String>) -> Result<Vec<String>, String> {
+pub async fn list_provider_models(
+    config: &ProviderConfig,
+    api_key: Option<String>,
+) -> Result<Vec<String>, String> {
     let models = match config.provider_id.as_str() {
         "ollama" => list_ollama_models(&config.base_url).await,
+        "ollama-cloud" => {
+            // Ollama Cloud uses same API format but may require auth
+            list_ollama_models(&config.base_url).await
+        }
         "openai" => {
             let key = api_key.ok_or_else(|| "OpenAI API key missing.".to_string())?;
             list_openai_models(&config.base_url, &key).await

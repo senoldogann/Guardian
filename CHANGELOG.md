@@ -125,7 +125,7 @@ All notable changes to the Guardian V4 project will be documented in this file.
 - **Guru Guide**: Interactive, premium usage manual with Glassmorphism and Aurora UI styles.
 - **English Localization**: Universal translation of the Guru interface for global standards.
 - **Hover Micro-animations**: Enhanced transition states for all interactive cards and options.
-- **llms.txt**: Structured metadata for AI agent Discovery.
+- **AI Discovery**: Structured metadata file for AI agent discovery protocols.
 
 ### Changed
 - **Global Scaling**: Increased global font scaling to 110% for improved accessibility.

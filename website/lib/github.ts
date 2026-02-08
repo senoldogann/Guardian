@@ -26,7 +26,7 @@ export type AssetKind = "dmg" | "msi" | "exe" | "appimage" | "deb" | "rpm" | "ta
 const OWNER = process.env.GITHUB_RELEASE_OWNER ?? "senoldogann";
 const REPO = process.env.GITHUB_RELEASE_REPO ?? "guardian-distribution";
 const API_BASE = `https://api.github.com/repos/${OWNER}/${REPO}`;
-const DEFAULT_REVALIDATE_SECONDS = 60;
+const DEFAULT_REVALIDATE_SECONDS = 3600; // 1 hour
 const INSTALLER_EXTENSIONS = [".dmg", ".msi", ".exe", ".appimage", ".deb", ".rpm", ".zip", ".tar.gz"] as const;
 
 function normalizeAsset(asset: GithubAsset): GithubAsset {
@@ -56,22 +56,32 @@ function normalizeRelease(release: GithubRelease): GithubRelease {
   };
 }
 
-async function githubFetch<T>(path: string): Promise<T> {
+async function githubFetch<T>(path: string): Promise<T | null> {
   const token = process.env.GITHUB_PUBLIC_READ_TOKEN;
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      Accept: "application/vnd.github+json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    next: { revalidate: DEFAULT_REVALIDATE_SECONDS }
-  });
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      next: { revalidate: DEFAULT_REVALIDATE_SECONDS }
+    });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`GitHub API failed (${response.status}): ${text}`);
+    if (!response.ok) {
+      // Rate limit handling - return null instead of throwing
+      if (response.status === 403 || response.status === 429) {
+        console.warn(`GitHub API rate limited (${response.status}). Using fallback.`);
+        return null;
+      }
+      const text = await response.text();
+      throw new Error(`GitHub API failed (${response.status}): ${text}`);
+    }
+
+    return (await response.json()) as T;
+  } catch (error) {
+    console.error("GitHub fetch error:", error);
+    return null;
   }
-
-  return (await response.json()) as T;
 }
 
 export function getDistributionRepoUrl(): string {
@@ -117,16 +127,21 @@ export function pickInstallers(assets: GithubAsset[]): GithubAsset[] {
     if (lower.endsWith(".sig") || lower.endsWith("latest.json") || lower.endsWith(".json")) {
       return false;
     }
+    if (lower.endsWith(".app.tar.gz")) {
+      return false;
+    }
     return INSTALLER_EXTENSIONS.some((ext) => lower.endsWith(ext));
   });
 }
 
-export async function getLatestRelease(): Promise<GithubRelease> {
+export async function getLatestRelease(): Promise<GithubRelease | null> {
   const latest = await githubFetch<GithubRelease>("/releases/latest");
+  if (!latest) return null;
   return normalizeRelease(latest);
 }
 
 export async function getReleases(limit = 20): Promise<GithubRelease[]> {
   const releases = await githubFetch<GithubRelease[]>(`/releases?per_page=${limit}`);
+  if (!releases) return [];
   return releases.filter((release) => !release.draft).map(normalizeRelease);
 }

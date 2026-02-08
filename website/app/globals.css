@@ -1,3 +1,320 @@
-@import "../styles/tokens.css";
-@import "../styles/base.css";
-@import "../styles/components.css";
+@import "tailwindcss";
+
+/* Enable dark mode with class strategy */
+@variant dark (&:where(.dark, .dark *));
+
+/* Animation keyframes for Sheet component */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes slide-in-from-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slide-out-to-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
+@keyframes slide-in-from-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slide-out-to-right {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+.animate-in {
+  animation-duration: 0.5s;
+  animation-fill-mode: both;
+}
+
+.animate-out {
+  animation-duration: 0.3s;
+  animation-fill-mode: both;
+}
+
+.fade-in-0 {
+  animation-name: fade-in;
+}
+
+.fade-out-0 {
+  animation-name: fade-out;
+}
+
+.slide-in-from-left {
+  animation-name: slide-in-from-left;
+}
+
+.slide-out-to-left {
+  animation-name: slide-out-to-left;
+}
+
+.slide-in-from-right {
+  animation-name: slide-in-from-right;
+}
+
+.slide-out-to-right {
+  animation-name: slide-out-to-right;
+}
+
+@theme {
+  /* Antigravity-grade: Swiss Modernism + Minimal */
+  --color-bg: #F8F9FC;
+  --color-surface: #FFFFFF;
+  --color-ink: #121317;
+  --color-muted: #45474D;
+  --color-border: #E1E6EC;
+  --color-accent: #3279F9;
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  :root {
+    /* Light-first, premium editorial */
+    --background: 228 43% 98%;
+    --foreground: 222 18% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+
+    --primary: 222 18% 8%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 228 43% 96%;
+    --secondary-foreground: 222 18% 8%;
+
+    --muted: 228 30% 95%;
+    --muted-foreground: 220 9% 36%;
+
+    --accent: 216 94% 58%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 18% 90%;
+    --input: 220 18% 90%;
+    --ring: 222 18% 8%;
+
+    --radius: 8px;
+  }
+
+  /* Dark mode is intentionally out of scope for v3 design. */
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+
+    /* Antigravity-like dotted field */
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(18, 19, 23, 0.10) 1px, transparent 0);
+    background-size: 22px 22px;
+    background-attachment: fixed;
+  }
+  
+  ::selection {
+    @apply bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    * {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+
+  /* Corporate Prose Styling - Pure Black/White */
+  .prose {
+    @apply text-neutral-600 dark:text-neutral-400 max-w-[80ch] leading-relaxed;
+  }
+
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4 {
+    @apply text-black dark:text-white font-semibold tracking-tight scroll-m-20;
+  }
+
+  .prose h1 {
+    @apply text-4xl mb-8 border-b border-neutral-200 dark:border-neutral-800 pb-4;
+  }
+
+  .prose h2 {
+    @apply text-2xl mt-12 mb-6 border-b border-neutral-100 dark:border-neutral-900 pb-2;
+  }
+
+  .prose h3 {
+    @apply text-xl mt-8 mb-4;
+  }
+
+  .prose p {
+    @apply my-6;
+  }
+
+  .prose ul {
+    @apply my-6 list-disc list-outside pl-6;
+  }
+
+  .prose li {
+    @apply my-2;
+  }
+
+  .prose code {
+    @apply bg-neutral-100 dark:bg-neutral-900 px-1.5 py-0.5 rounded font-mono text-sm text-black dark:text-white;
+  }
+
+  .prose pre {
+    @apply bg-neutral-100 dark:bg-black border border-neutral-200 dark:border-neutral-800 p-4 rounded-lg overflow-x-auto my-6;
+  }
+
+  .prose pre code {
+    @apply bg-transparent p-0 text-neutral-700 dark:text-neutral-300;
+  }
+
+  .prose strong {
+    @apply text-black dark:text-white font-semibold;
+  }
+
+  .prose a {
+    @apply text-black dark:text-white underline decoration-neutral-300 dark:decoration-neutral-700 underline-offset-4 hover:decoration-black dark:hover:decoration-white transition-all;
+  }
+
+  .prose blockquote {
+    @apply border-l-2 border-neutral-300 dark:border-neutral-700 pl-6 italic text-neutral-500 dark:text-neutral-500 my-6;
+  }
+
+  /* Professional Table Styling */
+  .prose table {
+    @apply w-full my-8 border-collapse text-sm;
+  }
+
+  .prose thead {
+    @apply border-b border-neutral-200 dark:border-neutral-800;
+  }
+
+  .prose th {
+    @apply text-left text-black dark:text-white font-semibold py-3 px-4 bg-neutral-50 dark:bg-neutral-900;
+  }
+
+  .prose th:first-child {
+    @apply rounded-tl-lg;
+  }
+
+  .prose th:last-child {
+    @apply rounded-tr-lg;
+  }
+
+  .prose td {
+    @apply py-3 px-4 text-neutral-600 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-800;
+  }
+
+  .prose tr:last-child td {
+    @apply border-b-0;
+  }
+
+  .prose tr:hover td {
+    @apply bg-neutral-50 dark:bg-neutral-900/50;
+  }
+
+  .prose tbody tr:last-child td:first-child {
+    @apply rounded-bl-lg;
+  }
+
+  .prose tbody tr:last-child td:last-child {
+    @apply rounded-br-lg;
+  }
+
+  /* Enhanced Code Block Styling */
+  .prose pre {
+    @apply bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden my-8 shadow-sm;
+  }
+
+  .prose pre > code {
+    @apply block p-6 text-sm leading-relaxed;
+  }
+
+  /* Inline code in prose */
+  .prose :not(pre) > code {
+    @apply bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white px-2 py-1 rounded text-sm font-mono border border-neutral-200 dark:border-neutral-800;
+  }
+
+  /* Configuration block styling */
+  .prose .config-block {
+    @apply bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden my-8;
+  }
+
+  .prose .config-header {
+    @apply flex items-center gap-3 px-6 py-4 bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800;
+  }
+
+  .prose .config-content {
+    @apply p-6 font-mono text-sm text-neutral-700 dark:text-neutral-300 space-y-2;
+  }
+
+  .prose .config-row {
+    @apply flex items-center gap-4;
+  }
+
+  .prose .config-label {
+    @apply text-neutral-500 min-w-[120px];
+  }
+
+  .prose .config-value {
+    @apply text-black dark:text-white;
+  }
+
+  /* Status indicators */
+  .prose .status-connected {
+    @apply inline-flex items-center gap-2 text-emerald-600 dark:text-emerald-400;
+  }
+
+  .prose .status-disconnected {
+    @apply inline-flex items-center gap-2 text-neutral-500;
+  }
+
+  .prose .status-dot {
+    @apply w-2 h-2 rounded-full bg-current;
+  }
+
+  /* Keyboard/shortcut styling */
+  .prose kbd {
+    @apply inline-flex items-center justify-center px-2 py-1 bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded text-xs font-mono text-neutral-700 dark:text-neutral-300 shadow-sm;
+  }
+}

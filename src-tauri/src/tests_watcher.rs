@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
     use crate::watcher::should_skip_path;
+    use std::path::Path;
 
     #[test]
     fn test_logic_filter_simulation() {

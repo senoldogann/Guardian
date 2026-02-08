@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke, isTauriRuntime } from "../lib/tauri";
 import type { Critique } from "../components/CritiqueAccordionRow";
+import { STORAGE_KEYS } from "../constants";
 
 export type ProviderConfig = {
   provider_id: string;
@@ -31,7 +32,7 @@ export type UpdateCheckResult = {
 };
 
 export const PROVIDER_OPTIONS = [
-  { id: "ollama", label: "Ollama (Local/Hosted)", baseUrl: "https://ollama.com" },
+  { id: "ollama", label: "Ollama (Local/Hosted)", baseUrl: "http://127.0.0.1:11434" },
   { id: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1" },
   { id: "anthropic", label: "Anthropic (Claude)", baseUrl: "https://api.anthropic.com/v1" },
   { id: "gemini", label: "Google Gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta" },
@@ -89,6 +90,9 @@ export interface UseSettingsReturn {
   // Web Search
   webSearchEnabled: boolean;
 
+  // Safety
+  autoVerifyEnabled: boolean;
+
   // Updates
   updateInfo: UpdateCheckResult | null;
   updateDismissed: boolean;
@@ -117,6 +121,8 @@ export interface UseSettingsReturn {
   clearTavilyKey: () => Promise<void>;
   setWebSearchEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   onWebSearchToggle: () => void;
+  setAutoVerifyEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+  onAutoVerifyToggle: () => void;
   onExportPDF: (logs: Record<string, Critique>, path: string) => void;
   setUpdateDismissed: React.Dispatch<React.SetStateAction<boolean>>;
   checkForUpdates: () => Promise<void>;
@@ -161,7 +167,15 @@ export function useSettings(
   // Web Search state
   const [webSearchEnabled, setWebSearchEnabled] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("guardian_web_search_enabled") === "true";
+      return localStorage.getItem(STORAGE_KEYS.WEB_SEARCH) === "true";
+    }
+    return false;
+  });
+
+  // Safety state
+  const [autoVerifyEnabled, setAutoVerifyEnabled] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(STORAGE_KEYS.AUTO_VERIFY_ENABLED) === "true";
     }
     return false;
   });
@@ -180,8 +194,14 @@ export function useSettings(
   // Persist web search setting
   useEffect(() => {
     if (typeof window === "undefined") return;
-    localStorage.setItem("guardian_web_search_enabled", String(webSearchEnabled));
+    localStorage.setItem(STORAGE_KEYS.WEB_SEARCH, String(webSearchEnabled));
   }, [webSearchEnabled]);
+
+  // Persist auto verification setting
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEYS.AUTO_VERIFY_ENABLED, String(autoVerifyEnabled));
+  }, [autoVerifyEnabled]);
 
   // Load initial provider config
   useEffect(() => {
@@ -516,6 +536,17 @@ export function useSettings(
     setWebSearchEnabled(prev => !prev);
   }, []);
 
+  const onAutoVerifyToggle = useCallback((): void => {
+    // SECURITY: Auto-verify runs project commands inside the monitored workspace.
+    if (!autoVerifyEnabled) {
+      const ok = window.confirm(
+        "Automatic Verification runs project commands (npm/cargo/etc) inside your monitored workspace. Enable only for trusted repos."
+      );
+      if (!ok) return;
+    }
+    setAutoVerifyEnabled(prev => !prev);
+  }, [autoVerifyEnabled]);
+
   const onExportPDF = useCallback((logs: Record<string, Critique>, path: string): void => {
     void exportPdfFn({ logs, path });
   }, [exportPdfFn]);
@@ -612,6 +643,7 @@ export function useSettings(
     tavilyKeyError,
     tavilyKeySaving,
     webSearchEnabled,
+    autoVerifyEnabled,
     updateInfo,
     updateDismissed,
     updateInstalling,
@@ -635,6 +667,8 @@ export function useSettings(
     clearTavilyKey,
     setWebSearchEnabled,
     onWebSearchToggle,
+    setAutoVerifyEnabled,
+    onAutoVerifyToggle,
     onExportPDF,
     setUpdateDismissed,
     checkForUpdates,

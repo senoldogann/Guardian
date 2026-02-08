@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
 import { DM_Sans, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import { SiteHeader } from "../components/site-header";
+import { ClientLayout } from "../components/client-layout";
 import { SITE_URL } from "../lib/seo";
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-heading"
-});
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-body"
+  variable: "--font-dm-sans"
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-space-grotesk"
 });
 
 export const metadata: Metadata = {
@@ -25,23 +25,30 @@ export const metadata: Metadata = {
   description:
     "Guardian is a desktop governance app for architecture quality, secure release operations, and in-app update management.",
   alternates: {
-    canonical: `${SITE_URL}/`,
-    languages: {
-      tr: `${SITE_URL}/`,
-      en: `${SITE_URL}/en`
-    }
+    canonical: `${SITE_URL}/`
   },
   openGraph: {
-    title: "Guardian",
+    title: "Guardian | Release-Driven Governance Platform",
     description:
       "Architecture and security governance with release-driven desktop operations.",
     type: "website",
-    url: SITE_URL
+    url: SITE_URL,
+    siteName: "Guardian",
+    locale: "en_US",
+    images: [
+      {
+        url: `${SITE_URL}/og?title=Guardian&description=Release-Driven Governance Platform`,
+        width: 1200,
+        height: 630,
+        alt: "Guardian - Release-Driven Governance Platform",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Guardian",
-    description: "Release-driven architecture governance for production engineering teams."
+    title: "Guardian | Release-Driven Governance Platform",
+    description: "Release-driven architecture governance for production engineering teams.",
+    images: [`${SITE_URL}/og?title=Guardian&description=Release-Driven Governance Platform`],
   },
   robots: {
     index: true,
@@ -51,12 +58,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${spaceGrotesk.variable} ${dmSans.variable}`}>
-        <div className="site-shell">
-          <SiteHeader />
-          <main className="page">{children}</main>
-        </div>
+    <html lang="en" className="scroll-smooth">
+      <body className={`${dmSans.variable} ${spaceGrotesk.variable} antialiased`}>
+        <ClientLayout>
+          {children}
+        </ClientLayout>
       </body>
     </html>
   );

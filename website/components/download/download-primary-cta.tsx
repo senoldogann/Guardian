@@ -2,18 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { GithubAsset } from "../../lib/github";
-import type { DocLocale, SiteDictionary } from "../../lib/i18n";
+import type { SiteDictionary } from "../../lib/i18n";
 import { detectPlatform, getPlatformLabel, pickBestAsset, type Platform } from "../../lib/download";
 
 type Props = {
   assets: GithubAsset[];
-  locale: DocLocale;
   dict: SiteDictionary;
   fallbackHref: string;
   className?: string;
 };
 
-export function DownloadPrimaryCta({ assets, locale, dict, fallbackHref, className = "button" }: Props) {
+export function DownloadPrimaryCta({ assets, dict, fallbackHref, className = "button" }: Props) {
   const [platform, setPlatform] = useState<Platform>("unknown");
   const [isDetecting, setIsDetecting] = useState(true);
 
@@ -41,12 +40,11 @@ export function DownloadPrimaryCta({ assets, locale, dict, fallbackHref, classNa
   const label = useMemo(() => {
     if (isDetecting) return dict.nav.download;
     if (!selected || platform === "unknown") return dict.nav.download;
-    if (locale === "tr") return `${getPlatformLabel(platform)} için indir`;
-    return `Download for ${getPlatformLabel(platform)}`;
-  }, [dict.nav.download, isDetecting, locale, platform, selected]);
+    return `${dict.nav.download} (${getPlatformLabel(platform)})`;
+  }, [dict.nav.download, isDetecting, platform, selected]);
 
   return (
-    <a className={className} href={href}>
+    <a className={`${className} cursor-pointer`} href={href}>
       {label}
     </a>
   );

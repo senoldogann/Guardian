@@ -1,21 +1,338 @@
 ---
 title: "Troubleshooting"
-summary: "Quick fixes for common install, login, and update issues."
+summary: "Quick fixes for common install, login, scan, and update issues."
 section: "Support"
 order: 4
 ---
 
-## GitHub login does not complete
+## Installation Issues
 
-- Return to the app after finishing on the verification page.
-- Use retry if needed.
+### App won't launch
 
-## Version is missing in Updates tab
+**Symptoms**: Nothing happens when clicking the app icon
 
-- Confirm `latest.json` exists in the distribution release.
-- Verify all URLs in `latest.json` point to the public distribution repo.
+**Solutions**:
+1. **Check System Requirements**: Verify macOS 13+, Windows 10+, or Ubuntu 22.04+
+2. **Delete Preferences**:
+   - macOS: `rm -rf ~/Library/Application\ Support/Guardian`
+   - Windows: Delete `%APPDATA%\Guardian`
+   - Linux: `rm -rf ~/.config/guardian`
+3. **Reinstall**: Download fresh installer and reinstall
 
-## Wrong package is recommended
+### "Damaged app" on macOS
 
-- Use the manual package list on Download page.
-- If detection looks incorrect, test in a clean browser profile.
+**Cause**: macOS Gatekeeper blocking unsigned apps
+
+**Solution**:
+```bash
+xattr -cr /Applications/Guardian.app
+```
+
+Or go to **System Preferences > Security & Privacy** and click "Open Anyway"
+
+### Windows Defender blocks installer
+
+**Solution**: 
+1. Click "More info" on the warning
+2. Click "Run anyway"
+3. Consider adding an exclusion for Guardian
+
+### Linux AppImage won't run
+
+**Solution**:
+```bash
+chmod +x Guardian-*.AppImage
+./Guardian-*.AppImage
+```
+
+If still failing, install FUSE:
+```bash
+# Ubuntu/Debian
+sudo apt install libfuse2
+
+# Fedora
+sudo dnf install fuse-libs
+```
+
+## Authentication Issues
+
+### "Invalid API Key" Error
+
+**Cause**: Key format incorrect or key revoked
+
+**Solutions**:
+1. Verify key is copied completely (no extra spaces)
+2. Check key is active in provider console:
+   - Anthropic: [console.anthropic.com](https://console.anthropic.com)
+   - OpenAI: [platform.openai.com](https://platform.openai.com)
+3. Generate a new key if necessary
+4. Ensure correct provider is selected in **Settings > Providers**
+
+### "Rate Limit Exceeded"
+
+**Cause**: Too many requests in short time
+
+**Solutions**:
+1. Wait 1 minute for rate limit reset
+2. Reduce concurrent scans
+3. Increase rate limit in **Settings > Providers > Rate Limits**
+4. Check provider dashboard for usage limits
+
+### "Provider Unavailable"
+
+**Cause**: Service outage or network issue
+
+**Solutions**:
+1. Check provider status:
+   - Anthropic: [status.anthropic.com](https://status.anthropic.com)
+   - OpenAI: [status.openai.com](https://status.openai.com)
+2. Verify internet connection
+3. Check firewall/proxy settings
+4. Switch to backup provider if configured
+
+### "Model Not Found"
+
+**Cause**: Selected model deprecated or unavailable
+
+**Solutions**:
+1. Update Guardian to latest version
+2. Check available models in provider console
+3. Select alternative model in **Settings > Providers**
+4. Verify API key has access to requested model
+
+## Scanning Issues
+
+### Blank screen during scan
+
+**Cause**: Antivirus or security software blocking
+
+**Solutions**:
+1. Add Guardian to antivirus exclusions
+2. Check Windows Defender/Security notifications
+3. Temporarily disable antivirus for testing
+4. Check macOS Security & Privacy settings
+
+### Scan is very slow
+
+**Causes & Solutions**:
+
+| Cause | Solution |
+|-------|----------|
+| Large codebase | Add ignore patterns for `node_modules`, `dist`, `build` |
+| Too many files | Increase severity threshold to filter low-priority issues |
+| Insufficient memory | Close other applications, increase RAM |
+| Slow disk | Use SSD, exclude network drives |
+
+**To improve scan speed**:
+1. **Settings > Scanning > Ignore Patterns**:
+   ```
+   node_modules/
+   dist/
+   build/
+   .git/
+   *.min.js
+   *.bundle.js
+   vendor/
+   coverage/
+   .next/
+   ```
+2. **Settings > Scanning > Severity Threshold**: Set to "Medium+" or "High+"
+3. Disable unnecessary rules in **Settings > Scanning > Rules**
+
+### Missing files in scan results
+
+**Cause**: Ignore patterns too broad
+
+**Solution**:
+1. Check **Settings > Scanning > Ignore Patterns**
+2. Remove overly broad patterns like `*.js` or `src/`
+3. Add specific exclusions instead:
+   ```
+   # Too broad (removes all JS files)
+   *.js
+   
+   # Specific (better)
+   *.min.js
+   *.bundle.js
+   ```
+
+### Scan crashes or freezes
+
+**Solutions**:
+1. Reduce file size limit in **Settings > Scanning > Advanced**
+2. Disable memory-intensive rules temporarily
+3. Scan smaller directories first
+4. Check system resources (CPU/RAM usage)
+5. Enable debug mode and export logs:
+   - **Settings > Advanced > Debug Mode** → On
+   - Reproduce issue
+   - **Settings > Advanced > Export Logs**
+
+## Update Issues
+
+### Version is missing in Updates tab
+
+**Cause**: `latest.json` not found or malformed
+
+**Solutions**:
+1. Confirm `latest.json` exists in distribution release
+2. Verify all URLs in `latest.json` point to public distribution repo
+3. Check network connectivity to GitHub
+4. Manually download from website if needed
+
+### Wrong package is recommended
+
+**Solutions**:
+1. Use the manual package list on Download page
+2. Test in a clean browser profile
+3. Check if user agent is being modified by extensions
+4. Manually select correct package for your OS
+
+### Update fails to install
+
+**Solutions**:
+1. **Check disk space**: Ensure 500MB+ free space
+2. **Close Guardian**: Quit app completely before updating
+3. **Permissions**: 
+   - macOS: Ensure write access to /Applications
+   - Windows: Run as Administrator
+   - Linux: Check AppImage permissions
+4. **Manual update**: Download installer from website
+
+### "Update verification failed"
+
+**Cause**: Corrupted download or signature mismatch
+
+**Solutions**:
+1. Delete downloaded update package
+2. Retry update
+3. Download fresh installer from website
+4. Check system date/time (affects certificate validation)
+
+## Guru (AI Assistant) Issues
+
+### No response from Guru
+
+**Solutions**:
+1. Check API key in **Settings > Providers**
+2. Test connection with "Test Connection" button
+3. Verify internet connection
+4. Check provider status page
+5. Try switching to backup provider
+
+### Guru gives generic answers
+
+**Solutions**:
+1. Include more context in prompts
+2. Reference specific files or line numbers
+3. Enable **Settings > Guru > Include File Context**
+4. Increase **Max Context Size**
+
+### Slow Guru responses
+
+**Solutions**:
+1. Reduce context size in **Settings > Guru > Max Context Size**
+2. Switch to faster model (Haiku instead of Opus)
+3. Check internet connection speed
+4. Close other bandwidth-intensive applications
+
+### Incorrect suggestions from Guru
+
+**Solutions**:
+1. Provide correction feedback (click thumbs down)
+2. Add more context about the codebase
+3. Clarify the question or requirements
+4. Check if the right model is selected for the task
+
+## Performance Issues
+
+### High CPU usage
+
+**Solutions**:
+1. Disable auto-scan on file save
+2. Reduce scan frequency
+3. Close unused projects
+4. Limit concurrent scans
+
+### High memory usage
+
+**Solutions**:
+1. Clear scan history: **View > Scan History > Clear**
+2. Close unused projects
+3. Reduce max file size limit
+4. Restart Guardian periodically
+
+### App is sluggish
+
+**Solutions**:
+1. Restart the application
+2. Clear cache: **Settings > Advanced > Clear Cache**
+3. Reduce number of open projects
+4. Disable animations in **Settings > General**
+
+## Network Issues
+
+### Can't connect to AI provider
+
+**Check**:
+1. Internet connection
+2. Firewall settings
+3. Proxy configuration
+4. VPN interference
+
+**Proxy Configuration**:
+```bash
+# Set environment variables
+export HTTPS_PROXY=http://proxy.company.com:8080
+```
+
+Or configure in **Settings > Network > Proxy**
+
+### Certificate errors
+
+**Cause**: Corporate firewall intercepting HTTPS
+
+**Solutions**:
+1. Install corporate root certificate
+2. Configure proxy settings
+3. Contact IT for firewall exceptions
+
+## Data Issues
+
+### Lost scan history
+
+**Recovery**:
+1. Check if data folder exists:
+   - macOS: `~/Library/Application Support/Guardian/`
+   - Windows: `%APPDATA%\Guardian\`
+   - Linux: `~/.config/guardian/`
+2. Restore from backup if available
+3. Re-scan projects to rebuild history
+
+### Settings reset unexpectedly
+
+**Causes**:
+1. Corrupted preferences file
+2. App crash during write
+3. Disk space issues
+
+**Solutions**:
+1. Export settings regularly: **Settings > Advanced > Export**
+2. Import backup: **Settings > Advanced > Import**
+3. Reset to defaults if needed: **Settings > Advanced > Reset**
+
+## Getting Help
+
+If issues persist:
+
+1. **Check Documentation**: Review relevant guide sections
+2. **Export Logs**: **Settings > Advanced > Export Logs**
+3. **Community**: GitHub Discussions
+4. **Support Email**: support@guardian-app.com
+
+Include in support request:
+- Guardian version
+- Operating system and version
+- Steps to reproduce
+- Error messages
+- Exported logs (if possible)

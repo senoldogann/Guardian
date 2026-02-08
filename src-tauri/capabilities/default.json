@@ -3,15 +3,34 @@
   "identifier": "default",
   "description": "Default capabilities for Guardian main window",
   "local": true,
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
     "opener:default",
     "dialog:default",
     "updater:default",
     "fs:default",
-    "fs:allow-read",
-    "fs:allow-write",
+    {
+      "identifier": "fs:allow-read",
+      "allow": [
+        {
+          "path": "$APP_DATA/**"
+        },
+        {
+          "path": "$DOWNLOAD/**"
+        }
+      ]
+    },
+    {
+      "identifier": "fs:allow-write",
+      "allow": [
+        {
+          "path": "$APP_DATA/**"
+        }
+      ]
+    },
     "fs:allow-read-dir",
     "fs:allow-copy-file",
     "fs:allow-remove"

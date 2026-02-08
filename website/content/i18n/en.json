@@ -10,13 +10,23 @@
   "home": {
     "eyebrow": "Desktop Governance Platform",
     "title": "Keep engineering quality enforced at release speed.",
-    "description": "Guardian audits your codebase through architecture and security guardrails. Download and changelog content stay synchronized with GitHub releases automatically.",
+    "description": "Guardian audits your codebase through architecture and security guardrails. Download and changelog content stay synchronized automatically.",
     "ctaPrimary": "Download Guardian",
     "ctaSecondaryDocs": "Open Documentation",
     "ctaSecondaryChangelog": "View Changelog",
-    "trustRelease": "GitHub release-driven content",
+    "trustRelease": "Release-driven content",
     "trustUpdates": "In-app updates ready",
-    "trustSecurity": "Signed distribution artifacts"
+    "trustSecurity": "Signed distribution artifacts",
+    "sections": {
+      "guru": {
+        "title": "Guru: The AI Architect",
+        "description": "Analyzes your code on every push, explains errors with context, and suggests fixes."
+      },
+      "auth": {
+        "title": "Secure Identity Management",
+        "description": "Protect your project with professional authentication and authorization."
+      }
+    }
   },
   "download": {
     "eyebrow": "Download Center",
@@ -27,7 +37,6 @@
     "manual": "Manual Packages",
     "noMatch": "Automatic matching was not found. Continue with manual packages below.",
     "detecting": "Detecting your operating system...",
-    "checksum": "Checksum",
     "size": "Size"
   },
   "changelog": {
@@ -53,9 +62,6 @@
     "viewOnGithub": "View on GitHub",
     "openDistributionRepo": "Distribution Repo",
     "releaseNotAvailable": "No release is available yet.",
-    "updatedAt": "Updated",
-    "languageSwitch": "Language",
-    "english": "English",
-    "turkish": "Türkçe"
+    "updatedAt": "Updated"
   }
 }

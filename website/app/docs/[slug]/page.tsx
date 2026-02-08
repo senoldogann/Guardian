@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { DocsShell } from "../../../components/docs/docs-shell";
+import { ProLayout } from "../../../components/docs/pro-layout";
 import { MarkdownBlock } from "../../../components/markdown-block";
-import { getDictionary } from "../../../lib/i18n";
 import { getDoc, getDocs, getDocSections } from "../../../lib/docs";
 import { buildPageMetadata } from "../../../lib/seo";
 
@@ -11,24 +10,22 @@ type Props = {
 };
 
 export async function generateStaticParams() {
-  const docs = await getDocs("tr");
+  const docs = await getDocs();
   return docs.map((doc) => ({ slug: doc.meta.slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const doc = await getDoc("tr", slug);
+  const doc = await getDoc(slug);
   if (!doc) {
     return buildPageMetadata({
-      locale: "tr",
-      title: "Dokümantasyon",
-      description: "Guardian dokümantasyonu.",
+      title: "Documentation",
+      description: "Guardian documentation.",
       path: `/docs/${slug}`
     });
   }
 
   return buildPageMetadata({
-    locale: "tr",
     title: doc.meta.title,
     description: doc.meta.summary,
     path: `/docs/${slug}`
@@ -40,25 +37,35 @@ export default async function DocsDetailPage({ params }: Props) {
   if (slug === "getting-started") {
     redirect("/docs/get-started");
   }
-  const locale = "tr";
-  const dict = getDictionary(locale);
-  const [doc, sections] = await Promise.all([getDoc(locale, slug), getDocSections(locale)]);
+  const [doc, sections] = await Promise.all([getDoc(slug), getDocSections()]);
 
   if (!doc) {
     notFound();
   }
 
+  // Transform sections for ProLayout sidebar
+  const sidebar = sections.map(section => ({
+    title: section.title,
+    items: section.docs.map(d => ({ title: d.title, slug: d.slug }))
+  }));
+
+  // Transform headings for ProLayout TOC
+  const toc = doc.headings.map(h => ({
+    title: h.text,
+    url: `#${h.id}`
+  }));
+
   return (
-    <>
+    <ProLayout sidebar={sidebar} toc={toc}>
       <section className="hero section-enter" data-delay="1">
-        <div className="eyebrow">{dict.docs.eyebrow}</div>
-        <h1>{doc.meta.title}</h1>
-        <p>{doc.meta.summary}</p>
+        <div className="eyebrow text-white/60 mb-2 font-mono text-sm tracking-widest uppercase">Documentation</div>
+        <h1 className="text-4xl font-bold mb-4 text-white">{doc.meta.title}</h1>
+        <p className="text-xl text-zinc-400 mb-8">{doc.meta.summary}</p>
       </section>
 
-      <DocsShell activeSlug={slug} dict={dict} headings={doc.headings} locale={locale} sections={sections}>
+      <div className="prose prose-invert max-w-none">
         <MarkdownBlock value={doc.content} />
-      </DocsShell>
-    </>
+      </div>
+    </ProLayout>
   );
 }

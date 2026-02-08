@@ -63,8 +63,9 @@ mkdir -p "$WORK_DIR/assets"
 echo "Collecting assets from: $ARTIFACTS_DIR"
 
 # We accept either a flat dir (already curated) or raw bundle output dirs.
+# Include .tar.gz (Tauri updater bundles) and .sig (signatures)
 find "$ARTIFACTS_DIR" -maxdepth 5 -type f \( \
-  -name "*.dmg" -o -name "*.msi" -o -name "*-setup.exe" -o -name "latest.json" -o -name "releases.json" \
+  -name "*.dmg" -o -name "*.msi" -o -name "*-setup.exe" -o -name "*.tar.gz" -o -name "*.sig" -o -name "latest.json" -o -name "releases.json" \
   \) -print0 | while IFS= read -r -d '' file; do
   cp -f "$file" "$WORK_DIR/assets/"
 done

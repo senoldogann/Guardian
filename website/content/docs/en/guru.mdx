@@ -1,0 +1,163 @@
+---
+title: "Guru: AI Assistant"
+summary: "How to use the AI assistant for code analysis, explanations, and fix suggestions."
+section: "Features"
+order: 3
+---
+
+## What is Guru?
+
+Guru is Guardian's built-in AI assistant. It provides context-aware explanations of code issues, suggests fixes, and helps you understand your codebase better.
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Context-Aware Analysis** | Understands your codebase structure |
+| **Fix Suggestions** | Provides actionable code changes |
+| **Explanations** | Describes why an issue matters |
+| **Web Search** | Can search the web for additional context |
+
+## Using Guru
+
+### Opening the Chat
+
+The Guru chat panel is accessible from the main interface. Simply type your question in the chat input at the bottom of the screen.
+
+### Asking Questions
+
+Guru understands natural language queries:
+
+```
+"Why is this function flagged as a security issue?"
+"How can I fix the N+1 query problem here?"
+"What's the best way to refactor this class?"
+"Explain the architectural impact of this change"
+```
+
+### Web Search
+
+Enable web search by adding `@web` to your query or enabling it in Settings:
+
+```
+"@web What are the latest React best practices?"
+"Explain the latest TypeScript 5 features @web"
+```
+
+## Applying Fixes
+
+When Guru suggests a fix:
+
+1. **Review**: Read the suggested code changes
+2. **Apply**: Click **Apply Fix** to implement
+3. **Reject**: Click **Reject** to dismiss the suggestion
+
+> **Tip**: Always review fixes before applying. Guru is helpful but suggestions should be verified.
+
+## Guru Capabilities
+
+### Code Analysis
+
+Guru can analyze code for:
+- Security vulnerabilities
+- Architectural patterns
+- Performance issues
+- Code style problems
+
+### Explanations
+
+Ask Guru to explain:
+- Why a pattern is problematic
+- The impact of an issue
+- Alternative approaches
+- Best practices for your stack
+
+### Refactoring
+
+Guru can suggest:
+- Function extraction
+- Interface improvements
+- Dependency patterns
+- Test structure improvements
+
+## Configuration
+
+### Provider Settings
+
+Navigate to **Settings** to configure Guru:
+
+| Setting | Description |
+|---------|-------------|
+| **Provider** | AI model provider (Ollama, OpenAI, etc.) |
+| **Model** | Specific model version |
+| **API Key** | Your provider API key |
+
+### Web Search Settings
+
+In **Settings**, you can configure Tavily for web search:
+
+| Setting | Description |
+|---------|-------------|
+| **Tavily API Key** | Enable web search capabilities |
+
+## Chat History
+
+Guru maintains conversation history per project:
+- Conversations persist across sessions
+- Use **Clear Chat** to start fresh
+- History helps Guru understand context
+
+## Best Practices
+
+### Effective Prompting
+
+**Good** prompts are specific:
+```
+"Explain why the useEffect in UserProfile.tsx causes a memory leak"
+```
+
+**Avoid** vague prompts:
+```
+"What's wrong with my code?"
+```
+
+### Workflow Integration
+
+1. **Review Phase**: Use Guru to understand issues
+2. **Fix Phase**: Apply suggested fixes or use as reference
+3. **Verify Phase**: Check if the fix resolves the issue
+
+### Learning from Guru
+
+Guru explanations are educational:
+- Read the "why" explanations
+- Understand the principles behind suggestions
+- Apply learnings to new code proactively
+
+## Limitations
+
+Guru is powerful but has limits:
+
+| Limitation | Workaround |
+|------------|------------|
+| Large files may be truncated | Focus on specific sections |
+| May not know proprietary patterns | Provide context in prompts |
+| Suggestions need review | Always verify before applying |
+| Rate limits apply | Configure provider limits |
+
+## Privacy Considerations
+
+When using Guru:
+- Code snippets are sent to your configured AI provider
+- Choose providers with appropriate data policies
+- Avoid sending secrets or PII in prompts
+- Review provider terms for your compliance needs
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| No response | Check API key in Settings |
+| Generic answers | Include more context in your question |
+| Slow responses | Try a faster model |
+| Incorrect suggestions | Provide more specific context |

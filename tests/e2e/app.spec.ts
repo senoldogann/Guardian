@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("guardian_onboarding_completed", "true");
+  });
+});
+
 test.describe("App Load", () => {
   test("loads monitor view", async ({ page }) => {
     await page.goto("/");

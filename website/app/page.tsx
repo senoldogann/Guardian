@@ -4,12 +4,11 @@ import { getDictionary } from "../lib/i18n";
 import { buildPageMetadata } from "../lib/seo";
 
 export const metadata: Metadata = buildPageMetadata({
-  locale: "tr",
   title: "Guardian",
-  description: "Guardian ile mimari kalite ve release güvenliğini tek ürün akışında yönetin.",
+  description: "Keep quality and security standards enforced at release speed.",
   path: "/"
 });
 
 export default async function HomePage() {
-  return <HomePageView dict={getDictionary("tr")} locale="tr" />;
+  return <HomePageView dict={getDictionary()} />;
 }
