@@ -29,6 +29,20 @@ const API_BASE = `https://api.github.com/repos/${OWNER}/${REPO}`;
 const DEFAULT_REVALIDATE_SECONDS = 3600; // 1 hour
 const INSTALLER_EXTENSIONS = [".dmg", ".msi", ".exe", ".appimage", ".deb", ".rpm", ".zip", ".tar.gz"] as const;
 
+// Import token security modules (will be available at runtime)
+let tokenAudit: typeof import("./token-audit") | null = null;
+let tokenValidator: typeof import("./token-validator") | null = null;
+
+// Lazy load modules to avoid circular dependencies
+async function loadTokenModules() {
+  if (!tokenAudit) {
+    tokenAudit = await import("./token-audit");
+  }
+  if (!tokenValidator) {
+    tokenValidator = await import("./token-validator");
+  }
+}
+
 function normalizeAsset(asset: GithubAsset): GithubAsset {
   return {
     id: asset.id,
@@ -58,6 +72,21 @@ function normalizeRelease(release: GithubRelease): GithubRelease {
 
 async function githubFetch<T>(path: string): Promise<T | null> {
   const token = process.env.GITHUB_PUBLIC_READ_TOKEN;
+  const startTime = Date.now();
+  
+  // Load token security modules
+  await loadTokenModules();
+  
+  // Validate token if present
+  if (token && tokenValidator) {
+    const isValidFormat = tokenValidator.quickValidateToken(token);
+    if (!isValidFormat) {
+      console.error("[GitHub API] Token format validation failed");
+      tokenAudit?.logValidationFailure("invalid_format", path);
+      return null;
+    }
+  }
+  
   try {
     const response = await fetch(`${API_BASE}${path}`, {
       headers: {
@@ -67,19 +96,76 @@ async function githubFetch<T>(path: string): Promise<T | null> {
       next: { revalidate: DEFAULT_REVALIDATE_SECONDS }
     });
 
+    const duration = Date.now() - startTime;
+    
+    // Get rate limit info from headers
+    const rateLimitRemaining = response.headers.get("X-RateLimit-Remaining");
+    const rateLimitReset = response.headers.get("X-RateLimit-Reset");
+    
     if (!response.ok) {
       // Rate limit handling - return null instead of throwing
       if (response.status === 403 || response.status === 429) {
         console.warn(`GitHub API rate limited (${response.status}). Using fallback.`);
+        
+        // Log rate limit event
+        if (tokenAudit && rateLimitRemaining && rateLimitReset) {
+          tokenAudit.logRateLimit(
+            parseInt(response.headers.get("X-RateLimit-Limit") || "60"),
+            parseInt(rateLimitRemaining),
+            new Date(parseInt(rateLimitReset) * 1000).toISOString(),
+            path
+          );
+        }
+        
         return null;
       }
+      
+      // Log failed request
+      if (tokenAudit) {
+        tokenAudit.logTokenUsage(
+          path,
+          "GET",
+          false,
+          duration,
+          rateLimitRemaining ? {
+            remaining: parseInt(rateLimitRemaining),
+            reset: new Date(parseInt(rateLimitReset || "0") * 1000).toISOString()
+          } : undefined
+        );
+      }
+      
       const text = await response.text();
       throw new Error(`GitHub API failed (${response.status}): ${text}`);
+    }
+
+    // Log successful request
+    if (tokenAudit) {
+      tokenAudit.logTokenUsage(
+        path,
+        "GET",
+        true,
+        duration,
+        rateLimitRemaining ? {
+          remaining: parseInt(rateLimitRemaining),
+          reset: new Date(parseInt(rateLimitReset || "0") * 1000).toISOString()
+        } : undefined
+      );
     }
 
     return (await response.json()) as T;
   } catch (error) {
     console.error("GitHub fetch error:", error);
+    
+    // Log error
+    if (tokenAudit) {
+      tokenAudit.logTokenUsage(
+        path,
+        "GET",
+        false,
+        Date.now() - startTime
+      );
+    }
+    
     return null;
   }
 }
@@ -145,3 +231,6 @@ export async function getReleases(limit = 20): Promise<GithubRelease[]> {
   if (!releases) return [];
   return releases.filter((release) => !release.draft).map(normalizeRelease);
 }
+
+// Export token security utilities for external use
+export { loadTokenModules };
