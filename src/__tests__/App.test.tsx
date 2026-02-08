@@ -98,7 +98,6 @@ describe("App", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: /resolve in guru/i }));
 
     expect(screen.queryByText("Critical Stall")).not.toBeInTheDocument();
-    expect(screen.getByText(/SYSTEM STALLED:/i)).toBeInTheDocument();
 
     emitTauriEvent("guardian:stall-requested", {
       file_path: "scripts/verify_audit.py",

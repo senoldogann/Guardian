@@ -757,6 +757,49 @@ const THRESHOLDS = {
 
 **Not:** CI'de Node 18 ile Vitest/Vite ESM yükleme hatası görüldü; CI için Node 22 kullanımı önerilir.
 
+## ✅ UI/UX Fixes (2026-02-09)
+
+### Stall / Guru Akış İyileştirmeleri
+- Resolve in Guru artık her tıklamada tetikleniyor (auto-prompt id ile tekrar engeli kaldırıldı).
+- Üstteki SYSTEM STALLED banner kaldırıldı (yalnızca modal overlay kullanılıyor).
+- Monitor listesinde Critical/Warning satırlarına Guru ikonu eklendi; tıklayınca doğrudan ilgili hata için Guru prompt açılıyor.
+- Stall overlay ve monitor aksiyonlarında uzun metin taşmaları için boyut sabitleme/break-all düzenlemesi yapıldı.
+
+### Scope Değişimi Temizliği
+- Scope değiştiğinde: monitoring durduruluyor, logs/context/expanded state/filtre/resetleniyor.
+- Yeni scope seçimi localStorage LAST_PATH'e yazılıyor; eski veriler orta alandan tamamen temizleniyor.
+
+### Guru Web Search Davranışı
+- Auto‑prompt (Critical/Warning Guru) artık **web search kullanmıyor**; Tavily hataları basic prompt akışını etkilemiyor.
+- Web search hatası mesajı daha açık hale getirildi (ayar kapatma önerisi).
+
+### Etkilenen Dosyalar
+- `src/App.tsx`
+- `src/components/ChatView.tsx`
+- `src/components/CritiqueAccordionRow.tsx`
+- `src/components/StallOverlay.tsx`
+- `src/components/__tests__/ChatView.test.tsx`
+- `src/components/__tests__/CritiqueAccordionRow.test.tsx`
+- `src/components/__tests__/StallOverlay.test.tsx`
+- `src/__tests__/App.test.tsx`
+
+### Doğrulama Sonuçları (2026-02-09)
+- `npm run test` → ✅ geçti
+- `npm --prefix website run test:run` → ✅ geçti (error-boundary testleri beklenen console error loglarını üretir)
+
+## ✅ Guru Context Fixes (2026-02-09)
+
+### Workspace Odaklılık ve Doğruluk
+- `.swift` dosyaları explicit file token listesine eklendi.
+- Explicit file path workspace dışındaysa artık **context'e eklenmiyor** (root dışı dosyalar bloke).
+- Explicit file token varken tam‑metin tarama atlanıyor (context odağı korunuyor).
+- Query'deki Windows path separator normalize edildi (\ → /).
+- Guru sistem promptuna “workspace dışı dosyalar için uyarı” ve “tam dosya isteyen promptlara uyum” notu eklendi.
+
+### Doğrulama Sonuçları (2026-02-09)
+- `npm run test` → ✅ geçti
+- `npm --prefix website run test:run` → ✅ geçti (error-boundary testleri beklenen console error loglarını üretir)
+
 ## 🎯 Günlük Hedefler
 
 ### ✅ 2026-02-08 - Phase 1.2 Tamamlandı
@@ -797,7 +840,7 @@ const THRESHOLDS = {
 
 ---
 
-**Son Güncelleme:** 2026-02-08 23:29  
+**Son Güncelleme:** 2026-02-09 01:36  
 **Toplam Commit:** 10 (push edilmedi)  
 **Sonraki İşlem:** Review sonrası doğrulama ve release notları
 

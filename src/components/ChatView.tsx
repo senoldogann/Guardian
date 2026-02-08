@@ -44,9 +44,15 @@ interface ChatMessage {
     };
 }
 
+export type AutoPrompt = {
+    id: string;
+    prompt: string;
+    useWebSearch?: boolean;
+};
+
 interface ChatViewProps {
     path: string;
-    autoPrompt?: string | null;
+    autoPrompt?: AutoPrompt | null;
     onAutoPromptConsumed?: () => void;
     webSearchEnabled: boolean;
     onWebSearchToggle: () => void;
@@ -274,7 +280,7 @@ export function ChatView({
         };
     }, [appendMessage, nowIso]);
 
-    const submitPrompt = async (prompt: string): Promise<void> => {
+    const submitPrompt = async (prompt: string, forceWebSearch?: boolean): Promise<void> => {
         if (chatLoading || !prompt.trim()) return;
 
         if (!path) {
@@ -292,18 +298,28 @@ export function ChatView({
         setChatLoading(true);
 
         try {
-            const useWebSearch = webSearchEnabled && webSearchReady;
+            const useWebSearch = typeof forceWebSearch === "boolean"
+                ? forceWebSearch
+                : webSearchEnabled && webSearchReady;
             const answer = await invoke<string>("ask_guru", { path, query: prompt, webSearch: useWebSearch });
             if (ignoreResponseRef.current) return;
             appendMessage({ role: "guru", content: answer, timestamp: nowIso() });
         } catch (err: unknown) {
             const errorMsg = err instanceof Error ? err.message : String(err);
             if (ignoreResponseRef.current) return;
-            appendMessage({
-                role: "guardian",
-                content: `Guru Error: ${errorMsg}. Ensure local AI server is running.`,
-                timestamp: nowIso(),
-            });
+            if (errorMsg.toLowerCase().includes("web search failed")) {
+                appendMessage({
+                    role: "guardian",
+                    content: `Guru Error: ${errorMsg}. Web search is optional; try again or disable web search in Settings.`,
+                    timestamp: nowIso(),
+                });
+            } else {
+                appendMessage({
+                    role: "guardian",
+                    content: `Guru Error: ${errorMsg}. Ensure local AI server is running.`,
+                    timestamp: nowIso(),
+                });
+            }
         } finally {
             setChatLoading(false);
         }
@@ -345,12 +361,14 @@ export function ChatView({
 
     useEffect(() => {
         if (!autoPrompt) return;
-        if (autoPromptRef.current === autoPrompt) return;
-        autoPromptRef.current = autoPrompt;
+        if (autoPromptRef.current === autoPrompt.id) return;
+        autoPromptRef.current = autoPrompt.id;
         onAutoPromptConsumed?.();
 
         forceScrollRef.current = true;
-        void submitPrompt(autoPrompt);
+
+        const webSearchOverride = typeof autoPrompt.useWebSearch === "boolean" ? autoPrompt.useWebSearch : undefined;
+        void submitPrompt(autoPrompt.prompt, webSearchOverride);
     }, [autoPrompt, onAutoPromptConsumed]);
 
     const confirmFix = useCallback(async (index: number, filePath: string, diff: string): Promise<void> => {

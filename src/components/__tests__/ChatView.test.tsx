@@ -54,13 +54,13 @@ describe("ChatView", () => {
     });
 
     render(
-      <ChatView
-        path="/tmp/project"
-        autoPrompt="Resolve the stall"
-        webSearchEnabled={false}
-        webSearchReady={false}
-        onWebSearchToggle={() => {}}
-      />
+        <ChatView
+          path="/tmp/project"
+          autoPrompt={{ id: "stall-1", prompt: "Resolve the stall", useWebSearch: false }}
+          webSearchEnabled={false}
+          webSearchReady={false}
+          onWebSearchToggle={() => {}}
+        />
     );
 
     expect(invokeMock).toHaveBeenCalledWith("ask_guru", {

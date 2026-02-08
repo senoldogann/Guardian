@@ -10,7 +10,8 @@ import {
     FileCode,
     ChevronRight,
     ChevronDown,
-    Hammer
+    Hammer,
+    Bot
 } from "lucide-react";
 
 export interface Critique {
@@ -26,10 +27,11 @@ interface CritiqueAccordionRowProps {
     index: number;
     isExpanded: boolean;
     onToggle: () => void;
+    onAskGuru: () => void;
     onFix: () => void; // Clean Code: Callback for UI update
 }
 
-export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onFix }: CritiqueAccordionRowProps): ReactElement {
+export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onAskGuru, onFix }: CritiqueAccordionRowProps): ReactElement {
     const isCritical = log.severity === "Critical";
     const isWarning = log.severity === "Warning";
 
@@ -99,18 +101,31 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ l
                     </div>
                 </div>
 
-                <div className="w-40 shrink-0 flex items-center justify-end gap-3 translate-x-1">
+                <div className="w-52 shrink-0 flex items-center justify-end gap-2 translate-x-1">
+                    {(isCritical || isWarning) && (
+                        <button
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                onAskGuru();
+                            }}
+                            className="p-2 rounded-lg border border-border-main bg-background/60 hover:bg-background transition-colors text-text-muted hover:text-text-main"
+                            title="Ask Guru to resolve"
+                            aria-label="Ask Guru to resolve"
+                        >
+                            <Bot className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                     {log.suggested_diff && (
                         <button
                             onClick={applyFix}
-                            className="flex items-center gap-1.5 text-xs font-bold text-[var(--accent-500)] bg-[var(--accent-200)] px-2.5 py-1.5 rounded-lg border border-[var(--accent-400)] hover:opacity-90 hover:scale-105 transition-all cursor-pointer z-10"
+                            className="flex items-center gap-1.5 text-xs font-bold text-[var(--accent-500)] bg-[var(--accent-200)] px-2.5 py-1.5 rounded-lg border border-[var(--accent-400)] hover:opacity-90 hover:scale-105 transition-all cursor-pointer z-10 min-w-[76px] justify-center"
                             title="Quick Fix: Apply this patch immediately"
                         >
                             <Hammer className="w-3.5 h-3.5" /> FIX
                         </button>
                     )}
                     <span className={clsx(
-                        "px-2 py-1 rounded-md text-xs font-bold uppercase tracking-widest border shrink-0",
+                        "px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border shrink-0 min-w-[84px] text-center",
                         isCritical ? "bg-rose-500/10 text-rose-500 border-rose-500/20" :
                             isWarning ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
                                 "bg-[var(--accent-200)] text-[var(--accent-500)] border-[var(--accent-400)]"

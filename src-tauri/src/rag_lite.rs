@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 const FILE_TOKEN_EXTENSIONS: &[&str] = &[
     ".rs", ".tsx", ".ts", ".js", ".jsx", ".py", ".sh", ".md", ".json", ".toml", ".yml", ".yaml",
-    ".go", ".txt", ".css", ".html", ".sql",
+    ".go", ".txt", ".css", ".html", ".sql", ".swift",
 ];
 const ENV_QUERY_KEYWORDS: &[&str] = &[
     ".env",
@@ -34,7 +34,8 @@ fn clean_token(token: &str) -> String {
 
 fn extract_file_tokens(query: &str) -> Vec<String> {
     let mut tokens = Vec::new();
-    for raw in query.split_whitespace() {
+    let normalized = query.replace("\\", "/");
+    for raw in normalized.split_whitespace() {
         let token = clean_token(raw);
         if token.is_empty() {
             continue;
@@ -49,6 +50,7 @@ fn extract_file_tokens(query: &str) -> Vec<String> {
 fn resolve_explicit_files(root: &str, tokens: &[String]) -> Vec<PathBuf> {
     let mut results = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
+    let root_path = Path::new(root);
 
     for token in tokens {
         if results.len() >= 3 {
@@ -63,6 +65,9 @@ fn resolve_explicit_files(root: &str, tokens: &[String]) -> Vec<PathBuf> {
         };
 
         if candidate_path.exists() && candidate_path.is_file() {
+            if !is_within_root(root_path, &candidate_path) {
+                continue;
+            }
             let key = candidate_path.to_string_lossy().to_string();
             if seen.insert(key) {
                 results.push(candidate_path);
@@ -98,6 +103,16 @@ fn resolve_explicit_files(root: &str, tokens: &[String]) -> Vec<PathBuf> {
     }
 
     results
+}
+
+fn is_within_root(root: &Path, candidate: &Path) -> bool {
+    let Ok(root_canon) = root.canonicalize() else {
+        return false;
+    };
+    let Ok(candidate_canon) = candidate.canonicalize() else {
+        return false;
+    };
+    candidate_canon.starts_with(&root_canon)
 }
 
 fn resolve_special_context_files(root: &str, query: &str) -> Vec<PathBuf> {
@@ -256,6 +271,7 @@ pub fn search_context(path: &str, query: &str) -> String {
     let file_tokens = extract_file_tokens(query);
     let mut explicit_files = resolve_explicit_files(path, &file_tokens);
     explicit_files.extend(resolve_special_context_files(path, query));
+    let found_explicit = !explicit_files.is_empty();
     append_missing_file_notes(
         &mut context_accumulator,
         path,
@@ -278,44 +294,49 @@ pub fn search_context(path: &str, query: &str) -> String {
 
     append_special_notes(&mut context_accumulator, path, query);
 
-    let walker = WalkBuilder::new(path)
-        .hidden(false)
-        .git_ignore(true)
-        .build();
+    if found_explicit {
+        context_accumulator.push_str("Note: Explicit file tokens were found; full-text search was skipped to keep context focused.\n");
+    }
 
     let mut matches_found = 0;
+    if !found_explicit {
+        let walker = WalkBuilder::new(path)
+            .hidden(false)
+            .git_ignore(true)
+            .build();
 
-    for result in walker {
-        if matches_found >= 5 {
-            break;
-        } // Limit to top 5 files
+        for result in walker {
+            if matches_found >= 5 {
+                break;
+            } // Limit to top 5 files
 
-        if let Ok(entry) = result {
-            if entry.file_type().map(|f| f.is_file()).unwrap_or(false) {
-                let file_path = entry.path();
+            if let Ok(entry) = result {
+                if entry.file_type().map(|f| f.is_file()).unwrap_or(false) {
+                    let file_path = entry.path();
 
-                // Skip binaries/large files optimization could go here.
+                    // Skip binaries/large files optimization could go here.
 
-                if let Ok(content) = fs::read_to_string(file_path) {
-                    // Case-insensitive check (Basic)
-                    if content.to_lowercase().contains(&query.to_lowercase()) {
-                        let truncated: String =
-                            content.lines().take(200).collect::<Vec<_>>().join("\n");
+                    if let Ok(content) = fs::read_to_string(file_path) {
+                        // Case-insensitive check (Basic)
+                        if content.to_lowercase().contains(&query.to_lowercase()) {
+                            let truncated: String =
+                                content.lines().take(200).collect::<Vec<_>>().join("\n");
 
-                        context_accumulator.push_str(&format!(
-                            "#### File: {}\n```\n{}\n```\n\n",
-                            file_path.display(),
-                            truncated
-                        ));
-                        matches_found += 1;
+                            context_accumulator.push_str(&format!(
+                                "#### File: {}\n```\n{}\n```\n\n",
+                                file_path.display(),
+                                truncated
+                            ));
+                            matches_found += 1;
+                        }
                     }
                 }
             }
         }
-    }
 
-    if matches_found == 0 {
-        context_accumulator.push_str("No direct keyword matches found in codebase.\n");
+        if matches_found == 0 {
+            context_accumulator.push_str("No direct keyword matches found in codebase.\n");
+        }
     }
 
     // 2. Structure Injection (Project Map)

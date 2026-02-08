@@ -17,11 +17,10 @@ import {
   MessageSquare,
   Files,
   Share2,
-  ShieldAlert,
 } from "lucide-react";
 import clsx from "clsx";
 import { CritiqueAccordionRow } from "./components/CritiqueAccordionRow";
-import { ChatView } from "./components/ChatView";
+import { ChatView, type AutoPrompt } from "./components/ChatView";
 import DiagramView from "./components/DiagramView";
 import { Header } from "./components/Header";
 import { AuthGate } from "./components/AuthGate";
@@ -55,10 +54,9 @@ function App(): ReactElement {
   const [expandedFile, setExpandedFile] = useState<string | null>(null);
   const [stalled, setStalled] = useState<{ file: string; reason: string } | null>(null);
   const [stallOverlayOpen, setStallOverlayOpen] = useState(false);
-  const [stallBannerVisible, setStallBannerVisible] = useState(true);
   const stallSignatureRef = useRef<string | null>(null);
   const stallSignature = stallSignatureRef.current ?? "";
-  const [pendingGuruPrompt, setPendingGuruPrompt] = useState<string | null>(null);
+  const [pendingGuruPrompt, setPendingGuruPrompt] = useState<AutoPrompt | null>(null);
   const [usage, setUsage] = useState({ tokens: 0, calls: 0 });
   const [context, setContext] = useState<ProjectContext | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
@@ -106,7 +104,36 @@ function App(): ReactElement {
       });
 
       if (selected && typeof selected === "string") {
+        if (active) {
+          try {
+            await invoke("stop_monitoring");
+          } catch (e: unknown) {
+            const errorMsg = e instanceof Error ? e.message : String(e);
+            setLogs(prev => ({
+              ...prev,
+              ["System:Monitoring"]: {
+                file_path: "System",
+                severity: "Warning",
+                message: `Failed to stop monitoring: ${errorMsg}`,
+              }
+            }));
+          }
+        }
+        setActive(false);
+        setStatus("Idle");
+        setLogs({});
+        setExpandedFile(null);
+        setStalled(null);
+        setStallOverlayOpen(false);
+        stallSignatureRef.current = null;
+        setPendingGuruPrompt(null);
+        setContext(null);
+        setContextError(null);
+        setFilter("");
         setPath(selected);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(STORAGE_KEYS.LAST_PATH, selected);
+        }
       }
     } catch (err) {
       setLogs(prev => ({
@@ -211,7 +238,6 @@ function App(): ReactElement {
     void register<{ file_path: string; reason: string }>("guardian:stall-requested", (event) => {
       const signature = `${event.payload.file_path}::${event.payload.reason}`;
       setStalled({ file: event.payload.file_path, reason: event.payload.reason });
-      setStallBannerVisible(true);
       if (stallSignatureRef.current !== signature) {
         setStallOverlayOpen(true);
         stallSignatureRef.current = signature;
@@ -222,7 +248,6 @@ function App(): ReactElement {
       setStalled(null);
       setStallOverlayOpen(false);
       stallSignatureRef.current = null;
-      setStallBannerVisible(false);
     });
 
     void register<{ tokens: number; calls: number }>("guardian:usage", (event) => {
@@ -343,15 +368,19 @@ function App(): ReactElement {
   };
 
   const openGuruForStall = useCallback((): void => {
-    if (stalled) {
-      setPendingGuruPrompt(
-        `Critical violation detected in ${stalled.file}.\nReason: ${stalled.reason}.\n\nPlease propose a safe fix with a clear explanation and the FULL updated file content only (no diff markers, no markdown).`
-      );
-    } else {
-      setPendingGuruPrompt("We are stalled by a critical violation. Please propose a safe fix with the FULL updated file content only (no diff markers, no markdown).");
-    }
+    const prompt = stalled
+      ? `Critical violation detected in ${stalled.file}.\nReason: ${stalled.reason}.\n\nPlease propose a safe fix with a clear explanation and the FULL updated file content only (no diff markers, no markdown).`
+      : "We are stalled by a critical violation. Please propose a safe fix with the FULL updated file content only (no diff markers, no markdown).";
+    setPendingGuruPrompt({ id: `${Date.now()}-${Math.random()}`, prompt, useWebSearch: false });
     setView("chat");
   }, [stalled]);
+
+  const askGuruForLog = useCallback((log: Critique, useWebSearch = false): void => {
+    const severity = log.severity.toUpperCase();
+    const prompt = `Investigate this ${severity} issue and propose a safe fix with a clear explanation and the FULL updated file content only (no diff markers, no markdown).\n\nFile: ${log.file_path}\nReason: ${log.message}`;
+    setPendingGuruPrompt({ id: `${Date.now()}-${Math.random()}`, prompt, useWebSearch });
+    setView("chat");
+  }, []);
 
   const visibleLogs = useMemo((): Critique[] => {
     const entries = Object.values(logs);
@@ -546,31 +575,6 @@ function App(): ReactElement {
         </div>
       )}
 
-      {/* CLOCKWORK EVOLUTION: Hard Lock Banner */}
-      {stalled && stallBannerVisible && (
-        <div className="bg-white text-zinc-900 dark:bg-[var(--accent-200)] dark:text-text-main px-6 py-2 flex items-center justify-between text-xs font-bold animate-in slide-in-from-top duration-500 z-30 border-b border-border-main">
-          <div className="flex items-center gap-3">
-            <ShieldAlert className="w-4 h-4 text-[var(--accent-500)] animate-pulse" />
-            <span>SYSTEM STALLED: Critical violation detected in {stalled.file.split('/').pop()}</span>
-            <span className="opacity-70 font-normal ml-4">Antigravity execution is paused until a fix is approved.</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={openGuruForStall}
-              className="px-3 py-1 bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer"
-            >
-              RESOLVE IN GURU
-            </button>
-            <button
-              onClick={() => setStallBannerVisible(false)}
-              className="px-3 py-1 bg-white/70 dark:bg-[var(--accent-200)] text-zinc-900 dark:text-text-main rounded-md hover:opacity-90 transition-colors cursor-pointer border border-border-main"
-            >
-              DISMISS
-            </button>
-          </div>
-        </div>
-      )}
-
       <main className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
         <aside className="w-64 bg-surface border-r border-border-main p-5 flex flex-col gap-8 transition-colors duration-300">
@@ -753,6 +757,7 @@ function App(): ReactElement {
                     index={index + 1}
                     isExpanded={expandedFile === log.file_path}
                     onToggle={() => setExpandedFile(expandedFile === log.file_path ? null : log.file_path)}
+                    onAskGuru={() => askGuruForLog(log, false)}
                     onFix={() => {
                       setLogs(prev => {
                         const newLogs = { ...prev };

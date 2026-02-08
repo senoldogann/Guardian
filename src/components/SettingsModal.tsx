@@ -464,7 +464,7 @@ export function SettingsModal({
             )}
             <div className="text-[10px] text-text-muted">
               {tavilyKeyStatus?.has_key
-                ? `Tavily key stored (${tavilyKeyStatus.source}).`
+                ? `Tavily key stored (${tavilyKeyStatus.source}). If macOS prompts every session, choose “Always Allow” for Keychain access.`
                 : "No Tavily key stored. Add your own to enable web search."}
             </div>
             <input

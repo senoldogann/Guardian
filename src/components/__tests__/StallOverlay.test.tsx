@@ -77,6 +77,7 @@ describe("StallOverlay", () => {
         render(<StallOverlay {...defaultProps} />);
 
         expect(screen.getByText(/Critical violation detected/)).toBeInTheDocument();
+        expect(screen.getByText(/\/src\/components\/App\.tsx/)).toBeInTheDocument();
         expect(screen.getByText(/Real-time monitoring is paused/)).toBeInTheDocument();
     });
 });

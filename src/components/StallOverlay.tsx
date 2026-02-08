@@ -23,8 +23,11 @@ export function StallOverlay({ stalled, open, onResolve, onDismiss }: StallOverl
           <h2 className="text-lg font-black uppercase tracking-widest text-text-main">Critical Stall</h2>
         </div>
         <p className="text-sm text-text-muted leading-relaxed">
-          Critical violation detected in <span className="font-bold">{stalled.file.split('/').pop()}</span>.
+          Critical violation detected in <span className="font-bold break-all">{stalled.file.split('/').pop()}</span>.
           Real-time monitoring is paused for safety. Resolve the issue in Guru to continue.
+        </p>
+        <p className="text-xs text-text-muted/70 mt-2 break-all">
+          {stalled.file}
         </p>
         <div className="mt-6 flex gap-3">
           <button

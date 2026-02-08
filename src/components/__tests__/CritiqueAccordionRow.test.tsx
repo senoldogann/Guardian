@@ -27,6 +27,7 @@ describe("CritiqueAccordionRow", () => {
         index={1}
         isExpanded={false}
         onToggle={() => {}}
+        onAskGuru={() => {}}
         onFix={onFix}
       />
     );
