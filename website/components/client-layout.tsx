@@ -5,6 +5,7 @@ import { CommandHeader } from "./ui/command-header";
 import { SiteFooter } from "./site-footer";
 import { ThemeProvider } from "./theme-provider";
 import { PerformanceMonitor } from "@/lib/vitals";
+import { CSPMonitor } from "@/lib/csp-monitor";
 import { CookieConsentProvider } from "@/lib/cookie-consent";
 import { CookieBanner } from "./privacy/CookieBanner";
 
@@ -13,6 +14,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
     <ThemeProvider>
       {/* Performance monitoring */}
       <PerformanceMonitor />
+
+      {/* CSP Violation monitoring */}
+      <CSPMonitor />
 
       <CookieConsentProvider>
         {/* Skip to content link for accessibility */}
