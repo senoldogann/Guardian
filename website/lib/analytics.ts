@@ -15,7 +15,9 @@ export type AnalyticsEvent =
   | "external_link_click"
   | "error_boundary_triggered"
   | "changelog_view"
-  | "release_view";
+  | "release_view"
+  | "web_vital"
+  | "web_vital_alert";
 
 export type AnalyticsProperties = {
   // Download events
