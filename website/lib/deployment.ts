@@ -87,13 +87,19 @@ export const blueGreenStrategy: DeploymentStrategy = {
     const previousVersion = currentDeployment.version;
     const targetEnvironment = currentDeployment.environment === "blue" ? "green" : "blue";
     
-    console.log(`[Deployment] Starting blue-green deployment to ${targetEnvironment}...`);
+    if (process.env.NODE_ENV === "development") {
+      console.info(`[Deployment] Starting blue-green deployment to ${targetEnvironment}...`);
+    }
     
     // Step 1: Deploy to inactive environment
-    console.log(`[Deployment] Deploying version ${version} to ${targetEnvironment}...`);
+    if (process.env.NODE_ENV === "development") {
+      console.info(`[Deployment] Deploying version ${version} to ${targetEnvironment}...`);
+    }
     
     // Step 2: Health check on new environment
-    console.log(`[Deployment] Running health checks...`);
+    if (process.env.NODE_ENV === "development") {
+      console.info(`[Deployment] Running health checks...`);
+    }
     const isHealthy = await isDeploymentHealthy();
     
     if (!isHealthy) {
@@ -105,7 +111,9 @@ export const blueGreenStrategy: DeploymentStrategy = {
     }
     
     // Step 3: Switch traffic to new environment
-    console.log(`[Deployment] Switching traffic to ${targetEnvironment}...`);
+    if (process.env.NODE_ENV === "development") {
+      console.info(`[Deployment] Switching traffic to ${targetEnvironment}...`);
+    }
     setDeploymentConfig({
       environment: targetEnvironment,
       version,
@@ -113,14 +121,18 @@ export const blueGreenStrategy: DeploymentStrategy = {
     });
     
     // Step 4: Monitor for a grace period
-    console.log(`[Deployment] Monitoring deployment...`);
+    if (process.env.NODE_ENV === "development") {
+      console.info(`[Deployment] Monitoring deployment...`);
+    }
     await new Promise((resolve) => setTimeout(resolve, 30000)); // 30s grace period
     
     const stillHealthy = await isDeploymentHealthy();
     
     if (!stillHealthy) {
       // Auto-rollback
-      console.log(`[Deployment] Health degraded, triggering rollback...`);
+      if (process.env.NODE_ENV === "development") {
+        console.info(`[Deployment] Health degraded, triggering rollback...`);
+      }
       return this.rollback();
     }
     
@@ -142,7 +154,9 @@ export const blueGreenStrategy: DeploymentStrategy = {
       };
     }
     
-    console.log(`[Deployment] Rolling back from ${environment} to previous version ${rollbackVersion}...`);
+    if (process.env.NODE_ENV === "development") {
+      console.info(`[Deployment] Rolling back from ${environment} to previous version ${rollbackVersion}...`);
+    }
     
     // Switch back to previous environment
     const previousEnvironment = environment === "blue" ? "green" : "blue";
@@ -167,7 +181,9 @@ export const blueGreenStrategy: DeploymentStrategy = {
 export async function deployWithRollback(version: string): Promise<DeploymentResult> {
   const previousVersion = currentDeployment.version;
   
-  console.log(`[Deployment] Starting deployment of version ${version}...`);
+  if (process.env.NODE_ENV === "development") {
+    console.info(`[Deployment] Starting deployment of version ${version}...`);
+  }
   
   // Update version
   setDeploymentConfig({
@@ -182,7 +198,9 @@ export async function deployWithRollback(version: string): Promise<DeploymentRes
   const isHealthy = await isDeploymentHealthy();
   
   if (!isHealthy) {
-    console.log(`[Deployment] Health check failed, initiating rollback...`);
+    if (process.env.NODE_ENV === "development") {
+      console.info(`[Deployment] Health check failed, initiating rollback...`);
+    }
     return blueGreenStrategy.rollback();
   }
   

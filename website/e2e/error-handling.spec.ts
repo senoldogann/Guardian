@@ -270,8 +270,8 @@ test.describe("Error Boundary (Client-side)", () => {
     // Inject a script that throws an error
     await page.evaluate(() => {
       // Simulate component error
-      window.addEventListener("error", (e) => {
-        console.log("Error caught:", e.message);
+      window.addEventListener("error", () => {
+        // Intentionally empty: verifying error handler registration.
       });
     });
     

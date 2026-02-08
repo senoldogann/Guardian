@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { Github, ShieldCheck, Linkedin, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useCookieConsent } from "@/lib/cookie-consent";
 
 export function SiteFooter() {
     const [currentYear, setCurrentYear] = useState<number | null>(null);
+    const { openSettings } = useCookieConsent();
 
     // Get year on client-side only to avoid hydration mismatch
     useEffect(() => {
@@ -130,6 +132,15 @@ export function SiteFooter() {
                                     </Link>
                                 </li>
                             ))}
+                            <li>
+                                <button
+                                    type="button"
+                                    onClick={openSettings}
+                                    className="text-zinc-600 dark:text-zinc-500 hover:text-black dark:hover:text-white transition-colors text-sm cursor-pointer"
+                                >
+                                    Cookie Preferences
+                                </button>
+                            </li>
                         </ul>
                     </div>
                 </div>

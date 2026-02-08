@@ -1,13 +1,49 @@
 "use client";
 
 import { Analytics } from "@vercel/analytics/react";
+import { useEffect, useState } from "react";
 import { CommandHeader } from "./ui/command-header";
 import { SiteFooter } from "./site-footer";
 import { ThemeProvider } from "./theme-provider";
 import { PerformanceMonitor } from "@/lib/vitals";
 import { CSPMonitor } from "@/lib/csp-monitor";
-import { CookieConsentProvider } from "@/lib/cookie-consent";
+import { CookieConsentProvider, useCookieConsent } from "@/lib/cookie-consent";
 import { CookieBanner } from "./privacy/CookieBanner";
+
+function AnalyticsBridge() {
+  const { preferences } = useCookieConsent();
+  const [hasGtag, setHasGtag] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setHasGtag("gtag" in window);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!hasGtag) return;
+
+    try {
+      // @ts-expect-error - gtag may not have types
+      window.gtag("consent", "update", {
+        analytics_storage: preferences.analytics ? "granted" : "denied",
+        ad_storage: preferences.marketing ? "granted" : "denied",
+      });
+    } catch {
+      // Ignore consent update failures
+    }
+  }, [preferences.analytics, preferences.marketing, hasGtag]);
+
+  return null;
+}
+
+function ConsentAnalytics() {
+  const { preferences } = useCookieConsent();
+
+  if (!preferences.analytics) return null;
+
+  return <Analytics />;
+}
 
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -19,6 +55,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       <CSPMonitor />
 
       <CookieConsentProvider>
+        <AnalyticsBridge />
         {/* Skip to content link for accessibility */}
         <a
           href="#main-content"
@@ -34,9 +71,9 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           <SiteFooter />
           <CookieBanner />
         </div>
+        {/* Analytics - Automatic page view tracking */}
+        <ConsentAnalytics />
       </CookieConsentProvider>
-      {/* Analytics - Automatic page view tracking */}
-      <Analytics />
     </ThemeProvider>
   );
 }

@@ -1,15 +1,18 @@
 import { ImageResponse } from "@vercel/og";
 import { NextRequest } from "next/server";
+import { ogImageParamsSchema, validateSearchParams } from "@/lib/validation";
 
 export const runtime = "edge";
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    
-    // Get dynamic params
-    const title = searchParams.get("title") || "Guardian";
-    const description = searchParams.get("description") || "Release-Driven Governance Platform";
+
+    const validated = validateSearchParams(ogImageParamsSchema, searchParams);
+    const title = validated.success ? validated.data.title : "Guardian";
+    const description = validated.success
+      ? validated.data.description || "Release-Driven Governance Platform"
+      : "Release-Driven Governance Platform";
     
     return new ImageResponse(
       (
@@ -143,7 +146,9 @@ export async function GET(request: NextRequest) {
       }
     );
   } catch (error) {
-    console.error("Error generating OG image:", error);
+    if (process.env.NODE_ENV === "development") {
+      console.error("Error generating OG image:", error);
+    }
     return new Response("Failed to generate image", { status: 500 });
   }
 }

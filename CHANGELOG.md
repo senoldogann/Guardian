@@ -87,7 +87,7 @@ None - fully backward compatible.
 
 ### New Requirements
 - Self-hosted runner for CI/CD (optional but recommended)
-- Node.js 18+ (unchanged)
+- Node.js 22+ (updated)
 - Rust 1.75+ (unchanged)
 
 ---

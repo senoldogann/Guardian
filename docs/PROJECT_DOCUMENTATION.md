@@ -159,7 +159,7 @@ Keys entered in-app:
 
 ## 13. Development Workflow
 ### Prerequisites
-- Node.js 18+
+- Node.js 22+
 - Rust toolchain 1.75+
 - Tauri CLI
 
@@ -245,4 +245,3 @@ npm run tauri build
 - Incremental project map loading for very large repos
 - Optional silent background update apply
 - Provider-specific model filtering enhancements
-

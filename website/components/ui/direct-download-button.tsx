@@ -25,7 +25,11 @@ export function DirectDownloadButton() {
                     setVersion(releaseTagToVersion(release.tag_name));
                 }
             })
-            .catch(err => console.error("Failed to fetch assets for direct download", err));
+            .catch(err => {
+                if (process.env.NODE_ENV === "development") {
+                    console.error("Failed to fetch assets for direct download", err);
+                }
+            });
     }, []);
 
     const handleDownload = async () => {
@@ -51,7 +55,9 @@ export function DirectDownloadButton() {
                 router.push("/download");
             }
         } catch (error) {
-            console.error("Direct download failed", error);
+            if (process.env.NODE_ENV === "development") {
+                console.error("Direct download failed", error);
+            }
             router.push("/download");
         } finally {
             // Keep loading state for a bit to show something happened

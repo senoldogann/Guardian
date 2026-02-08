@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 
 export function CookieSettingsModal() {
-    const { isSettingsOpen, closeSettings, preferences, savePreferences } = useCookieConsent();
+    const { isSettingsOpen, closeSettings, preferences, savePreferences, resetConsent, hasConsented } = useCookieConsent();
     const [localPrefs, setLocalPrefs] = useState(preferences);
 
     // Sync local state when open
@@ -20,6 +20,11 @@ export function CookieSettingsModal() {
 
     const handleSave = () => {
         savePreferences(localPrefs);
+        closeSettings();
+    };
+
+    const handleReset = () => {
+        resetConsent();
         closeSettings();
     };
 
@@ -113,6 +118,15 @@ export function CookieSettingsModal() {
                         </div>
 
                         <div className="flex items-center justify-end gap-3 mt-8 pt-6 border-t border-zinc-100 dark:border-zinc-800">
+                            {hasConsented && (
+                                <Button
+                                    variant="ghost"
+                                    onClick={handleReset}
+                                    className="rounded-xl h-11 px-6 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                                >
+                                    Reset Consent
+                                </Button>
+                            )}
                             <Button variant="outline" onClick={closeSettings} className="rounded-xl h-11 px-6 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-700">
                                 Cancel
                             </Button>

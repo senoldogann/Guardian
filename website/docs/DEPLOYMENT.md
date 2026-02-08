@@ -51,6 +51,22 @@ All should pass without errors.
 
 ---
 
+## Guardian Deployment Automation (Internal)
+
+The `/api/deploy` and `/api/health` endpoints are reference implementations designed for integration with your deployment platform.
+
+Current limitations:
+- Deployment state is stored in memory (resets on serverless or container restart).
+- Traffic switching is simulated (requires platform-specific routing/hooks).
+- Disk space check in `health-check.ts` is a placeholder.
+
+Recommended production setup:
+- Persist deployment state in Redis or a database.
+- Wire `/api/deploy` to your CI/CD provider (Vercel, Netlify, GitHub Actions).
+- Replace disk checks with a real system metric collector.
+
+---
+
 ## Deployment Platforms
 
 ### Vercel (Recommended)
@@ -254,9 +270,9 @@ jobs:
       - uses: actions/checkout@v3
       
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22.x'
       
       - name: Install dependencies
         run: npm ci

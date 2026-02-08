@@ -64,7 +64,9 @@ export function HeroSection({ dict }: HeroSectionProps) {
                 window.location.href = releaseInfo.installers[0].browser_download_url;
             }
         } catch (error) {
-            console.error("Download failed:", error);
+            if (process.env.NODE_ENV === "development") {
+                console.error("Download failed:", error);
+            }
         } finally {
             setIsDownloading(false);
         }

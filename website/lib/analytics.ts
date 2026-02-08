@@ -50,18 +50,33 @@ export type AnalyticsProperties = {
  * Check if we're in a browser environment
  */
 const isBrowser = typeof window !== "undefined";
+const CONSENT_STORAGE_KEY = "guardian_cookie_consent";
 
 /**
  * Check if analytics should be enabled (production + consent)
  */
+function hasAnalyticsConsent(): boolean {
+  if (!isBrowser) return false;
+
+  try {
+    const stored = window.localStorage.getItem(CONSENT_STORAGE_KEY);
+    if (!stored) return false;
+    const parsed = JSON.parse(stored) as { analytics?: boolean };
+    return Boolean(parsed?.analytics);
+  } catch {
+    return false;
+  }
+}
+
 function isAnalyticsEnabled(): boolean {
   if (!isBrowser) return false;
-  
+
   // Only enable in production or if explicitly enabled in dev
   const isDev = process.env.NODE_ENV === "development";
   const devAnalytics = process.env.NEXT_PUBLIC_DEV_ANALYTICS === "true";
-  
-  return !isDev || devAnalytics;
+  if (isDev && !devAnalytics) return false;
+
+  return hasAnalyticsConsent();
 }
 
 /**
@@ -72,10 +87,6 @@ export function trackEvent(
   properties?: AnalyticsProperties
 ): void {
   if (!isAnalyticsEnabled()) {
-    // In development, log to console for debugging
-    if (process.env.NODE_ENV === "development") {
-      console.log("📊 Analytics Event:", event, properties);
-    }
     return;
   }
   
@@ -84,8 +95,8 @@ export function trackEvent(
     try {
       // @ts-expect-error - Vercel Analytics may not have types
       window.va("event", event, properties);
-    } catch (error) {
-      console.error("Analytics tracking error:", error);
+    } catch {
+      // Ignore analytics provider errors
     }
   }
   
@@ -94,8 +105,8 @@ export function trackEvent(
     try {
       // @ts-expect-error - gtag may not have types
       window.gtag("event", event, properties);
-    } catch (error) {
-      console.error("GA tracking error:", error);
+    } catch {
+      // Ignore analytics provider errors
     }
   }
 }
@@ -178,14 +189,10 @@ export function trackDocsSearch(query: string): void {
 /**
  * Identify a user (if using user-based analytics)
  */
-export function identifyUser(userId: string, traits?: Record<string, unknown>): void {
+export function identifyUser(_userId: string, _traits?: Record<string, unknown>): void {
   if (!isAnalyticsEnabled()) return;
-  
-  // Vercel Analytics doesn't use user identification by default
-  // This is here for future extension if needed
-  if (process.env.NODE_ENV === "development") {
-    console.log("📊 User identified:", userId, traits);
-  }
+
+  // Placeholder for future analytics identity integration.
 }
 
 /**
@@ -193,8 +200,4 @@ export function identifyUser(userId: string, traits?: Record<string, unknown>): 
  */
 export function resetAnalytics(): void {
   if (!isAnalyticsEnabled()) return;
-  
-  if (process.env.NODE_ENV === "development") {
-    console.log("📊 Analytics reset");
-  }
 }

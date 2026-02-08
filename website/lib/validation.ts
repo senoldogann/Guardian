@@ -14,10 +14,18 @@ import { z } from "zod";
 /**
  * Safe string validator - prevents XSS
  */
-export const safeString = z
-  .string()
-  .min(1, "Required")
-  .max(1000, "Too long");
+const createSafeString = (options?: { maxLength?: number; maxMessage?: string; minMessage?: string }) => {
+  const maxLength = options?.maxLength ?? 1000;
+  const minMessage = options?.minMessage ?? "Required";
+  const maxMessage = options?.maxMessage ?? "Too long";
+
+  return z
+    .string()
+    .transform((value) => value.trim())
+    .pipe(z.string().min(1, minMessage).max(maxLength, maxMessage));
+};
+
+export const safeString = createSafeString();
 
 /**
  * URL validator with security checks
@@ -127,8 +135,8 @@ export const githubRepoSchema = z.object({
  * Open Graph image parameters
  */
 export const ogImageParamsSchema = z.object({
-  title: safeString.max(100, "Title too long for OG image"),
-  description: safeString.max(200, "Description too long for OG image").optional(),
+  title: createSafeString({ maxLength: 100, maxMessage: "Title too long for OG image" }),
+  description: createSafeString({ maxLength: 200, maxMessage: "Description too long for OG image" }).optional(),
 });
 
 export type OGImageParams = z.infer<typeof ogImageParamsSchema>;
@@ -141,10 +149,10 @@ export type OGImageParams = z.infer<typeof ogImageParamsSchema>;
  * Contact form validation
  */
 export const contactFormSchema = z.object({
-  name: safeString.max(100, "Name too long"),
+  name: createSafeString({ maxLength: 100, maxMessage: "Name too long" }),
   email: email,
-  subject: safeString.max(200, "Subject too long"),
-  message: safeString.max(5000, "Message too long"),
+  subject: createSafeString({ maxLength: 200, maxMessage: "Subject too long" }),
+  message: createSafeString({ maxLength: 5000, maxMessage: "Message too long" }),
   honeypot: z.string().max(0, "Spam detected").optional(), // Hidden field for bot detection
 });
 
@@ -200,7 +208,7 @@ export type PaginationParams = z.infer<typeof paginationSchema>;
  * Search query
  */
 export const searchQuerySchema = z.object({
-  q: safeString.max(200, "Search query too long"),
+  q: createSafeString({ maxLength: 200, maxMessage: "Search query too long" }),
   ...paginationSchema.shape,
 });
 

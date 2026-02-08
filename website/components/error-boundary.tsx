@@ -39,7 +39,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error details
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    if (process.env.NODE_ENV === "development") {
+      console.error("ErrorBoundary caught an error:", error, errorInfo);
+    }
     
     this.setState({ error, errorInfo });
     
@@ -87,7 +89,9 @@ export class ErrorBoundary extends Component<Props, State> {
     
     // Send to your error tracking endpoint
     // fetch('/api/log-error', { method: 'POST', body: JSON.stringify(errorReport) });
-    console.log("Error report prepared:", errorReport);
+    if (process.env.NODE_ENV === "development") {
+      console.info("Error report prepared:", errorReport);
+    }
   }
 
   render() {
@@ -265,7 +269,9 @@ export function AsyncErrorBoundary({
     <ErrorBoundary 
       className={className}
       onError={(error, errorInfo) => {
-        console.error("Async component error:", error, errorInfo);
+        if (process.env.NODE_ENV === "development") {
+          console.error("Async component error:", error, errorInfo);
+        }
       }}
     >
       {children}
@@ -290,7 +296,9 @@ export function SectionErrorBoundary({
     <ErrorBoundary 
       className={className}
       onError={(error, errorInfo) => {
-        console.error(`Error in section "${sectionName}":`, error, errorInfo);
+        if (process.env.NODE_ENV === "development") {
+          console.error(`Error in section "${sectionName}":`, error, errorInfo);
+        }
       }}
     >
       {children}

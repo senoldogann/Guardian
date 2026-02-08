@@ -101,17 +101,7 @@ Core Web Vitals are automatically tracked and sent to analytics:
 
 ## Development Mode
 
-In development, analytics events are logged to console instead of sent:
-
-```bash
-📊 Analytics Event: download_click {
-  platform: 'darwin',
-  version: '1.0.0',
-  asset_name: 'guardian-1.0.0-darwin.dmg'
-}
-```
-
-To enable analytics in development:
+Analytics are disabled by default in development. To enable analytics in development:
 
 ```bash
 NEXT_PUBLIC_DEV_ANALYTICS=true npm run dev
@@ -164,17 +154,8 @@ Add to `app/layout.tsx`:
 
 ### User Consent
 
-If you need explicit consent (e.g., for GA), wrap analytics in consent check:
-
-```typescript
-function isAnalyticsEnabled(): boolean {
-  if (!isBrowser) return false;
-  
-  // Check user consent
-  const hasConsent = localStorage.getItem("analytics_consent") === "true";
-  return hasConsent && process.env.NODE_ENV === "production";
-}
-```
+Analytics are gated by the cookie consent preferences stored in `guardian_cookie_consent`.
+When `analytics` is false, no analytics events are sent and the analytics script is not rendered.
 
 ## Viewing Analytics Data
 
@@ -285,7 +266,7 @@ test("should track download click", async ({ page }) => {
 
 1. **Check environment:**
    ```bash
-   console.log(process.env.NODE_ENV);  // Should be "production"
+   process.env.NODE_ENV;  // Should be "production"
    ```
 
 2. **Check Vercel deployment:**

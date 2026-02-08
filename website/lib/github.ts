@@ -1,3 +1,5 @@
+import { apiClient, ApiClientError } from "./api-client";
+
 export type GithubAsset = {
   id: number;
   name: string;
@@ -81,62 +83,29 @@ async function githubFetch<T>(path: string): Promise<T | null> {
   if (token && tokenValidator) {
     const isValidFormat = tokenValidator.quickValidateToken(token);
     if (!isValidFormat) {
-      console.error("[GitHub API] Token format validation failed");
+      if (process.env.NODE_ENV === "development") {
+        console.error("[GitHub API] Token format validation failed");
+      }
       tokenAudit?.logValidationFailure("invalid_format", path);
       return null;
     }
   }
   
   try {
-    const response = await fetch(`${API_BASE}${path}`, {
+    const response = await apiClient.get<T>(`${API_BASE}${path}`, {
       headers: {
         Accept: "application/vnd.github+json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {})
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      next: { revalidate: DEFAULT_REVALIDATE_SECONDS }
+      skipCircuitBreaker: true,
+      next: { revalidate: DEFAULT_REVALIDATE_SECONDS },
     });
 
     const duration = Date.now() - startTime;
-    
+
     // Get rate limit info from headers
-    const rateLimitRemaining = response.headers.get("X-RateLimit-Remaining");
-    const rateLimitReset = response.headers.get("X-RateLimit-Reset");
-    
-    if (!response.ok) {
-      // Rate limit handling - return null instead of throwing
-      if (response.status === 403 || response.status === 429) {
-        console.warn(`GitHub API rate limited (${response.status}). Using fallback.`);
-        
-        // Log rate limit event
-        if (tokenAudit && rateLimitRemaining && rateLimitReset) {
-          tokenAudit.logRateLimit(
-            parseInt(response.headers.get("X-RateLimit-Limit") || "60"),
-            parseInt(rateLimitRemaining),
-            new Date(parseInt(rateLimitReset) * 1000).toISOString(),
-            path
-          );
-        }
-        
-        return null;
-      }
-      
-      // Log failed request
-      if (tokenAudit) {
-        tokenAudit.logTokenUsage(
-          path,
-          "GET",
-          false,
-          duration,
-          rateLimitRemaining ? {
-            remaining: parseInt(rateLimitRemaining),
-            reset: new Date(parseInt(rateLimitReset || "0") * 1000).toISOString()
-          } : undefined
-        );
-      }
-      
-      const text = await response.text();
-      throw new Error(`GitHub API failed (${response.status}): ${text}`);
-    }
+    const rateLimitRemaining = response.headers?.get?.("X-RateLimit-Remaining") ?? null;
+    const rateLimitReset = response.headers?.get?.("X-RateLimit-Reset") ?? null;
 
     // Log successful request
     if (tokenAudit) {
@@ -147,25 +116,49 @@ async function githubFetch<T>(path: string): Promise<T | null> {
         duration,
         rateLimitRemaining ? {
           remaining: parseInt(rateLimitRemaining),
-          reset: new Date(parseInt(rateLimitReset || "0") * 1000).toISOString()
+          reset: new Date(parseInt(rateLimitReset || "0") * 1000).toISOString(),
         } : undefined
       );
     }
 
-    return (await response.json()) as T;
-  } catch (error) {
-    console.error("GitHub fetch error:", error);
-    
-    // Log error
+    return response.data;
+  } catch (error: unknown) {
+    const duration = Date.now() - startTime;
+    let status: number | undefined;
+
+    if (error instanceof ApiClientError) {
+      status = error.error.status;
+    } else if (error instanceof Error && "error" in error) {
+      status = (error as { error?: { status?: number } }).error?.status;
+    }
+
+    if (process.env.NODE_ENV === "development") {
+      console.error("GitHub fetch error:", error);
+    }
+
+    if (status === 403 || status === 429) {
+      if (tokenAudit) {
+        const remaining = typeof status === "number" ? 0 : 0;
+        tokenAudit.logRateLimit(
+          60,
+          remaining,
+          new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          path
+        );
+      }
+
+      return null;
+    }
+
     if (tokenAudit) {
       tokenAudit.logTokenUsage(
         path,
         "GET",
         false,
-        Date.now() - startTime
+        duration
       );
     }
-    
+
     return null;
   }
 }

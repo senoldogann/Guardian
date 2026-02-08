@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     const metric = await request.json();
     
     // Log to server console
-    console.log("[Web Vitals]", {
+    console.info("[Web Vitals]", {
       ...metric,
       receivedAt: new Date().toISOString(),
     });

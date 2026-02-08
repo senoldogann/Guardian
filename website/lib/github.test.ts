@@ -9,6 +9,22 @@ import {
   type GithubAsset,
 } from "./github";
 
+const createApiResponse = (options: {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  jsonData?: unknown;
+  textData?: string;
+  headers?: Headers;
+}) => ({
+  ok: options.ok,
+  status: options.status,
+  statusText: options.statusText,
+  headers: options.headers ?? new Headers({ "content-type": "application/json" }),
+  json: async () => options.jsonData,
+  text: async () => options.textData ?? "",
+});
+
 /**
  * GitHub API Helper Tests
  * 
@@ -65,20 +81,33 @@ const mockRelease: GithubRelease = {
 
 const mockReleases: GithubRelease[] = [mockRelease];
 
+let originalToken: string | undefined;
+
+beforeEach(() => {
+  originalToken = process.env.GITHUB_PUBLIC_READ_TOKEN;
+  delete process.env.GITHUB_PUBLIC_READ_TOKEN;
+  global.fetch = vi.fn();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  if (typeof originalToken === "undefined") {
+    delete process.env.GITHUB_PUBLIC_READ_TOKEN;
+  } else {
+    process.env.GITHUB_PUBLIC_READ_TOKEN = originalToken;
+  }
+});
+
 describe("github - Release Fetching", () => {
-  beforeEach(() => {
-    global.fetch = vi.fn();
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("should fetch releases from GitHub API", async () => {
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockReleases,
-    });
+    (global.fetch as any).mockResolvedValueOnce(
+      createApiResponse({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        jsonData: mockReleases,
+      })
+    );
 
     const releases = await getReleases(10);
 
@@ -88,10 +117,14 @@ describe("github - Release Fetching", () => {
 
   it("should fetch latest release", async () => {
     // GitHub's /releases/latest returns a single release object, not an array
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockRelease,
-    });
+    (global.fetch as any).mockResolvedValueOnce(
+      createApiResponse({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        jsonData: mockRelease,
+      })
+    );
 
     const latest = await getLatestRelease();
 
@@ -102,10 +135,14 @@ describe("github - Release Fetching", () => {
   it("should filter out prereleases by default", async () => {
     // /releases/latest already filters prereleases on GitHub's side
     // Just verify that the returned release is not a prerelease
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockRelease,
-    });
+    (global.fetch as any).mockResolvedValueOnce(
+      createApiResponse({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        jsonData: mockRelease,
+      })
+    );
 
     const latest = await getLatestRelease();
 
@@ -117,10 +154,14 @@ describe("github - Release Fetching", () => {
   it("should filter out draft releases", async () => {
     // /releases/latest already filters drafts on GitHub's side
     // Just verify that the returned release is not a draft
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockRelease,
-    });
+    (global.fetch as any).mockResolvedValueOnce(
+      createApiResponse({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        jsonData: mockRelease,
+      })
+    );
 
     const latest = await getLatestRelease();
 
@@ -129,12 +170,15 @@ describe("github - Release Fetching", () => {
   });
 
   it("should handle API errors gracefully", async () => {
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      statusText: "Internal Server Error",
-      text: async () => "Internal Server Error",
-    });
+    (global.fetch as any).mockResolvedValueOnce(
+      createApiResponse({
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+        jsonData: { message: "Internal Server Error" },
+        textData: "Internal Server Error",
+      })
+    );
 
     const releases = await getReleases(10);
     expect(releases).toEqual([]);
@@ -148,13 +192,16 @@ describe("github - Release Fetching", () => {
   });
 
   it("should include auth token if provided", async () => {
-    const originalToken = process.env.GITHUB_PUBLIC_READ_TOKEN;
-    process.env.GITHUB_PUBLIC_READ_TOKEN = "test_token_123";
+    process.env.GITHUB_PUBLIC_READ_TOKEN = "ghp_123456789012345678901234567890123456";
 
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockReleases,
-    });
+    (global.fetch as any).mockResolvedValueOnce(
+      createApiResponse({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        jsonData: mockReleases,
+      })
+    );
 
     await getReleases(10);
 
@@ -162,12 +209,11 @@ describe("github - Release Fetching", () => {
       expect.any(String),
       expect.objectContaining({
         headers: expect.objectContaining({
-          Authorization: "Bearer test_token_123",
+          Authorization: "Bearer ghp_123456789012345678901234567890123456",
         }),
       })
     );
 
-    process.env.GITHUB_PUBLIC_READ_TOKEN = originalToken;
   });
 });
 
@@ -281,10 +327,14 @@ describe("github - URL Generation", () => {
 
 describe("github - Data Normalization", () => {
   it("should normalize release data", async () => {
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => [mockRelease],
-    });
+    (global.fetch as any).mockResolvedValueOnce(
+      createApiResponse({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        jsonData: [mockRelease],
+      })
+    );
 
     const releases = await getReleases(1);
     const release = releases[0];
@@ -316,10 +366,14 @@ describe("github - Data Normalization", () => {
       published_at: null,
     };
 
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => [releaseWithNulls],
-    });
+    (global.fetch as any).mockResolvedValueOnce(
+      createApiResponse({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        jsonData: [releaseWithNulls],
+      })
+    );
 
     const releases = await getReleases(1);
 
@@ -331,10 +385,14 @@ describe("github - Data Normalization", () => {
 
 describe("github - Edge Cases", () => {
   it("should handle empty releases array", async () => {
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => [],
-    });
+    (global.fetch as any).mockResolvedValueOnce(
+      createApiResponse({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        jsonData: [],
+      })
+    );
 
     const releases = await getReleases(10);
 
@@ -342,15 +400,18 @@ describe("github - Edge Cases", () => {
   });
 
   it("should handle rate limiting", async () => {
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: false,
-      status: 403,
-      statusText: "Rate limit exceeded",
-      text: async () => "Rate limit exceeded",
-      headers: new Headers({
-        "X-RateLimit-Remaining": "0",
-      }),
-    });
+    (global.fetch as any).mockResolvedValueOnce(
+      createApiResponse({
+        ok: false,
+        status: 403,
+        statusText: "Rate limit exceeded",
+        jsonData: { message: "Rate limit exceeded" },
+        textData: "Rate limit exceeded",
+        headers: new Headers({
+          "X-RateLimit-Remaining": "0",
+        }),
+      })
+    );
 
     const releases = await getReleases(10);
     expect(releases).toEqual([]);
@@ -359,9 +420,13 @@ describe("github - Edge Cases", () => {
   it("should handle malformed JSON", async () => {
     (global.fetch as any).mockResolvedValueOnce({
       ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: new Headers({ "content-type": "application/json" }),
       json: async () => {
         throw new Error("Invalid JSON");
       },
+      text: async () => "",
     });
 
     const releases = await getReleases(10);

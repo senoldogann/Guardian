@@ -41,6 +41,9 @@ export type ApiRequestConfig = {
   timeout?: number;
   retry?: Partial<RetryConfig>;
   skipCircuitBreaker?: boolean;
+  next?: {
+    revalidate?: number;
+  };
 };
 
 export type ApiResponse<T> = {
@@ -214,12 +217,18 @@ export class ApiClient {
       }
 
       // Make request
-      const response = await fetch(url, {
+      const fetchOptions: RequestInit & { next?: { revalidate?: number } } = {
         method,
         headers,
         body: requestConfig.body ? JSON.stringify(requestConfig.body) : undefined,
         signal: controller.signal,
-      });
+      };
+
+      if (requestConfig.next) {
+        fetchOptions.next = requestConfig.next;
+      }
+
+      const response = await fetch(url, fetchOptions);
 
       clearTimeout(timeoutId);
 
@@ -243,7 +252,7 @@ export class ApiClient {
           const delay = calculateRetryDelay(attempt, retryConfig);
           
           if (process.env.NODE_ENV === "development") {
-            console.log(`[ApiClient] Retrying ${method} ${url} after ${delay}ms (attempt ${attempt + 1}/${retryConfig.maxRetries})`);
+            console.info(`[ApiClient] Retrying ${method} ${url} after ${delay}ms (attempt ${attempt + 1}/${retryConfig.maxRetries})`);
           }
           
           await sleep(delay);
@@ -306,7 +315,7 @@ export class ApiClient {
           const delay = calculateRetryDelay(attempt, retryConfig);
           
           if (process.env.NODE_ENV === "development") {
-            console.log(`[ApiClient] Retrying ${method} ${url} after network error (attempt ${attempt + 1}/${retryConfig.maxRetries})`);
+            console.info(`[ApiClient] Retrying ${method} ${url} after network error (attempt ${attempt + 1}/${retryConfig.maxRetries})`);
           }
           
           await sleep(delay);

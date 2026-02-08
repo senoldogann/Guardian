@@ -11,6 +11,7 @@ export interface CookiePreferences {
 interface CookieConsentContextType {
     preferences: CookiePreferences;
     showBanner: boolean;
+    hasConsented: boolean;
     acceptAll: () => void;
     rejectAll: () => void;
     savePreferences: (prefs: CookiePreferences) => void;
@@ -34,6 +35,7 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
     const [preferences, setPreferences] = useState<CookiePreferences>(DEFAULT_PREFERENCES);
     const [showBanner, setShowBanner] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [hasConsented, setHasConsented] = useState(false);
 
     useEffect(() => {
         // Check for existing consent
@@ -43,13 +45,16 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
                 const parsed = JSON.parse(stored);
                 setPreferences({ ...DEFAULT_PREFERENCES, ...parsed, necessary: true });
                 setShowBanner(false);
+                setHasConsented(true);
             } catch {
                 // Invalid JSON, treat as no consent
                 setShowBanner(true);
+                setHasConsented(false);
             }
         } else {
             // No consent found, show banner
             setShowBanner(true);
+            setHasConsented(false);
         }
     }, []);
 
@@ -58,6 +63,7 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
         setPreferences(prefs);
         setShowBanner(false);
         setIsSettingsOpen(false);
+        setHasConsented(true);
 
         // Trigger GTM/Analytics update here if needed (e.g. window.gtag('consent', ...))
     };
@@ -78,6 +84,7 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
         localStorage.removeItem(COOKIE_KEY);
         setPreferences(DEFAULT_PREFERENCES);
         setShowBanner(true);
+        setHasConsented(false);
     };
 
     const openSettings = () => setIsSettingsOpen(true);
@@ -90,6 +97,7 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
             value={{
                 preferences,
                 showBanner,
+                hasConsented,
                 acceptAll,
                 rejectAll,
                 savePreferences,

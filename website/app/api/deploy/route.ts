@@ -84,7 +84,9 @@ export async function POST(request: Request) {
       );
     }
     
-    console.log(`[API] Deployment requested for version ${version} using ${strategy} strategy`);
+    if (process.env.NODE_ENV === "development") {
+        console.info(`[API] Deployment requested for version ${version} using ${strategy} strategy`);
+    }
     
     let result;
     if (strategy === "blue-green") {
@@ -123,7 +125,9 @@ export async function DELETE(request: Request) {
   }
   
   try {
-    console.log("[API] Rollback requested");
+    if (process.env.NODE_ENV === "development") {
+        console.info("[API] Rollback requested");
+    }
     
     const result = await blueGreenStrategy.rollback();
     

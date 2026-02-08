@@ -28,10 +28,10 @@ interface CSPViolationReport {
 function logCSPViolation(report: CSPViolationReport): void {
   const violation = report["csp-report"];
   
-  console.group("🚨 CSP Violation Detected");
-  console.error(`Directive: ${violation["violated-directive"]}`);
-  console.error(`Blocked URI: ${violation["blocked-uri"]}`);
-  console.error(`Document: ${violation["document-uri"]}`);
+   console.group("🚨 CSP Violation Detected");
+   console.error(`Directive: ${violation["violated-directive"]}`);
+   console.error(`Blocked URI: ${violation["blocked-uri"]}`);
+   console.error(`Document: ${violation["document-uri"]}`);
   
   if (violation["line-number"]) {
     console.error(`Line: ${violation["line-number"]}:${violation["column-number"] || "?"}`);
@@ -57,12 +57,12 @@ async function sendCSPReport(report: CSPViolationReport): Promise<void> {
       body: JSON.stringify(report),
     });
 
-    if (!response.ok) {
-      console.error("[CSP] Failed to send violation report:", response.statusText);
-    }
-  } catch (error) {
-    console.error("[CSP] Error sending violation report:", error);
-  }
+   if (!response.ok) {
+     console.error("[CSP] Failed to send violation report:", response.statusText);
+   }
+   } catch (error) {
+     console.error("[CSP] Error sending violation report:", error);
+   }
 }
 
 /**
@@ -104,7 +104,7 @@ export function CSPMonitor(): null {
     const isReportOnly = document.querySelector('meta[http-equiv="Content-Security-Policy-Report-Only"]') !== null;
     
     if (process.env.NODE_ENV === "development") {
-      console.log("[CSP Monitor] Initialized", isReportOnly ? "(Report-Only mode)" : "");
+      console.info("[CSP Monitor] Initialized", isReportOnly ? "(Report-Only mode)" : "");
     }
 
     // Add violation listener

@@ -79,7 +79,7 @@ export function middleware(request: NextRequest): NextResponse {
 
   // Log CSP monitoring status in development
   if (process.env.NODE_ENV === "development") {
-    console.log("[CSP] Report-Only mode active - violations will be logged to /api/csp-report");
+    console.info("[CSP] Report-Only mode active - violations will be logged to /api/csp-report");
   }
 
   return response;

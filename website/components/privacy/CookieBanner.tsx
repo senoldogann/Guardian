@@ -44,7 +44,7 @@ export function CookieBanner() {
                                     onClick={openSettings}
                                     className="text-sm font-medium text-zinc-500 hover:text-black dark:hover:text-white underline px-2 py-2 transition-colors"
                                 >
-                                    Preferences
+                                    Customize
                                 </button>
                                 <Button
                                     variant="outline"

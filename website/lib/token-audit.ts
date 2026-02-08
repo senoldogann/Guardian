@@ -86,7 +86,7 @@ export function logTokenUsage(
   
   // Development logging
   if (process.env.NODE_ENV === "development") {
-    console.log("[Token Audit] Usage:", {
+    console.info("[Token Audit] Usage:", {
       endpoint,
       success,
       duration: `${durationMs}ms`,
@@ -117,7 +117,7 @@ export function logTokenRotation(
   addToAuditLog(event);
   
   // Always log rotations (important security event)
-  console.log("[Token Audit] Token rotated:", {
+  console.info("[Token Audit] Token rotated:", {
     reason,
     performedBy,
     timestamp: event.timestamp,

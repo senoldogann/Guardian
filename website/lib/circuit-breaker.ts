@@ -150,7 +150,7 @@ export class CircuitBreaker {
     this.halfOpenCalls = 0;
     
     if (process.env.NODE_ENV === "development") {
-      console.log(`[CircuitBreaker] '${this.name}' transitioned to HALF_OPEN`);
+      console.info(`[CircuitBreaker] '${this.name}' transitioned to HALF_OPEN`);
     }
   }
 
@@ -165,7 +165,7 @@ export class CircuitBreaker {
     this.lastFailureTime = null;
     
     if (process.env.NODE_ENV === "development") {
-      console.log(`[CircuitBreaker] '${this.name}' transitioned to CLOSED`);
+      console.info(`[CircuitBreaker] '${this.name}' transitioned to CLOSED`);
     }
   }
 

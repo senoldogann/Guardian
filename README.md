@@ -48,7 +48,7 @@ Context-sensitive patches and automated remediation based on project documentati
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js v18+
+- Node.js v22+
 - Rust v1.75+
 - macOS 12+ (Apple Silicon or Intel)
 

@@ -189,13 +189,13 @@ export function ContactForm() {
             </div>
 
             {/* Submit Button */}
-                <Button
-                    type="submit"
-                    size="lg"
-                    disabled={!message.trim() || isSending}
-                    aria-disabled={!message.trim() || isSending}
-                    className="w-full h-12 text-base font-semibold gap-2 bg-black text-white dark:bg-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all rounded-xl"
-                >
+            <Button
+                type="submit"
+                size="lg"
+                disabled={!message.trim() || isSending}
+                aria-disabled={!message.trim() || isSending}
+                className="w-full h-12 text-base font-semibold gap-2 bg-black text-white dark:bg-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all rounded-xl"
+            >
                 {isSending ? (
                     <>
                         <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />

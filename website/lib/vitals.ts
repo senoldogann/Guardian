@@ -161,7 +161,9 @@ async function sendWebVitalAlert(
   };
   
   // Log alert
-  console.warn(`[Web Vitals Alert] ${name} is ${rating}: ${formatWebVitalValue(name, value)}`);
+  if (process.env.NODE_ENV === "development") {
+    console.warn(`[Web Vitals Alert] ${name} is ${rating}: ${formatWebVitalValue(name, value)}`);
+  }
   
   // Send to analytics
   trackEvent("web_vital_alert", {
@@ -180,7 +182,9 @@ async function sendWebVitalAlert(
         body: JSON.stringify(alertData),
       });
     } catch (error) {
-      console.error("Failed to send web vital alert:", error);
+      if (process.env.NODE_ENV === "development") {
+        console.error("Failed to send web vital alert:", error);
+      }
     }
   }
   
@@ -195,7 +199,7 @@ async function sendWebVitalAlert(
         method: "POST",
         body,
         keepalive: true,
-      }).catch(console.error);
+      }).catch(() => undefined);
     }
   }
 }
@@ -263,7 +267,7 @@ export function reportWebVitals(
   // Log to console in development
   if (process.env.NODE_ENV === "development") {
     const color = rating === "good" ? "🟢" : rating === "needs-improvement" ? "🟡" : "🔴";
-    console.log(`[Web Vitals] ${color} ${name}: ${formatWebVitalValue(name, value)} (${rating})`);
+    console.info(`[Web Vitals] ${color} ${name}: ${formatWebVitalValue(name, value)} (${rating})`);
   }
   
   // Send to analytics
@@ -300,13 +304,13 @@ export function reportWebVitals(
     
     if (navigator.sendBeacon) {
       navigator.sendBeacon("/api/vitals", body);
-    } else {
-      fetch("/api/vitals", {
-        body,
-        method: "POST",
-        keepalive: true,
-      }).catch(console.error);
-    }
+      } else {
+        fetch("/api/vitals", {
+          body,
+          method: "POST",
+          keepalive: true,
+        }).catch(() => undefined);
+      }
   }
 }
 
@@ -414,7 +418,9 @@ export function useWebVitals(alertConfig: AlertConfig = DEFAULT_ALERT_CONFIG) {
         });
       })
       .catch((error) => {
-        console.error("Failed to load web-vitals:", error);
+        if (process.env.NODE_ENV === "development") {
+          console.error("Failed to load web-vitals:", error);
+        }
       });
   }, [alertConfig, updateMetric]);
   
