@@ -141,14 +141,14 @@ export function ChangelogClient({ dict, groups }: Props) {
         </div>
 
         <aside className="lg:sticky lg:top-28 lg:h-[calc(100vh-7rem)]">
-          <div className="rounded-2xl border border-neutral-200 bg-white/70 backdrop-blur p-5">
+          <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 backdrop-blur p-5">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-medium tracking-[0.22em] uppercase text-neutral-500 dark:text-neutral-400">
                 {dict.changelog.archive}
               </p>
               <Link
                 href="/download"
-                className="text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-white"
+                className="text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-white transition-colors"
               >
                 {dict.nav.download}
               </Link>
@@ -163,8 +163,8 @@ export function ChangelogClient({ dict, groups }: Props) {
                   className={[
                     "block rounded-lg px-3 py-2 text-sm transition-colors cursor-pointer",
                     activeMonth === group.key
-                      ? "bg-neutral-950 text-white"
-                      : "text-neutral-700 hover:bg-neutral-100 hover:text-neutral-950"
+                      ? "bg-neutral-950 dark:bg-white text-white dark:text-black font-medium"
+                      : "text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-neutral-200"
                   ].join(" ")}
                 >
                   {group.label}
