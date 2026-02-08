@@ -231,7 +231,7 @@ function App(): ReactElement {
     void register<string>("guardian:warning", (event) => {
       setLogs((prev) => ({
         ...prev,
-        ["System:Warning"]: { file_path: "System Warning", severity: "Info", message: event.payload }
+        ["System:Warning"]: { file_path: "System Warning", severity: "Warning", message: event.payload }
       }));
     });
 
@@ -399,9 +399,9 @@ function App(): ReactElement {
   const stats = useMemo(() => {
     const vals = visibleLogs;
     return {
-      critical: vals.filter(v => v.severity === "Critical").length,
-      warning: vals.filter(v => v.severity === "Warning").length,
-      info: vals.filter(v => v.severity === "Info").length,
+      critical: vals.filter(v => v.severity.toLowerCase() === "critical").length,
+      warning: vals.filter(v => v.severity.toLowerCase() === "warning").length,
+      info: vals.filter(v => v.severity.toLowerCase() === "info").length,
       total: vals.length
     };
   }, [visibleLogs]);

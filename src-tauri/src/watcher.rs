@@ -98,7 +98,7 @@ fn is_significant_warning(critique: &crate::ai_client::Critique) -> bool {
 }
 
 fn should_surface_critique(critique: &crate::ai_client::Critique) -> bool {
-    let severity = critique.severity.to_lowercase();
+    let severity = critique.severity.trim().to_lowercase();
     if severity == "critical" {
         return true;
     }
@@ -718,7 +718,8 @@ fn handle_critiques(
             }
 
             // Autonomous Verification Trigger
-            if auto_verify_enabled && critique.severity == "Critical" && critique.message != "LGTM"
+            let is_critical = critique.severity.trim().eq_ignore_ascii_case("critical");
+            if auto_verify_enabled && is_critical && critique.message != "LGTM"
             {
                 if critical_info.is_none() {
                     critical_info = Some(StallInfo {
@@ -940,7 +941,10 @@ fn sync_guardian_logs(
         let _ = writeln!(file, "Updated: {}\n", Utc::now().to_rfc3339());
         let _ = writeln!(file, "```json");
         for (path, c) in critiques {
-            if critical_info.is_none() && c.severity == "Critical" && c.message != "LGTM" {
+            if critical_info.is_none()
+                && c.severity.trim().eq_ignore_ascii_case("critical")
+                && c.message != "LGTM"
+            {
                 critical_info = Some(StallInfo {
                     file_path: path.clone(),
                     reason: c.message.clone(),

@@ -34,6 +34,8 @@ const INSTALLER_EXTENSIONS = [".dmg", ".msi", ".exe", ".appimage", ".deb", ".rpm
 // Import token security modules (will be available at runtime)
 let tokenAudit: typeof import("./token-audit") | null = null;
 let tokenValidator: typeof import("./token-validator") | null = null;
+const PERMISSION_CHECK_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+let permissionCache: { fingerprint: string; checkedAt: number; valid: boolean } | null = null;
 
 // Lazy load modules to avoid circular dependencies
 async function loadTokenModules() {
@@ -43,6 +45,32 @@ async function loadTokenModules() {
   if (!tokenValidator) {
     tokenValidator = await import("./token-validator");
   }
+}
+
+async function ensureTokenPermissions(token: string, path: string): Promise<boolean> {
+  if (!tokenValidator) return true;
+  const fingerprint = tokenValidator.generateTokenFingerprint(token);
+  const now = Date.now();
+  if (permissionCache && permissionCache.fingerprint === fingerprint) {
+    if (now - permissionCache.checkedAt < PERMISSION_CHECK_TTL_MS) {
+      return permissionCache.valid;
+    }
+  }
+
+  const permCheck = await tokenValidator.validateTokenPermissions(token);
+  permissionCache = { fingerprint, checkedAt: now, valid: permCheck.valid };
+
+  if (!permCheck.valid) {
+    const reason = permCheck.reason?.toLowerCase() ?? "";
+    const failureReason = reason.includes("revoked") || reason.includes("invalid")
+      ? "revoked"
+      : reason.includes("expired")
+        ? "expired"
+        : "insufficient_permissions";
+    tokenAudit?.logValidationFailure(failureReason, path);
+  }
+
+  return permCheck.valid;
 }
 
 function normalizeAsset(asset: GithubAsset): GithubAsset {
@@ -88,6 +116,12 @@ async function githubFetch<T>(path: string): Promise<T | null> {
       }
       tokenAudit?.logValidationFailure("invalid_format", path);
       return null;
+    }
+    if (process.env.NODE_ENV !== "test") {
+      const hasPermissions = await ensureTokenPermissions(token, path);
+      if (!hasPermissions) {
+        return null;
+      }
     }
   }
   

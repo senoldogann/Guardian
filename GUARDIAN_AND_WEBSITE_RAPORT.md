@@ -796,6 +796,14 @@ const THRESHOLDS = {
 - Query'deki Windows path separator normalize edildi (\ → /).
 - Guru sistem promptuna “workspace dışı dosyalar için uyarı” ve “tam dosya isteyen promptlara uyum” notu eklendi.
 
+### Token Permission Check (Website)
+- GitHub token permission check (live API) artık runtime akışına bağlandı.
+- Başarılı kontrol 6 saat TTL ile cache'leniyor; test ortamında permission check bypass ediliyor.
+
+### Monitor Listeleme Düzeltmesi
+- `guardian:warning` olayları artık UI'da `Warning` olarak işleniyor (önceden `Info` yazılıyordu).
+- Severity karşılaştırmaları case-insensitive yapıldı; Critical/Warning satırları görünür hale geldi.
+
 ### Doğrulama Sonuçları (2026-02-09)
 - `npm run test` → ✅ geçti
 - `npm --prefix website run test:run` → ✅ geçti (error-boundary testleri beklenen console error loglarını üretir)
@@ -840,7 +848,7 @@ const THRESHOLDS = {
 
 ---
 
-**Son Güncelleme:** 2026-02-09 01:36  
+**Son Güncelleme:** 2026-02-09 01:58  
 **Toplam Commit:** 10 (push edilmedi)  
 **Sonraki İşlem:** Review sonrası doğrulama ve release notları
 

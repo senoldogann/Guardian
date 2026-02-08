@@ -32,8 +32,9 @@ interface CritiqueAccordionRowProps {
 }
 
 export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onAskGuru, onFix }: CritiqueAccordionRowProps): ReactElement {
-    const isCritical = log.severity === "Critical";
-    const isWarning = log.severity === "Warning";
+    const severity = log.severity.toLowerCase();
+    const isCritical = severity === "critical";
+    const isWarning = severity === "warning";
 
     // Improved Path Logic: Handle short paths and Windows/Unix separators
     const parts = log.file_path.split(/[/\\]/);

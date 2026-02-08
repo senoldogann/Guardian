@@ -140,6 +140,9 @@ describe("App", () => {
       if (cmd === "get_api_key_status") {
         return Promise.resolve({ has_key: true, source: "user" });
       }
+      if (cmd === "stop_monitoring") {
+        return Promise.resolve(null);
+      }
       if (cmd === "start_monitoring") {
         return Promise.resolve(null);
       }
