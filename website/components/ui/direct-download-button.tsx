@@ -65,9 +65,10 @@ export function DirectDownloadButton() {
             <Button
                 className="rounded-full bg-white hover:bg-zinc-200 text-black font-semibold shadow-lg shadow-white/10 px-6"
                 disabled
+                aria-disabled
                 suppressHydrationWarning
             >
-                <Download className="w-4 h-4 mr-2" />
+                <Download className="w-4 h-4 mr-2" aria-hidden="true" />
                 Download
             </Button>
         );
@@ -78,11 +79,12 @@ export function DirectDownloadButton() {
             className="rounded-full bg-white hover:bg-zinc-200 text-black font-semibold shadow-lg shadow-white/10 px-6"
             onClick={handleDownload}
             disabled={isLoading}
+            aria-disabled={isLoading}
         >
             {isLoading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
             ) : (
-                <Download className="w-4 h-4 mr-2" />
+                <Download className="w-4 h-4 mr-2" aria-hidden="true" />
             )}
             Download
         </Button>

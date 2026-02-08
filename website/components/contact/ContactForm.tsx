@@ -70,15 +70,18 @@ export function ContactForm() {
         <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl mx-auto">
             {/* Topic Selection */}
             <div className="space-y-3">
-                <label className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                <label className="text-sm font-medium text-zinc-900 dark:text-zinc-100" id="contact-topic-label">
                     What can we help you with?
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup" aria-labelledby="contact-topic-label">
                     {SUBJECT_OPTIONS.map((option) => (
                         <button
                             key={option.id}
                             type="button"
                             onClick={() => setSelectedTopic(option.id)}
+                            role="radio"
+                            aria-checked={selectedTopic === option.id}
+                            aria-label={option.label}
                             className={cn(
                                 "flex items-center gap-3 p-4 rounded-xl border text-left transition-all duration-200",
                                 selectedTopic === option.id
@@ -92,7 +95,7 @@ export function ContactForm() {
                                     ? "bg-black text-white dark:bg-white dark:text-black"
                                     : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400"
                             )}>
-                                <option.icon className="w-5 h-5" />
+                                <option.icon className="w-5 h-5" aria-hidden="true" />
                             </div>
                             <span className={cn(
                                 "font-medium text-sm",
@@ -109,10 +112,11 @@ export function ContactForm() {
 
             {/* Message Input */}
             <div className="space-y-3">
-                <label className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                <label className="text-sm font-medium text-zinc-900 dark:text-zinc-100" htmlFor="contact-message">
                     Your Message
                 </label>
                 <textarea
+                    id="contact-message"
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     required
@@ -125,7 +129,7 @@ export function ContactForm() {
             {/* File Attachment */}
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                    <label className="text-sm font-medium text-zinc-900 dark:text-zinc-100" htmlFor="contact-attachments">
                         Attachments
                     </label>
                     <span className="text-xs text-zinc-500">
@@ -140,11 +144,12 @@ export function ContactForm() {
                         onClick={() => fileInputRef.current?.click()}
                         className="gap-2 border-dashed hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-black dark:hover:text-white hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
                     >
-                        <Paperclip className="w-4 h-4" />
+                        <Paperclip className="w-4 h-4" aria-hidden="true" />
                         Attach Files
                     </Button>
                     <input
                         ref={fileInputRef}
+                        id="contact-attachments"
                         type="file"
                         multiple
                         className="hidden"
@@ -166,9 +171,10 @@ export function ContactForm() {
                                 <button
                                     type="button"
                                     onClick={() => removeFile(index)}
+                                    aria-label={`Remove ${file.name}`}
                                     className="text-zinc-400 hover:text-red-500 transition-colors"
                                 >
-                                    <X className="w-3 h-3" />
+                                    <X className="w-3 h-3" aria-hidden="true" />
                                 </button>
                             </motion.div>
                         ))}
@@ -177,26 +183,27 @@ export function ContactForm() {
 
                 {/* Technical Limitation Note */}
                 <p className="text-xs text-zinc-400 flex items-center gap-1.5 mt-2">
-                    <AlertCircle className="w-3.5 h-3.5" />
+                    <AlertCircle className="w-3.5 h-3.5" aria-hidden="true" />
                     Browser security prevents automatic file attachment. You&apos;ll need to drag files into the email manually.
                 </p>
             </div>
 
             {/* Submit Button */}
-            <Button
-                type="submit"
-                size="lg"
-                disabled={!message.trim() || isSending}
-                className="w-full h-12 text-base font-semibold gap-2 bg-black text-white dark:bg-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all rounded-xl"
-            >
+                <Button
+                    type="submit"
+                    size="lg"
+                    disabled={!message.trim() || isSending}
+                    aria-disabled={!message.trim() || isSending}
+                    className="w-full h-12 text-base font-semibold gap-2 bg-black text-white dark:bg-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all rounded-xl"
+                >
                 {isSending ? (
                     <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                         Opening Mail Client...
                     </>
                 ) : (
                     <>
-                        <Send className="w-5 h-5" />
+                        <Send className="w-5 h-5" aria-hidden="true" />
                         Send Message
                     </>
                 )}
@@ -211,7 +218,7 @@ export function ContactForm() {
                         exit={{ opacity: 0, y: 10 }}
                         className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30 flex items-start gap-3"
                     >
-                        <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                        <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
                         <div className="space-y-1">
                             <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
                                 Almost done!
@@ -225,9 +232,10 @@ export function ContactForm() {
                         </div>
                         <button
                             onClick={() => setShowFileWarning(false)}
+                            aria-label="Dismiss file attachment warning"
                             className="ml-auto text-amber-500 hover:text-amber-700 dark:hover:text-amber-300"
                         >
-                            <X className="w-4 h-4" />
+                            <X className="w-4 h-4" aria-hidden="true" />
                         </button>
                     </motion.div>
                 )}

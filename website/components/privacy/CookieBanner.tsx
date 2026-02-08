@@ -20,13 +20,19 @@ export function CookieBanner() {
                         transition={{ type: "spring", damping: 20, stiffness: 300 }}
                         className="fixed bottom-0 left-0 right-0 z-[50] p-4 md:p-6 pointer-events-none"
                     >
-                        <div className="pointer-events-auto max-w-5xl mx-auto bg-white dark:bg-zinc-900 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                        <div
+                            className="pointer-events-auto max-w-5xl mx-auto bg-white dark:bg-zinc-900 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-zinc-200 dark:border-zinc-800 p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="cookie-banner-title"
+                            aria-describedby="cookie-banner-description"
+                        >
                             <div className="space-y-2 max-w-2xl">
-                                <h3 className="font-bold text-lg text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                                    <Shield className="w-5 h-5" />
+                                <h3 id="cookie-banner-title" className="font-bold text-lg text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                                    <Shield className="w-5 h-5" aria-hidden="true" />
                                     Cookie Privacy
                                 </h3>
-                                <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-sm md:text-base">
+                                <p id="cookie-banner-description" className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-sm md:text-base">
                                     We use cookies to ensure you get the best experience on our website.
                                     By continuing, you accept our use of cookies according to our
                                     <a href="/privacy-policy" className="text-black dark:text-white underline mx-1 font-medium hover:opacity-80 transition-opacity">Privacy Policy</a>.

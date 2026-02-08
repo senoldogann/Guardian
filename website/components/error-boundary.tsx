@@ -144,7 +144,7 @@ export function ErrorFallback({
       <div className="bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 p-6">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
-            <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+            <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" aria-hidden="true" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-black dark:text-white">
@@ -171,7 +171,7 @@ export function ErrorFallback({
               variant="default"
               className="gap-2 bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-4 h-4" aria-hidden="true" />
               Try Again
             </Button>
           )}
@@ -181,7 +181,7 @@ export function ErrorFallback({
             variant="outline"
             className="gap-2 border-neutral-300 dark:border-neutral-700"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="w-4 h-4" aria-hidden="true" />
             Reload Page
           </Button>
           
@@ -191,7 +191,7 @@ export function ErrorFallback({
             className="gap-2"
           >
             <Link href="/">
-              <Home className="w-4 h-4" />
+              <Home className="w-4 h-4" aria-hidden="true" />
               Go Home
             </Link>
           </Button>
@@ -204,7 +204,7 @@ export function ErrorFallback({
               onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
               className="flex items-center gap-2 text-sm text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 transition-colors cursor-pointer"
             >
-              <Bug className="w-4 h-4" />
+              <Bug className="w-4 h-4" aria-hidden="true" />
               {showTechnicalDetails ? "Hide" : "Show"} technical details
             </button>
             

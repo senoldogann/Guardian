@@ -84,7 +84,7 @@ export function FeaturesSection() {
                                             <div className="relative inline-flex">
                                                 <div className="absolute inset-0 bg-black/20 dark:bg-white/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                                                 <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 flex items-center justify-center group-hover:scale-110 group-hover:border-neutral-400 dark:group-hover:border-neutral-600 transition-all duration-300">
-                                                    <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-black dark:text-white" strokeWidth={1.5} />
+                                                    <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-black dark:text-white" strokeWidth={1.5} aria-hidden="true" />
                                                 </div>
                                                 <div className="absolute -top-2 -right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 flex items-center justify-center">
                                                     <span className="text-[10px] sm:text-xs font-semibold text-black dark:text-white">{idx + 1}</span>
@@ -102,7 +102,7 @@ export function FeaturesSection() {
                                         <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-neutral-200 dark:border-neutral-800">
                                             <Link href={feature.link} className="flex items-center gap-2 text-xs sm:text-sm text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300 transition-colors cursor-pointer">
                                                 <span style={{ fontFamily: 'var(--font-poppins)' }}>Learn more</span>
-                                                <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform" />
+                                                <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
                                             </Link>
                                         </div>
                                     </div>
@@ -131,7 +131,7 @@ export function FeaturesSection() {
                     >
                         <Link href="/docs">
                             <span style={{ fontFamily: 'var(--font-poppins)' }}>Explore Documentation</span>
-                            <ChevronRight className="w-4 h-4 ml-2" />
+                            <ChevronRight className="w-4 h-4 ml-2" aria-hidden="true" />
                         </Link>
                     </Button>
                 </motion.div>

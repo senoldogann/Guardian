@@ -54,7 +54,7 @@ export function ChangelogClient({ dict, groups }: Props) {
           {dict.changelog.description}
         </p>
 
-        <div className="mt-8 flex flex-wrap items-center gap-2">
+            <div className="mt-8 flex flex-wrap items-center gap-2" role="group" aria-label="Changelog filters">
           {filterItems.map((item) => (
             <button
               key={item.key}

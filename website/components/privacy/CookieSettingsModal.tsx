@@ -42,21 +42,26 @@ export function CookieSettingsModal() {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         className="fixed inset-0 m-auto z-[61] w-full max-w-2xl h-fit max-h-[90vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-2xl p-6 md:p-8"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="cookie-settings-title"
+                        aria-describedby="cookie-settings-description"
                     >
                         <div className="flex items-center justify-between mb-8">
-                            <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-3">
-                                <Shield className="w-6 h-6 text-zinc-900 dark:text-zinc-100" />
+                            <h2 id="cookie-settings-title" className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-3">
+                                <Shield className="w-6 h-6 text-zinc-900 dark:text-zinc-100" aria-hidden="true" />
                                 Privacy Preferences
                             </h2>
                             <button
                                 onClick={closeSettings}
+                                aria-label="Close cookie settings"
                                 className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                             >
-                                <X className="w-5 h-5 text-zinc-500" />
+                                <X className="w-5 h-5 text-zinc-500" aria-hidden="true" />
                             </button>
                         </div>
 
-                        <p className="text-zinc-600 dark:text-zinc-400 mb-8 leading-relaxed">
+                        <p id="cookie-settings-description" className="text-zinc-600 dark:text-zinc-400 mb-8 leading-relaxed">
                             We use cookies to enhance your browsing experience, serve personalized content, and analyze our traffic.
                             Below you can manage your preferences for each category.
                         </p>
@@ -73,7 +78,7 @@ export function CookieSettingsModal() {
                                         These cookies are essential for the website to function properly. They cannot be disabled.
                                     </p>
                                 </div>
-                                <Switch checked={true} disabled onCheckedChange={() => { }} />
+                                <Switch checked={true} disabled ariaLabel="Strictly necessary cookies" onCheckedChange={() => { }} />
                             </div>
 
                             {/* Analytics */}
@@ -86,6 +91,7 @@ export function CookieSettingsModal() {
                                 </div>
                                 <Switch
                                     checked={localPrefs.analytics}
+                                    ariaLabel="Analytics cookies"
                                     onCheckedChange={(checked: boolean) => setLocalPrefs(prev => ({ ...prev, analytics: checked }))}
                                 />
                             </div>
@@ -100,6 +106,7 @@ export function CookieSettingsModal() {
                                 </div>
                                 <Switch
                                     checked={localPrefs.marketing}
+                                    ariaLabel="Marketing cookies"
                                     onCheckedChange={(checked: boolean) => setLocalPrefs(prev => ({ ...prev, marketing: checked }))}
                                 />
                             </div>

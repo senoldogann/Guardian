@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { FileText, FolderOpen, ChevronRight, Menu } from "lucide-react";
+import { FolderOpen, ChevronRight, Menu } from "lucide-react";
 
 interface TocItem {
     title: string;
@@ -91,14 +91,14 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
                                 className="mobile-nav-button flex items-center gap-2 flex-1 justify-start bg-white dark:bg-black border-neutral-300 dark:border-neutral-700 text-black dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600"
                                 style={{ transitionProperty: 'background-color, border-color', transitionDuration: '150ms', transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)' }}
                             >
-                                <Menu className="w-4 h-4" />
+                                <Menu className="w-4 h-4" aria-hidden="true" />
                                 <span className="text-sm">Sections</span>
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="w-80 p-0 bg-white dark:bg-black border-r border-neutral-200 dark:border-neutral-800">
                             <SheetHeader className="p-4 border-b border-neutral-200 dark:border-neutral-800">
                                 <SheetTitle className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-neutral-600 dark:text-neutral-400">
-                                    <FolderOpen className="w-4 h-4" />
+                                    <FolderOpen className="w-4 h-4" aria-hidden="true" />
                                     Documentation Sections
                                 </SheetTitle>
                             </SheetHeader>
@@ -122,7 +122,7 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
                                     className="mobile-nav-button flex items-center gap-2 flex-1 justify-start bg-white dark:bg-black border-neutral-300 dark:border-neutral-700 text-black dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600"
                                     style={{ transitionProperty: 'background-color, border-color', transitionDuration: '150ms', transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)' }}
                                 >
-                                    <ChevronRight className="w-4 h-4" />
+                                    <ChevronRight className="w-4 h-4" aria-hidden="true" />
                                     <span className="text-sm">On This Page</span>
                                 </Button>
                             </SheetTrigger>
@@ -183,7 +183,7 @@ function SidebarContent({
         <div className="h-full overflow-hidden">
             <div className="p-4 hidden lg:block">
                 <h2 className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest flex items-center gap-2">
-                    <FolderOpen className="w-3 h-3" />
+                    <FolderOpen className="w-3 h-3" aria-hidden="true" />
                     Sections
                 </h2>
             </div>

@@ -19,9 +19,9 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
   }, []);
 
   const themes: { value: "light" | "dark" | "system"; icon: React.ReactNode; label: string }[] = [
-    { value: "light", icon: <Sun className="w-4 h-4" />, label: "Light" },
-    { value: "dark", icon: <Moon className="w-4 h-4" />, label: "Dark" },
-    { value: "system", icon: <Monitor className="w-4 h-4" />, label: "System" },
+    { value: "light", icon: <Sun className="w-4 h-4" aria-hidden="true" />, label: "Light" },
+    { value: "dark", icon: <Moon className="w-4 h-4" aria-hidden="true" />, label: "Dark" },
+    { value: "system", icon: <Monitor className="w-4 h-4" aria-hidden="true" />, label: "System" },
   ];
 
   // Avoid hydration mismatch by rendering neutral state on server

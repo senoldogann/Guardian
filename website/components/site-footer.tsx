@@ -40,7 +40,7 @@ export function SiteFooter() {
                     {/* Brand Column */}
                     <div className="lg:col-span-2">
                         <div className="flex items-center gap-2 mb-4">
-                            <ShieldCheck className="w-6 h-6 text-black dark:text-white" />
+                            <ShieldCheck className="w-6 h-6 text-black dark:text-white" aria-hidden="true" />
                             <span className="text-xl font-bold text-black dark:text-white">Guardian</span>
                         </div>
                         <p className="text-zinc-600 dark:text-zinc-500 text-sm leading-relaxed mb-6 max-w-sm">
@@ -55,7 +55,7 @@ export function SiteFooter() {
                                 className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:bg-black/10 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-all cursor-pointer"
                                 aria-label="GitHub"
                             >
-                                <Github className="w-5 h-5" />
+                                <Github className="w-5 h-5" aria-hidden="true" />
                             </a>
                             <a
                                 href="https://www.linkedin.com/in/senoldogann"
@@ -64,14 +64,14 @@ export function SiteFooter() {
                                 className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:bg-black/10 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-all cursor-pointer"
                                 aria-label="LinkedIn"
                             >
-                                <Linkedin className="w-5 h-5" />
+                                <Linkedin className="w-5 h-5" aria-hidden="true" />
                             </a>
                             <a
                                 href="mailto:contact@senoldogan.dev"
                                 className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:bg-black/10 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-all cursor-pointer"
                                 aria-label="Email"
                             >
-                                <Mail className="w-5 h-5" />
+                                <Mail className="w-5 h-5" aria-hidden="true" />
                             </a>
                         </div>
                     </div>

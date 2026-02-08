@@ -108,7 +108,7 @@ export function HeroSection({ dict }: HeroSectionProps) {
                         disabled={isDownloading || releaseInfo.installers.length === 0}
                     >
                         {isDownloading && (
-                            <Loader2 className="h-5 w-5 animate-spin" />
+                            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
                         )}
                         <span>{isDownloading ? "Preparing..." : dict.home.ctaPrimary}</span>
                         <span className="text-xs opacity-70 font-normal">v{releaseInfo.tag}</span>

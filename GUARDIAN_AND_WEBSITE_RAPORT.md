@@ -588,15 +588,95 @@ DELETE /api/deploy - Rollback (API key gerekli)
 
 ## Phase 3: Medium Priority (Hafta 5-6) ℹ️
 
-### 3.1 Web Vitals Monitoring 📋 **BEKLEMEDE**
-- [ ] Threshold tanımlamaları
-- [ ] Alert mekanizması
-- [ ] RUM entegrasyonu
+### 3.1 Web Vitals Monitoring ✅ **TAMAMLANDI**
+**Tahmini Süre:** 2-3 gün
+**Gerçekleşen Süre:** 1.5 saat
+**Başlangıç:** 2026-02-09
+**Bitiş:** 2026-02-09
 
-### 3.2 Accessibility İyileştirmeleri 📋 **BEKLEMEDE**
-- [ ] axe-core entegrasyonu
-- [ ] Eksik aria-label'ları tamamlama
-- [ ] Focus management iyileştirmesi
+**Tamamlananlar:**
+- [x] Core Web Vitals Threshold Tanımlamaları
+  - Google önerilen threshold değerleri tanımlandı
+    - CLS: good ≤ 0.1, poor > 0.25
+    - LCP: good ≤ 2.5s, poor > 4s
+    - INP: good ≤ 200ms, poor > 500ms
+    - FCP: good ≤ 1.8s, poor > 3s
+    - FID: good ≤ 100ms, poor > 300ms
+    - TTFB: good ≤ 800ms, poor > 1.8s
+  - Rating hesaplama (good/needs-improvement/poor)
+  - Renkli console output (🟢🟡🔴)
+- [x] Alert Mekanizması
+  - Yapılandırılabilir alert threshold'ları
+  - Cooldown mekanizması (5 dk default)
+  - Webhook desteği
+  - Analytics entegrasyonu (web_vital_alert event)
+  - Console warnings
+- [x] Real User Monitoring (RUM)
+  - Session tracking (unique ID)
+  - Metric state management (React hooks)
+  - Page view counting
+  - Alert history tracking
+  - Debug globals (__GUARDIAN_RUM_SESSION__)
+- [x] Enhanced React Hooks
+  - useWebVitalsState() - Mevcut vitals durumuna erişim
+  - useWebVitals(alertConfig) - Tam monitoring
+  - PerformanceMonitor component
+  - Web vitals report generation
+
+**Threshold Değerleri:**
+```typescript
+const THRESHOLDS = {
+  LCP: { good: 2500, poor: 4000, unit: "ms" },
+  CLS: { good: 0.1, poor: 0.25, unit: "" },
+  INP: { good: 200, poor: 500, unit: "ms" }
+};
+```
+
+**Dosyalar:**
+- ✅ `website/lib/vitals.ts` (güncellendi)
+- ✅ `website/lib/analytics.ts` (güncellendi - web_vital event)
+
+**Commit:** `4914df9`
+**GitHub:** https://github.com/senoldogann/Guardian/commit/4914df9
+**Test:** 55 tests passing, build successful
+
+### 3.2 Accessibility İyileştirmeleri ✅ **TAMAMLANDI**
+**Tahmini Süre:** 3-5 saat
+**Gerçekleşen Süre:** 1.5 saat
+**Başlangıç:** 2026-02-09
+**Bitiş:** 2026-02-09
+
+**Tamamlananlar:**
+- [x] Automated a11y test altyapısı
+  - `jest-axe` entegrasyonu
+  - `website/components/error-boundary.a11y.test.tsx` eklendi
+  - `website/next-env.d.ts` referans güncellendi
+- [x] ARIA ve semantik iyileştirmeler
+  - Dialog, menü ve toggle bileşenlerinde ARIA güncellemeleri
+  - Icon-only kontrollerde `aria-hidden` düzenlemeleri
+  - Changelog filtrelerinde `role="group"` ile erişilebilir etiketleme
+  - İndirme sayfasında platform ikonları erişilebilir hale getirildi
+- [x] Erişilebilirlik odaklı UI dokunuşları
+  - Contact form dosya ekleri ikonları erişilebilir hale getirildi
+  - Header/menü ikonları ve footer sosyal ikonları `aria-hidden` ile düzenlendi
+
+**Dosyalar:**
+- ✅ `website/components/error-boundary.a11y.test.tsx` (yeni)
+- ✅ `website/next-env.d.ts` (güncellendi)
+- ✅ `website/components/contact/ContactForm.tsx` (güncellendi)
+- ✅ `website/components/error-boundary.tsx` (güncellendi)
+- ✅ `website/components/changelog/changelog-client.tsx` (güncellendi)
+- ✅ `website/components/changelog/timeline-view.tsx` (güncellendi)
+- ✅ `website/components/docs/pro-layout.tsx` (güncellendi)
+- ✅ `website/components/home/FeaturesSection.tsx` (güncellendi)
+- ✅ `website/components/home/HeroSection.tsx` (güncellendi)
+- ✅ `website/components/home/DemoSection.tsx` (güncellendi)
+- ✅ `website/components/home/UseCasesSection.tsx` (güncellendi)
+- ✅ `website/components/ui/command-header.tsx` (güncellendi)
+- ✅ `website/components/site-footer.tsx` (güncellendi)
+- ✅ `website/components/download-page-view.tsx` (güncellendi)
+
+**Test:** 55 tests passing, build successful
 
 ### 3.3 Consent Management 📋 **BEKLEMEDE**
 - [ ] Granular consent banner
@@ -635,10 +715,13 @@ DELETE /api/deploy - Rollback (API key gerekli)
 | 2.2 Validation | ✅ Tamamlandı | 2026-02-09 | 2026-02-09 | 100% |
 | 2.3 CSP | ✅ Tamamlandı | 2026-02-09 | 2026-02-09 | 100% |
 | 2.4 Deployment | ✅ Tamamlandı | 2026-02-09 | 2026-02-09 | 100% |
-| 3.x Medium | 📋 Beklemede | - | - | 0% |
+| 3.1 Web Vitals | ✅ Tamamlandı | 2026-02-09 | 2026-02-09 | 100% |
+| 3.2 Accessibility | ✅ Tamamlandı | 2026-02-09 | 2026-02-09 | 100% |
+| 3.3 Consent | 📋 Beklemede | - | - | 0% |
+| 3.4 Dependencies | 📋 Beklemede | - | - | 0% |
 | 4.x Polish | 📋 Beklemede | - | - | 0% |
 
-**Toplam Progress:** 7/9 Phase tamamlandı (77.7%)
+**Toplam Progress:** 9/12 Phase tamamlandı (75%)
 
 **✅ Tüm High Priority Phase'ler Tamamlandı! (2.1, 2.2, 2.3, 2.4)**
 
@@ -672,18 +755,23 @@ DELETE /api/deploy - Rollback (API key gerekli)
 - [x] Rollback mekanizması (auto + manual)
 **Commit:** `94647ab`
 
-### 🚀 Sıradaki: Phase 3.1 - Web Vitals Monitoring
-- [ ] Core Web Vitals threshold'ları (LCP, CLS, INP)
-- [ ] Alert mekanizması
-- [ ] RUM entegrasyonu
+### ✅ 2026-02-09 - Phase 3.1 Tamamlandı
+- [x] Core Web Vitals threshold'ları (LCP, CLS, INP)
+- [x] Alert mekanizması
+- [x] RUM entegrasyonu
+**Commit:** `4914df9`
 
-**Tahmini Süre:** 2-3 saat
+### ✅ 2026-02-09 - Phase 3.2 Tamamlandı
+- [x] Automated a11y test altyapısı (jest-axe)
+- [x] ARIA ve ikon erişilebilirliği iyileştirmeleri
+- [x] Changelog filtreleri için erişilebilir grup etiketleme
+**Test:** 55 tests passing, build successful
 
 ---
 
-**Son Güncelleme:** 2026-02-09 22:00  
-**Toplam Commit:** 6 (GitHub'a push edildi)  
-**Sonraki İşlem:** Phase 3.1 - Web Vitals Monitoring
+**Son Güncelleme:** 2026-02-09 23:55  
+**Toplam Commit:** 10 (GitHub'a push edildi)  
+**Sonraki İşlem:** Phase 3.3 - Consent Management
 
 ---
 
@@ -695,6 +783,9 @@ DELETE /api/deploy - Rollback (API key gerekli)
 - ✅ Phase 2.3: CSP Hardening (Policy strengthening, monitoring)
 - ✅ Phase 2.4: Deployment Automation (Health checks, rollback)
 
+### Medium Phase İlerlemesi ✅
+- ✅ Phase 3.1: Web Vitals Monitoring (thresholds, alerts, RUM)
+
 **Kalan Phase'ler:**
-- 🔄 Phase 3.x: Medium Priority (Web Vitals, A11y, Consent, Dependencies)
+- 🔄 Phase 3.x: Medium Priority (A11y, Consent, Dependencies)
 - ⏳ Phase 4.x: Polish (Technical debt, Strict mode, Documentation)

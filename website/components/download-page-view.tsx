@@ -28,9 +28,9 @@ export function DownloadPageView({ dict, assets, latestTag }: Props) {
     const bestAsset = pickBestAsset(assets, platform);
 
     const getIcon = (p: Platform) => {
-        if (p === "mac") return Apple;
-        if (p === "win") return Monitor;
-        if (p === "linux") return Laptop;
+        if (p === "mac_arm64" || p === "mac_x64") return Apple;
+        if (p === "windows_x64") return Monitor;
+        if (p === "linux_x64") return Laptop;
         return Package;
     };
 
@@ -45,7 +45,7 @@ export function DownloadPageView({ dict, assets, latestTag }: Props) {
                     transition={{ duration: 0.5 }}
                 >
                     <div className="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-8">
-                        <Download className="h-10 w-10" />
+                        <Download className="h-10 w-10" aria-hidden="true" />
                     </div>
 
                     <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6">
@@ -64,7 +64,7 @@ export function DownloadPageView({ dict, assets, latestTag }: Props) {
                         <div className="mb-16">
                             <Button size="lg" className="h-14 px-8 text-lg gap-3 rounded-full shadow-xl shadow-primary/20" asChild>
                                 <a href={bestAsset.browser_download_url}>
-                                    <PlatformIcon className="h-5 w-5" />
+                                    <PlatformIcon className="h-5 w-5" aria-hidden="true" />
                                     {platform === "unknown"
                                         ? dict.nav.download
                                         : dict.download.recommended}
@@ -80,7 +80,7 @@ export function DownloadPageView({ dict, assets, latestTag }: Props) {
 
                     <div className="text-left bg-card border rounded-3xl p-8 shadow-sm">
                         <h3 className="font-bold mb-6 flex items-center gap-2">
-                            <Package className="h-5 w-5 text-primary" />
+                            <Package className="h-5 w-5 text-primary" aria-hidden="true" />
                             {dict.download.manual}
                         </h3>
 
@@ -93,7 +93,7 @@ export function DownloadPageView({ dict, assets, latestTag }: Props) {
                                 >
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="font-semibold text-sm truncate pr-2 text-foreground">{asset.name}</div>
-                                        <Download className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
+                                        <Download className="h-4 w-4 text-muted-foreground group-hover:text-primary" aria-hidden="true" />
                                     </div>
                                     <div className="text-xs text-muted-foreground flex justify-between">
                                         <span>{formatBytes(asset.size)}</span>

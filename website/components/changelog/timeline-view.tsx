@@ -57,7 +57,7 @@ export function TimelineView({ releases }: TimelineViewProps) {
                                 isEven ? "justify-start" : ""
                             )}>
                                 <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 rounded-full px-3 py-1 border border-zinc-200 dark:border-zinc-800">
-                                    <Calendar className="w-3.5 h-3.5" />
+                                    <Calendar className="w-3.5 h-3.5" aria-hidden="true" />
                                     {format(date, "d MMMM yyyy", { locale: dateLocale })}
                                 </div>
                             </div>
@@ -74,7 +74,7 @@ export function TimelineView({ releases }: TimelineViewProps) {
                                                 {release.name || release.tag_name}
                                             </h2>
                                             <span className="inline-flex items-center rounded-md bg-zinc-100 dark:bg-zinc-800 px-2 py-1 text-xs font-medium text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700">
-                                                <Tag className="w-3 h-3 mr-1" />
+                                                <Tag className="w-3 h-3 mr-1" aria-hidden="true" />
                                                 {release.tag_name}
                                             </span>
                                             <span className="md:hidden text-xs text-zinc-500 ml-auto">
@@ -108,7 +108,7 @@ export function TimelineView({ releases }: TimelineViewProps) {
                                     {/* Footer Removed - No GitHub Links */}
                                     <div className="mt-6 pt-6 border-t border-black/10 dark:border-white/10 flex items-center justify-between">
                                         <div className="flex items-center gap-2 text-xs text-zinc-500">
-                                            <Tag className="w-4 h-4" />
+                                            <Tag className="w-4 h-4" aria-hidden="true" />
                                             {release.tag_name}
                                         </div>
                                     </div>

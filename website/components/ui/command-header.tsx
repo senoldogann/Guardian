@@ -95,8 +95,8 @@ export function CommandHeader() {
                     className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
                 >
                     <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-black/10 dark:bg-white/10 text-black dark:text-white">
-                        <ShieldCheck className="w-5 h-5" />
-                        <div className="absolute inset-0 bg-black/10 dark:bg-white/10 blur-lg rounded-full" />
+                        <ShieldCheck className="w-5 h-5" aria-hidden="true" />
+                        <div className="absolute inset-0 bg-black/10 dark:bg-white/10 blur-lg rounded-full" aria-hidden="true" />
                     </div>
                     <span className="font-bold tracking-tight text-black dark:text-white block">
                         Guardian
@@ -140,7 +140,7 @@ export function CommandHeader() {
                     <DirectDownloadButton />
 
                     {/* Theme Toggle */}
-                    <div className="hidden sm:block">
+                    <div className="hidden sm:block" role="group" aria-label="Theme selection">
                         <ThemeToggle />
                     </div>
 
@@ -155,45 +155,50 @@ export function CommandHeader() {
                         aria-controls="mobile-menu"
                         aria-label={isOpen ? "Close menu" : "Open menu"}
                     >
-                        {isOpen ? <X className="w-5 h-5 text-black dark:text-white" /> : <Menu className="w-5 h-5 text-black dark:text-white" />}
+                        {isOpen ? (
+                          <X className="w-5 h-5 text-black dark:text-white" aria-hidden="true" />
+                        ) : (
+                          <Menu className="w-5 h-5 text-black dark:text-white" aria-hidden="true" />
+                        )}
                     </Button>
                 </div>
 
-                {/* Mobile Menu */}
-                <AnimatePresence>
-                    {isOpen && (
-                        <motion.div
-                            ref={mobileMenuRef}
-                            id="mobile-menu"
-                            role="dialog"
-                            aria-modal="true"
-                            aria-label="Mobile navigation"
-                            initial={{ opacity: 0, scale: 0.95, y: -20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: -20 }}
-                            className="absolute top-full left-0 right-0 mt-4 p-4 rounded-3xl bg-white dark:bg-black border border-black/10 dark:border-white/10 shadow-2xl overflow-hidden md:hidden"
-                        >
-                            <nav aria-label="Mobile navigation" className="flex flex-col gap-2">
-                                {navItems.map((item) => (
-                                    <Link
-                                        key={item.href}
-                                        href={item.href}
-                                        onClick={() => setIsOpen(false)}
-                                        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
-                                    >
-                                        <item.icon className="w-5 h-5 text-zinc-600 dark:text-white" />
-                                        {item.label}
-                                    </Link>
-                                ))}
-                                {/* Theme Toggle for Mobile */}
-                                <div className="px-4 py-3">
-                                    <ThemeToggle />
-                                </div>
-                            </nav>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
             </div>
+
+            {/* Mobile Menu */}
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        ref={mobileMenuRef}
+                        id="mobile-menu"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Mobile navigation"
+                        initial={{ opacity: 0, scale: 0.95, y: -20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                        className="absolute top-full left-0 right-0 mt-4 p-4 rounded-3xl bg-white dark:bg-black border border-black/10 dark:border-white/10 shadow-2xl overflow-hidden md:hidden"
+                    >
+                        <nav aria-label="Mobile navigation" className="flex flex-col gap-2">
+                            {navItems.map((item) => (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    onClick={() => setIsOpen(false)}
+                                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
+                                >
+                                    <item.icon className="w-5 h-5 text-zinc-600 dark:text-white" aria-hidden="true" />
+                                    {item.label}
+                                </Link>
+                            ))}
+                            {/* Theme Toggle for Mobile */}
+                            <div className="px-4 py-3">
+                                <ThemeToggle />
+                            </div>
+                        </nav>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </header>
     );
 }

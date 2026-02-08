@@ -136,7 +136,7 @@ export function UseCasesSection() {
 
                                     <div className="hidden md:flex shrink-0 relative">
                                         <div className="w-12 h-12 rounded-full border border-black/10 dark:border-white/10 bg-white dark:bg-black flex items-center justify-center relative z-10 group-hover:border-black/20 dark:group-hover:border-white/20 transition-colors">
-                                            <Icon className="w-5 h-5 text-black/60 dark:text-white/60" />
+                                            <Icon className="w-5 h-5 text-black/60 dark:text-white/60" aria-hidden="true" />
                                         </div>
                                         <div className="absolute inset-0 rounded-full bg-black/5 dark:bg-white/5 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
                                     </div>
