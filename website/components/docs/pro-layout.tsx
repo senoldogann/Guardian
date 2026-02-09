@@ -323,13 +323,10 @@ function TocContent({
                             onItemClick?.();
                             const target = document.querySelector(item.url);
                             if (target) {
-                                const headerOffset = 100;
-                                const elementPosition = target.getBoundingClientRect().top;
-                                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-                                window.scrollTo({
-                                    top: offsetPosition,
-                                    behavior: "smooth"
-                                });
+                                // Rely on scroll-padding-top in globals.css for offset
+                                target.scrollIntoView({ behavior: "smooth", block: "start" });
+                                // Fallback: update URL hash without jump (optional, maybe skip to avoid history pollution)
+                                history.replaceState(null, "", item.url);
                             }
                         }}
                         className={cn(
