@@ -787,6 +787,22 @@ const THRESHOLDS = {
 - `npm run test` → ✅ geçti
 - `npm --prefix website run test:run` → ✅ geçti (error-boundary testleri beklenen console error loglarını üretir)
 
+## ✅ Changelog + Windows Pipeline (2026-02-09)
+
+### Changelog Zenginleştirme
+- Release notlarından Highlights ve Sections otomatik çıkarılıyor.
+- Changelog kartlarında öne çıkan maddeler ayrı blokta gösteriliyor.
+- i18n: `highlights` ve `sections` etiketleri eklendi.
+
+### Windows Release Workflow
+- `release-windows.yml` eklendi (workflow_dispatch ile manual tetikleme).
+- Windows build + signing (opsiyonel) + artifact upload.
+- Distribution repo’ya publish adımı (releases.json + latest.json güncellemesi dahil).
+
+### CSP Fix
+- `connect-src` içine `https://api.github.com` eklendi.
+- CSP violation logları dev’de gösteriliyor, prod’da sessiz.
+
 ## ✅ Guru Context Fixes (2026-02-09)
 
 ### Workspace Odaklılık ve Doğruluk
@@ -873,7 +889,7 @@ const THRESHOLDS = {
 
 ---
 
-**Son Güncelleme:** 2026-02-09 03:27  
+**Son Güncelleme:** 2026-02-09 03:31  
 **Not:** Website testleri error-boundary testlerinde beklenen console error logu üretir.
 **Toplam Commit:** 10 (push edilmedi)  
 **Sonraki İşlem:** Review sonrası doğrulama ve release notları

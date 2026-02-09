@@ -31,6 +31,7 @@ const CSP_DIRECTIVES = {
     "'self'",
     "https://vitals.vercel-insights.com", // Vercel Vitals
     "https://va.vercel-scripts.com", // Vercel Analytics
+    "https://api.github.com", // GitHub Releases API
   ],
   "media-src": ["'self'"],
   "object-src": ["'none'"],

@@ -8,6 +8,8 @@ type ReleaseSnapshot = {
 };
 
 const SNAPSHOT_REVALIDATE_SECONDS = 60;
+const FALLBACK_TTL_MS = 5 * 60 * 1000;
+let fallbackCache: { expiresAt: number; releases: GithubRelease[] } | null = null;
 
 function getSnapshotUrl(): string {
   return `${getDistributionRepoUrl()}/releases/latest/download/releases.json`;
@@ -20,6 +22,9 @@ function isReleaseSnapshot(value: unknown): value is ReleaseSnapshot {
 }
 
 export async function fetchReleaseSnapshot(limit = 40): Promise<GithubRelease[]> {
+  if (fallbackCache && fallbackCache.expiresAt > Date.now()) {
+    return fallbackCache.releases.slice(0, limit);
+  }
   try {
     const response = await fetch(getSnapshotUrl(), {
       next: { revalidate: SNAPSHOT_REVALIDATE_SECONDS }
@@ -28,14 +33,26 @@ export async function fetchReleaseSnapshot(limit = 40): Promise<GithubRelease[]>
     if (response.ok) {
       const json = (await response.json()) as unknown;
       if (isReleaseSnapshot(json) && json.releases) {
-        return json.releases
+        const releases = json.releases
           .filter((release) => !release.draft)
           .slice(0, limit);
+        fallbackCache = {
+          expiresAt: Date.now() + FALLBACK_TTL_MS,
+          releases,
+        };
+        return releases;
       }
     }
   } catch {
     // Ignore snapshot failures and fall back to GitHub API.
   }
 
-  return await getReleases(limit);
+  const releases = await getReleases(limit);
+  if (releases.length > 0) {
+    fallbackCache = {
+      expiresAt: Date.now() + FALLBACK_TTL_MS,
+      releases,
+    };
+  }
+  return releases;
 }

@@ -28,6 +28,9 @@ interface CSPViolationReport {
 function logCSPViolation(report: CSPViolationReport): void {
   const violation = report["csp-report"];
   
+   if (process.env.NODE_ENV !== "development") {
+     return;
+   }
    console.group("🚨 CSP Violation Detected");
    console.error(`Directive: ${violation["violated-directive"]}`);
    console.error(`Blocked URI: ${violation["blocked-uri"]}`);
