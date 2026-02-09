@@ -36,39 +36,51 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
     const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
     const [mobileTocOpen, setMobileTocOpen] = React.useState(false);
 
-    // Scroll spy to highlight active section
+    // Scroll spy using IntersectionObserver to avoid scroll-jank
+
     React.useEffect(() => {
         if (!toc || toc.length === 0) return;
 
-        const handleScroll = () => {
-            const headings = toc.map((item, index) => ({
-                id: item.url.replace('#', ''),
-                url: item.url,
-                index: index
-            }));
+        const content = document.querySelector<HTMLElement>("[data-docs-body]");
+        if (!content) return;
 
-            let currentIndex = -1;
-            for (const heading of headings) {
-                const element = document.getElementById(heading.id);
-                if (element) {
-                    const rect = element.getBoundingClientRect();
-                    if (rect.top <= 150) {
-                        currentIndex = heading.index;
+        const headingElements = toc
+            .map((item) => document.getElementById(item.url.replace("#", "")))
+            .filter((el): el is HTMLElement => Boolean(el));
+
+        if (headingElements.length === 0) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                let closestIndex = -1;
+                let minTop = Number.POSITIVE_INFINITY;
+
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    const index = headingElements.indexOf(entry.target as HTMLElement);
+                    if (index < 0) return;
+
+                    const top = Math.abs(entry.boundingClientRect.top);
+                    if (top < minTop) {
+                        minTop = top;
+                        closestIndex = index;
                     }
+                });
+
+                if (closestIndex >= 0) {
+                    setActiveSectionIndex((prev) => (prev === closestIndex ? prev : closestIndex));
                 }
+            },
+            {
+                root: null,
+                rootMargin: "-120px 0px -70% 0px",
+                threshold: [0.1, 0.5, 1]
             }
+        );
 
-            if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100) {
-                currentIndex = headings.length - 1;
-            }
+        headingElements.forEach((heading) => observer.observe(heading));
 
-            setActiveSectionIndex(currentIndex);
-        };
-
-        window.addEventListener("scroll", handleScroll);
-        handleScroll();
-
-        return () => window.removeEventListener("scroll", handleScroll);
+        return () => observer.disconnect();
     }, [toc]);
 
     return (
@@ -242,16 +254,25 @@ function TocContent({
 }) {
     const navRef = React.useRef<HTMLElement>(null);
 
-    // Auto-scroll the sidebar to keep active item in view
+    // Auto-scroll the TOC container to keep active item in view
     React.useEffect(() => {
-        if (activeSectionIndex >= 0 && navRef.current) {
-            const activeLink = navRef.current.children[activeSectionIndex] as HTMLElement;
-            if (activeLink) {
-                activeLink.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'nearest',
-                });
-            }
+        if (activeSectionIndex < 0 || !navRef.current) return;
+
+        const container = navRef.current.parentElement;
+        if (!container) return;
+
+        const activeLink = navRef.current.children[activeSectionIndex] as HTMLElement | undefined;
+        if (!activeLink) return;
+
+        const linkTop = activeLink.offsetTop;
+        const linkBottom = linkTop + activeLink.offsetHeight;
+        const viewTop = container.scrollTop;
+        const viewBottom = viewTop + container.clientHeight;
+
+        if (linkTop < viewTop) {
+            container.scrollTop = Math.max(0, linkTop - 8);
+        } else if (linkBottom > viewBottom) {
+            container.scrollTop = linkBottom - container.clientHeight + 8;
         }
     }, [activeSectionIndex]);
 

@@ -30,7 +30,7 @@ import { ToastContainer } from "./components/Toast";
 import { SettingsModal } from "./components/SettingsModal";
 import { useAuth } from "./hooks/useAuth";
 import { useSettings } from "./hooks/useSettings";
-import type { ProjectContext, Critique, ApiKeyStatus } from "./types";
+import type { ProjectContext, Critique, ApiKeyStatus, Baseline, BaselineFinding, BaselineStatusView } from "./types";
 import { STORAGE_KEYS } from "./constants";
 
 function App(): ReactElement {
@@ -43,6 +43,11 @@ function App(): ReactElement {
   });
   const [active, setActive] = useState(false);
   const [logs, setLogs] = useState<Record<string, Critique>>({});
+  const [baseline, setBaseline] = useState<Baseline | null>(null);
+  const [baselineStatus, setBaselineStatus] = useState<BaselineStatusView | null>(null);
+  const [baselineLoading, setBaselineLoading] = useState(false);
+  const [baselineError, setBaselineError] = useState<string | null>(null);
+  const [baselineView, setBaselineView] = useState<"all" | "new" | "resolved">("all");
   const [status, setStatus] = useState("Idle");
   const [path, setPath] = useState(() => {
     if (typeof window !== "undefined") {
@@ -55,6 +60,7 @@ function App(): ReactElement {
   const [stalled, setStalled] = useState<{ file: string; reason: string } | null>(null);
   const [stallOverlayOpen, setStallOverlayOpen] = useState(false);
   const stallSignatureRef = useRef<string | null>(null);
+  const baselineViewAutoRef = useRef(false);
   const stallSignature = stallSignatureRef.current ?? "";
   const [pendingGuruPrompt, setPendingGuruPrompt] = useState<AutoPrompt | null>(null);
   const [usage, setUsage] = useState({ tokens: 0, calls: 0 });
@@ -130,6 +136,11 @@ function App(): ReactElement {
         setContext(null);
         setContextError(null);
         setFilter("");
+        setBaseline(null);
+        setBaselineStatus(null);
+        setBaselineError(null);
+        setBaselineView("all");
+        baselineViewAutoRef.current = false;
         setPath(selected);
         if (typeof window !== "undefined") {
           localStorage.setItem(STORAGE_KEYS.LAST_PATH, selected);
@@ -172,6 +183,41 @@ function App(): ReactElement {
       }));
     } finally {
       setContextLoading(false);
+    }
+  }, [path]);
+
+  const refreshBaseline = useCallback(async (): Promise<void> => {
+    if (!path) {
+      setBaseline(null);
+      setBaselineStatus(null);
+      setBaselineError(null);
+      setBaselineView("all");
+      return;
+    }
+
+    setBaselineLoading(true);
+    setBaselineError(null);
+    try {
+      const baselineValue = await invoke<Baseline | null>("get_baseline", { root: path });
+      setBaseline(baselineValue ?? null);
+
+      const statusValue = await invoke<BaselineStatusView | null>("get_baseline_status", {
+        root: path,
+      });
+      setBaselineStatus(statusValue ?? null);
+
+      if (!baselineViewAutoRef.current) {
+        setBaselineView(statusValue?.valid ? "new" : "all");
+        baselineViewAutoRef.current = true;
+      }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      setBaseline(null);
+      setBaselineStatus(null);
+      setBaselineError(message);
+      setBaselineView("all");
+    } finally {
+      setBaselineLoading(false);
     }
   }, [path]);
 
@@ -280,6 +326,43 @@ function App(): ReactElement {
     void refreshContext();
   }, [refreshContext]);
 
+  useEffect(() => {
+    void refreshBaseline();
+  }, [refreshBaseline]);
+
+  const setBaselineNow = useCallback(async (): Promise<void> => {
+    if (!path) return;
+    setBaselineLoading(true);
+    setBaselineError(null);
+    try {
+      await invoke<BaselineStatusView>("create_baseline", { root: path });
+      baselineViewAutoRef.current = true;
+      setBaselineView("new");
+      await refreshBaseline();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      setBaselineError(message);
+    } finally {
+      setBaselineLoading(false);
+    }
+  }, [path, refreshBaseline]);
+
+  const clearBaselineNow = useCallback(async (): Promise<void> => {
+    if (!path) return;
+    setBaselineLoading(true);
+    setBaselineError(null);
+    try {
+      await invoke("clear_baseline", { root: path });
+      baselineViewAutoRef.current = false;
+      await refreshBaseline();
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      setBaselineError(message);
+    } finally {
+      setBaselineLoading(false);
+    }
+  }, [path, refreshBaseline]);
+
   const toggleMonitoring = async (): Promise<void> => {
     if (active) {
       try {
@@ -387,14 +470,85 @@ function App(): ReactElement {
     return entries.filter(entry => entry.severity !== "Info");
   }, [logs]);
 
+  const baselineValid = Boolean(baselineStatus?.valid);
+  const baselineIds = useMemo(() => new Set(baseline?.finding_ids ?? []), [baseline]);
+  const currentFindingIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const entry of visibleLogs) {
+      if (entry.finding_id) set.add(entry.finding_id);
+    }
+    return set;
+  }, [visibleLogs]);
+
+  const baselineMetrics = useMemo(() => {
+    if (!baseline || !baselineValid) return null;
+    let activeCount = 0;
+    let newCount = 0;
+    for (const id of currentFindingIds) {
+      if (baselineIds.has(id)) activeCount += 1;
+      else newCount += 1;
+    }
+    let resolvedCount = 0;
+    for (const id of baselineIds) {
+      if (!currentFindingIds.has(id)) resolvedCount += 1;
+    }
+    return { active: activeCount, new: newCount, resolved: resolvedCount };
+  }, [baseline, baselineValid, baselineIds, currentFindingIds]);
+
+  const resolvedFindings = useMemo((): BaselineFinding[] => {
+    if (!baseline || !baselineValid) return [];
+    const findings = baseline.findings ?? [];
+    const entries = findings.filter((f) => !currentFindingIds.has(f.finding_id));
+    if (!filter) {
+      return entries.sort((a, b) => a.file_path.localeCompare(b.file_path));
+    }
+    const q = filter.toLowerCase();
+    return entries
+      .filter((f) =>
+        f.file_path.toLowerCase().includes(q) ||
+        (f.message ?? "").toLowerCase().includes(q)
+      )
+      .sort((a, b) => a.file_path.localeCompare(b.file_path));
+  }, [baseline, baselineValid, currentFindingIds, filter]);
+
   const filteredLogs = useMemo((): Critique[] => {
-    const entries = visibleLogs;
-    if (!filter) return entries;
-    return entries.filter(l =>
-      l.file_path.toLowerCase().includes(filter.toLowerCase()) ||
-      l.message.toLowerCase().includes(filter.toLowerCase())
-    );
-  }, [visibleLogs, filter]);
+    const severityRank: Record<string, number> = {
+      critical: 0,
+      warning: 1,
+      info: 2,
+    };
+
+    const isNew = (log: Critique): boolean => {
+      if (!baselineValid) return false;
+      if (!log.finding_id) return true;
+      return !baselineIds.has(log.finding_id);
+    };
+
+    let entries = visibleLogs;
+    if (baselineView === "new" && baselineValid) {
+      entries = entries.filter((l) => {
+        if (!l.finding_id) return true;
+        return !baselineIds.has(l.finding_id);
+      });
+    }
+
+    if (filter) {
+      const q = filter.toLowerCase();
+      entries = entries.filter((l) =>
+        l.file_path.toLowerCase().includes(q) || l.message.toLowerCase().includes(q)
+      );
+    }
+
+    return [...entries].sort((a, b) => {
+      const aNew = isNew(a) ? 0 : 1;
+      const bNew = isNew(b) ? 0 : 1;
+      if (aNew !== bNew) return aNew - bNew;
+      const aSev = severityRank[a.severity.toLowerCase()] ?? 9;
+      const bSev = severityRank[b.severity.toLowerCase()] ?? 9;
+      if (aSev !== bSev) return aSev - bSev;
+      return a.file_path.localeCompare(b.file_path);
+    });
+  }, [visibleLogs, filter, baselineView, baselineValid, baselineIds]);
 
   const stats = useMemo(() => {
     const vals = visibleLogs;
@@ -620,6 +774,110 @@ function App(): ReactElement {
 
             <CostMetric tokens={usage.tokens} calls={usage.calls} />
 
+            <div className="p-3 rounded-xl bg-background/50 border border-border-main space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Baseline</span>
+                <span
+                  className={clsx(
+                    "text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md border",
+                    baselineLoading
+                      ? "bg-white/5 text-text-muted border-border-main"
+                      : baselineStatus?.valid
+                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                        : baselineStatus
+                          ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                          : "bg-white/5 text-text-muted border-border-main"
+                  )}
+                >
+                  {baselineLoading ? "LOADING" : baselineStatus?.valid ? "VALID" : baselineStatus ? "INVALID" : "NONE"}
+                </span>
+              </div>
+
+              {baselineStatus ? (
+                <div className="text-[10px] font-mono text-text-muted space-y-1">
+                  <div>Age: {baselineStatus.baseline_age_days}d</div>
+                  <div>
+                    {baselineMetrics
+                      ? `${baselineMetrics.active} active • ${baselineMetrics.new} new • ${baselineMetrics.resolved} resolved`
+                      : "Baseline loaded"}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-[10px] text-text-muted">
+                  No baseline set for this workspace.
+                </div>
+              )}
+
+              {baselineStatus && !baselineValid && (
+                <div className="text-[10px] text-amber-400">
+                  Baseline invalid (rules changed). Reset baseline to re-enable filtering.
+                </div>
+              )}
+
+              {baselineError && (
+                <div className="text-[10px] text-rose-400">
+                  {baselineError}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  onClick={setBaselineNow}
+                  disabled={!path || baselineLoading}
+                  className="flex-1 px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Set Baseline
+                </button>
+                {baselineStatus && (
+                  <button
+                    onClick={clearBaselineNow}
+                    disabled={!path || baselineLoading}
+                    className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-text-main rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
+
+              {baselineValid && (
+                <div className="grid grid-cols-3 gap-1">
+                  <button
+                    onClick={() => setBaselineView("all")}
+                    className={clsx(
+                      "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
+                      baselineView === "all"
+                        ? "bg-white/10 text-text-main border-border-main"
+                        : "bg-transparent text-text-muted border-border-main hover:bg-white/5"
+                    )}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setBaselineView("new")}
+                    className={clsx(
+                      "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
+                      baselineView === "new"
+                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                        : "bg-transparent text-text-muted border-border-main hover:bg-white/5"
+                    )}
+                  >
+                    New
+                  </button>
+                  <button
+                    onClick={() => setBaselineView("resolved")}
+                    className={clsx(
+                      "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
+                      baselineView === "resolved"
+                        ? "bg-white/10 text-text-main border-border-main"
+                        : "bg-transparent text-text-muted border-border-main hover:bg-white/5"
+                    )}
+                  >
+                    Resolved
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">Filter</label>
               <div className="group relative">
@@ -719,7 +977,7 @@ function App(): ReactElement {
             <div className="w-40 text-right shrink-0">Actions / Sev</div>
           </div>
 
-          {active && filteredLogs.length !== 0 && (
+          {active && filteredLogs.length !== 0 && baselineView !== "resolved" && (
             <div
               className={clsx(
                 "pointer-events-none absolute inset-0 top-14 flex items-center justify-center transition-opacity opacity-20"
@@ -730,7 +988,77 @@ function App(): ReactElement {
           )}
 
           <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar">
-            {filteredLogs.length === 0 ? (
+            {baselineView === "resolved" ? (
+              <div className="space-y-2">
+                {!baselineStatus ? (
+                  <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-4 py-12">
+                    <div className="text-center space-y-1">
+                      <h3 className="font-bold text-sm text-zinc-500">No Baseline</h3>
+                      <p className="text-[10px] text-zinc-500 font-mono italic">
+                        Click "Set Baseline" to enable resolved tracking.
+                      </p>
+                    </div>
+                  </div>
+                ) : !baselineValid ? (
+                  <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-4 py-12">
+                    <div className="text-center space-y-1">
+                      <h3 className="font-bold text-sm text-zinc-500">Baseline Invalid</h3>
+                      <p className="text-[10px] text-zinc-500 font-mono italic">
+                        Rules changed since baseline. Reset baseline to continue.
+                      </p>
+                    </div>
+                  </div>
+                ) : resolvedFindings.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-4 py-12">
+                    <div className="text-center space-y-1">
+                      <h3 className="font-bold text-sm text-zinc-500">No Resolved Findings</h3>
+                      <p className="text-[10px] text-zinc-500 font-mono italic">
+                        Nothing has been resolved since the current baseline.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {resolvedFindings.map((finding, index) => (
+                      <div
+                        key={finding.finding_id}
+                        className="group overflow-hidden rounded-xl hover:bg-surface/50 transition-colors"
+                      >
+                        <div className="flex items-center px-6 py-4">
+                          <div className="w-8 shrink-0 text-xs font-mono opacity-20">
+                            {(index + 1).toString().padStart(2, "0")}
+                          </div>
+                          <div className="w-48 shrink-0 pr-4">
+                            <div className="font-bold text-sm truncate" title={finding.file_path}>
+                              {finding.file_path.split(/[/\\]/).pop() || finding.file_path}
+                            </div>
+                            <div className="text-xs opacity-30 font-mono truncate">
+                              {finding.file_path}
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0 pr-6">
+                            <div
+                              className="text-sm opacity-80 font-medium truncate"
+                              title={finding.message ?? ""}
+                            >
+                              {finding.message ?? "Resolved since baseline"}
+                            </div>
+                          </div>
+                          <div className="w-52 shrink-0 flex items-center justify-end gap-2">
+                            <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                              RESOLVED
+                            </span>
+                            <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border bg-white/5 text-text-muted border-border-main">
+                              {finding.severity}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : filteredLogs.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-6">
                 {active ? (
                   <GuardianActivity status={status} showLabel={false} />
@@ -758,6 +1086,13 @@ function App(): ReactElement {
                     isExpanded={expandedFile === log.file_path}
                     onToggle={() => setExpandedFile(expandedFile === log.file_path ? null : log.file_path)}
                     onAskGuru={() => askGuruForLog(log, false)}
+                    findingStatus={
+                      baselineValid && log.finding_id
+                        ? baselineIds.has(log.finding_id)
+                          ? "active"
+                          : "new"
+                        : undefined
+                    }
                     onFix={() => {
                       setLogs(prev => {
                         const newLogs = { ...prev };
