@@ -657,6 +657,7 @@ fn handle_critiques(
     auto_verify_enabled: bool,
 ) {
     let rules_hash = crate::skills::hasher::get_rules_fingerprint(root);
+    let workspace_root = Path::new(root);
     // OPTIMIZATION: Use write lock only when necessary
     let mut active_lock = match ACTIVE_CRITIQUES.write() {
         Ok(guard) => guard,
@@ -671,6 +672,7 @@ fn handle_critiques(
     // Process Results
     for mut critique in critiques {
         critique.finding_id = Some(crate::baseline::manager::finding_id_for_critique(
+            workspace_root,
             &critique,
             &rules_hash,
         ));
@@ -968,7 +970,7 @@ fn sync_guardian_logs(
             let finding_id =
                 c.finding_id
                     .clone()
-                    .unwrap_or_else(|| crate::baseline::manager::finding_id_for_critique(c, &rules_hash));
+                    .unwrap_or_else(|| crate::baseline::manager::finding_id_for_critique(root_path, c, &rules_hash));
             let json_line = json!({
                 "finding_id": finding_id,
                 "file_path": path,
@@ -992,7 +994,7 @@ fn sync_guardian_logs(
             let finding_id =
                 c.finding_id
                     .clone()
-                    .unwrap_or_else(|| crate::baseline::manager::finding_id_for_critique(c, &rules_hash));
+                    .unwrap_or_else(|| crate::baseline::manager::finding_id_for_critique(root_path, c, &rules_hash));
             payload_critiques.push(json!({
                 "finding_id": finding_id,
                 "file_path": path,

@@ -13,6 +13,7 @@ website/.next
 website/.env.local
 dist
 dist-ssr
+target/
 coverage
 test-results
 playwright-report

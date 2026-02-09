@@ -338,19 +338,23 @@ fn severity_rank(sev: &str) -> u8 {
 fn offline_analyze(file_path: &str, content: &str) -> Option<(&'static str, String, Option<String>)> {
     let lower = content.to_lowercase();
 
-    let critical_patterns = [
-        "eval(",
-        "dangerouslysetinnerhtml",
-        "child_process.exec(",
-        "child_process.execsync(",
-        "process::command",
-        "sql injection",
-    ];
-    if critical_patterns.iter().any(|p| lower.contains(p)) {
+    let critical_patterns = ["eval(", "child_process.exec(", "child_process.execsync("];
+    if critical_patterns
+        .iter()
+        .any(|p| contains_code_token(&lower, p))
+    {
         return Some((
             "Critical",
             format!("Potential security risk detected in {file_path} (contains dangerous API)."),
             Some("Remove dangerous APIs or add strict input validation + allowlist.".to_string()),
+        ));
+    }
+
+    if contains_code_token(&lower, "dangerouslysetinnerhtml") {
+        return Some((
+            "Warning",
+            format!("Potential XSS risk in {file_path} (dangerouslySetInnerHTML)."),
+            Some("Ensure content is trusted or sanitized; avoid rendering untrusted HTML.".to_string()),
         ));
     }
 
@@ -371,6 +375,28 @@ fn offline_analyze(file_path: &str, content: &str) -> Option<(&'static str, Stri
     }
 
     None
+}
+
+fn contains_code_token(haystack_lower: &str, needle_lower: &str) -> bool {
+    let bytes = haystack_lower.as_bytes();
+    let mut start = 0usize;
+    while let Some(pos) = haystack_lower[start..].find(needle_lower) {
+        let idx = start + pos;
+        let prev = idx.checked_sub(1).and_then(|p| bytes.get(p).copied());
+        let ok_prev = match prev {
+            None => true,
+            Some(b) => {
+                let is_quote = matches!(b, b'"' | b'\'' | b'`');
+                let is_word = (b as char).is_ascii_alphanumeric() || b == b'_';
+                !is_quote && !is_word
+            }
+        };
+        if ok_prev {
+            return true;
+        }
+        start = idx + needle_lower.len();
+    }
+    false
 }
 
 fn ai_scan(
@@ -673,4 +699,131 @@ fn finding_id_for_file(rules_hash: &str, severity: &str, rel_path: &str) -> Stri
     let mut hasher = Sha256::new();
     hasher.update(normalized.as_bytes());
     hex::encode(hasher.finalize())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::output::ScanReport;
+    use std::fs;
+    use tempfile::TempDir;
+
+    fn write_file(root: &Path, rel: &str, content: &str) {
+        let path = root.join(rel);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+        fs::write(path, content).unwrap();
+    }
+
+    #[test]
+    fn offline_scan_returns_exit_1_for_new_critical_findings() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        write_file(root, "src/a.ts", "const x = eval('1+1');\n");
+
+        let report_path = root.join("report.json");
+        let code = run_scan(ScanConfig {
+            root: root.to_path_buf(),
+            format: ReportFormat::Json,
+            out: Some(report_path),
+            baseline_path: None,
+            max_files: 50,
+            max_file_bytes: 50_000,
+            offline: true,
+            mock: false,
+            provider: None,
+            model: None,
+            base_url: None,
+            api_key: None,
+        })
+        .unwrap();
+
+        assert_eq!(code, 1);
+    }
+
+    #[test]
+    fn offline_scan_does_not_flag_string_literal_matches_as_critical() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        write_file(root, "src/a.ts", "const s = \"eval(\";\n");
+
+        let report_path = root.join("report.json");
+        let code = run_scan(ScanConfig {
+            root: root.to_path_buf(),
+            format: ReportFormat::Json,
+            out: Some(report_path),
+            baseline_path: None,
+            max_files: 50,
+            max_file_bytes: 50_000,
+            offline: true,
+            mock: false,
+            provider: None,
+            model: None,
+            base_url: None,
+            api_key: None,
+        })
+        .unwrap();
+
+        assert_eq!(code, 0);
+    }
+
+    #[test]
+    fn baseline_suppresses_known_critical_findings() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        write_file(root, "src/a.ts", "const x = eval('1+1');\n");
+
+        let report_path = root.join("report.json");
+        let _ = run_scan(ScanConfig {
+            root: root.to_path_buf(),
+            format: ReportFormat::Json,
+            out: Some(report_path.clone()),
+            baseline_path: None,
+            max_files: 50,
+            max_file_bytes: 50_000,
+            offline: true,
+            mock: false,
+            provider: None,
+            model: None,
+            base_url: None,
+            api_key: None,
+        })
+        .unwrap();
+
+        let raw = fs::read_to_string(&report_path).unwrap();
+        let report: ScanReport = serde_json::from_str(&raw).unwrap();
+        assert_eq!(report.findings.len(), 1);
+        let finding_id = report.findings[0].finding_id.clone();
+
+        let baseline_path = root.join("baseline.json");
+        let baseline = Baseline {
+            schema_version: 2,
+            created_at: "2026-02-09T00:00:00Z".to_string(),
+            workspace_id: "test".to_string(),
+            rules_hash: report.rules_hash.clone(),
+            finding_ids: vec![finding_id],
+            findings: Vec::new(),
+        };
+        fs::write(&baseline_path, serde_json::to_string_pretty(&baseline).unwrap()).unwrap();
+
+        let report_path_2 = root.join("report2.json");
+        let code = run_scan(ScanConfig {
+            root: root.to_path_buf(),
+            format: ReportFormat::Json,
+            out: Some(report_path_2),
+            baseline_path: Some(baseline_path),
+            max_files: 50,
+            max_file_bytes: 50_000,
+            offline: true,
+            mock: false,
+            provider: None,
+            model: None,
+            base_url: None,
+            api_key: None,
+        })
+        .unwrap();
+
+        assert_eq!(code, 0);
+    }
 }

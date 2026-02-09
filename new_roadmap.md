@@ -400,11 +400,25 @@ repos:
 4. **Manual:** Gerçek PR'da deneme
 
 ### Acceptance Criteria
-- [ ] guardian-cli binary derleniyor
-- [ ] JSON ve SARIF output doğru formatta
-- [ ] GitHub Actions'da çalışıyor
-- [ ] Baseline ile birlikte kullanılabiliyor
-- [ ] Exit code'lar doğru çalışıyor
+- [x] guardian-cli binary derleniyor
+- [x] JSON ve SARIF output doğru formatta
+- [x] GitHub Actions'da çalışıyor
+- [x] Baseline ile birlikte kullanılabiliyor
+- [x] Exit code'lar doğru çalışıyor
+
+### Phase 2 - Implemented (2026-02-09)
+- `guardian-cli/` eklendi (CI-friendly scan + JSON/SARIF/Markdown output + baseline + exit codes).
+- CI portability fix:
+  - `rules_hash` artık absolute path'e bağlı değil (desktop + CLI aynı deterministik fingerprint'i üretir).
+  - Baseline schema `schema_version=2` oldu (eski `schema_version=1` baseline'lar reset edilmelidir).
+  - `finding_id` artık workspace-root'a göre normalize edilmiş **relative file path** kullanır (desktop baseline ↔ CLI scan eşleşir).
+- GitHub Integration:
+  - Composite action: `.github/actions/guardian/action.yml`
+  - Workflow (SARIF upload): `.github/workflows/guardian-scan.yml`
+- Repo hygiene: yanlışlıkla commit edilen `guardian-cli/target/` artifact'leri kaldırıldı ve `target/` ignore eklendi.
+- Tests:
+  - `cd src-tauri && cargo test` (pass)
+  - `cd guardian-cli && cargo test` (pass)
 
 ---
 

@@ -25,21 +25,28 @@ pub fn calculate_file_hash(path: &str) -> String {
 }
 
 pub fn get_rules_fingerprint(workspace_root: &str) -> String {
-    let rules_path = Path::new(workspace_root).join(".agent/rules");
+    let rules_path = Path::new(workspace_root).join(".agent").join("rules");
+    if !rules_path.exists() {
+        return String::new();
+    }
     let mut hasher = Sha256::new();
 
-    // Sort files to ensure deterministic hash
-    let mut entries: Vec<_> = WalkDir::new(rules_path)
+    let mut entries: Vec<(String, std::path::PathBuf)> = WalkDir::new(&rules_path)
         .into_iter()
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_file() && e.path().extension().is_some_and(|ext| ext == "md"))
+        .filter_map(|e| {
+            let rel = e.path().strip_prefix(&rules_path).ok()?;
+            let rel = rel.to_string_lossy().replace('\\', "/");
+            Some((rel, e.into_path()))
+        })
         .collect();
 
-    entries.sort_by(|a, b| a.path().cmp(b.path()));
+    entries.sort_by(|a, b| a.0.cmp(&b.0));
 
-    for entry in entries {
-        if let Ok(content) = fs::read(entry.path()) {
-            hasher.update(entry.path().to_string_lossy().as_bytes());
+    for (rel, path) in entries {
+        if let Ok(content) = fs::read(&path) {
+            hasher.update(rel.as_bytes());
             hasher.update(content);
         }
     }

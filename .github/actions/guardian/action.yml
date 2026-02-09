@@ -1,0 +1,114 @@
+name: Guardian Scan
+description: Run Guardian CLI scan (offline/mock/AI) and emit JSON/SARIF/Markdown reports.
+
+inputs:
+  root:
+    description: Workspace root to scan (relative to the workflow repo).
+    required: false
+    default: "."
+  format:
+    description: Report format (json|sarif|markdown).
+    required: false
+    default: "sarif"
+  out:
+    description: Output file path (relative to the workflow repo). If empty, prints to stdout.
+    required: false
+    default: "guardian-report.sarif"
+  baseline:
+    description: Baseline JSON file path (optional).
+    required: false
+    default: ""
+  offline:
+    description: Disable network/AI calls (true|false).
+    required: false
+    default: "true"
+  mock:
+    description: Force deterministic mock mode (true|false).
+    required: false
+    default: "false"
+  max_files:
+    description: Max files to scan.
+    required: false
+    default: "200"
+  max_file_bytes:
+    description: Max file size in bytes to read.
+    required: false
+    default: "100000"
+  provider:
+    description: Provider id (anthropic|openai|gemini|ollama). Optional unless offline=false.
+    required: false
+    default: ""
+  model:
+    description: Model name. Optional unless offline=false.
+    required: false
+    default: ""
+  base_url:
+    description: Provider base URL override.
+    required: false
+    default: ""
+  api_key:
+    description: API key (avoid when possible; prefer workflow secrets + env).
+    required: false
+    default: ""
+
+outputs:
+  report_file:
+    description: The generated report file path.
+    value: ${{ steps.scan.outputs.report_file }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Build guardian-cli
+      shell: bash
+      run: |
+        set -euo pipefail
+        ACTION_ROOT="$(cd "$GITHUB_ACTION_PATH/../../.." && pwd)"
+        cargo build --release --manifest-path "$ACTION_ROOT/guardian-cli/Cargo.toml"
+
+    - name: Run scan
+      id: scan
+      shell: bash
+      run: |
+        set -euo pipefail
+        ACTION_ROOT="$(cd "$GITHUB_ACTION_PATH/../../.." && pwd)"
+        CLI="$ACTION_ROOT/guardian-cli/target/release/guardian-cli"
+
+        args=(scan --root "${{ inputs.root }}" --format "${{ inputs.format }}" --max-files "${{ inputs.max_files }}" --max-file-bytes "${{ inputs.max_file_bytes }}")
+
+        if [[ -n "${{ inputs.out }}" ]]; then
+          args+=(--out "${{ inputs.out }}")
+        fi
+        if [[ -n "${{ inputs.baseline }}" ]]; then
+          args+=(--baseline "${{ inputs.baseline }}")
+        fi
+        if [[ "${{ inputs.offline }}" == "true" ]]; then
+          args+=(--offline)
+        fi
+        if [[ "${{ inputs.mock }}" == "true" ]]; then
+          args+=(--mock)
+        fi
+
+        if [[ -n "${{ inputs.provider }}" ]]; then
+          export GUARDIAN_PROVIDER="${{ inputs.provider }}"
+        fi
+        if [[ -n "${{ inputs.model }}" ]]; then
+          export GUARDIAN_MODEL="${{ inputs.model }}"
+        fi
+        if [[ -n "${{ inputs.base_url }}" ]]; then
+          export GUARDIAN_BASE_URL="${{ inputs.base_url }}"
+        fi
+        if [[ -n "${{ inputs.api_key }}" ]]; then
+          export GUARDIAN_API_KEY="${{ inputs.api_key }}"
+        fi
+
+        "$CLI" "${args[@]}"
+
+        if [[ -n "${{ inputs.out }}" ]]; then
+          echo "report_file=${{ inputs.out }}" >> "$GITHUB_OUTPUT"
+        else
+          echo "report_file=" >> "$GITHUB_OUTPUT"
+        fi

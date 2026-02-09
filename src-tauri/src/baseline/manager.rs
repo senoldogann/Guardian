@@ -94,10 +94,11 @@ impl BaselineManager {
 
         let mut findings: Vec<BaselineFinding> = Vec::new();
         for critique in critiques {
-            let finding_id = finding_id_for_critique(critique, &rules_hash);
+            let normalized_path = normalize_rel_file_path(&self.workspace_root, &critique.file_path);
+            let finding_id = finding_id_for_critique(&self.workspace_root, critique, &rules_hash);
             findings.push(BaselineFinding {
                 finding_id: finding_id.clone(),
-                file_path: critique.file_path.clone(),
+                file_path: normalized_path,
                 severity: critique.severity.clone(),
                 message: Some(truncate_for_baseline(&critique.message)),
             });
@@ -110,7 +111,7 @@ impl BaselineManager {
         let finding_ids: Vec<String> = findings.iter().map(|f| f.finding_id.clone()).collect();
 
         let baseline = Baseline {
-            schema_version: 1,
+            schema_version: 2,
             created_at: now.to_rfc3339(),
             workspace_id,
             rules_hash,
@@ -125,13 +126,16 @@ impl BaselineManager {
     pub fn status(&self, baseline: &Baseline, current: &[Critique]) -> Result<BaselineStatusView> {
         let root_str = self.workspace_root.to_string_lossy().to_string();
         let rules_hash_current = crate::skills::hasher::get_rules_fingerprint(&root_str);
-        let workspace_id_current = compute_workspace_id(&self.workspace_root)?;
 
         let baseline_set: HashSet<&str> = baseline.finding_ids.iter().map(|s| s.as_str()).collect();
 
         let mut current_ids: HashSet<String> = HashSet::new();
         for critique in current {
-            current_ids.insert(finding_id_for_critique(critique, &rules_hash_current));
+            current_ids.insert(finding_id_for_critique(
+                &self.workspace_root,
+                critique,
+                &rules_hash_current,
+            ));
         }
 
         let mut active = 0usize;
@@ -153,9 +157,7 @@ impl BaselineManager {
 
         let baseline_age_days = baseline_age_days(&baseline.created_at);
 
-        let valid = baseline.schema_version == 1
-            && baseline.workspace_id == workspace_id_current
-            && baseline.rules_hash == rules_hash_current;
+        let valid = baseline.schema_version == 2 && baseline.rules_hash == rules_hash_current;
 
         Ok(BaselineStatusView {
             valid,
@@ -208,12 +210,42 @@ pub fn compute_finding_id(
     sha256_hex(normalized.as_bytes())
 }
 
-pub fn finding_id_for_critique(critique: &Critique, rules_hash: &str) -> String {
-    // Phase 1 reality: critique granularity is currently "one finding per file path".
+fn normalize_rel_file_path(workspace_root: &Path, file_path: &str) -> String {
+    let input = Path::new(file_path);
+
+    if !input.is_absolute() {
+        let rel = file_path.trim().trim_start_matches("./").to_string();
+        return rel.replace('\\', "/");
+    }
+
+    if let Ok(rel) = input.strip_prefix(workspace_root) {
+        return rel
+            .to_string_lossy()
+            .replace('\\', "/")
+            .trim_start_matches("./")
+            .to_string();
+    }
+
+    let canonical_root = dunce::canonicalize(workspace_root).unwrap_or_else(|_| workspace_root.to_path_buf());
+    let canonical_input = dunce::canonicalize(input).unwrap_or_else(|_| input.to_path_buf());
+    if let Ok(rel) = canonical_input.strip_prefix(&canonical_root) {
+        return rel
+            .to_string_lossy()
+            .replace('\\', "/")
+            .trim_start_matches("./")
+            .to_string();
+    }
+
+    file_path.trim().replace('\\', "/")
+}
+
+pub fn finding_id_for_critique(workspace_root: &Path, critique: &Critique, rules_hash: &str) -> String {
+    // Phase 2: Normalize paths to be portable across machines/CI.
     // We intentionally do NOT include AI message text in the ID for stability.
     let sev = critique.severity.trim().to_lowercase();
     let rule_id = format!("guardian-v1::{sev}");
-    compute_finding_id(&rule_id, &critique.file_path, "", rules_hash)
+    let rel_path = normalize_rel_file_path(workspace_root, &critique.file_path);
+    compute_finding_id(&rule_id, &rel_path, "", rules_hash)
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
@@ -244,8 +276,9 @@ mod tests {
         let rules_hash = "abc123";
         let c1 = sample_critique("/tmp/a.rs", "Critical", "X");
         let c2 = sample_critique("/tmp/a.rs", "Critical", "Y"); // message changes should not matter
-        let id1 = finding_id_for_critique(&c1, rules_hash);
-        let id2 = finding_id_for_critique(&c2, rules_hash);
+        let root = Path::new("/tmp");
+        let id1 = finding_id_for_critique(root, &c1, rules_hash);
+        let id2 = finding_id_for_critique(root, &c2, rules_hash);
         assert_eq!(id1, id2);
     }
 
@@ -276,4 +309,3 @@ mod tests {
         assert_eq!(status.resolved_since_baseline, 1);
     }
 }
-

@@ -13,7 +13,7 @@ pub fn get_rules_fingerprint(workspace_root: &Path) -> String {
         .git_ignore(false)
         .build();
 
-    let mut entries: Vec<PathBuf> = Vec::new();
+    let mut entries: Vec<(String, PathBuf)> = Vec::new();
     for result in walker {
         let Ok(entry) = result else {
             continue;
@@ -21,23 +21,24 @@ pub fn get_rules_fingerprint(workspace_root: &Path) -> String {
         if !entry.file_type().is_some_and(|t| t.is_file()) {
             continue;
         }
-        let path = entry.path();
-        if path.extension().is_some_and(|ext| ext == "md") {
-            entries.push(path.to_path_buf());
+        let path = entry.into_path();
+        if !path.extension().is_some_and(|ext| ext == "md") {
+            continue;
         }
+        let rel = path.strip_prefix(&rules_dir).unwrap_or(&path);
+        let rel = rel.to_string_lossy().replace('\\', "/");
+        entries.push((rel, path));
     }
 
-    entries.sort();
+    entries.sort_by(|a, b| a.0.cmp(&b.0));
 
     let mut hasher = Sha256::new();
-    for path in entries {
+    for (rel, path) in entries {
         if let Ok(content) = fs::read(&path) {
-            let rel = path.strip_prefix(&rules_dir).unwrap_or(&path);
-            hasher.update(rel.to_string_lossy().as_bytes());
+            hasher.update(rel.as_bytes());
             hasher.update(content);
         }
     }
 
     hex::encode(hasher.finalize())
 }
-
