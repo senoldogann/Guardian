@@ -43,6 +43,8 @@
     "eyebrow": "Release History",
     "title": "Guardian changelog",
     "description": "All release notes are fetched from GitHub release records in real time.",
+    "highlights": "Highlights",
+    "sections": "Release notes",
     "all": "All",
     "stable": "Stable",
     "prerelease": "Pre-release",

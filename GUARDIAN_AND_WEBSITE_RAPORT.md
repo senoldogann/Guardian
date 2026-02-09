@@ -825,6 +825,10 @@ const THRESHOLDS = {
 - `.app.tar.gz` dosyaları manuel olarak sign edildi ve `latest.json` üretildi.
 - macOS artefact’lar `artifacts/` altında hazırlandı.
 
+### Distribution Publish
+- `guardian-distribution` üzerinde `v1.0.0` release yayınlandı ve asset’lar yüklendi.
+- `latest.json` ve `releases.json` yayınlandı; website download/changelog otomatik güncellenecek.
+
 ### Doğrulama Sonuçları (2026-02-09)
 - `npm run test` → ✅ geçti
 - `npm --prefix website run test:run` → ✅ geçti (error-boundary testleri beklenen console error loglarını üretir)
@@ -869,7 +873,7 @@ const THRESHOLDS = {
 
 ---
 
-**Son Güncelleme:** 2026-02-09 02:59  
+**Son Güncelleme:** 2026-02-09 03:27  
 **Not:** Website testleri error-boundary testlerinde beklenen console error logu üretir.
 **Toplam Commit:** 10 (push edilmedi)  
 **Sonraki İşlem:** Review sonrası doğrulama ve release notları

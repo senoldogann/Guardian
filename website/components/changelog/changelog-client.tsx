@@ -125,12 +125,49 @@ export function ChangelogClient({ dict, groups }: Props) {
                         </a>
                       </div>
 
-                      <div className="mt-6 prose dark:prose-invert max-w-none">
-                        {release.body ? (
-                          <MarkdownBlock value={release.body} />
-                        ) : (
-                          <p className="text-neutral-500 dark:text-neutral-400">{dict.changelog.noNotes}</p>
-                        )}
+                      {release.highlights.length > 0 ? (
+                        <div className="mt-6 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-900/50 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500 dark:text-neutral-400">
+                            {dict.changelog.highlights}
+                          </p>
+                          <ul className="mt-3 space-y-2 text-sm text-neutral-700 dark:text-neutral-300">
+                            {release.highlights.map((item, index) => (
+                              <li key={`${release.id}-highlight-${index}`} className="flex gap-2">
+                                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-neutral-400 dark:bg-neutral-500" />
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+
+                      <div className="mt-6 grid gap-4">
+                        {release.sections.length > 0
+                          ? release.sections.map((section) => (
+                              <div
+                                key={`${release.id}-${section.title}`}
+                                className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-950/50 p-4"
+                              >
+                                <h4 className="text-sm font-semibold text-neutral-900 dark:text-white">
+                                  {section.title || dict.changelog.sections}
+                                </h4>
+                                <ul className="mt-3 space-y-2 text-sm text-neutral-700 dark:text-neutral-300">
+                                  {section.items.map((item, index) => (
+                                    <li key={`${release.id}-${section.title}-${index}`} className="flex gap-2">
+                                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-neutral-400 dark:bg-neutral-500" />
+                                      <span>{item}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))
+                          : release.body ? (
+                              <div className="prose dark:prose-invert max-w-none">
+                                <MarkdownBlock value={release.body} />
+                              </div>
+                            ) : (
+                              <p className="text-neutral-500 dark:text-neutral-400">{dict.changelog.noNotes}</p>
+                            )}
                       </div>
                     </div>
                   </article>

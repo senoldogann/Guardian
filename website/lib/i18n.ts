@@ -45,6 +45,8 @@ export type SiteDictionary = {
     eyebrow: string;
     title: string;
     description: string;
+    highlights: string;
+    sections: string;
     all: string;
     stable: string;
     prerelease: string;
