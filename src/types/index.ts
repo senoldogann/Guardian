@@ -139,6 +139,23 @@ export interface BaselineStatusView {
   created_at: string;
 }
 
+export interface AiContextFile {
+  file_path: string;
+  token_estimate: number;
+  redacted: boolean;
+  truncated: boolean;
+  content: string;
+}
+
+export interface AiContextSnapshot {
+  timestamp: string;
+  root: string;
+  provider_id: string;
+  model: string;
+  tokens_in: number;
+  files: AiContextFile[];
+}
+
 // Provider options
 export interface ProviderOption {
   id: string;

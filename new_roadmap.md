@@ -440,7 +440,7 @@ Phase 0'daki minimum redaction'ı genişletmek, UI'da transparanlık sağlamak, 
 
 #### 3.1 Advanced Context Redaction (Phase 0'ın Genişletilmesi)
 
-**Yeni Modül:** `redaction.rs`
+**Genişletilen Modül:** `src-tauri/src/redaction/gate.rs`
 
 **Hassas Dosya Pattern'leri:**
 ```rust
@@ -448,23 +448,29 @@ const SENSITIVE_PATTERNS: &[&str] = &[
     ".env",
     ".env.local",
     ".env.production",
+    ".npmrc",
+    ".pypirc",
+    ".htpasswd",
+    "config.json",
+    "secrets.yaml",
+    "secrets.yml",
+    ".credentials",
+    "credentials.json",
     ".key",
     ".pem",
     ".p12",
     ".pfx",
     "id_rsa",
     "id_ed25519",
-    ".htpasswd",
     "credentials",
     "secrets",
-    "*.secret",
-    ".npmrc",
-    ".pypirc",
+    ".secret",
     "docker-compose.override.yml",
+    "docker-compose.override.yaml",
 ];
 
 const SENSITIVE_EXTENSIONS: &[&str] = &[
-    "key", "pem", "p12", "pfx", "cer", "crt", "der"
+    "key", "pem", "p12", "pfx", "pkcs12", "jks", "keystore", "cer", "crt", "der"
 ];
 ```
 
@@ -473,30 +479,36 @@ const SENSITIVE_EXTENSIONS: &[&str] = &[
 pub fn contains_secrets(content: &str) -> Vec<SecretMatch> {
     // Regex'ler:
     // - API Key: sk-[a-zA-Z0-9]{48}
+    // - OpenAI Project Key: sk-proj-...
+    // - Anthropic Key: sk-ant-...
+    // - GitHub Tokens: ghp_... / github_pat_...
     // - AWS Key: AKIA[0-9A-Z]{16}
-    // - JWT: eyJ[a-zA-Z0-9_-]*\.eyJ[a-zA-Z0-9_-]*
+    // - JWT: eyJ...eyJ...<sig>  (3 parca)
     // - Private Key: -----BEGIN (RSA | OPENSSH | EC) PRIVATE KEY-----
     // - DB URL: postgres://.*:.*@ | mysql://.*:.*@
+    // - KV secrets: api_key|token|secret|password = "..."
+    // - PII: email / phone
 }
 ```
 
 **Redaction Mantığı:**
 - Dosya adı hassas mı? -> Hiç analiz etme, "[REDACTED - sensitive file]" olarak geç
 - İçerik secret içeriyor mu? -> Secret pattern'leri `[REDACTED]` ile değiştir
-- Dosya büyük mü? (>100KB) -> Özet gönder, tam içerik gönderme
+- Dosya büyük mü? (config `max_file_bytes`) -> Analiz etme (skip)
+- Prompt'a girecek içerik: satır/karakter limitleri ile truncate edilir (config `max_content_lines`, `max_content_chars`)
 
 #### 3.2 UI: Outbound Preview
 
 **Yeni Component:** `AIContextPreview`
 
-**Monitor View'de:**
-- "AI Context" sekmesi (yan sekme)
+**Desktop UI'da:**
+- Sidebar'da "AI Context" sekmesi
 - Gönderilecek payload'ı göster (truncated + masked)
 - "Sensitive content redacted" uyarısı
 - Token sayacı (tahmini)
 
-**Chat View'da:**
-- Her AI mesajı öncesinde "Context contains N files, M redacted"
+**Not (Planlanan):**
+- Chat View'da her AI mesajı öncesi "Context contains N files, M redacted" bilgisi (henüz eklenmedi)
 
 #### 3.3 Audit Log
 
@@ -515,21 +527,22 @@ pub fn contains_secrets(content: &str) -> Vec<SecretMatch> {
   "provider": "anthropic",
   "redacted": true,  // secret içeriyorsa
   "tokens_in": 1500,
-  "tokens_out": 250
+  "tokens_out": 250,
+  "details": { "severity": "critical" }
 }
 ```
 
-**Rotasyon:** 30 gün veya 10MB sonra archive
+**Rotasyon:** 10MB sonra archive (`history.<timestamp>.jsonl`)
 
 #### 3.4 Güvenlik Ayarları (Settings)
 
-**Yeni Sekme:** "Security"
+**Not:** Phase 3'te redaction/masking davranisi varsayilan olarak aktif. UI ayarlari (toggle/slider) bir sonraki iterasyonda eklenecek.
 
-- [x] Redact sensitive files (default: on)
-- [x] Redact detected secrets (default: on)
-- [x] Log AI interactions (default: on)
+- [ ] Redact sensitive files (default: on)
+- [ ] Redact detected secrets (default: on)
+- [ ] Log AI interactions (default: on)
 - [ ] Allow AI to suggest fixes for security issues (default: off - Phase 5'te)
-- Max file size: [100KB] slider
+- [ ] Max file size slider (default: 100KB)
 
 ### Test Plan
 1. **Unit:** Hassas dosya tespiti
@@ -538,10 +551,26 @@ pub fn contains_secrets(content: &str) -> Vec<SecretMatch> {
 4. **Security:** History log'a secret yazılmıyor mu?
 
 ### Acceptance Criteria
-- [ ] .env dosyası AI'a gitmiyor
-- [ ] API key içeren kod `[REDACTED]` olarak maskeleniyor
-- [ ] History log tutuluyor
-- [ ] Kullanıcı outbound context'i görebiliyor
+- [x] .env (ve diger hassas dosyalar) AI'a gitmiyor
+- [x] API key/JWT/GitHub token iceren icerik `[REDACTED_*]` olarak maskeleniyor
+- [x] History log tutuluyor (v1 schema + migration + rotation)
+- [x] Kullanıcı outbound context'i (masked+truncated) UI'da gorebiliyor
+
+### Phase 3 - Implemented (2026-02-09)
+- Advanced redaction gate genisletildi: `src-tauri/src/redaction/gate.rs`
+  - Hassas dosyalar skip: `.npmrc`, `.pypirc`, `.htpasswd`, `docker-compose.override.*`, `.secret`, `*.crt/*.cer/*.der` vb.
+  - Inline masking: OpenAI/Anthropic/GitHub token, AWS key, DB URL, private key block, JWT, KV secrets, email/phone
+- Outbound AI context snapshot eklendi (UI preview):
+  - Backend snapshot + event: `src-tauri/src/watcher.rs` (`guardian:ai-context`)
+  - Backend query: `src-tauri/src/lib.rs` (`get_last_ai_context`)
+  - UI: `src/components/AIContextPreview.tsx`, `src/App.tsx`, `src/types/index.ts`
+- Audit log (append-only) yeni schema + migration/rotation: `src-tauri/src/history_logger.rs`
+  - v0 tespiti: `"critique"` gorulurse `history.v0*.jsonl` olarak archive
+  - Rotation: 10MB uzeri `history.<timestamp>.jsonl`
+  - Secret/diff icerigi loglanmaz; sadece metadata (counts/severity vb.)
+- Tests:
+  - `cd src-tauri && cargo test` (pass)
+  - `npm test` (pass)
 
 ---
 

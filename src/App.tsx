@@ -17,6 +17,7 @@ import {
   MessageSquare,
   Files,
   Share2,
+  Eye,
 } from "lucide-react";
 import clsx from "clsx";
 import { CritiqueAccordionRow } from "./components/CritiqueAccordionRow";
@@ -28,9 +29,10 @@ import { StallOverlay } from "./components/StallOverlay";
 import { OnboardingWizard } from "./components/OnboardingWizard";
 import { ToastContainer } from "./components/Toast";
 import { SettingsModal } from "./components/SettingsModal";
+import { AIContextPreview } from "./components/AIContextPreview";
 import { useAuth } from "./hooks/useAuth";
 import { useSettings } from "./hooks/useSettings";
-import type { ProjectContext, Critique, ApiKeyStatus, Baseline, BaselineFinding, BaselineStatusView } from "./types";
+import type { ProjectContext, Critique, ApiKeyStatus, Baseline, BaselineFinding, BaselineStatusView, AiContextSnapshot } from "./types";
 import { STORAGE_KEYS } from "./constants";
 
 function App(): ReactElement {
@@ -67,7 +69,10 @@ function App(): ReactElement {
   const [context, setContext] = useState<ProjectContext | null>(null);
   const [contextLoading, setContextLoading] = useState(false);
   const [contextError, setContextError] = useState<string | null>(null);
-  const [view, setView] = useState<"monitor" | "chat" | "diagram">("monitor");
+  const [aiContext, setAiContext] = useState<AiContextSnapshot | null>(null);
+  const [aiContextLoading, setAiContextLoading] = useState(false);
+  const [aiContextError, setAiContextError] = useState<string | null>(null);
+  const [view, setView] = useState<"monitor" | "chat" | "diagram" | "ai-context">("monitor");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Theme state
@@ -135,6 +140,8 @@ function App(): ReactElement {
         setPendingGuruPrompt(null);
         setContext(null);
         setContextError(null);
+        setAiContext(null);
+        setAiContextError(null);
         setFilter("");
         setBaseline(null);
         setBaselineStatus(null);
@@ -221,6 +228,27 @@ function App(): ReactElement {
     }
   }, [path]);
 
+  const refreshAiContext = useCallback(async (): Promise<void> => {
+    if (!path) {
+      setAiContext(null);
+      setAiContextError(null);
+      return;
+    }
+
+    setAiContextLoading(true);
+    setAiContextError(null);
+    try {
+      const value = await invoke<AiContextSnapshot | null>("get_last_ai_context", { root: path });
+      setAiContext(value ?? null);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      setAiContext(null);
+      setAiContextError(message);
+    } finally {
+      setAiContextLoading(false);
+    }
+  }, [path]);
+
   // Event listeners
   useEffect(() => {
     let disposed = false;
@@ -303,6 +331,11 @@ function App(): ReactElement {
       }));
     });
 
+    void register<AiContextSnapshot>("guardian:ai-context", (event) => {
+      setAiContext(event.payload);
+      setAiContextError(null);
+    });
+
     // Health Check
     invoke("ping").catch(e => {
       setLogs(prev => ({
@@ -329,6 +362,11 @@ function App(): ReactElement {
   useEffect(() => {
     void refreshBaseline();
   }, [refreshBaseline]);
+
+  useEffect(() => {
+    if (view !== "ai-context") return;
+    void refreshAiContext();
+  }, [view, refreshAiContext]);
 
   const setBaselineNow = useCallback(async (): Promise<void> => {
     if (!path) return;
@@ -751,6 +789,12 @@ function App(): ReactElement {
             >
               <Share2 className="w-4 h-4" /> Project Map
             </button>
+            <button
+              onClick={() => setView("ai-context")}
+              className={clsx("w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-lg transition-all flex items-center gap-3 cursor-pointer", view === "ai-context" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-50 hover:opacity-100")}
+            >
+              <Eye className="w-4 h-4" /> AI Context
+            </button>
           </div>
 
           <section className="space-y-6">
@@ -1123,6 +1167,36 @@ function App(): ReactElement {
             onWebSearchToggle={settings.onWebSearchToggle}
             webSearchReady={settings.webSearchReady}
           />
+        </section>
+
+        {/* AI Context View */}
+        <section
+          className={clsx(
+            "flex-1 overflow-hidden p-0 flex flex-col bg-background transition-colors duration-300",
+            view === "ai-context" ? "flex" : "hidden"
+          )}
+        >
+          {!path ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-muted text-sm">
+              <div className="text-xs uppercase tracking-widest">No workspace selected.</div>
+              <div className="text-[10px] text-text-muted max-w-md text-center">
+                Select a workspace, start monitoring, and modify a file to capture the outbound AI payload.
+              </div>
+              <button
+                onClick={selectScope}
+                className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer"
+              >
+                Select Workspace
+              </button>
+            </div>
+          ) : (
+            <AIContextPreview
+              context={aiContext}
+              loading={aiContextLoading}
+              error={aiContextError}
+              onRefresh={refreshAiContext}
+            />
+          )}
         </section>
 
         {/* Diagram View */}

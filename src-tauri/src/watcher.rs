@@ -2,11 +2,12 @@ use crate::ai_client::AiClient;
 use crate::config;
 use crate::context::ProjectContext;
 use crate::executor;
-use crate::history_logger::append_history_log;
+use crate::history_logger::{append_critique_event, append_history_event, HistoryEvent};
 use crate::storage::StorageManager;
 use chrono::Utc;
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use once_cell::sync::Lazy;
+use serde::Serialize;
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -27,6 +28,28 @@ use tracing::{debug, error, info, warn};
 // OPTIMIZATION: Using RwLock instead of Mutex for better read concurrency
 static ACTIVE_CRITIQUES: Lazy<Arc<RwLock<HashMap<String, crate::ai_client::Critique>>>> =
     Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AiContextFile {
+    pub file_path: String,
+    pub token_estimate: u64,
+    pub redacted: bool,
+    pub truncated: bool,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AiContextSnapshot {
+    pub timestamp: String,
+    pub root: String,
+    pub provider_id: String,
+    pub model: String,
+    pub tokens_in: u64,
+    pub files: Vec<AiContextFile>,
+}
+
+static LAST_AI_CONTEXT: Lazy<Arc<RwLock<Option<AiContextSnapshot>>>> =
+    Lazy::new(|| Arc::new(RwLock::new(None)));
 
 const NON_LOGIC_EXTENSIONS: &[&str] = &[
     "css", "json", "md", "svg", "lock", "log", "patch", "png", "jpg", "jpeg", "gif", "ico",
@@ -562,7 +585,9 @@ async fn process_batch(
     info!(target: "guardian::watcher", "Batch processor flushing {} files", items.len());
 
     // Prepare Prompt Data
-    let (prompt_data, estimated_tokens, hash_by_path) = build_prompt_data(&items);
+    let (prompt_data, estimated_tokens, hash_by_path, context_files) = build_prompt_data(&items);
+    emit_ai_context(app, root, client, estimated_tokens, &context_files);
+    append_ai_request_history(root, client, estimated_tokens, &context_files);
 
     let mut attempt = 0;
     loop {
@@ -605,8 +630,10 @@ async fn process_batch(
                     .ok();
                     for item in items {
                         let single_items = vec![item.clone()];
-                        let (single_prompt, single_tokens, single_hash) =
+                        let (single_prompt, single_tokens, single_hash, single_context) =
                             build_prompt_data(&single_items);
+                        emit_ai_context(app, root, client, single_tokens, &single_context);
+                        append_ai_request_history(root, client, single_tokens, &single_context);
                         match client.analyze_batch(single_prompt).await {
                             Ok(critiques) => {
                                 handle_critiques(
@@ -645,6 +672,54 @@ async fn process_batch(
             }
         }
     }
+}
+
+fn emit_ai_context(
+    app: &AppHandle,
+    root: &str,
+    client: &AiClient,
+    tokens_in: u64,
+    files: &[AiContextFile],
+) {
+    let snapshot = AiContextSnapshot {
+        timestamp: Utc::now().to_rfc3339(),
+        root: root.to_string(),
+        provider_id: client.provider_id().to_string(),
+        model: client.model().to_string(),
+        tokens_in,
+        files: files.to_vec(),
+    };
+
+    if let Ok(mut lock) = LAST_AI_CONTEXT.write() {
+        *lock = Some(snapshot.clone());
+    }
+
+    app.emit("guardian:ai-context", snapshot).ok();
+}
+
+fn append_ai_request_history(root: &str, client: &AiClient, tokens_in: u64, files: &[AiContextFile]) {
+    let redacted_files = files.iter().filter(|f| f.redacted).count();
+    let truncated_files = files.iter().filter(|f| f.truncated).count();
+
+    append_history_event(
+        root,
+        HistoryEvent {
+            timestamp: Utc::now().to_rfc3339(),
+            event: "ai_request".to_string(),
+            finding_id: None,
+            file_path: None,
+            model: Some(client.model().to_string()),
+            provider: Some(client.provider_id().to_string()),
+            redacted: Some(redacted_files > 0),
+            tokens_in: Some(tokens_in),
+            tokens_out: None,
+            details: Some(json!({
+                "files": files.len(),
+                "redacted_files": redacted_files,
+                "truncated_files": truncated_files,
+            })),
+        },
+    );
 }
 
 fn handle_critiques(
@@ -705,7 +780,7 @@ fn handle_critiques(
         } else {
             active_lock.insert(path_key.clone(), critique.clone());
             app.emit("guardian:critique", critique.clone()).ok();
-            append_history_log(root, &critique);
+            append_critique_event(root, &critique);
             append_agent_event(
                 root,
                 &json!({
@@ -1058,6 +1133,15 @@ pub(crate) fn active_critiques_for_root(root: &str) -> Vec<crate::ai_client::Cri
         .collect()
 }
 
+pub(crate) fn last_ai_context_for_root(root: &str) -> Option<AiContextSnapshot> {
+    let Ok(lock) = LAST_AI_CONTEXT.read() else {
+        return None;
+    };
+    lock.as_ref()
+        .filter(|snap| snap.root == root)
+        .cloned()
+}
+
 fn calculate_hash(content: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(content);
@@ -1084,19 +1168,28 @@ fn estimate_tokens(content: &str) -> u64 {
     rough_tokens.max(1)
 }
 
-fn build_prompt_data(items: &[BatchItem]) -> (Vec<(String, String)>, u64, HashMap<String, String>) {
+fn build_prompt_data(
+    items: &[BatchItem],
+) -> (
+    Vec<(String, String)>,
+    u64,
+    HashMap<String, String>,
+    Vec<AiContextFile>,
+) {
     let mut prompt_data = Vec::new();
     let mut estimated_tokens: u64 = 0;
     let mut hash_by_path: HashMap<String, String> = HashMap::new();
+    let mut context_files: Vec<AiContextFile> = Vec::with_capacity(items.len());
 
     for item in items.iter() {
-        let truncated = truncate_content(&item.content);
-        estimated_tokens += estimate_tokens(&truncated);
-        hash_by_path.insert(item.path.to_string_lossy().to_string(), item.hash.clone());
-        prompt_data.push((item.path.to_string_lossy().to_string(), truncated));
+        let context_file = prepare_ai_context_file(item);
+        estimated_tokens += context_file.token_estimate;
+        hash_by_path.insert(context_file.file_path.clone(), item.hash.clone());
+        prompt_data.push((context_file.file_path.clone(), context_file.content.clone()));
+        context_files.push(context_file);
     }
 
-    (prompt_data, estimated_tokens, hash_by_path)
+    (prompt_data, estimated_tokens, hash_by_path, context_files)
 }
 
 fn should_exclude_file(path: &Path) -> bool {
@@ -1107,20 +1200,34 @@ fn filter_pii(content: &str) -> String {
     crate::redaction::gate::mask_inline_secrets(content)
 }
 
-fn truncate_content(content: &str) -> String {
+fn prepare_ai_context_file(item: &BatchItem) -> AiContextFile {
     let max_content_lines = config::max_content_lines();
     let max_content_chars = config::max_content_chars();
-    let filtered = filter_pii(content);
+    let filtered = filter_pii(&item.content);
+    let redacted = filtered != item.content;
+    let mut truncated = false;
+
     let mut lines: Vec<&str> = filtered.lines().collect();
     if lines.len() > max_content_lines {
         lines.truncate(max_content_lines);
+        truncated = true;
     }
     let mut joined = lines.join("\n");
     if joined.len() > max_content_chars {
         joined.truncate(max_content_chars);
         joined.push_str("\n... (truncated)");
+        truncated = true;
     }
-    joined
+
+    let token_estimate = estimate_tokens(&joined);
+
+    AiContextFile {
+        file_path: item.path.to_string_lossy().to_string(),
+        token_estimate,
+        redacted,
+        truncated,
+        content: joined,
+    }
 }
 
 fn is_rate_limit_error(err: &str) -> bool {

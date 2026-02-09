@@ -30,6 +30,14 @@ pub struct Critique {
 }
 
 impl AiClient {
+    pub fn provider_id(&self) -> &str {
+        &self.provider_id
+    }
+
+    pub fn model(&self) -> &str {
+        &self.model
+    }
+
     pub fn new(
         provider_id: String,
         base_url: String,

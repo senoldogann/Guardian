@@ -312,6 +312,25 @@ async fn create_baseline(root: String) -> Result<baseline::BaselineStatusView, S
     let manager = baseline::BaselineManager::new(root_path.to_path_buf());
     let critiques = watcher::active_critiques_for_root(&root);
     let baseline = manager.create_baseline(&critiques).map_err(|e| e.to_string())?;
+    history_logger::append_history_event(
+        &root,
+        history_logger::HistoryEvent {
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            event: "baseline_created".to_string(),
+            finding_id: None,
+            file_path: None,
+            model: None,
+            provider: None,
+            redacted: None,
+            tokens_in: None,
+            tokens_out: None,
+            details: Some(serde_json::json!({
+                "schema_version": baseline.schema_version,
+                "finding_ids": baseline.finding_ids.len(),
+                "rules_hash": baseline.rules_hash.clone(),
+            })),
+        },
+    );
     manager
         .status(&baseline, &critiques)
         .map_err(|e| e.to_string())
@@ -347,6 +366,19 @@ async fn get_baseline_status(root: String) -> Result<Option<baseline::BaselineSt
     let critiques = watcher::active_critiques_for_root(&root);
     let status = manager.status(&baseline, &critiques).map_err(|e| e.to_string())?;
     Ok(Some(status))
+}
+
+#[tauri::command]
+async fn get_last_ai_context(root: String) -> Result<Option<watcher::AiContextSnapshot>, String> {
+    let root_path = std::path::Path::new(&root);
+    if !root_path.exists() || !root_path.is_dir() {
+        return Err(format!(
+            "Workspace root not accessible: {}. Select the correct folder in Scope.",
+            root
+        ));
+    }
+
+    Ok(watcher::last_ai_context_for_root(&root))
 }
 
 #[tauri::command]
@@ -640,7 +672,32 @@ async fn confirm_fix(
     root: String,
 ) -> Result<String, String> {
     info!(target: "guardian::autopilot", "Fix confirmed, applying to: {}", file_path);
-    patcher::apply_patch(&file_path, &new_content, &root).map_err(|e| e.to_string())
+    let res = patcher::apply_patch(&file_path, &new_content, &root).map_err(|e| e.to_string())?;
+
+    let rel_path = std::path::Path::new(&file_path)
+        .strip_prefix(std::path::Path::new(&root))
+        .map(|p| p.to_string_lossy().replace('\\', "/"))
+        .unwrap_or_else(|_| file_path.clone());
+
+    history_logger::append_history_event(
+        &root,
+        history_logger::HistoryEvent {
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            event: "fix_applied".to_string(),
+            finding_id: None,
+            file_path: Some(rel_path),
+            model: None,
+            provider: None,
+            redacted: None,
+            tokens_in: None,
+            tokens_out: None,
+            details: Some(serde_json::json!({
+                "bytes": new_content.len(),
+            })),
+        },
+    );
+
+    Ok(res)
 }
 
 #[tauri::command]
@@ -1174,6 +1231,7 @@ pub fn run() -> AnyhowResult<()> {
             create_baseline,
             clear_baseline,
             get_baseline_status,
+            get_last_ai_context,
             start_github_login,
             complete_github_login,
             logout_github,

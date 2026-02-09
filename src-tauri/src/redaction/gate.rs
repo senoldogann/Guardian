@@ -8,6 +8,9 @@ pub fn is_sensitive_file(path: &Path) -> bool {
         ".env",
         ".env.local",
         ".env.production",
+        ".npmrc",
+        ".pypirc",
+        ".htpasswd",
         "config.json",
         "secrets.yaml",
         "secrets.yml",
@@ -21,8 +24,13 @@ pub fn is_sensitive_file(path: &Path) -> bool {
         "id_ed25519",
         "credentials",
         "secrets",
+        ".secret",
+        "docker-compose.override.yml",
+        "docker-compose.override.yaml",
     ];
-    const SENSITIVE_EXTS: &[&str] = &["key", "pem", "p12", "pfx", "pkcs12", "jks", "keystore"];
+    const SENSITIVE_EXTS: &[&str] = &[
+        "key", "pem", "p12", "pfx", "pkcs12", "jks", "keystore", "cer", "crt", "der",
+    ];
 
     if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
         if SENSITIVE_NAMES
@@ -60,6 +68,7 @@ pub fn mask_inline_secrets(content: &str) -> String {
         static ref AWS_ACCESS_KEY: Regex = Regex::new(r"\bAKIA[0-9A-Z]{16}\b").unwrap();
 
         static ref PRIVATE_KEY_BLOCK: Regex = Regex::new(r"(?s)-----BEGIN[ A-Z0-9_-]*PRIVATE KEY-----.*?-----END[ A-Z0-9_-]*PRIVATE KEY-----").unwrap();
+        static ref JWT: Regex = Regex::new(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b").unwrap();
 
         static ref EMAIL_RE: Regex =
             Regex::new(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}").unwrap();
@@ -89,6 +98,7 @@ pub fn mask_inline_secrets(content: &str) -> String {
     filtered = PRIVATE_KEY_BLOCK
         .replace_all(&filtered, "[REDACTED_PRIVATE_KEY]")
         .to_string();
+    filtered = JWT.replace_all(&filtered, "[REDACTED_JWT]").to_string();
 
     filtered = OPENAI_KEY
         .replace_all(&filtered, "[REDACTED_OPENAI_KEY]")
@@ -137,9 +147,13 @@ mod tests {
     fn sensitive_file_detection() {
         assert!(is_sensitive_file(Path::new(".env")));
         assert!(is_sensitive_file(Path::new(".env.production")));
+        assert!(is_sensitive_file(Path::new(".npmrc")));
+        assert!(is_sensitive_file(Path::new(".pypirc")));
         assert!(is_sensitive_file(Path::new("id_ed25519")));
         assert!(is_sensitive_file(Path::new("secrets.txt.key")));
         assert!(is_sensitive_file(Path::new("cert.PEM")));
+        assert!(is_sensitive_file(Path::new("docker-compose.override.yml")));
+        assert!(is_sensitive_file(Path::new("foo.secret")));
         assert!(!is_sensitive_file(Path::new("src/main.rs")));
     }
 
@@ -169,5 +183,13 @@ mod tests {
         assert!(masked.contains("[REDACTED_EMAIL]"));
         assert!(!masked.contains("super-secret-value"));
         assert!(!masked.contains("test@example.com"));
+    }
+
+    #[test]
+    fn masks_jwt_like_tokens() {
+        let input = "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+        let masked = mask_inline_secrets(input);
+        assert!(masked.contains("[REDACTED_JWT]"));
+        assert!(!masked.contains("eyJhbGciOiJIUzI1Ni"));
     }
 }
