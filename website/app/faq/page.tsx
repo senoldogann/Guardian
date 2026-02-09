@@ -182,25 +182,23 @@ export default function FAQPage() {
           </p>
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-10 overflow-x-hidden relative">
-          <aside className="hidden lg:block self-start">
-            <div className="sticky top-28 w-60 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white/50 dark:bg-neutral-950/30 backdrop-blur p-1 max-h-[calc(100vh-10rem)] overflow-y-auto transition-all duration-200">
-              <div className="px-4 py-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
-                <FolderOpen className="h-4 w-4" aria-hidden="true" />
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-12 relative">
+          <aside className="hidden lg:block">
+            <div className="sticky top-32 w-full transition-all duration-200">
+              <h3 className="px-3 mb-4 text-xs font-bold uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
                 Categories
-              </div>
-              <div className="space-y-1">
+              </h3>
+              <nav className="space-y-1 relative border-l border-neutral-200 dark:border-neutral-800 pl-4">
                 {faqCategories.filter(c => c.id !== "pricing").map((cat) => (
                   <a
                     key={cat.id}
                     href={`#${cat.id}`}
-                    className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-900 shadow-sm border border-transparent hover:border-neutral-200 dark:hover:border-neutral-800 transition-all"
+                    className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white transition-colors -ml-[17px] border-l-2 border-transparent hover:border-neutral-300 dark:hover:border-neutral-700"
                   >
-                    <cat.icon className="h-4 w-4" aria-hidden="true" />
                     <span>{cat.title}</span>
                   </a>
                 ))}
-              </div>
+              </nav>
             </div>
           </aside>
 

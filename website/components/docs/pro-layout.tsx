@@ -119,9 +119,9 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
     }, []);
 
     return (
-        <div className="flex w-full min-h-screen pt-24 pb-12 bg-white dark:bg-black transition-colors duration-300 overflow-x-hidden relative">
+        <div className="flex w-full min-h-screen pt-24 pb-12 bg-white dark:bg-black transition-colors duration-300 relative">
             {/* Desktop Sidebar (IDE Style) - Sticky, scrolls with content */}
-            <aside className="hidden lg:block w-72 pl-6 pr-4 self-start">
+            <aside className="hidden lg:block w-72 pl-6 pr-4">
                 <div className="sticky top-24 w-60 max-h-[calc(100vh-8rem)] overflow-y-auto transition-all duration-200">
                     <SidebarContent sidebar={sidebar} pathname={pathname} />
                 </div>
@@ -197,7 +197,7 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
 
             {/* Desktop Table of Contents (Right Sidebar) - Sticky, scrolls with content */}
             {toc && toc.length > 0 && (
-                <aside className="hidden xl:block w-64 pr-6 self-start">
+                <aside className="hidden xl:block w-64 pr-6">
                     <div className="sticky top-24 w-56 max-h-[calc(100vh-8rem)] p-4 flex flex-col overflow-y-auto transition-all duration-200">
                         <h2 className="mb-4 text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest flex items-center gap-2 flex-shrink-0">
                             On This Page
