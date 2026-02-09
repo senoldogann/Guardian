@@ -50,6 +50,9 @@ export const metadata: Metadata = {
     description: "Release-driven architecture governance for production engineering teams.",
     images: [`${SITE_URL}/og?title=Guardian&description=Release-Driven Governance Platform`],
   },
+  verification: {
+    google: "X7Ebs2nZd78TDzrvFYP_2txP8qS_LeEqJqitJlIj-rs"
+  },
   robots: {
     index: true,
     follow: true

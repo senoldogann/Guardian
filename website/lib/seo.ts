@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-export const SITE_URL = "https://guardian-app.vercel.app";
+export const SITE_URL = "https://guardianide.com";
 
 /**
  * Generate OpenGraph image URL with dynamic content
@@ -57,7 +57,7 @@ export function buildSoftwareApplicationJsonLd(): Record<string, unknown> {
     "@type": "SoftwareApplication",
     name: "Guardian",
     applicationCategory: "DeveloperApplication",
-    operatingSystem: "macOS, Windows",
+    operatingSystem: "macOS, Windows, Linux",
     offers: {
       "@type": "Offer",
       price: "0",
@@ -65,6 +65,16 @@ export function buildSoftwareApplicationJsonLd(): Record<string, unknown> {
     },
     description: "Guardian is a desktop app for architecture governance and release quality.",
     url: SITE_URL
+  };
+}
+
+export function buildOrganizationJsonLd(): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "Guardian",
+    url: SITE_URL,
+    logo: `${SITE_URL}/icon.svg`
   };
 }
 

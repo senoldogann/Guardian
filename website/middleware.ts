@@ -72,6 +72,7 @@ const SECURITY_HEADERS = {
  */
 export function middleware(request: NextRequest): NextResponse {
   const response = NextResponse.next();
+  void request;
 
   // Apply security headers
   Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {

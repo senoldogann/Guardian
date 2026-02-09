@@ -189,10 +189,12 @@ export function trackDocsSearch(query: string): void {
 /**
  * Identify a user (if using user-based analytics)
  */
-export function identifyUser(_userId: string, _traits?: Record<string, unknown>): void {
+export function identifyUser(userId: string, traits?: Record<string, unknown>): void {
   if (!isAnalyticsEnabled()) return;
 
   // Placeholder for future analytics identity integration.
+  void userId;
+  void traits;
 }
 
 /**

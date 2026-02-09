@@ -275,7 +275,7 @@ MIT License - see [LICENSE](../LICENSE) for details
 
 ## 🔗 Links
 
-- **Website**: https://guardian-app.vercel.app
+- **Website**: https://guardianide.com
 - **Repository**: https://github.com/senoldogann/guardian-distribution
 - **Issues**: https://github.com/senoldogann/guardian-distribution/issues
 - **Next.js Docs**: https://nextjs.org/docs

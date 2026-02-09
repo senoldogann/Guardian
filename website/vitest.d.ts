@@ -1,7 +1,7 @@
 import "jest-axe";
 
 declare module "vitest" {
-  interface Assertion<T = any> {
+  interface Assertion {
     toHaveNoViolations(): void;
   }
   interface AsymmetricMatchersContaining {

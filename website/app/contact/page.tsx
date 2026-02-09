@@ -1,6 +1,14 @@
 
+import type { Metadata } from "next";
+import { buildPageMetadata } from "../../lib/seo";
 import { ContactForm } from "@/components/contact/ContactForm";
-import { Mail, MapPin, Github, Linkedin, Twitter } from "lucide-react";
+import { Mail, MapPin, Linkedin, Twitter } from "lucide-react";
+
+export const metadata: Metadata = buildPageMetadata({
+    title: "Contact",
+    description: "Get in touch with the Guardian team for product, support, or partnership questions.",
+    path: "/contact"
+});
 
 export default function ContactPage() {
     return (
@@ -55,14 +63,6 @@ export default function ContactPage() {
                             Connect with us
                         </h3>
                         <div className="flex gap-4">
-                            <a
-                                href="https://github.com/senoldogann"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-12 h-12 rounded-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent transition-all duration-300"
-                            >
-                                <Github className="w-5 h-5" />
-                            </a>
                             <a
                                 href="https://linkedin.com/in/senoldogann"
                                 target="_blank"

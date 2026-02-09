@@ -1,10 +1,12 @@
 
-import { Metadata } from "next";
+import type { Metadata } from "next";
+import { buildPageMetadata } from "../../lib/seo";
 
-export const metadata: Metadata = {
-    title: "Privacy Policy | Guardian",
+export const metadata: Metadata = buildPageMetadata({
+    title: "Privacy Policy",
     description: "Privacy Policy and Cookie Usage for Guardian Platform",
-};
+    path: "/privacy-policy"
+});
 
 export default function PrivacyPolicyPage() {
     return (

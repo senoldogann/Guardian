@@ -21,7 +21,7 @@ Guardian implements a defense-in-depth security model with multiple layers of pr
 │             🔐 Transport Layer               │
 │  • HTTPS/TLS for API communications           │
 │  • Update checks via configured updater feed  │
-│  • Authenticated GitHub API requests          │
+│  • Authenticated update feed requests         │
 └──────────────────────────────────────────────┘
                        │
 ┌──────────────────────────────────────────────┐
@@ -36,19 +36,19 @@ Guardian implements a defense-in-depth security model with multiple layers of pr
 
 Guardian uses a dual-repository model for maximum security:
 
-### Private Source Repository
+### Source Repository
 - Contains all source code
-- Access restricted to development team
+- Access restricted to your development team
 - No artifacts or binaries stored here
 - Protected branches with code review requirements
 
-### Public Distribution Repository
+### Distribution Repository or Update Host
 - Contains only signed release artifacts
 - Release metadata in `latest.json`
-- GitHub Releases for version history
-- Public access for download and update checks
+- Release records for version history
+- Public or internal access for download and update checks
 
-> **Key Principle**: Never expose source code in distribution repositories. Only publish compiled, signed artifacts.
+> **Key Principle**: Never expose source code in distribution locations. Only publish compiled, signed artifacts.
 
 ## Signing Model
 
@@ -81,14 +81,14 @@ If any verification fails, the update is rejected and the user is notified.
 | Secret Type | Storage Location | Never Store In |
 |-------------|-----------------|----------------|
 | API Keys | Keychain/DPAPI | Plain text files |
-| Private Keys | GitHub Secrets | Repository |
+| Private Keys | CI Secrets | Repository |
 | Auth Tokens | Secure storage | localStorage |
 
 ### Configuration Best Practices
 
 1. **Use Environment Variables**: For CI/CD, use encrypted secrets:
    ```yaml
-   # GitHub Actions example
+   # CI example
    env:
      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
    ```
@@ -124,7 +124,7 @@ default-src 'self';
 script-src 'self';
 style-src 'self';
 img-src 'self' data: https:;
-connect-src 'self' https://api.openai.com https://api.anthropic.com https://github.com;
+connect-src 'self' https://api.openai.com https://api.anthropic.com https://updates.guardian.example.com;
 img-src 'self' data: https:;
 ```
 

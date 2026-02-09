@@ -57,13 +57,17 @@ export default async function DocsDetailPage({ params }: Props) {
 
   return (
     <ProLayout sidebar={sidebar} toc={toc}>
-      <section className="hero section-enter" data-delay="1">
-        <div className="eyebrow text-white/60 mb-2 font-mono text-sm tracking-widest uppercase">Documentation</div>
-        <h1 className="text-4xl font-bold mb-4 text-white">{doc.meta.title}</h1>
-        <p className="text-xl text-zinc-400 mb-8">{doc.meta.summary}</p>
+      <section className="hero">
+        <div className="eyebrow mb-2 text-xs font-semibold tracking-[0.24em] uppercase text-neutral-500 dark:text-neutral-400">
+          Documentation
+        </div>
+        <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-neutral-950 dark:text-white">
+          {doc.meta.title}
+        </h1>
+        <p className="mt-4 text-lg text-neutral-600 dark:text-neutral-400">{doc.meta.summary}</p>
       </section>
 
-      <div className="prose prose-invert max-w-none">
+      <div className="prose dark:prose-invert max-w-none">
         <MarkdownBlock value={doc.content} />
       </div>
     </ProLayout>

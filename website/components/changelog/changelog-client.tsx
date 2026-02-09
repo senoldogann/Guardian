@@ -5,6 +5,7 @@ import type { ReleaseMonthGroup, ReleaseViewModel } from "../../lib/changelog";
 import type { SiteDictionary } from "../../lib/i18n";
 import { formatReleaseDate } from "../../lib/changelog";
 import { MarkdownBlock } from "../markdown-block";
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 
 type Filter = "all" | "stable" | "prerelease";
@@ -94,82 +95,82 @@ export function ChangelogClient({ dict, groups }: Props) {
                       "transition-shadow"
                     ].join(" ")}
                   >
-                    <div className="p-6">
-                      <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300">
-                              {release.tag}
-                            </span>
-                            {release.prerelease ? (
-                              <span className="inline-flex items-center rounded-full border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-400">
-                                {dict.changelog.prerelease}
+                    <details className="group">
+                      <summary className="list-none cursor-pointer">
+                        <div className="p-6 flex flex-wrap items-start justify-between gap-4">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 px-3 py-1 text-xs font-medium text-neutral-700 dark:text-neutral-300">
+                                {release.tag}
                               </span>
-                            ) : null}
+                              {release.prerelease ? (
+                                <span className="inline-flex items-center rounded-full border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-400">
+                                  {dict.changelog.prerelease}
+                                </span>
+                              ) : null}
+                            </div>
+                            <h3 className="mt-3 text-xl font-semibold tracking-tight text-neutral-950 dark:text-white">
+                              {release.title}
+                            </h3>
+                            <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
+                              {dict.changelog.published}: {formatReleaseDate(release.publishedAt, dateLocale)}
+                            </p>
                           </div>
-                          <h3 className="mt-3 text-xl font-semibold tracking-tight text-neutral-950 dark:text-white">
-                            {release.title}
-                          </h3>
-                          <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-                            {dict.changelog.published}: {formatReleaseDate(release.publishedAt, dateLocale)}
-                          </p>
+
+                          <div className="inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-900/70">
+                            <span>{dict.changelog.sections}</span>
+                            <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" aria-hidden="true" />
+                          </div>
                         </div>
+                      </summary>
 
-                        <a
-                          href={release.url}
-                          target="_blank"
-                          rel="noreferrer noopener"
-                          className="inline-flex items-center rounded-full px-4 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-                        >
-                          {dict.common.viewOnGithub}
-                        </a>
-                      </div>
+                      <div className="px-6 pb-6">
+                        {release.highlights.length > 0 ? (
+                          <div className="mt-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-900/50 p-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500 dark:text-neutral-400">
+                              {dict.changelog.highlights}
+                            </p>
+                            <ul className="mt-3 space-y-2 text-sm text-neutral-700 dark:text-neutral-300">
+                              {release.highlights.map((item, index) => (
+                                <li key={`${release.id}-highlight-${index}`} className="flex gap-2">
+                                  <span className="mt-2 h-1.5 w-1.5 rounded-full bg-neutral-400 dark:bg-neutral-500" />
+                                  <span>{item}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
 
-                      {release.highlights.length > 0 ? (
-                        <div className="mt-6 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-900/50 p-4">
-                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500 dark:text-neutral-400">
-                            {dict.changelog.highlights}
-                          </p>
-                          <ul className="mt-3 space-y-2 text-sm text-neutral-700 dark:text-neutral-300">
-                            {release.highlights.map((item, index) => (
-                              <li key={`${release.id}-highlight-${index}`} className="flex gap-2">
-                                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-neutral-400 dark:bg-neutral-500" />
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
+                        <div className="mt-6 grid gap-4">
+                          {release.sections.length > 0
+                            ? release.sections.map((section, sectionIndex) => (
+                                <div
+                                  key={`${release.id}-${section.title}-${sectionIndex}`}
+                                  className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-950/50 p-4"
+                                >
+                                  <h4 className="text-sm font-semibold text-neutral-900 dark:text-white">
+                                    {section.title || dict.changelog.sections}
+                                  </h4>
+                                  <ul className="mt-3 space-y-2 text-sm text-neutral-700 dark:text-neutral-300">
+                                    {section.items.map((item, index) => (
+                                      <li key={`${release.id}-${section.title}-${index}`} className="flex gap-2">
+                                        <span className="mt-2 h-1.5 w-1.5 rounded-full bg-neutral-400 dark:bg-neutral-500" />
+                                        <span>{item}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              ))
+                            : release.body ? (
+                                <div className="prose dark:prose-invert max-w-none">
+                                  <MarkdownBlock value={release.body} />
+                                </div>
+                              ) : (
+                                <p className="text-neutral-500 dark:text-neutral-400">{dict.changelog.noNotes}</p>
+                              )}
                         </div>
-                      ) : null}
-
-                      <div className="mt-6 grid gap-4">
-                        {release.sections.length > 0
-                          ? release.sections.map((section) => (
-                              <div
-                                key={`${release.id}-${section.title}`}
-                                className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-950/50 p-4"
-                              >
-                                <h4 className="text-sm font-semibold text-neutral-900 dark:text-white">
-                                  {section.title || dict.changelog.sections}
-                                </h4>
-                                <ul className="mt-3 space-y-2 text-sm text-neutral-700 dark:text-neutral-300">
-                                  {section.items.map((item, index) => (
-                                    <li key={`${release.id}-${section.title}-${index}`} className="flex gap-2">
-                                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-neutral-400 dark:bg-neutral-500" />
-                                      <span>{item}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            ))
-                          : release.body ? (
-                              <div className="prose dark:prose-invert max-w-none">
-                                <MarkdownBlock value={release.body} />
-                              </div>
-                            ) : (
-                              <p className="text-neutral-500 dark:text-neutral-400">{dict.changelog.noNotes}</p>
-                            )}
                       </div>
-                    </div>
+                    </details>
                   </article>
                 ))}
               </div>

@@ -34,36 +34,93 @@ function formatMonthLabel(value: string, locale: string): string {
 
 export function toReleaseViewModel(release: GithubRelease): ReleaseViewModel {
   const body = release.body?.trim() || "";
-  const { highlights, sections } = parseReleaseNotes(body);
+  const { highlights, sections, sanitizedBody } = parseReleaseNotes(body);
+  const isInitialRelease = /^v?1\.0\.0$/i.test(release.tag_name.trim());
   return {
     id: release.id,
     tag: release.tag_name,
     title: release.name?.trim() || release.tag_name,
-    body,
+    body: isInitialRelease ? "" : sanitizedBody,
     url: release.html_url,
     publishedAt: release.published_at,
     prerelease: release.prerelease,
-    highlights,
-    sections
+    highlights: isInitialRelease ? [] : highlights,
+    sections: isInitialRelease ? [] : sections
   };
 }
 
-function parseReleaseNotes(body: string): { highlights: string[]; sections: ReleaseSection[] } {
-  if (!body) return { highlights: [], sections: [] };
+const INTERNAL_RELEASE_PATTERNS: RegExp[] = [
+  /\bci\/cd\b/i,
+  /\bcicd\b/i,
+  /\bci\b/i,
+  /\bgithub\s*actions?\b/i,
+  /\bactions\s+minutes\b/i,
+  /\bself[-\s]?hosted\b/i,
+  /\brunner(s)?\b/i,
+  /\bpipeline\b/i,
+  /\bworkflow(s)?\b/i,
+  /\bdevops\b/i,
+  /\binfra(structure)?\b/i,
+  /\bautomation\b/i,
+  /\bscript(s)?\b/i,
+  /scripts\/[\w.-]+/i,
+  /\bsetup[-_ ]?runner\b/i,
+  /\bchore(s)?\b/i,
+  /\brefactor(ing)?\b/i,
+  /\blint(ing)?\b/i,
+  /\btest(s|ing)?\b/i,
+  /\bcoverage\b/i,
+  /\bdependabot\b/i,
+  /\bdeps\b/i
+];
+
+function isInternalReleaseNote(value: string): boolean {
+  return INTERNAL_RELEASE_PATTERNS.some((pattern) => pattern.test(value));
+}
+
+function normalizeMarkdownLines(lines: string[]): string {
+  const trimmed = lines.map((line) => line.trimEnd());
+  const normalized: string[] = [];
+  for (const line of trimmed) {
+    if (!line.trim()) {
+      if (normalized.length === 0) continue;
+      if (!normalized[normalized.length - 1].trim()) continue;
+      normalized.push("");
+      continue;
+    }
+    normalized.push(line);
+  }
+  while (normalized.length > 0 && !normalized[normalized.length - 1].trim()) {
+    normalized.pop();
+  }
+  return normalized.join("\n").trim();
+}
+
+function parseReleaseNotes(body: string): { highlights: string[]; sections: ReleaseSection[]; sanitizedBody: string } {
+  if (!body) return { highlights: [], sections: [], sanitizedBody: "" };
 
   const lines = body.split(/\r?\n/);
   const sections: ReleaseSection[] = [];
   const looseItems: string[] = [];
+  const sanitizedLines: string[] = [];
   let current: ReleaseSection | null = null;
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
-    if (!line) continue;
+    if (!line) {
+      sanitizedLines.push("");
+      continue;
+    }
 
     const headingMatch = /^###\s+(.*)$/.exec(line);
     if (headingMatch) {
-      current = { title: headingMatch[1].trim(), items: [] };
+      const title = headingMatch[1].trim();
+      const safeTitle = isInternalReleaseNote(title) ? "" : title;
+      current = { title: safeTitle, items: [] };
       sections.push(current);
+      if (!isInternalReleaseNote(title)) {
+        sanitizedLines.push(rawLine);
+      }
       continue;
     }
 
@@ -71,19 +128,28 @@ function parseReleaseNotes(body: string): { highlights: string[]; sections: Rele
     if (bulletMatch) {
       const item = bulletMatch[1].trim();
       if (!item) continue;
-      if (current) {
-        current.items.push(item);
-      } else {
-        looseItems.push(item);
+      if (!isInternalReleaseNote(item)) {
+        if (current) {
+          current.items.push(item);
+        } else {
+          looseItems.push(item);
+        }
+        sanitizedLines.push(rawLine);
       }
+      continue;
+    }
+
+    if (!isInternalReleaseNote(line)) {
+      sanitizedLines.push(rawLine);
     }
   }
 
   const sectionItems = sections.flatMap((section) => section.items);
   const highlights = [...looseItems, ...sectionItems].slice(0, 3);
   const filteredSections = sections.filter((section) => section.items.length > 0);
+  const sanitizedBody = normalizeMarkdownLines(sanitizedLines);
 
-  return { highlights, sections: filteredSections };
+  return { highlights, sections: filteredSections, sanitizedBody };
 }
 
 export function groupReleasesByMonth(releases: ReleaseViewModel[], locale: string): ReleaseMonthGroup[] {

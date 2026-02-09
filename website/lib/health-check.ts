@@ -28,6 +28,12 @@ type ComponentHealth = {
   lastChecked: string;
 };
 
+type PerformanceMemory = {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit?: number;
+};
+
 // Health check configuration
 const HEALTH_CHECK_TIMEOUT = 5000; // 5 seconds
 const DEGRADED_THRESHOLD = 3000; // 3 seconds response time
@@ -107,8 +113,16 @@ function checkMemory(): ComponentHealth {
     }
     
     // For browser environment
-    if (typeof performance !== "undefined" && (performance as any).memory) {
-      const memory = (performance as any).memory;
+    if (typeof performance !== "undefined" && "memory" in performance) {
+      const memory = (performance as Performance & { memory?: PerformanceMemory }).memory;
+      if (!memory) {
+        return {
+          status: "healthy",
+          responseTime: Date.now() - startTime,
+          message: "Memory check not available in this environment",
+          lastChecked: new Date().toISOString(),
+        };
+      }
       const usedMB = Math.round(memory.usedJSHeapSize / 1024 / 1024);
       const totalMB = Math.round(memory.totalJSHeapSize / 1024 / 1024);
       
@@ -126,7 +140,7 @@ function checkMemory(): ComponentHealth {
       message: "Memory check not available in this environment",
       lastChecked: new Date().toISOString(),
     };
-  } catch (error) {
+  } catch {
     return {
       status: "degraded",
       responseTime: Date.now() - startTime,
@@ -151,7 +165,7 @@ async function checkDiskSpace(): Promise<ComponentHealth> {
       message: "Disk space check placeholder - implement with check-disk-space package",
       lastChecked: new Date().toISOString(),
     };
-  } catch (error) {
+  } catch {
     return {
       status: "degraded",
       responseTime: Date.now() - startTime,
@@ -169,8 +183,9 @@ function checkTauriRuntime(): ComponentHealth {
   
   try {
     // Check if running in Tauri
-    const isTauri = typeof window !== "undefined" && 
-      !!(window as any).__TAURI__;
+    const isTauri =
+      typeof window !== "undefined" &&
+      !!(window as Window & { __TAURI__?: unknown }).__TAURI__;
     
     if (isTauri) {
       return {
@@ -187,7 +202,7 @@ function checkTauriRuntime(): ComponentHealth {
       message: "Running in browser mode (not Tauri)",
       lastChecked: new Date().toISOString(),
     };
-  } catch (error) {
+  } catch {
     return {
       status: "degraded",
       responseTime: Date.now() - startTime,

@@ -63,8 +63,6 @@ export type SiteDictionary = {
   };
   common: {
     latestVersion: string;
-    viewOnGithub: string;
-    openDistributionRepo: string;
     releaseNotAvailable: string;
     updatedAt: string;
   };

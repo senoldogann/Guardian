@@ -2,7 +2,7 @@
 
 import { StructuredData } from "./structured-data";
 import type { SiteDictionary } from "../lib/i18n";
-import { buildSoftwareApplicationJsonLd, buildWebsiteJsonLd } from "../lib/seo";
+import { buildOrganizationJsonLd, buildSoftwareApplicationJsonLd, buildWebsiteJsonLd } from "../lib/seo";
 import { HeroSection } from "./home/HeroSection";
 import { FeaturesSection } from "./home/FeaturesSection";
 import { DemoSection } from "./home/DemoSection";
@@ -16,6 +16,7 @@ export function HomePageView({ dict }: HomePageProps) {
   return (
     <>
       <StructuredData payload={buildSoftwareApplicationJsonLd()} />
+      <StructuredData payload={buildOrganizationJsonLd()} />
       <StructuredData payload={buildWebsiteJsonLd()} />
 
       <div className="flex flex-col min-h-screen pt-16">

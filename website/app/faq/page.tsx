@@ -1,4 +1,5 @@
-import { Metadata } from "next";
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -7,13 +8,13 @@ import {
   Shield,
   Code,
   MessageCircle,
-  ChevronDown
+  ChevronDown,
+  FolderOpen,
+  Menu
 } from "lucide-react";
-
-export const metadata: Metadata = {
-  title: "FAQ",
-  description: "Frequently asked questions about Guardian, installation, security, and pricing.",
-};
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from "react";
 
 const faqCategories = [
   {
@@ -77,7 +78,7 @@ const faqCategories = [
       },
       {
         q: "What authentication providers are supported?",
-        a: "Guardian supports GitHub device authorization for identity verification. For AI analysis, it supports multiple providers including OpenAI, Anthropic, Google Gemini, GitHub Models, and local models via Ollama."
+        a: "Guardian supports device authorization for identity verification. For AI analysis, it supports multiple providers including OpenAI, Anthropic, Google Gemini, hosted models, and local models via Ollama."
       },
       {
         q: "Does Guardian comply with security standards?",
@@ -92,7 +93,7 @@ const faqCategories = [
     questions: [
       {
         q: "What git providers does Guardian support?",
-        a: "Guardian works with any local Git repository, regardless of where it is hosted (GitHub, GitLab, Bitbucket, etc.). You simply open your local repository folder in Guardian."
+        a: "Guardian works with any local Git repository, regardless of where it is hosted (GitLab, Bitbucket, Azure DevOps, etc.). You simply open your local repository folder in Guardian."
       },
       {
         q: "Does Guardian work with my existing tools?",
@@ -130,103 +131,138 @@ const faqCategories = [
 ];
 
 export default function FAQPage() {
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-white dark:bg-black">
-      {/* Hero */}
-      <section className="pt-32 pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/5 dark:bg-white/5 mb-8">
-            <HelpCircle className="w-4 h-4 text-black dark:text-white" />
-            <span className="text-sm font-medium text-black dark:text-white">Support Center</span>
-          </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-black dark:text-white mb-6">
+      <div className="mx-auto max-w-6xl px-4 pt-28 pb-20">
+        <section className="mb-10">
+          <p className="text-xs font-semibold tracking-[0.24em] uppercase text-neutral-500 dark:text-neutral-400">
+            Support Center
+          </p>
+          <h1 className="mt-4 text-4xl sm:text-5xl font-semibold tracking-tight text-neutral-950 dark:text-white">
             Frequently Asked Questions
           </h1>
-          <p className="text-lg sm:text-xl text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
+          <p className="mt-4 max-w-2xl text-base sm:text-lg text-neutral-600 dark:text-neutral-400">
             Everything you need to know about Guardian. Can&apos;t find what you&apos;re looking for?
-            Feel free to <Link href="/contact" className="text-black dark:text-white underline hover:no-underline">contact us</Link>.
+            Feel free to <Link href="/contact" className="text-neutral-950 dark:text-white underline decoration-neutral-300 hover:decoration-neutral-900">contact us</Link>.
           </p>
-        </div>
-      </section>
+        </section>
 
-      {/* Quick Links */}
-      <section className="pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {faqCategories.filter(c => c.id !== 'pricing').map((cat) => (
-              <a
-                key={cat.id}
-                href={`#${cat.id}`}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-black dark:hover:border-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-center"
-              >
-                <cat.icon className="w-6 h-6 text-black dark:text-white" />
-                <span className="text-sm font-medium text-black dark:text-white">{cat.title}</span>
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Categories */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-zinc-50 dark:bg-zinc-950">
-        <div className="max-w-4xl mx-auto space-y-16">
-          {faqCategories.filter(c => c.id !== 'pricing').map((category) => (
-            <div key={category.id} id={category.id} className="scroll-mt-32">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 rounded-xl bg-black dark:bg-white flex items-center justify-center">
-                  <category.icon className="w-5 h-5 text-white dark:text-black" />
-                </div>
-                <h2 className="text-2xl font-bold text-black dark:text-white">{category.title}</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-10">
+          <aside className="hidden lg:block">
+            <div className="sticky top-28 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-950/50 backdrop-blur p-5">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
+                <FolderOpen className="h-4 w-4" aria-hidden="true" />
+                Categories
               </div>
-              <div className="space-y-4">
-                {category.questions.map((item, idx) => (
-                  <details
-                    key={idx}
-                    className="group bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden"
+              <div className="mt-4 space-y-2">
+                {faqCategories.filter(c => c.id !== "pricing").map((cat) => (
+                  <a
+                    key={cat.id}
+                    href={`#${cat.id}`}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
                   >
-                    <summary className="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
-                      <span className="font-semibold text-black dark:text-white pr-4">{item.q}</span>
-                      <span className="flex-shrink-0 w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-open:bg-black dark:group-open:bg-white transition-colors">
-                        <ChevronDown className="w-5 h-5 text-zinc-600 dark:text-zinc-400 group-open:text-white dark:group-open:text-black group-open:rotate-180 transition-all" />
-                      </span>
-                    </summary>
-                    <div className="px-6 pb-6 text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                      {item.a}
-                    </div>
-                  </details>
+                    <cat.icon className="h-4 w-4" aria-hidden="true" />
+                    <span>{cat.title}</span>
+                  </a>
                 ))}
               </div>
             </div>
-          ))}
-        </div>
-      </section>
+          </aside>
 
-      {/* Still Have Questions */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-zinc-50 dark:bg-zinc-900 rounded-3xl p-8 lg:p-12 text-center border border-zinc-200 dark:border-zinc-800">
-            <h2 className="text-3xl sm:text-4xl font-bold text-black dark:text-white mb-4">
-              Still have questions?
-            </h2>
-            <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-8 max-w-2xl mx-auto">
-              Can&apos;t find what you&apos;re looking for? Our team is here to help.
-              Reach out and we&apos;ll get back to you as soon as possible.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="rounded-full px-8 bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200">
-                <Link href="/contact">
-                  Contact Support
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="rounded-full px-8 border-zinc-300 text-black hover:bg-zinc-100 dark:border-zinc-700 dark:text-white dark:hover:bg-zinc-800">
-                <Link href="/docs">
-                  Browse Documentation
-                </Link>
-              </Button>
+          <main>
+            <div className="lg:hidden sticky top-20 z-30 -mx-4 px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border-y border-neutral-200 dark:border-neutral-800">
+              <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2 w-full justify-start bg-white dark:bg-black border-neutral-300 dark:border-neutral-700 text-black dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                  >
+                    <Menu className="w-4 h-4" aria-hidden="true" />
+                    <span className="text-sm">Browse FAQ Sections</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-80 p-0 bg-white dark:bg-black border-r border-neutral-200 dark:border-neutral-800">
+                  <SheetHeader className="p-4 border-b border-neutral-200 dark:border-neutral-800">
+                    <SheetTitle className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-neutral-600 dark:text-neutral-400">
+                      <FolderOpen className="w-4 h-4" aria-hidden="true" />
+                      FAQ Sections
+                    </SheetTitle>
+                  </SheetHeader>
+                  <ScrollArea className="h-[calc(100vh-5rem)] p-4">
+                    <div className="space-y-2">
+                      {faqCategories.filter(c => c.id !== "pricing").map((cat) => (
+                        <a
+                          key={cat.id}
+                          href={`#${cat.id}`}
+                          onClick={() => setMobileNavOpen(false)}
+                          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
+                        >
+                          <cat.icon className="h-4 w-4" aria-hidden="true" />
+                          <span>{cat.title}</span>
+                        </a>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </SheetContent>
+              </Sheet>
             </div>
-          </div>
+
+            <div className="space-y-12">
+              {faqCategories.filter(c => c.id !== "pricing").map((category) => (
+                <section key={category.id} id={category.id} className="scroll-mt-28">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-neutral-900 dark:bg-white flex items-center justify-center">
+                      <category.icon className="w-5 h-5 text-white dark:text-black" />
+                    </div>
+                    <h2 className="text-2xl font-semibold text-neutral-950 dark:text-white">
+                      {category.title}
+                    </h2>
+                  </div>
+
+                  <div className="space-y-4">
+                    {category.questions.map((item, idx) => (
+                      <details
+                        key={idx}
+                        className="group rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/90 dark:bg-neutral-950/60 backdrop-blur"
+                      >
+                        <summary className="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors">
+                          <span className="font-semibold text-neutral-950 dark:text-white pr-4">{item.q}</span>
+                          <span className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center group-open:bg-neutral-900 dark:group-open:bg-white transition-colors">
+                            <ChevronDown className="w-5 h-5 text-neutral-600 dark:text-neutral-400 group-open:text-white dark:group-open:text-black group-open:rotate-180 transition-all" />
+                          </span>
+                        </summary>
+                        <div className="px-6 pb-6 text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                          {item.a}
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+
+            <section className="mt-16">
+              <div className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 p-8 sm:p-10">
+                <h2 className="text-2xl sm:text-3xl font-semibold text-neutral-950 dark:text-white">Still have questions?</h2>
+                <p className="mt-3 text-neutral-600 dark:text-neutral-400 max-w-2xl">
+                  Can&apos;t find what you&apos;re looking for? Our team is here to help. Reach out and we&apos;ll get back to you as soon as possible.
+                </p>
+                <div className="mt-6 flex flex-col sm:flex-row gap-4">
+                  <Button asChild size="lg" className="rounded-full px-8 bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200">
+                    <Link href="/contact">Contact Support</Link>
+                  </Button>
+                  <Button asChild variant="outline" size="lg" className="rounded-full px-8 border-neutral-300 text-neutral-900 hover:bg-neutral-100 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800">
+                    <Link href="/docs">Browse Documentation</Link>
+                  </Button>
+                </div>
+              </div>
+            </section>
+          </main>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

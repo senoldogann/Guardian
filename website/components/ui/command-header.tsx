@@ -13,7 +13,6 @@ import {
     Book,
     Sparkles,
     Mail,
-    Users,
     HelpCircle,
 } from "lucide-react";
 

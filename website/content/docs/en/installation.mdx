@@ -13,14 +13,14 @@ Before installing Guardian, ensure your system meets these requirements:
 
 | Platform | Version | Notes |
 |----------|---------|-------|
-| **macOS** | 13.0+ (Ventura) | Apple Silicon and Intel supported |
+| **macOS** | 12.0+ (Monterey) | Apple Silicon and Intel supported |
 | **Windows** | 10+ (21H2) | 64-bit required |
 | **Linux** | Ubuntu 22.04+ | Or equivalent GLIBC 2.35+ |
 
 ### Additional Requirements
 
 - **Internet Connection**: Required for release checks and AI provider communication
-- **Disk Space**: 200 MB minimum for installation
+- **Disk Space**: 500 MB minimum for installation
 - **Memory**: 4 GB RAM recommended
 
 ## Installation Steps
@@ -42,14 +42,14 @@ Before installing Guardian, ensure your system meets these requirements:
 
 1. **Download**: Get the `.msi` installer from the Download page
 2. **Run**: Double-click the installer and follow the prompts
-3. **Complete**: Accept default installation location (`C:\Program Files\Guardian`)
+3. **Complete**: Accept the default installation location (`C:\\Program Files\\Guardian`)
 4. **Launch**: Find Guardian in the Start Menu or Desktop shortcut
 
 > **Tip**: If Windows Defender blocks the installer, click "More info" then "Run anyway"
 
 ### Linux
 
-1. **Download**: Get the `.AppImage` file from the Download page
+1. **Download**: Get the `.AppImage` or `.deb` file from the Download page
 2. **Make Executable**: 
    ```bash
    chmod +x Guardian-*.AppImage
@@ -75,7 +75,7 @@ Navigate to **Settings > Providers** and add your API credentials:
 ```
 Provider: Anthropic Claude
 API Key: sk-ant-api03-xxxxx
-Model: claude-4.5-sonnet-20260215
+Model: claude-4.5-sonnet
 ```
 
 ### 2. Set Up Project Defaults

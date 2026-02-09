@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Github, ShieldCheck, Linkedin, Mail } from "lucide-react";
+import { ShieldCheck, Linkedin, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCookieConsent } from "@/lib/cookie-consent";
 
@@ -16,7 +16,6 @@ export function SiteFooter() {
 
     const footerLinks = {
         product: [
-            { label: "About", href: "/about" },
             { label: "Changelog", href: "/changelog" },
             { label: "Documentation", href: "/docs" },
             { label: "FAQ", href: "/faq" },
@@ -50,15 +49,6 @@ export function SiteFooter() {
                         </p>
 
                         <div className="flex items-center gap-4">
-                            <a
-                                href="https://www.github.com/senoldogann"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:bg-black/10 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-all cursor-pointer"
-                                aria-label="GitHub"
-                            >
-                                <Github className="w-5 h-5" aria-hidden="true" />
-                            </a>
                             <a
                                 href="https://www.linkedin.com/in/senoldogann"
                                 target="_blank"

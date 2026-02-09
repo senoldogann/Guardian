@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
               fontWeight: "500",
             }}
           >
-            guardian-app.vercel.app
+            guardianide.com
           </div>
         </div>
       ),

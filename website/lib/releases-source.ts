@@ -1,5 +1,5 @@
 import type { GithubRelease } from "./github";
-import { getDistributionRepoUrl, getReleases } from "./github";
+import { getReleases } from "./github";
 
 type ReleaseSnapshot = {
   generated_at?: string;

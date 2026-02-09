@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useState } from "react";
 import type { NextWebVitalsMetric } from "next/app";
-import { trackEvent, AnalyticsEvent } from "./analytics";
+import { trackEvent } from "./analytics";
 
 // ============================================================================
 // Core Web Vitals Thresholds (Google Recommended)
@@ -380,7 +380,7 @@ export function useWebVitals(alertConfig: AlertConfig = DEFAULT_ALERT_CONFIG) {
     const session = initRUMSession();
     
     // Store session in window for debugging
-    (window as any).__GUARDIAN_RUM_SESSION__ = session;
+    (window as Window & { __GUARDIAN_RUM_SESSION__?: typeof session }).__GUARDIAN_RUM_SESSION__ = session;
     
     // Load web-vitals library
     Promise.all([

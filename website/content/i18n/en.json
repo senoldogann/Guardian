@@ -42,7 +42,7 @@
   "changelog": {
     "eyebrow": "Release History",
     "title": "Guardian changelog",
-    "description": "All release notes are fetched from GitHub release records in real time.",
+    "description": "All release notes are fetched from release records in real time.",
     "highlights": "Highlights",
     "sections": "Release notes",
     "all": "All",
@@ -61,8 +61,6 @@
   },
   "common": {
     "latestVersion": "Latest version",
-    "viewOnGithub": "View on GitHub",
-    "openDistributionRepo": "Distribution Repo",
     "releaseNotAvailable": "No release is available yet.",
     "updatedAt": "Updated"
   }
