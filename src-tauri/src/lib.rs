@@ -584,6 +584,13 @@ async fn ask_guru(
     web_search: Option<bool>,
     storage: tauri::State<'_, Arc<Mutex<storage::StorageManager>>>,
 ) -> Result<String, String> {
+    let root_path = std::path::Path::new(&path);
+    if !root_path.exists() || !root_path.is_dir() {
+        return Err(format!(
+            "Workspace root not accessible: {}. Select the correct folder in Scope.",
+            path
+        ));
+    }
     // 1. Get Context via RagLite
     let (clean_query, force_web) = normalize_web_query(&query);
     let mut context = rag_lite::search_context(&path, &clean_query);

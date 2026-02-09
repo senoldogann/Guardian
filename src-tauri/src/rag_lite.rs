@@ -8,6 +8,23 @@ const FILE_TOKEN_EXTENSIONS: &[&str] = &[
     ".rs", ".tsx", ".ts", ".js", ".jsx", ".py", ".sh", ".md", ".json", ".toml", ".yml", ".yaml",
     ".go", ".txt", ".css", ".html", ".sql", ".swift",
 ];
+
+const FILE_TOKEN_NAMES: &[&str] = &[
+    "go.mod",
+    "go.sum",
+    "cargo.toml",
+    "cargo.lock",
+    "package.json",
+    "pnpm-lock.yaml",
+    "yarn.lock",
+    "gemfile",
+    "gemfile.lock",
+    "pyproject.toml",
+    "requirements.txt",
+    "pipfile",
+    "pipfile.lock",
+    "makefile",
+];
 const ENV_QUERY_KEYWORDS: &[&str] = &[
     ".env",
     "dotenv",
@@ -19,9 +36,25 @@ const ENV_QUERY_KEYWORDS: &[&str] = &[
     "api key",
 ];
 
+fn is_file_token_name(name: &str) -> bool {
+    let lower = name.to_lowercase();
+    FILE_TOKEN_NAMES.iter().any(|n| lower == *n)
+}
+
 fn is_file_token(token: &str) -> bool {
     let lower = token.to_lowercase();
-    FILE_TOKEN_EXTENSIONS.iter().any(|ext| lower.ends_with(ext))
+    if FILE_TOKEN_EXTENSIONS.iter().any(|ext| lower.ends_with(ext)) {
+        return true;
+    }
+    if is_file_token_name(&lower) {
+        return true;
+    }
+    let file_name = Path::new(token)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    is_file_token_name(&file_name)
 }
 
 fn clean_token(token: &str) -> String {
@@ -37,6 +70,9 @@ fn extract_file_tokens(query: &str) -> Vec<String> {
     let normalized = query.replace("\\", "/");
     for raw in normalized.split_whitespace() {
         let token = clean_token(raw);
+        let token = token
+            .trim_end_matches(|c: char| c == '.' || c == ',' || c == ':' || c == ';')
+            .to_string();
         if token.is_empty() {
             continue;
         }
@@ -52,6 +88,8 @@ fn resolve_explicit_files(root: &str, tokens: &[String]) -> Vec<PathBuf> {
     let mut seen: HashSet<String> = HashSet::new();
     let root_path = Path::new(root);
 
+    let root_canon = root_path.canonicalize();
+
     for token in tokens {
         if results.len() >= 3 {
             break;
@@ -65,7 +103,7 @@ fn resolve_explicit_files(root: &str, tokens: &[String]) -> Vec<PathBuf> {
         };
 
         if candidate_path.exists() && candidate_path.is_file() {
-            if !is_within_root(root_path, &candidate_path) {
+            if !is_within_root_cached(&root_canon, &candidate_path) {
                 continue;
             }
             let key = candidate_path.to_string_lossy().to_string();
@@ -91,6 +129,9 @@ fn resolve_explicit_files(root: &str, tokens: &[String]) -> Vec<PathBuf> {
                         && entry.file_name().to_string_lossy() == file_name
                     {
                         let path = entry.path().to_path_buf();
+                        if !is_within_root_cached(&root_canon, &path) {
+                            continue;
+                        }
                         let key = path.to_string_lossy().to_string();
                         if seen.insert(key) {
                             results.push(path);
@@ -105,8 +146,8 @@ fn resolve_explicit_files(root: &str, tokens: &[String]) -> Vec<PathBuf> {
     results
 }
 
-fn is_within_root(root: &Path, candidate: &Path) -> bool {
-    let Ok(root_canon) = root.canonicalize() else {
+fn is_within_root_cached(root_canon: &std::io::Result<PathBuf>, candidate: &Path) -> bool {
+    let Ok(root_canon) = root_canon else {
         return false;
     };
     let Ok(candidate_canon) = candidate.canonicalize() else {

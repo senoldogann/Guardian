@@ -848,7 +848,8 @@ const THRESHOLDS = {
 
 ---
 
-**Son Güncelleme:** 2026-02-09 01:58  
+**Son Güncelleme:** 2026-02-09 02:05  
+**Not:** Website testleri error-boundary testlerinde beklenen console error logu üretir.
 **Toplam Commit:** 10 (push edilmedi)  
 **Sonraki İşlem:** Review sonrası doğrulama ve release notları
 
