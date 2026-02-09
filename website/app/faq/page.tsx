@@ -245,31 +245,29 @@ export default function FAQPage() {
             </div>
 
             {/* Content with padding for fixed mobile nav */}
-            <div className="space-y-12 lg:pt-0 pt-16">
+            <div className="space-y-16 lg:pt-0 pt-16">
               {faqCategories.filter(c => c.id !== "pricing").map((category) => (
                 <section key={category.id} id={category.id} className="scroll-mt-32">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-neutral-900 dark:bg-white flex items-center justify-center shadow-lg shadow-neutral-900/10 dark:shadow-white/10">
-                      <category.icon className="w-5 h-5 text-white dark:text-black" />
-                    </div>
-                    <h2 className="text-2xl font-semibold text-neutral-950 dark:text-white">
+                  <div className="mb-6 pb-4 border-b border-neutral-200 dark:border-neutral-800">
+                    <h2 className="text-xl font-bold tracking-tight text-neutral-950 dark:text-white flex items-center gap-3">
+                      <category.icon className="w-5 h-5 text-neutral-500 dark:text-neutral-400" />
                       {category.title}
                     </h2>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="divide-y divide-neutral-100 dark:divide-neutral-900 border-t border-neutral-100 dark:border-neutral-900">
                     {category.questions.map((item, idx) => (
                       <details
                         key={idx}
-                        className="group rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950/40 backdrop-blur shadow-sm hover:shadow-md transition-all duration-300"
+                        className="group"
                       >
-                        <summary className="flex items-center justify-between p-6 cursor-pointer list-none">
-                          <span className="font-semibold text-neutral-950 dark:text-white pr-4 group-hover:text-neutral-700 dark:group-hover:text-neutral-200 transition-colors">{item.q}</span>
-                          <span className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center group-open:bg-neutral-900 dark:group-open:bg-white transition-all group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
-                            <ChevronDown className="w-5 h-5 text-neutral-600 dark:text-neutral-400 group-open:text-white dark:group-open:text-black group-open:rotate-180 transition-transform duration-300" />
+                        <summary className="flex items-start justify-between py-5 cursor-pointer list-none hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors">
+                          <span className="font-medium text-neutral-900 dark:text-neutral-100 pr-8 text-lg">{item.q}</span>
+                          <span className="mt-1 flex-shrink-0">
+                            <ChevronDown className="w-5 h-5 text-neutral-400 group-open:rotate-180 transition-transform duration-200" />
                           </span>
                         </summary>
-                        <div className="px-6 pb-6 text-neutral-600 dark:text-neutral-400 leading-relaxed text-base border-t border-transparent group-open:border-neutral-100 dark:group-open:border-neutral-800 pt-0 group-open:pt-4 transition-all">
+                        <div className="pb-6 text-neutral-600 dark:text-neutral-400 leading-relaxed text-base">
                           {item.a}
                         </div>
                       </details>
