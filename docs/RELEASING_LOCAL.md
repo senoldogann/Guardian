@@ -58,14 +58,36 @@ Notes:
 
 Build on a Windows/Linux machine (recommended) and collect the installer output (MSI/EXE, etc).
 
-## 3) Publish to Distribution Repo
+## 3) Collect macOS artifacts
+
+After building both macOS targets, gather artifacts and merge `latest.json`:
+
+```bash
+scripts/collect_macos_artifacts.sh v1.0.0 ./artifacts \
+  ./src-tauri/target/aarch64-apple-darwin/release/bundle \
+  ./src-tauri/target/x86_64-apple-darwin/release/bundle
+```
+
+## 4) Multi-Platform latest.json
+
+If you build on multiple machines, each bundle will contain its own `latest.json`.
+Merge them into a single file before publishing:
+
+```bash
+scripts/merge_latest_json.sh v1.0.0 /tmp/latest.json \
+  /path/to/mac/latest.json \
+  /path/to/win/latest.json \
+  /path/to/linux/latest.json
+```
+
+## 5) Publish to Distribution Repo
 
 After you have the built installers and `latest.json` updater metadata, upload everything to the
 distribution repo release tag:
 
 ```bash
 cd guardian
-scripts/publish_distribution_local.sh v0.2.7 /path/to/your/artifacts
+scripts/release_local.sh v1.0.0 /path/to/your/artifacts
 ```
 
 The script will:
@@ -75,7 +97,7 @@ The script will:
 - upload assets (clobber/replace)
 - generate and upload `releases.json` for the website changelog
 
-## 4) Website Data Freshness
+## 6) Website Data Freshness
 
 The website reads:
 - `.../releases/latest/download/latest.json` for in-app updater metadata
@@ -83,4 +105,3 @@ The website reads:
 
 Publishing a new distribution release automatically updates what the website shows without needing
 to redeploy.
-

@@ -8,23 +8,6 @@ const FILE_TOKEN_EXTENSIONS: &[&str] = &[
     ".rs", ".tsx", ".ts", ".js", ".jsx", ".py", ".sh", ".md", ".json", ".toml", ".yml", ".yaml",
     ".go", ".txt", ".css", ".html", ".sql", ".swift",
 ];
-
-const FILE_TOKEN_NAMES: &[&str] = &[
-    "go.mod",
-    "go.sum",
-    "cargo.toml",
-    "cargo.lock",
-    "package.json",
-    "pnpm-lock.yaml",
-    "yarn.lock",
-    "gemfile",
-    "gemfile.lock",
-    "pyproject.toml",
-    "requirements.txt",
-    "pipfile",
-    "pipfile.lock",
-    "makefile",
-];
 const ENV_QUERY_KEYWORDS: &[&str] = &[
     ".env",
     "dotenv",
@@ -36,25 +19,21 @@ const ENV_QUERY_KEYWORDS: &[&str] = &[
     "api key",
 ];
 
-fn is_file_token_name(name: &str) -> bool {
-    let lower = name.to_lowercase();
-    FILE_TOKEN_NAMES.iter().any(|n| lower == *n)
-}
-
 fn is_file_token(token: &str) -> bool {
     let lower = token.to_lowercase();
+    if lower.contains('/') || lower.contains('\\') {
+        return true;
+    }
     if FILE_TOKEN_EXTENSIONS.iter().any(|ext| lower.ends_with(ext)) {
         return true;
     }
-    if is_file_token_name(&lower) {
-        return true;
+    if let Some(idx) = lower.rfind('.') {
+        let suffix = &lower[idx + 1..];
+        return !suffix.is_empty()
+            && suffix.len() <= 6
+            && suffix.chars().all(|c| c.is_ascii_alphanumeric());
     }
-    let file_name = Path::new(token)
-        .file_name()
-        .and_then(|s| s.to_str())
-        .unwrap_or("")
-        .to_lowercase();
-    is_file_token_name(&file_name)
+    false
 }
 
 fn clean_token(token: &str) -> String {

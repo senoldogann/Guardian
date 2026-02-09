@@ -808,6 +808,27 @@ const THRESHOLDS = {
 - `npm run test` → ✅ geçti
 - `npm --prefix website run test:run` → ✅ geçti (error-boundary testleri beklenen console error loglarını üretir)
 
+## ✅ Release Automation (macOS-only) (2026-02-09)
+
+### Lokal Release Araçları
+- `scripts/collect_macos_artifacts.sh`: macOS arm64 + x64 artefact toplar ve `latest.json` birleştirir.
+- `scripts/merge_latest_json.sh`: platform `latest.json` dosyalarını tek dosyada birleştirir.
+- `scripts/release_local.sh`: local artefact’ları alır ve distribution repo’ya release olarak yükler.
+
+### Dokümantasyon
+- `docs/RELEASING_LOCAL.md`: macOS toplama + release adımları güncellendi.
+- `docs/RELEASE_CHECKLIST.md`: macOS signing env listesi ve lokal release akışı eklendi.
+
+### Key Rotation ve Artefact Toplama
+- Updater signing key rotate edildi (eski updater zinciri kırıldı; aktif kullanıcı yok onayı ile).
+- macOS arm64 + x64 build, signing ve notarization tamamlandı.
+- `.app.tar.gz` dosyaları manuel olarak sign edildi ve `latest.json` üretildi.
+- macOS artefact’lar `artifacts/` altında hazırlandı.
+
+### Doğrulama Sonuçları (2026-02-09)
+- `npm run test` → ✅ geçti
+- `npm --prefix website run test:run` → ✅ geçti (error-boundary testleri beklenen console error loglarını üretir)
+
 ## 🎯 Günlük Hedefler
 
 ### ✅ 2026-02-08 - Phase 1.2 Tamamlandı
@@ -848,7 +869,7 @@ const THRESHOLDS = {
 
 ---
 
-**Son Güncelleme:** 2026-02-09 02:05  
+**Son Güncelleme:** 2026-02-09 02:59  
 **Not:** Website testleri error-boundary testlerinde beklenen console error logu üretir.
 **Toplam Commit:** 10 (push edilmedi)  
 **Sonraki İşlem:** Review sonrası doğrulama ve release notları

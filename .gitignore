@@ -35,6 +35,11 @@ playwright-report
 DEVELOPMENT_GUIDE.md
 .DS_Store
 
+# Release artifacts & signing keys
+artifacts/
+src-tauri/guardian.key
+src-tauri/guardian.key.pub
+
 # Lock files - COMMITTED for reproducible builds
 # DO NOT ignore Cargo.lock or package-lock.json
 # See README.md for details

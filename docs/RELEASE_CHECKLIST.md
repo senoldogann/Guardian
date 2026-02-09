@@ -20,7 +20,17 @@ Scope: macOS (ARM + Intel) and Windows release pipeline, private source + public
    - `(cd website && npm run build)`
 3. Confirm no TypeScript/build failures before tagging.
 
-## 3) Required GitHub Actions Configuration
+## 3) macOS Signing (Local)
+
+- `APPLE_SIGNING_IDENTITY`
+- `APPLE_TEAM_ID`
+- `APPLE_API_KEY` (Key ID)
+- `APPLE_API_ISSUER`
+- `APPLE_API_KEY_P8` (base64 AuthKey_*.p8)
+- `TAURI_SIGNING_PRIVATE_KEY`
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
+
+## 4) Required GitHub Actions Configuration
 
 ### Variables
 
@@ -42,7 +52,7 @@ Scope: macOS (ARM + Intel) and Windows release pipeline, private source + public
 - `WINDOWS_CERTIFICATE` (optional)
 - `WINDOWS_CERTIFICATE_PASSWORD` (optional)
 
-## 4) Notarization Gate (macOS)
+## 5) Notarization Gate (macOS)
 
 1. Release workflow must run with notarization enabled for:
    - `aarch64-apple-darwin`
@@ -54,19 +64,22 @@ Scope: macOS (ARM + Intel) and Windows release pipeline, private source + public
 
 Note: `spctl --assess --type open` can report `rejected (source=Insufficient Context)` for DMGs on recent macOS runners even when notarization/stapling succeeded.
 
-## 5) Release Execution
+## 6) Release Execution
 
 1. Create tag: `vX.Y.Z`
-2. Trigger release workflow (tag push or manual dispatch with `tag` input).
+2. Run local release script (multi-platform artifacts collected):
+   ```bash
+   scripts/release_local.sh vX.Y.Z /path/to/your/artifacts
+   ```
 3. Confirm source release includes:
    - macOS ARM DMG
    - macOS Intel DMG
    - Windows installer (`.msi` or `-setup.exe`)
    - updater metadata (`latest.json`)
 
-## 6) Public Distribution Publish
+## 7) Public Distribution Publish
 
-Primary path: automatic publish step in `.github/workflows/release.yml`.
+Primary path: local release script (recommended).
 
 Fallback (manual):
 
@@ -76,7 +89,7 @@ scripts/publish_distribution.sh vX.Y.Z senoldogann/Guardian senoldogann/guardian
 
 Manual script validations include required assets, digest checks, `latest.json` rewrite, and distribution URL verification.
 
-## 7) Post-Release Smoke Test
+## 8) Post-Release Smoke Test
 
 1. Download from website `/download` and verify recommended installer is correct.
 2. On desktop app:
