@@ -1,35 +1,31 @@
-# Guardian Scan
-# DISABLED: Running locally instead of GitHub Actions to avoid runner queue issues
+name: Guardian Scan
 
-# on:
-#   pull_request:
-#   push:
-#     branches:
-#       - main
+on:
+  pull_request:
+  push:
+    branches:
+      - main
 
-# permissions:
-#   contents: read
-#   security-events: write
+permissions:
+  contents: read
+  security-events: write
 
-# jobs:
-#   guardian:
-#     runs-on: self-hosted
-#     steps:
-#       - uses: actions/checkout@v4
+jobs:
+  guardian:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-#       - name: Run Guardian (offline)
-#         uses: ./.github/actions/guardian
-#         with:
-#           root: "."
-#           format: "sarif"
-#           out: "guardian-report.sarif"
-#           offline: "true"
+      - name: Run Guardian (offline)
+        uses: ./.github/actions/guardian
+        with:
+          root: "."
+          format: "sarif"
+          out: "guardian-report.sarif"
+          offline: "true"
 
-#       - name: Upload SARIF
-#         if: always()
-#         uses: github/codeql-action/upload-sarif@v3
-#         with:
-#           sarif_file: guardian-report.sarif
-
-# Local usage:
-# cd guardian-cli && cargo run -- scan --root .. --format sarif --out report.sarif
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: guardian-report.sarif
