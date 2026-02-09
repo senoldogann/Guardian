@@ -1,0 +1,115 @@
+mod baseline;
+mod output;
+mod redaction;
+mod rules_hash;
+mod scan;
+
+use clap::{Parser, Subcommand, ValueEnum};
+use std::path::PathBuf;
+
+#[derive(Parser)]
+#[command(name = "guardian-cli")]
+#[command(about = "Guardian CLI: CI-friendly scanning with baseline + SARIF output", long_about = None)]
+#[command(version)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Scan a workspace and emit a report in JSON/SARIF/Markdown.
+    Scan(ScanArgs),
+}
+
+#[derive(clap::Args)]
+struct ScanArgs {
+    /// Workspace root to scan.
+    #[arg(long, default_value = ".")]
+    root: PathBuf,
+
+    /// Report format.
+    #[arg(long, value_enum, default_value_t = OutputFormat::Json)]
+    format: OutputFormat,
+
+    /// Output path. If omitted, prints to stdout.
+    #[arg(long)]
+    out: Option<PathBuf>,
+
+    /// Baseline JSON file path (typically .guardian/baseline.json).
+    #[arg(long)]
+    baseline: Option<PathBuf>,
+
+    /// Max files to scan (safety + cost guardrail).
+    #[arg(long, default_value_t = 200)]
+    max_files: usize,
+
+    /// Max file size in bytes to read.
+    #[arg(long, default_value_t = 100_000)]
+    max_file_bytes: u64,
+
+    /// Offline scan (no network, no AI). Useful for CI smoke checks.
+    #[arg(long)]
+    offline: bool,
+
+    /// Force mock provider (deterministic, no network). Equivalent to GUARDIAN_MOCK=1.
+    #[arg(long)]
+    mock: bool,
+
+    /// Provider id (anthropic|openai|gemini|ollama). Env: GUARDIAN_PROVIDER
+    #[arg(long)]
+    provider: Option<String>,
+
+    /// Model name. Env: GUARDIAN_MODEL
+    #[arg(long)]
+    model: Option<String>,
+
+    /// Provider base URL. Env: GUARDIAN_BASE_URL
+    #[arg(long)]
+    base_url: Option<String>,
+
+    /// API key (prefer env GUARDIAN_API_KEY). Passing via flag can leak into shell history.
+    #[arg(long)]
+    api_key: Option<String>,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
+enum OutputFormat {
+    Json,
+    Sarif,
+    Markdown,
+}
+
+fn main() {
+    let cli = Cli::parse();
+
+    let code = match cli.command {
+        Commands::Scan(args) => match scan::run_scan(scan::ScanConfig {
+            root: args.root,
+            format: match args.format {
+                OutputFormat::Json => output::ReportFormat::Json,
+                OutputFormat::Sarif => output::ReportFormat::Sarif,
+                OutputFormat::Markdown => output::ReportFormat::Markdown,
+            },
+            out: args.out,
+            baseline_path: args.baseline,
+            max_files: args.max_files,
+            max_file_bytes: args.max_file_bytes,
+            offline: args.offline,
+            mock: args.mock,
+            provider: args.provider,
+            model: args.model,
+            base_url: args.base_url,
+            api_key: args.api_key,
+        }) {
+            Ok(exit_code) => exit_code,
+            Err(err) => {
+                eprintln!("guardian-cli: {err:#}");
+                2
+            }
+        },
+    };
+
+    std::process::exit(code);
+}
+

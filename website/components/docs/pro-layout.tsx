@@ -84,14 +84,16 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
     }, [toc]);
 
     return (
-        <div className="flex w-full min-h-screen pt-24 pb-12 bg-white dark:bg-black transition-colors duration-300">
-            {/* Desktop Sidebar (IDE Style) */}
-            <aside className="hidden lg:block w-72 sticky top-24 h-[calc(100vh-8rem)] pl-6 pr-4">
-                <SidebarContent sidebar={sidebar} pathname={pathname} />
+        <div className="flex w-full min-h-screen pt-24 pb-12 bg-white dark:bg-black transition-colors duration-300 overflow-x-hidden">
+            {/* Desktop Sidebar (IDE Style) - Fixed on scroll */}
+            <aside className="hidden lg:block w-72 pl-6 pr-4">
+                <div className="fixed top-24 w-60 h-[calc(100vh-8rem)] overflow-y-auto">
+                    <SidebarContent sidebar={sidebar} pathname={pathname} />
+                </div>
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 min-w-0 px-4 md:px-8 lg:px-12">
+            <main className="flex-1 min-w-0 px-4 md:px-8 lg:px-12 lg:ml-72">
                 {/* Mobile Navigation Bar */}
                 <div className="lg:hidden flex items-center gap-2 mb-6 -mx-4 px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border-y border-neutral-200 dark:border-neutral-800 sticky top-20 z-30">
                     {/* Mobile Nav Toggle */}
@@ -159,19 +161,17 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
                 </div>
             </main>
 
-            {/* Desktop Table of Contents (Right Sidebar) */}
+            {/* Desktop Table of Contents (Right Sidebar) - Fixed on scroll */}
             {toc && toc.length > 0 && (
-                <aside className="hidden xl:block w-64 sticky top-24 h-[calc(100vh-8rem)] pr-6">
-                    <div className="h-full p-4 flex flex-col">
+                <aside className="hidden xl:block w-64 pr-6">
+                    <div className="fixed top-24 w-56 h-[calc(100vh-8rem)] p-4 flex flex-col overflow-y-auto">
                         <h2 className="mb-4 text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest flex items-center gap-2 flex-shrink-0">
                             On This Page
                         </h2>
-                        <ScrollArea className="flex-1 max-h-[calc(100vh-12rem)]">
-                            <TocContent
-                                toc={toc}
-                                activeSectionIndex={activeSectionIndex}
-                            />
-                        </ScrollArea>
+                        <TocContent
+                            toc={toc}
+                            activeSectionIndex={activeSectionIndex}
+                        />
                     </div>
                 </aside>
             )}

@@ -149,9 +149,9 @@ export default function FAQPage() {
           </p>
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-10 overflow-x-hidden">
           <aside className="hidden lg:block">
-            <div className="sticky top-28 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-950/50 backdrop-blur p-5">
+            <div className="fixed top-28 w-60 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-950/50 backdrop-blur p-5 max-h-[calc(100vh-10rem)] overflow-y-auto">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
                 <FolderOpen className="h-4 w-4" aria-hidden="true" />
                 Categories
@@ -171,7 +171,7 @@ export default function FAQPage() {
             </div>
           </aside>
 
-          <main>
+          <main className="lg:ml-0">
             <div className="lg:hidden sticky top-20 z-30 -mx-4 px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border-y border-neutral-200 dark:border-neutral-800">
               <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
                 <SheetTrigger asChild>
