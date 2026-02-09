@@ -663,23 +663,15 @@ Mevcut `.guardian/` protokolünü stabilize etmek ve AI için makine okunur `cri
 - `STALL` - kritik durumda zaten yazılıyor
 - `critiques.md` - insan okunur format zaten var
 
-**Yeni Eklenecek:**
-- `critiques.json` - AI için makine okunur snapshot
-- `AGENT_INSTRUCTIONS.md` - AI kuralları ve protokol dokümantasyonu
-- Finding ID stabilizasyonu (deterministik):
-  ```rust
-  fn finding_id(rule_id: &str, file: &str, location: Option<usize>, rules_hash: &str) -> String {
-      // AI message'i değişken olduğu için rule_id kullan
-      let loc = location.map(|l| l.to_string()).unwrap_or_default();
-      let normalized = format!("{}|{}|{}|{}", rule_id, file, loc, rules_hash);
-      sha256(normalized)
-  }
-  ```
+**Eklendi / Stabilize Edildi:**
+- `critiques.json` - AI icin makine okunur snapshot (relative file_path)
+- `AGENT_INSTRUCTIONS.md` - `.guardian/` icine bootstrap'ta otomatik yazilir (yoksa)
+- Finding ID'ler deterministik (AI message/model degisse bile sabit, rules_hash + rel_path bazli)
 
 #### 4.3 Queue Yönetimi
 
 **Rotasyon:**
-- `agent_queue.jsonl` > 1MB ise `agent_queue.2026-02-09.jsonl` olarak archive
+- `agent_queue.jsonl` > 1MB ise `agent_queue.<timestamp>.jsonl` olarak archive
 - Max 5 archive tut, eskileri sil
 
 **Tail desteği:**
@@ -691,10 +683,20 @@ Mevcut `.guardian/` protokolünü stabilize etmek ve AI için makine okunur `cri
 3. **Manual:** Cursor/Copilot ile test (AI critiques.json'u okuyabiliyor mu?)
 
 ### Acceptance Criteria
-- [ ] critiques.json AI tarafından okunabilir
-- [ ] agent_queue.jsonl real-time güncelleniyor
-- [ ] Finding ID'ler deterministik
-- [ ] Archive rotasyonu çalışıyor
+- [x] critiques.json AI tarafından okunabilir
+- [x] agent_queue.jsonl real-time güncelleniyor
+- [x] Finding ID'ler deterministik
+- [x] Archive rotasyonu çalışıyor
+
+### Phase 4 - Implemented (2026-02-09)
+- `.guardian/` protocol stabilize edildi: `src-tauri/src/watcher.rs`
+  - `critiques.json` ve `critiques.md` icindeki `file_path` artik relative (portable)
+  - `agent_queue.jsonl` event payload minimalize edildi (message/diff yok), `finding_id` uygun oldugunda eklenir
+  - Queue rotation: >1MB `agent_queue.<timestamp>.jsonl`, max 5 archive
+  - Bootstrap: `.guardian/AGENT_INSTRUCTIONS.md` (yoksa) olusturulur
+- Tests:
+  - `cd src-tauri && cargo test` (pass)
+  - `npm test` (pass)
 
 ---
 

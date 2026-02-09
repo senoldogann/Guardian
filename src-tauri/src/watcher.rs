@@ -1229,12 +1229,61 @@ fn append_agent_event(root: &str, payload: &serde_json::Value) {
         let _ = fs::create_dir_all(&guardian_dir);
     }
     let queue_path = guardian_dir.join("agent_queue.jsonl");
+    rotate_agent_queue_if_needed(&queue_path);
     if let Ok(mut file) = OpenOptions::new()
         .create(true)
         .append(true)
         .open(&queue_path)
     {
         let _ = writeln!(file, "{}", payload);
+    }
+}
+
+fn rotate_agent_queue_if_needed(queue_path: &Path) {
+    let Ok(meta) = fs::metadata(queue_path) else {
+        return;
+    };
+    if meta.len() < MAX_AGENT_QUEUE_BYTES {
+        return;
+    }
+
+    let Some(parent) = queue_path.parent() else {
+        return;
+    };
+
+    let stamp = Utc::now().format("%Y%m%dT%H%M%S%fZ");
+    let archive = parent.join(format!("agent_queue.{}.jsonl", stamp));
+    let _ = fs::rename(queue_path, archive);
+    prune_agent_queue_archives(parent);
+}
+
+fn prune_agent_queue_archives(dir: &Path) {
+    let Ok(read_dir) = fs::read_dir(dir) else {
+        return;
+    };
+
+    let mut archives: Vec<(std::time::SystemTime, PathBuf)> = Vec::new();
+    for entry in read_dir.flatten() {
+        let path = entry.path();
+        if path.file_name().and_then(|n| n.to_str()) == Some("agent_queue.jsonl") {
+            continue;
+        }
+        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        if !name.starts_with("agent_queue.") || !name.ends_with(".jsonl") {
+            continue;
+        }
+        let modified = entry
+            .metadata()
+            .and_then(|m| m.modified())
+            .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+        archives.push((modified, path));
+    }
+
+    archives.sort_by(|(a, _), (b, _)| b.cmp(a));
+    for (_, path) in archives.into_iter().skip(MAX_AGENT_QUEUE_ARCHIVES) {
+        let _ = fs::remove_file(path);
     }
 }
 
@@ -1313,4 +1362,95 @@ fn is_rate_limit_error(err: &str) -> bool {
 fn is_token_limit_error(err: &str) -> bool {
     let lower = err.to_lowercase();
     lower.contains("tokens_limit_reached") || lower.contains("request body too large")
+}
+
+#[cfg(test)]
+mod tests_protocol {
+    use super::*;
+    use serde_json::json;
+    use std::collections::HashMap;
+    use std::fs;
+    use tempfile::TempDir;
+
+    #[test]
+    fn agent_queue_rotates_and_prunes() {
+        let tmp = TempDir::new().expect("tempdir");
+        let root = tmp.path();
+        let guardian_dir = root.join(".guardian");
+        fs::create_dir_all(&guardian_dir).expect("guardian dir");
+        let queue_path = guardian_dir.join("agent_queue.jsonl");
+
+        let rotations = MAX_AGENT_QUEUE_ARCHIVES + 2;
+        for i in 0..rotations {
+            let big = vec![b'a'; (MAX_AGENT_QUEUE_BYTES as usize) + 16];
+            fs::write(&queue_path, &big).expect("seed big queue");
+
+            append_agent_event(
+                root.to_string_lossy().as_ref(),
+                &json!({
+                    "timestamp": Utc::now().to_rfc3339(),
+                    "event": "critique",
+                    "file_path": format!("src/file_{}.rs", i),
+                    "finding_id": null,
+                    "severity": "warning"
+                }),
+            );
+        }
+
+        assert!(queue_path.exists(), "agent_queue.jsonl must exist after rotation");
+
+        let archives: Vec<_> = fs::read_dir(&guardian_dir)
+            .expect("read_dir")
+            .filter_map(|e| e.ok())
+            .filter(|e| {
+                let name = e.file_name();
+                let name = name.to_string_lossy();
+                name != "agent_queue.jsonl" && name.starts_with("agent_queue.") && name.ends_with(".jsonl")
+            })
+            .collect();
+
+        assert!(
+            !archives.is_empty(),
+            "expected at least one archive after forced rotation"
+        );
+        assert!(
+            archives.len() <= MAX_AGENT_QUEUE_ARCHIVES,
+            "expected at most {} archives, got {}",
+            MAX_AGENT_QUEUE_ARCHIVES,
+            archives.len()
+        );
+    }
+
+    #[test]
+    fn critiques_snapshot_uses_relative_paths() {
+        let tmp = TempDir::new().expect("tempdir");
+        let root = tmp.path();
+
+        let abs_path = root.join("src").join("main.rs");
+        let abs_str = abs_path.to_string_lossy().to_string();
+
+        let critique = crate::ai_client::Critique {
+            file_path: abs_str.clone(),
+            severity: "Critical".to_string(),
+            message: "Issue".to_string(),
+            suggestion: None,
+            chat_message: None,
+            suggested_diff: None,
+            finding_id: Some("finding-123".to_string()),
+        };
+        let mut critiques = HashMap::new();
+        critiques.insert(abs_str, critique);
+
+        let stall = sync_guardian_logs(root.to_string_lossy().as_ref(), &critiques);
+        let stall = stall.expect("expected stall info for critical critique");
+        assert_eq!(stall.file_path, "src/main.rs");
+
+        let payload_path = root.join(".guardian").join("critiques.json");
+        let raw = fs::read_to_string(&payload_path).expect("read critiques.json");
+        let parsed: serde_json::Value = serde_json::from_str(&raw).expect("parse critiques.json");
+
+        assert_eq!(parsed["protocol_version"], 1);
+        assert_eq!(parsed["critiques"][0]["file_path"], "src/main.rs");
+        assert_eq!(parsed["critiques"][0]["finding_id"], "finding-123");
+    }
 }
