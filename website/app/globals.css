@@ -5,33 +5,63 @@
 
 /* Animation keyframes for Sheet component */
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes slide-in-from-left {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
 
 @keyframes slide-out-to-left {
-  from { transform: translateX(0); }
-  to { transform: translateX(-100%); }
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-100%);
+  }
 }
 
 @keyframes slide-in-from-right {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
 }
 
 @keyframes slide-out-to-right {
-  from { transform: translateX(0); }
-  to { transform: translateX(100%); }
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
 }
 
 .animate-in {
@@ -138,7 +168,7 @@
     background-size: 22px 22px;
     background-attachment: fixed;
   }
-  
+
   ::selection {
     @apply bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white;
   }
@@ -146,12 +176,12 @@
   /* Smooth scrolling and prevent horizontal overflow */
   html {
     scroll-behavior: smooth;
-    scroll-padding-top: 100px; /* Account for fixed header */
-    overflow-x: hidden;
+    scroll-padding-top: 100px;
+    /* Account for fixed header */
   }
 
   body {
-    overflow-x: hidden;
+    /* overflow-x: hidden; Removed to fix sticky positioning */
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -272,12 +302,12 @@
     @apply bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden my-8 shadow-sm;
   }
 
-  .prose pre > code {
+  .prose pre>code {
     @apply block p-6 text-sm leading-relaxed;
   }
 
   /* Inline code in prose */
-  .prose :not(pre) > code {
+  .prose :not(pre)>code {
     @apply bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white px-2 py-1 rounded text-sm font-mono border border-neutral-200 dark:border-neutral-800;
   }
 
