@@ -1,4 +1,5 @@
 import { fetchReleaseSnapshot } from "../../lib/releases-source";
+import type { ReleaseMonthGroup } from "../../lib/changelog";
 import { groupReleasesByMonth, toReleaseViewModel } from "../../lib/changelog";
 import { getDictionary } from "../../lib/i18n";
 import { ChangelogClient } from "./changelog-client";
@@ -6,7 +7,7 @@ import { ChangelogClient } from "./changelog-client";
 export async function ChangelogPageView() {
   let fetchError: string | null = null;
   const dict = getDictionary();
-  let groups = [];
+  let groups: ReleaseMonthGroup[] = [];
 
   try {
     const rawReleases = await fetchReleaseSnapshot(40);
