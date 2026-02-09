@@ -803,6 +803,10 @@ const THRESHOLDS = {
 - `connect-src` içine `https://api.github.com` eklendi.
 - CSP violation logları dev’de gösteriliyor, prod’da sessiz.
 
+### Changelog Data Refresh
+- `releases.json` tekrar üretildi ve v1.0.0 release’e yüklendi.
+- Snapshot boşsa API fallback cache ile eski snapshot yerine güncel release listesi çekiliyor.
+
 ## ✅ Guru Context Fixes (2026-02-09)
 
 ### Workspace Odaklılık ve Doğruluk
@@ -889,7 +893,7 @@ const THRESHOLDS = {
 
 ---
 
-**Son Güncelleme:** 2026-02-09 03:31  
+**Son Güncelleme:** 2026-02-09 03:40  
 **Not:** Website testleri error-boundary testlerinde beklenen console error logu üretir.
 **Toplam Commit:** 10 (push edilmedi)  
 **Sonraki İşlem:** Review sonrası doğrulama ve release notları

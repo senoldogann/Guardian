@@ -30,8 +30,11 @@ jobs:
         run: npm ci
 
       - name: 🔐 Setup Windows Signing
-        if: ${{ secrets.WINDOWS_CERTIFICATE != '' }}
         run: |
+          if ([string]::IsNullOrWhiteSpace("${{ secrets.WINDOWS_CERTIFICATE }}")) {
+            Write-Host "Windows signing certificate not configured; skipping."
+            exit 0
+          }
           $certBytes = [System.Convert]::FromBase64String("${{ secrets.WINDOWS_CERTIFICATE }}")
           $certPath = "$env:RUNNER_TEMP\guardian_signing.pfx"
           [System.IO.File]::WriteAllBytes($certPath, $certBytes)
