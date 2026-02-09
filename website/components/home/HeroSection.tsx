@@ -73,8 +73,8 @@ export function HeroSection({ dict }: HeroSectionProps) {
     };
 
     return (
-        <section className="relative overflow-hidden pt-24 pb-32 md:pt-32 md:pb-48 bg-white dark:bg-black transition-colors duration-300">
-            <div className="container px-4 mx-auto text-center z-10 relative max-w-6xl">
+        <section className="relative overflow-x-hidden pt-24 pb-32 md:pt-32 md:pb-48 bg-white dark:bg-black transition-colors duration-300">
+            <div className="container px-4 mx-auto text-center z-10 relative max-w-6xl overflow-x-hidden">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -135,15 +135,21 @@ export function HeroSection({ dict }: HeroSectionProps) {
                     className="mt-16 relative mx-auto max-w-5xl"
                 >
                     <div className="relative rounded-xl border border-neutral-200 dark:border-white/10 bg-white dark:bg-black shadow-2xl overflow-hidden">
-                        <Image
-                            alt="Guardian application dashboard"
-                            src="/media/guardian-monitor.png"
-                            width={1200}
-                            height={675}
-                            className="w-full h-auto"
-                            priority
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
-                        />
+                        <picture>
+                            <source
+                                srcSet="/media/guardian-monitor.webp"
+                                type="image/webp"
+                            />
+                            <Image
+                                alt="Guardian application dashboard showing code monitoring interface"
+                                src="/media/guardian-monitor.png"
+                                width={1200}
+                                height={675}
+                                className="w-full h-auto"
+                                priority
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+                            />
+                        </picture>
                     </div>
                 </motion.div>
             </div>

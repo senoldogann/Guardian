@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CookieSettingsModal } from "./CookieSettingsModal";
 
 export function CookieBanner() {
-    const { showBanner, acceptAll, rejectAll, openSettings } = useCookieConsent();
+    const { showBanner, acceptAll, openSettings } = useCookieConsent();
 
     return (
         <>
@@ -33,8 +33,8 @@ export function CookieBanner() {
                                     Cookie Privacy
                                 </h3>
                                 <p id="cookie-banner-description" className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-sm md:text-base">
-                                    We use cookies to ensure you get the best experience on our website.
-                                    By continuing, you accept our use of cookies according to our
+                                    We only store essential preferences on your device, like your theme choice.
+                                    Learn more in our
                                     <a href="/privacy-policy" className="text-black dark:text-white underline mx-1 font-medium hover:opacity-80 transition-opacity">Privacy Policy</a>.
                                 </p>
                             </div>
@@ -44,20 +44,13 @@ export function CookieBanner() {
                                     onClick={openSettings}
                                     className="text-sm font-medium text-zinc-500 hover:text-black dark:hover:text-white underline px-2 py-2 transition-colors"
                                 >
-                                    Customize
+                                    Preferences
                                 </button>
-                                <Button
-                                    variant="outline"
-                                    onClick={rejectAll}
-                                    className="w-full sm:w-auto rounded-xl h-11 px-6 border-zinc-300 dark:border-zinc-700 text-zinc-900 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-black dark:hover:text-white"
-                                >
-                                    Reject All
-                                </Button>
                                 <Button
                                     onClick={acceptAll}
                                     className="w-full sm:w-auto bg-black text-white dark:bg-white dark:text-black rounded-xl h-11 px-8 hover:bg-zinc-800 dark:hover:bg-zinc-200 font-medium shadow-lg shadow-zinc-200 dark:shadow-none transition-all"
                                 >
-                                    Accept All
+                                    Got it
                                 </Button>
                             </div>
                         </div>

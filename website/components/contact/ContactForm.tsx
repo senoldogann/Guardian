@@ -144,7 +144,7 @@ export function ContactForm() {
                         type="button"
                         variant="outline"
                         onClick={() => fileInputRef.current?.click()}
-                        className="gap-2 border-dashed border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
+                        className="gap-2 border-dashed border-neutral-400 dark:border-neutral-500 text-neutral-700 dark:text-neutral-200 bg-white dark:bg-neutral-900 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white hover:border-neutral-500 dark:hover:border-neutral-400 transition-colors"
                     >
                         <Paperclip className="w-4 h-4" aria-hidden="true" />
                         Attach Files

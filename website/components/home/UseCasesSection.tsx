@@ -56,7 +56,7 @@ const useCases: UseCase[] = [
 
 export function UseCasesSection() {
     return (
-        <section className="py-32 relative bg-white dark:bg-black overflow-hidden transition-colors duration-300">
+        <section className="py-32 relative bg-white dark:bg-black overflow-x-hidden transition-colors duration-300">
             <div className="absolute inset-0 bg-gradient-to-b from-white via-zinc-50 to-white dark:from-black dark:via-zinc-950 dark:to-black" />
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-32 bg-gradient-to-b from-transparent via-black/20 dark:via-white/20 to-transparent" />
 

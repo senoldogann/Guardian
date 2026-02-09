@@ -4,8 +4,6 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 
 export interface CookiePreferences {
     necessary: boolean;
-    analytics: boolean;
-    marketing: boolean;
 }
 
 interface CookieConsentContextType {
@@ -26,9 +24,7 @@ const CookieConsentContext = createContext<CookieConsentContextType | undefined>
 const COOKIE_KEY = "guardian_cookie_consent";
 
 const DEFAULT_PREFERENCES: CookiePreferences = {
-    necessary: true, // Always true
-    analytics: false, // Default opt-out (GDPR)
-    marketing: false, // Default opt-out (GDPR)
+    necessary: true,
 };
 
 export function CookieConsentProvider({ children }: { children: React.ReactNode }) {
@@ -69,15 +65,15 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
     };
 
     const acceptAll = () => {
-        saveToStorage({ necessary: true, analytics: true, marketing: true });
+        saveToStorage({ necessary: true });
     };
 
     const rejectAll = () => {
-        saveToStorage({ necessary: true, analytics: false, marketing: false });
+        saveToStorage({ necessary: true });
     };
 
-    const savePreferences = (prefs: CookiePreferences) => {
-        saveToStorage({ ...prefs, necessary: true });
+    const savePreferences = (_prefs: CookiePreferences) => {
+        saveToStorage({ necessary: true });
     };
 
     const resetConsent = () => {

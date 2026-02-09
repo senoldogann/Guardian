@@ -143,9 +143,14 @@
     @apply bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white;
   }
 
-  /* Smooth scrolling */
+  /* Smooth scrolling and prevent horizontal overflow */
   html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
+  }
+
+  body {
+    overflow-x: hidden;
   }
 
   @media (prefers-reduced-motion: reduce) {

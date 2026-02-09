@@ -67,53 +67,21 @@ export function CookieSettingsModal() {
                         </div>
 
                         <p id="cookie-settings-description" className="text-zinc-600 dark:text-zinc-400 mb-8 leading-relaxed">
-                            We use cookies to enhance your browsing experience, serve personalized content, and analyze our traffic.
-                            Below you can manage your preferences for each category.
+                            We only store essential preferences on your device, such as your theme choice. We do not run analytics or marketing trackers.
                         </p>
 
                         <div className="space-y-6">
-                            {/* Strictly Necessary */}
                             <div className="flex items-start justify-between p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
-                                        <span className="font-semibold text-zinc-900 dark:text-zinc-100">Strictly Necessary</span>
+                                        <span className="font-semibold text-zinc-900 dark:text-zinc-100">Essential Preferences</span>
                                         <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 border border-zinc-200 dark:border-zinc-700 px-1.5 py-0.5 rounded">Required</span>
                                     </div>
                                     <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">
-                                        These cookies are essential for the website to function properly. They cannot be disabled.
+                                        These settings keep the site functional and remember your preferences on this device.
                                     </p>
                                 </div>
-                                <Switch checked={true} disabled ariaLabel="Strictly necessary cookies" onCheckedChange={() => { }} />
-                            </div>
-
-                            {/* Analytics */}
-                            <div className="flex items-start justify-between p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-                                <div className="space-y-1">
-                                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">Analytics & Performance</span>
-                                    <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">
-                                        Help us understand how visitors interact with the website by collecting and reporting information anonymously.
-                                    </p>
-                                </div>
-                                <Switch
-                                    checked={localPrefs.analytics}
-                                    ariaLabel="Analytics cookies"
-                                    onCheckedChange={(checked: boolean) => setLocalPrefs(prev => ({ ...prev, analytics: checked }))}
-                                />
-                            </div>
-
-                            {/* Marketing */}
-                            <div className="flex items-start justify-between p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-                                <div className="space-y-1">
-                                    <span className="font-semibold text-zinc-900 dark:text-zinc-100">Marketing & Targeting</span>
-                                    <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">
-                                        Used to track visitors across websites to display ads that are relevant and engaging.
-                                    </p>
-                                </div>
-                                <Switch
-                                    checked={localPrefs.marketing}
-                                    ariaLabel="Marketing cookies"
-                                    onCheckedChange={(checked: boolean) => setLocalPrefs(prev => ({ ...prev, marketing: checked }))}
-                                />
+                                <Switch checked={true} disabled ariaLabel="Essential preferences" onCheckedChange={() => { }} />
                             </div>
                         </div>
 
@@ -124,7 +92,7 @@ export function CookieSettingsModal() {
                                     onClick={handleReset}
                                     className="rounded-xl h-11 px-6 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800"
                                 >
-                                    Reset Consent
+                                    Reset Preferences
                                 </Button>
                             )}
                             <Button
@@ -132,10 +100,10 @@ export function CookieSettingsModal() {
                                 onClick={closeSettings}
                                 className="rounded-xl h-11 px-6 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100"
                             >
-                                Cancel
+                                Close
                             </Button>
                             <Button onClick={handleSave} className="bg-black text-white dark:bg-white dark:text-black rounded-xl h-11 px-6 hover:bg-zinc-800 dark:hover:bg-zinc-200">
-                                Save Preferences
+                                Save
                             </Button>
                         </div>
                     </motion.div>

@@ -19,7 +19,7 @@ export function HomePageView({ dict }: HomePageProps) {
       <StructuredData payload={buildOrganizationJsonLd()} />
       <StructuredData payload={buildWebsiteJsonLd()} />
 
-      <div className="flex flex-col min-h-screen pt-16">
+      <div className="flex flex-col min-h-screen pt-16 overflow-x-hidden">
         <HeroSection dict={dict} />
         <FeaturesSection />
         <DemoSection dict={dict} />

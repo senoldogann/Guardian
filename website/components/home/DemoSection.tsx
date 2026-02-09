@@ -62,8 +62,8 @@ export function DemoSection({ dict }: DemoSectionProps) {
     return (
         <>
             {/* Guru Section */}
-            <section className="py-28 overflow-hidden bg-white dark:bg-black transition-colors duration-300">
-                <div className="container px-4 mx-auto">
+            <section className="py-28 overflow-x-hidden bg-white dark:bg-black transition-colors duration-300">
+                <div className="container px-4 mx-auto overflow-x-hidden">
                     <div className="flex flex-col md:flex-row items-center gap-16">
                         <motion.div
                             initial={{ opacity: 0, x: -50 }}
@@ -119,9 +119,9 @@ export function DemoSection({ dict }: DemoSectionProps) {
             </section>
 
             {/* Auth Section */}
-            <section className="py-28 relative bg-white dark:bg-black transition-colors duration-300">
+            <section className="py-28 relative bg-white dark:bg-black transition-colors duration-300 overflow-x-hidden">
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/5 to-black/5 dark:via-white/5 dark:to-white/5" />
-                <div className="container px-4 mx-auto relative">
+                <div className="container px-4 mx-auto relative overflow-x-hidden">
                     <div className="flex flex-col md:flex-row-reverse items-center gap-16">
                         <motion.div
                             initial={{ opacity: 0, x: 50 }}

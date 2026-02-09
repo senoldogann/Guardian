@@ -41,10 +41,10 @@ const featureBlocks: LocalizedBlock[] = [
 
 export function FeaturesSection() {
     return (
-        <section className="py-24 md:py-32 relative overflow-hidden bg-white dark:bg-black transition-colors duration-300">
+        <section className="py-24 md:py-32 relative overflow-x-hidden bg-white dark:bg-black transition-colors duration-300">
             <div className="absolute inset-0 bg-white dark:bg-black" />
 
-            <div className="container px-4 sm:px-6 lg:px-8 mx-auto relative z-10">
+            <div className="container px-4 sm:px-6 lg:px-8 mx-auto relative z-10 overflow-x-hidden">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -101,7 +101,7 @@ export function FeaturesSection() {
 
                                         <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-neutral-200 dark:border-neutral-800">
                                             <Link href={feature.link} className="flex items-center gap-2 text-xs sm:text-sm text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300 transition-colors cursor-pointer">
-                                                <span style={{ fontFamily: 'var(--font-poppins)' }}>Learn more</span>
+                                                <span style={{ fontFamily: 'var(--font-poppins)' }}>Learn more about {feature.title}</span>
                                                 <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
                                             </Link>
                                         </div>

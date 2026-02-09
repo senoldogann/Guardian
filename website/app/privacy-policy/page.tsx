@@ -4,7 +4,7 @@ import { buildPageMetadata } from "../../lib/seo";
 
 export const metadata: Metadata = buildPageMetadata({
     title: "Privacy Policy",
-    description: "Privacy Policy and Cookie Usage for Guardian Platform",
+    description: "Privacy Policy for Guardian - We do not collect personal data",
     path: "/privacy-policy"
 });
 
@@ -13,55 +13,56 @@ export default function PrivacyPolicyPage() {
         <div className="min-h-screen pt-32 pb-20 px-4 md:px-8 bg-white dark:bg-black">
             <div className="max-w-4xl mx-auto prose prose-zinc dark:prose-invert">
                 <h1>Privacy Policy</h1>
-                <p className="lead">Last updated: February 7, 2026</p>
+                <p className="lead">Last updated: February 9, 2026</p>
 
                 <p>
-                    At Guardian (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;), we respect your privacy and are committed to protecting your personal data.
-                    This privacy policy will inform you as to how we look after your personal data when you visit our website
-                    (regardless of where you visit it from) and tell you about your privacy rights and how the law protects you.
+                    At Guardian (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;), we respect your privacy and do not collect personal data through this website.
+                    This policy explains what we store locally on your device and how you can control it.
                 </p>
 
-                <h2>1. Important Information</h2>
+                <h2>1. Our Approach to Privacy</h2>
                 <p>
-                    This privacy policy aims to give you information on how Guardian collects and processes your personal data through your use of this website,
-                    including any data you may provide through this website when you sign up to our newsletter, purchase a product or service, or take part in a competition.
+                    We do not run analytics, marketing trackers, or advertising pixels. We do not store user profiles or log identifiable activity on our servers.
+                    Your visit to this website is anonymous and we do not collect any personally identifiable information.
                 </p>
 
-                <h2>2. The Data We Collect</h2>
+                <h2>2. What We Do Not Collect</h2>
                 <p>
-                    We may collect, use, store and transfer different kinds of personal data about you which we have grouped together follows:
+                    We explicitly do not collect:
                 </p>
                 <ul>
-                    <li><strong>Identity Data</strong> includes first name, maiden name, last name, username or similar identifier.</li>
-                    <li><strong>Contact Data</strong> includes billing address, delivery address, email address and telephone numbers.</li>
-                    <li><strong>Technical Data</strong> includes internet protocol (IP) address, your login data, browser type and version, time zone setting and location, browser plug-in types and versions, operating system and platform and other technology on the devices you use to access this website.</li>
-                    <li><strong>Usage Data</strong> includes information about how you use our website, products and services.</li>
+                    <li>Identity information (name, email, phone number)</li>
+                    <li>Contact data or billing information</li>
+                    <li>IP addresses or location data</li>
+                    <li>Browsing history or usage patterns</li>
+                    <li>Cookies for tracking or advertising purposes</li>
                 </ul>
 
-                <h2>3. Cookies and Tracking</h2>
+                <h2>3. Local Device Storage</h2>
                 <p>
-                    Our website uses cookies to distinguish you from other users of our website. This helps us to provide you with a good experience when you browse our website and also allows us to improve our site.
-                </p>
-                <p>
-                    We use the following types of cookies:
+                    We only store essential preferences directly on your device to improve your experience:
                 </p>
                 <ul>
-                    <li><strong>Strictly Necessary Cookies:</strong> These are cookies that are required for the operation of our website.</li>
-                    <li><strong>Analytical/Performance Cookies:</strong> They allow us to recognise and count the number of visitors and to see how visitors move around our website when they are using it.</li>
-                    <li><strong>Marketing Cookies:</strong> These tracking technologies allow us to deliver relevant content and advertisements to you.</li>
+                    <li><strong>Theme Preference:</strong> Your choice of light or dark mode is stored in your browser&apos;s localStorage.</li>
+                    <li><strong>Cookie Preferences:</strong> Your consent choices for local preferences are stored on your device only.</li>
                 </ul>
                 <p>
-                    You can set your browser to refuse all or some browser cookies, or to alert you when websites set or access cookies.
-                    If you disable or refuse cookies, please note that some parts of this website may become inaccessible or not function properly.
+                    This data never leaves your device and is not transmitted to our servers or any third parties.
                 </p>
 
-                <h2>4. Data Security</h2>
+                <h2>4. Contact Form</h2>
                 <p>
-                    We have put in place appropriate security measures to prevent your personal data from being accidentally lost, used or accessed in an unauthorised way, altered or disclosed.
-                    In addition, we limit access to your personal data to those employees, agents, contractors and other third parties who have a business need to know.
+                    Our contact form uses your default email client (mailto link). We do not process or store your messages on our servers.
+                    Any communication happens directly between you and us via email, outside of this website.
                 </p>
 
-                <h2>5. Contact Details</h2>
+                <h2>5. Data Security</h2>
+                <p>
+                    Since we do not collect personal data on our servers, there is no personal data to secure on our end.
+                    The only data stored is on your own device, which you control completely.
+                </p>
+
+                <h2>6. Contact Details</h2>
                 <p>
                     If you have any questions about this privacy policy or our privacy practices, please contact us at: <a href="mailto:contact@senoldogan.dev">contact@senoldogan.dev</a>.
                 </p>
