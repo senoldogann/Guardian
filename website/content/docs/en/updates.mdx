@@ -55,9 +55,8 @@ Distribution Repository
 
 Guardian checks for updates:
 
-1. **On Startup**: Every time you open the app
-2. **Periodically**: Every 4 hours while running
-3. **Manually**: Via **Settings > Updates > Check for Updates**
+1. **On Startup**: When you open the app
+2. **Manually**: Via **Settings > Updates > Check for Updates**
 
 ### Update Notification
 
@@ -76,7 +75,7 @@ When an update is available:
        ↓
 3. Download in Background
        ↓
-4. Verify Checksum & Signature
+4. Verify Update (integrity / signature / version)
        ↓
 5. Install Update
        ↓
@@ -89,8 +88,8 @@ When an update is available:
 
 1. **Approval**: Click "Update Now" in banner or Settings
 2. **Download**: Package downloads in background (progress shown)
-3. **Verification**: Checksum and signature validated
-4. **Installation**: Old version backed up, new version installed
+3. **Verification**: The updater validates the update (for example: signature checks depending on your configuration)
+4. **Installation**: The updater installs the new version
 5. **Restart**: App restarts automatically
 6. **Confirmation**: New version number shown in Settings
 
@@ -100,8 +99,7 @@ Before applying updates, Guardian verifies:
 
 | Check | Purpose |
 |-------|---------|
-| **SHA-256 Checksum** | File integrity verification |
-| **Code Signature** | Authenticity verification |
+| **Updater Verification** | Authenticity and integrity checks (depends on updater configuration) |
 | **Version Format** | Prevents invalid updates |
 | **Minimum Version** | Ensures compatibility |
 
@@ -119,29 +117,9 @@ Configure in **Settings > Updates**:
 | **Notify Only** | Show notification, manual install | Corporate environments |
 | **Disabled** | No update checks | Air-gapped systems, development |
 
-### Update Channels
+### Channels and Schedule
 
-Choose your update stream:
-
-| Channel | Description | Stability |
-|---------|-------------|-----------|
-| **Stable** | Production releases only | ★★★★★ |
-| **Beta** | Include pre-release versions | ★★★☆☆ |
-
-**Switching Channels**:
-1. Go to **Settings > Updates**
-2. Select channel from dropdown
-3. Check for updates to see new versions
-
-### Update Schedule
-
-Control when updates are checked:
-
-| Option | Frequency | Best For |
-|--------|-----------|----------|
-| **On Startup** | Every launch | Most users |
-| **Every Hour** | Hourly checks | Fast-paced environments |
-| **Daily** | Once per day | Limited bandwidth |
+Update channels and scheduled intervals depend on your distribution setup. The current app experience focuses on startup checks and manual checks.
 
 ## Manual Updates
 
@@ -155,7 +133,7 @@ Forces immediate check regardless of schedule.
 
 If automatic updates fail:
 
-1. Visit [guardian-app.vercel.app/download](https://guardian-app.vercel.app/download)
+1. Visit the download page on this website (`/download`)
 2. Download installer for your platform
 3. Run installer (previous version will be replaced)
 
@@ -168,14 +146,6 @@ For air-gapped systems:
 3. Run installer normally
 
 ## Rollback
-
-### Automatic Rollback
-
-If new version fails to start:
-
-1. Guardian detects startup failure
-2. Automatically rolls back to previous version
-3. Notifies user of the issue
 
 ### Manual Rollback
 
@@ -231,7 +201,7 @@ For enterprise environments:
 }
 ```
 
-Point Guardian to internal URL in **Settings > Updates > Custom Source**
+Point Guardian to your internal update feed by setting the `GUARDIAN_UPDATE_FEED_URL` environment variable for the app runtime.
 
 ### Update Notifications
 
@@ -239,7 +209,6 @@ Disable notifications temporarily:
 
 - **Do Not Disturb**: System setting
 - **Focus Mode**: macOS Focus or Windows Focus Assist
-- **In-App**: **Settings > Updates > Show Notifications**
 
 ## Troubleshooting Updates
 
@@ -269,9 +238,8 @@ Disable notifications temporarily:
 **Cause**: Corrupted download or signature mismatch
 
 **Solutions**:
-1. Clear download cache: **Settings > Updates > Clear Cache**
-2. Retry update
-3. Download manually from website
+1. Retry the update
+2. Download a manual installer from the download page
 
 ### Update installed but version unchanged
 
@@ -283,55 +251,15 @@ Disable notifications temporarily:
 
 ## Security Considerations
 
-### Signature Verification
-
-All updates are signed:
-- **macOS**: Apple Notarization
-- **Windows**: Authenticode signing
-- **Linux**: GPG signatures
-
-Never install unsigned updates.
-
-### Checksum Validation
-
-Guardian verifies SHA-256 checksums before installation. This prevents:
-- Corrupted downloads
-- Man-in-the-middle attacks
-- Tampered update packages
-
-### Downgrade Prevention
-
-Guardian prevents downgrades to older versions:
-- Maintains update history
-- Prevents known-vulnerable versions
-- Allows forced downgrade only with admin override
-
-## Best Practices
-
-1. **Keep Auto-Update Enabled**: Ensures security patches are applied promptly
-2. **Review Release Notes**: Check what's new before updating
-3. **Update During Downtime**: Choose low-activity periods
-4. **Backup Before Major Updates**: Export settings as precaution
-5. **Test Beta Versions**: In staging environment first
-6. **Monitor Update Status**: Check **Settings > Updates** regularly
-
-## Update History
-
-View past updates:
-
-**Settings > Updates > Update History**
-
-Shows:
-- Version history
-- Installation dates
-- Success/failure status
-- Rollback events
+- Prefer updates from trusted distribution sources (official releases or your organization's internal mirror).
+- Signature and integrity checks are performed by the updater depending on how your build and update source are configured.
+- For custom update feeds, treat downloads as untrusted unless you have an independent verification process in place.
 
 ## Getting Update Help
 
 If update issues persist:
 
-1. Check **Settings > Updates** for error messages
-2. Export logs: **Settings > Advanced > Export Logs**
-3. Try manual installation
-4. Contact support with version numbers and error details
+1. Check your network connectivity and try again.
+2. Try a manual installer from the download page.
+3. If you are using a custom update source, verify the URL and the feed response format.
+4. Report the issue in the repository you are using and include the app version plus the error message you see.

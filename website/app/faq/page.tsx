@@ -23,7 +23,7 @@ const faqCategories = [
     questions: [
       {
         q: "What is Guardian?",
-        a: "Guardian is a desktop governance application that helps engineering teams maintain code quality and security standards. It provides real-time architecture auditing, AI-powered code analysis through Guru, secure identity management, and automated release governance—all in a native desktop experience."
+        a: "Guardian is a desktop governance application that helps engineering teams maintain code quality and security standards. It provides real-time monitoring of a selected workspace, architecture and quality audits, and an AI assistant (Guru) that can explain findings and suggest fixes."
       },
       {
         q: "Who is Guardian for?",
@@ -31,7 +31,7 @@ const faqCategories = [
       },
       {
         q: "Is Guardian open source?",
-        a: "Guardian follows an open-core model. The core application and many features are freely available. While the complete source code isn't fully open source, we believe in transparency and building with the community. Future enterprise features may include additional proprietary components."
+        a: "This repository is licensed under MIT. If you are using a fork or a packaged distribution, check the LICENSE file shipped with that build for the definitive terms."
       },
       {
         q: "What platforms does Guardian support?",
@@ -50,15 +50,15 @@ const faqCategories = [
       },
       {
         q: "What are the system requirements?",
-        a: "Guardian is designed to be lightweight. Minimum requirements: macOS 10.15+, Windows 10+, or Ubuntu 20.04+ (or equivalent Linux distribution). At least 4GB RAM and 500MB free disk space. An internet connection is required for initial setup and updates."
+        a: "Guardian is designed to be lightweight. Typical requirements: macOS 12+, Windows 10+, or a recent Linux distribution. At least 4GB RAM and ~500MB free disk space. Internet access is required if you enable cloud AI providers or in-app update checks."
       },
       {
         q: "How do I configure Guardian for my project?",
-        a: "After installation, Guardian walks you through a simple setup wizard. You'll connect your repository, configure your quality rules, and optionally set up authentication providers. Our documentation provides detailed guides for each step."
+        a: "After installation, select a local workspace folder. Configure your AI provider settings in Settings, then start monitoring to scan and review findings. Documentation covers the main workflows and configuration options."
       },
       {
         q: "Can I use Guardian with multiple projects?",
-        a: "Yes! Guardian supports multiple projects simultaneously. You can switch between projects from the main interface, and each project can have its own configuration, rules, and team settings."
+        a: "Guardian works with one active workspace at a time. You can switch between projects by selecting a different folder; Guardian will reset the monitoring state and load the new workspace context."
       }
     ]
   },
@@ -69,19 +69,19 @@ const faqCategories = [
     questions: [
       {
         q: "How does Guardian handle my code?",
-        a: "Guardian analyzes your code locally on your machine. Your source code never leaves your device unless you explicitly configure cloud integrations (like OpenAI). We use platform-native secure storage for all credentials and sensitive data."
+        a: "Guardian analyzes your workspace locally. If you configure a cloud AI provider, the app will send selected context to that provider to answer questions or generate suggestions. API keys are stored using OS secure storage where available."
       },
       {
         q: "Is my data secure with Guardian?",
-        a: "Absolutely. Guardian uses platform-native secure storage (Keychain on macOS, Credential Manager on Windows, Secret Service on Linux) for all sensitive data. We never transmit your code or credentials to our servers. All analysis happens locally."
+        a: "Guardian is designed to keep analysis local by default. When you enable integrations (AI providers, web search), the app will make outbound requests to those third-party services you configure. Guardian does not require a Guardian-managed backend service."
       },
       {
         q: "What authentication providers are supported?",
-        a: "Guardian currently supports GitHub for secure identity verification. For AI analysis, we support OpenAI, Anthropic, Google Gemini, and local models via Ollama."
+        a: "Guardian supports GitHub device authorization for identity verification. For AI analysis, it supports multiple providers including OpenAI, Anthropic, Google Gemini, GitHub Models, and local models via Ollama."
       },
       {
         q: "Does Guardian comply with security standards?",
-        a: "Guardian is built with security best practices including signed distribution artifacts, secure update mechanisms, and local-only code analysis."
+        a: "Guardian applies security-oriented best practices (local-first scanning, least-privilege configs, signed update capability). Exact guarantees depend on your deployment setup and which integrations you enable."
       }
     ]
   },
@@ -100,7 +100,7 @@ const faqCategories = [
       },
       {
         q: "Can I write custom rules?",
-        a: "Yes, Guardian supports custom rule creation. You can write rules in JavaScript/TypeScript or use our visual rule builder to enforce specific patterns and standards for your team."
+        a: "Guardian enforces a combination of built-in checks and workspace rule sets. Today, extensibility is primarily configuration and rule-file based (not a visual rule builder)."
       }
     ]
   },
@@ -111,19 +111,19 @@ const faqCategories = [
     questions: [
       {
         q: "How can I get help with Guardian?",
-        a: "You can access our documentation, GitHub discussions, and community Discord for support. We are building a community of developers passionate about code quality."
+        a: "Start with the documentation on this website. For issues and feature requests, use the repository issue tracker for the build you are using."
       },
       {
         q: "Where can I report bugs or request features?",
-        a: "We welcome feedback! Please use our GitHub Issues page for bug reports and feature requests. We actively monitor and respond to community input."
+        a: "Use the repository issue tracker for the build you are using, and include reproduction steps plus logs/screenshots where possible."
       },
       {
         q: "How often is Guardian updated?",
-        a: "We release updates regularly. All updates are delivered through our secure in-app update system."
+        a: "Updates are delivered through the in-app updater when enabled, and new releases may also be available via the distribution repository."
       },
       {
         q: "Can I contribute to Guardian?",
-        a: "While Guardian isn't fully open source, we welcome community contributions through feedback, bug reports, feature suggestions, and documentation improvements."
+        a: "Contributions depend on the repository you are working in. In general, bug reports and documentation improvements are always helpful."
       }
     ]
   }

@@ -19,16 +19,16 @@ Guardian implements a defense-in-depth security model with multiple layers of pr
                        │
 ┌──────────────────────────────────────────────┐
 │             🔐 Transport Layer               │
-│  • TLS 1.3 for all API communications         │
-│  • Certificate pinning for update checks      │
+│  • HTTPS/TLS for API communications           │
+│  • Update checks via configured updater feed  │
 │  • Authenticated GitHub API requests          │
 └──────────────────────────────────────────────┘
                        │
 ┌──────────────────────────────────────────────┐
 │              📦 Distribution Layer           │
-│  • Code-signed binaries (Apple/Microsoft)     │
-│  • SHA-256 checksums for all artifacts        │
-│  • Signed release metadata (latest.json)      │
+│  • Optional code signing (build/distribution dependent) │
+│  • Versioned release artifacts + metadata     │
+│  • Updater signature verification (config dependent) │
 └──────────────────────────────────────────────┘
 ```
 
@@ -52,25 +52,24 @@ Guardian uses a dual-repository model for maximum security:
 
 ## Signing Model
 
-All Guardian releases are cryptographically signed:
+Release hardening depends on your build and distribution setup. Guardian supports common signing and verification patterns, but exact guarantees vary by platform and configuration.
 
 ### Code Signing
 
 | Platform | Method | Certificate |
 |----------|--------|-------------|
-| macOS | Apple Notarization | Developer ID |
-| Windows | Authenticode | EV Code Signing |
-| Linux | GPG Signature | Project Key |
+| macOS | Code signing / notarization | Build dependent |
+| Windows | Code signing | Build dependent |
+| Linux | Signature verification | Build dependent |
 
 ### Update Verification
 
-The in-app updater validates signatures before applying updates:
+The in-app updater can validate updates before applying them:
 
 ```
 1. Download update package
-2. Verify SHA-256 checksum
-3. Validate code signature
-4. Apply update if all checks pass
+2. Verify update (for example: signature checks depending on configuration)
+3. Apply update if checks pass
 ```
 
 If any verification fails, the update is rejected and the user is notified.
@@ -106,15 +105,15 @@ Guardian stores these data types locally:
 
 | Data Type | Location | Encryption |
 |-----------|----------|------------|
-| Settings | App data folder | At rest (AES-256) |
-| Scan history | App data folder | At rest |
-| API credentials | System keychain | Keychain encryption |
+| Settings | App data folder | OS / filesystem dependent |
+| Scan history | App data folder | OS / filesystem dependent |
+| API credentials | System keychain | OS keychain encryption |
 
 ### Data Transmission
 
-- All API calls use HTTPS with TLS 1.3
+- API calls use HTTPS/TLS
 - No telemetry data is collected without consent
-- Scan results never leave your machine (local processing)
+- Scan results are processed locally by default; enabling external integrations may send selected context to third-party services you configure
 
 ## Content Security Policy
 
@@ -123,9 +122,10 @@ Guardian enforces strict CSP rules:
 ```
 default-src 'self';
 script-src 'self';
-connect-src https://api.anthropic.com https://api.github.com;
+style-src 'self';
 img-src 'self' data: https:;
-style-src 'self' 'unsafe-inline';
+connect-src 'self' https://api.openai.com https://api.anthropic.com https://github.com;
+img-src 'self' data: https:;
 ```
 
 This prevents:
@@ -137,12 +137,11 @@ This prevents:
 
 Found a security issue? Please report responsibly:
 
-1. **Email**: security@guardian-app.com
-2. **Expected Response**: Within 48 hours
-3. **Disclosure Timeline**: 90 days after fix
+1. Use the issue tracker for the repository you are using (or your organization's private channel if this is an internal deployment).
+2. Avoid posting exploit details publicly before a fix is available.
 
 **Do Not**:
-- Post vulnerabilities publicly before disclosure timeline
+- Post vulnerabilities publicly before a fix is available
 - Attempt to access other users' data
 - Perform destructive testing
 

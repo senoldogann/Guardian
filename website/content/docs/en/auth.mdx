@@ -16,9 +16,9 @@ Guardian supports multiple AI providers for code analysis:
 | Provider | Description | Best For |
 |----------|-------------|----------|
 | **Ollama** | Local or self-hosted models | Privacy-focused, offline use |
-| **OpenAI** | GPT models (gpt-5.2, gpt-5.3) | General purpose, fast responses |
-| **Anthropic** | Claude models (claude-sonnet-4.5, claude-haiku) | Deep code analysis, security review |
-| **Google Gemini** | Gemini models (gemini-3.0-flash, gemini-3-pro) | High speed, multimodal |
+| **OpenAI** | Hosted models | General purpose, fast responses |
+| **Anthropic** | Hosted models | Deep code analysis, security review |
+| **Google Gemini** | Hosted models | High speed, multimodal |
 | **GitHub Models** | GitHub-hosted AI models | GitHub ecosystem integration |
 
 ## Initial Setup
@@ -28,7 +28,7 @@ Guardian supports multiple AI providers for code analysis:
 1. **OpenAI**: Visit [platform.openai.com](https://platform.openai.com)
 2. **Anthropic**: Visit [console.anthropic.com](https://console.anthropic.com)
 3. **Google**: Visit [aistudio.google.com](https://aistudio.google.com)
-4. **GitHub Models**: Visit [github.com/marketplace/models](https://github.com/marketplace/models)
+4. **GitHub Models**: Create a fine-grained GitHub token with the minimum required scope (see the in-app Settings note).
 5. **Ollama**: No API key required for local installation
 
 ### Step 2: Configure in Guardian
@@ -50,9 +50,9 @@ Guardian uses platform-native secure storage:
 
 | Platform | Storage Method | Encryption |
 |----------|---------------|------------|
-| **macOS** | Keychain | AES-256 |
-| **Windows** | Credential Manager (DPAPI) | AES-256 |
-| **Linux** | Secret Service API | AES-256 |
+| **macOS** | Keychain | OS-managed |
+| **Windows** | Credential Manager (DPAPI) | OS-managed |
+| **Linux** | Secret Service API | OS-managed |
 
 > **Security Note**: API keys are never stored in plain text files or exposed in logs.
 
