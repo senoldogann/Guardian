@@ -71,7 +71,8 @@ impl BaselineManager {
             fs::create_dir_all(parent)
                 .with_context(|| format!("Failed to create baseline dir: {}", parent.display()))?;
         }
-        let payload = serde_json::to_string_pretty(baseline).context("Failed to encode baseline")?;
+        let payload =
+            serde_json::to_string_pretty(baseline).context("Failed to encode baseline")?;
         fs::write(&path, payload)
             .with_context(|| format!("Failed to write baseline file: {}", path.display()))?;
         Ok(())
@@ -94,7 +95,8 @@ impl BaselineManager {
 
         let mut findings: Vec<BaselineFinding> = Vec::new();
         for critique in critiques {
-            let normalized_path = normalize_rel_file_path(&self.workspace_root, &critique.file_path);
+            let normalized_path =
+                normalize_rel_file_path(&self.workspace_root, &critique.file_path);
             let finding_id = finding_id_for_critique(&self.workspace_root, critique, &rules_hash);
             findings.push(BaselineFinding {
                 finding_id: finding_id.clone(),
@@ -177,10 +179,7 @@ fn baseline_age_days(created_at: &str) -> u32 {
         return 0;
     };
     let dt = parsed.with_timezone(&Utc);
-    let days = Utc::now()
-        .signed_duration_since(dt)
-        .num_days()
-        .max(0);
+    let days = Utc::now().signed_duration_since(dt).num_days().max(0);
     days as u32
 }
 
@@ -226,7 +225,8 @@ fn normalize_rel_file_path(workspace_root: &Path, file_path: &str) -> String {
             .to_string();
     }
 
-    let canonical_root = dunce::canonicalize(workspace_root).unwrap_or_else(|_| workspace_root.to_path_buf());
+    let canonical_root =
+        dunce::canonicalize(workspace_root).unwrap_or_else(|_| workspace_root.to_path_buf());
     let canonical_input = dunce::canonicalize(input).unwrap_or_else(|_| input.to_path_buf());
     if let Ok(rel) = canonical_input.strip_prefix(&canonical_root) {
         return rel
@@ -239,7 +239,11 @@ fn normalize_rel_file_path(workspace_root: &Path, file_path: &str) -> String {
     file_path.trim().replace('\\', "/")
 }
 
-pub fn finding_id_for_critique(workspace_root: &Path, critique: &Critique, rules_hash: &str) -> String {
+pub fn finding_id_for_critique(
+    workspace_root: &Path,
+    critique: &Critique,
+    rules_hash: &str,
+) -> String {
     // Phase 2: Normalize paths to be portable across machines/CI.
     // We intentionally do NOT include AI message text in the ID for stability.
     let sev = critique.severity.trim().to_lowercase();
@@ -268,6 +272,7 @@ mod tests {
             chat_message: None,
             suggested_diff: None,
             finding_id: None,
+            why: None,
         }
     }
 
@@ -290,8 +295,16 @@ mod tests {
         let manager = BaselineManager::new(root.clone());
 
         let critiques = vec![
-            sample_critique(root.join("src/a.rs").to_string_lossy().as_ref(), "Critical", "A"),
-            sample_critique(root.join("src/b.rs").to_string_lossy().as_ref(), "Warning", "B"),
+            sample_critique(
+                root.join("src/a.rs").to_string_lossy().as_ref(),
+                "Critical",
+                "A",
+            ),
+            sample_critique(
+                root.join("src/b.rs").to_string_lossy().as_ref(),
+                "Warning",
+                "B",
+            ),
         ];
         let baseline = manager.create_baseline(&critiques).unwrap();
         let loaded = manager.load().unwrap().unwrap();
@@ -301,7 +314,11 @@ mod tests {
         // Current: keep one, add one new -> resolved 1, active 1, new 1.
         let current = vec![
             critiques[0].clone(),
-            sample_critique(root.join("src/c.rs").to_string_lossy().as_ref(), "Critical", "C"),
+            sample_critique(
+                root.join("src/c.rs").to_string_lossy().as_ref(),
+                "Critical",
+                "C",
+            ),
         ];
         let status = manager.status(&loaded, &current).unwrap();
         assert_eq!(status.active, 1);

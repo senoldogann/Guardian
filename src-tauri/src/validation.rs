@@ -51,6 +51,11 @@ const CRITIQUE_SCHEMA_JSON: &str = r#"{
             "type": ["string", "null"],
             "maxLength": 50000,
             "description": "Optional code diff suggestion"
+        },
+        "why": {
+            "type": ["string", "null"],
+            "maxLength": 5000,
+            "description": "Optional explanation of why this critique matters"
         }
     }
 }"#;
@@ -91,6 +96,10 @@ const BATCH_CRITIQUE_SCHEMA_JSON: &str = r#"{
             "suggested_diff": {
                 "type": ["string", "null"],
                 "maxLength": 50000
+            },
+            "why": {
+                "type": ["string", "null"],
+                "maxLength": 5000
             }
         }
     }
@@ -304,7 +313,8 @@ mod tests {
             "message": "This is a valid critique message",
             "suggestion": "Consider fixing this",
             "chat_message": null,
-            "suggested_diff": null
+            "suggested_diff": null,
+            "why": null
         }"#;
 
         let result = validate_critique(valid_json);
@@ -500,5 +510,21 @@ mod tests {
 
         let result = validate_critique(diff_json);
         assert!(result.is_ok(), "Suggested diff with valid code should pass");
+    }
+
+    #[test]
+    fn test_why_field_passes() {
+        let why_json = r#"{
+            "file_path": "/path/to/file.rs",
+            "severity": "Warning",
+            "message": "This is a valid critique message",
+            "why": "This improves accessibility by adding ARIA labels"
+        }"#;
+
+        let result = validate_critique(why_json);
+        assert!(
+            result.is_ok(),
+            "Critique with why field should pass validation"
+        );
     }
 }

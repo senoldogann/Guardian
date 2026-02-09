@@ -1437,6 +1437,7 @@ mod tests_protocol {
             chat_message: None,
             suggested_diff: None,
             finding_id: Some("finding-123".to_string()),
+            why: None,
         };
         let mut critiques = HashMap::new();
         critiques.insert(abs_str, critique);

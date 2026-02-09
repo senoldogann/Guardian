@@ -27,6 +27,8 @@ pub struct Critique {
     pub suggested_diff: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub finding_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub why: Option<String>,
 }
 
 impl AiClient {
