@@ -50,7 +50,7 @@ export default async function DocsDetailPage({ params }: Props) {
   }));
 
   // Transform headings for ProLayout TOC
-  const toc = doc.headings.map(h => ({
+  const toc = doc.headings.map((h) => ({
     title: h.text,
     url: `#${h.id}`
   }));
@@ -67,7 +67,7 @@ export default async function DocsDetailPage({ params }: Props) {
         <p className="mt-4 text-lg text-neutral-600 dark:text-neutral-400">{doc.meta.summary}</p>
       </section>
 
-      <div className="prose dark:prose-invert max-w-none">
+      <div className="prose dark:prose-invert max-w-none" data-docs-body>
         <MarkdownBlock value={doc.content} />
       </div>
     </ProLayout>
