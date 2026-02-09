@@ -177,7 +177,7 @@ export function CommandHeader() {
                         initial={{ opacity: 0, scale: 0.95, y: -20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -20 }}
-                        className="absolute top-full left-0 right-0 mt-4 p-4 rounded-3xl bg-white dark:bg-black border border-black/10 dark:border-white/10 shadow-2xl overflow-hidden md:hidden"
+                        className="absolute top-full left-0 right-0 mt-4 p-4 rounded-3xl bg-white dark:bg-black border border-black/10 dark:border-white/10 shadow-2xl overflow-hidden lg:hidden"
                     >
                         <nav aria-label="Mobile navigation" className="flex flex-col gap-2">
                             {navItems.map((item) => (

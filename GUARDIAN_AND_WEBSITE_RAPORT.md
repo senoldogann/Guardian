@@ -806,6 +806,7 @@ const THRESHOLDS = {
 ### Changelog Data Refresh
 - `releases.json` tekrar üretildi ve v1.0.0 release’e yüklendi.
 - Snapshot boşsa API fallback cache ile eski snapshot yerine güncel release listesi çekiliyor.
+- Body içeriği dosya yolu gibi görünüyorsa snapshot ve API cevapları filtreleniyor.
 
 ## ✅ Guru Context Fixes (2026-02-09)
 
@@ -893,7 +894,7 @@ const THRESHOLDS = {
 
 ---
 
-**Son Güncelleme:** 2026-02-09 03:40  
+**Son Güncelleme:** 2026-02-09 03:52  
 **Not:** Website testleri error-boundary testlerinde beklenen console error logu üretir.
 **Toplam Commit:** 10 (push edilmedi)  
 **Sonraki İşlem:** Review sonrası doğrulama ve release notları

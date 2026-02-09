@@ -256,7 +256,16 @@ export async function getLatestRelease(): Promise<GithubRelease | null> {
 export async function getReleases(limit = 20): Promise<GithubRelease[]> {
   const releases = await githubFetch<GithubRelease[]>(`/releases?per_page=${limit}`);
   if (!releases) return [];
-  return releases.filter((release) => !release.draft).map(normalizeRelease);
+  return releases
+    .filter((release) => !release.draft)
+    .filter((release) => {
+      const body = release.body?.trim() || "";
+      if (!body) return true;
+      if (body.startsWith("@/")) return false;
+      if (body.includes("/Users/") || body.includes("CHANGELOG.md")) return false;
+      return true;
+    })
+    .map(normalizeRelease);
 }
 
 // Export token security utilities for external use

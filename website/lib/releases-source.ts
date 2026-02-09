@@ -22,6 +22,15 @@ function isReleaseSnapshot(value: unknown): value is ReleaseSnapshot {
   return Array.isArray(snapshot.releases);
 }
 
+function isSnapshotUsable(releases: GithubRelease[]): boolean {
+  if (releases.length === 0) return false;
+  const suspiciousBody = releases.some((release) => {
+    const body = release.body?.trim() || "";
+    return body.startsWith("@/") || body.includes("/Users/") || body.includes("CHANGELOG.md");
+  });
+  return !suspiciousBody;
+}
+
 export async function fetchReleaseSnapshot(limit = 40): Promise<GithubRelease[]> {
   if (fallbackCache && fallbackCache.expiresAt > Date.now()) {
     return fallbackCache.releases.slice(0, limit);
@@ -37,7 +46,7 @@ export async function fetchReleaseSnapshot(limit = 40): Promise<GithubRelease[]>
         const releases = json.releases
           .filter((release) => !release.draft)
           .slice(0, limit);
-        if (releases.length > 0) {
+        if (isSnapshotUsable(releases)) {
           fallbackCache = {
             expiresAt: Date.now() + FALLBACK_TTL_MS,
             releases,
@@ -51,7 +60,7 @@ export async function fetchReleaseSnapshot(limit = 40): Promise<GithubRelease[]>
   }
 
   const releases = await getReleases(limit);
-  if (releases.length > 0) {
+  if (isSnapshotUsable(releases)) {
     fallbackCache = {
       expiresAt: Date.now() + FALLBACK_TTL_MS,
       releases,
