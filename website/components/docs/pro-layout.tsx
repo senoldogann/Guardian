@@ -178,8 +178,8 @@ function SidebarContent({
     onItemClick?: () => void;
 }) {
     return (
-        <div className="h-full overflow-hidden">
-            <div className="p-4 hidden lg:block">
+        <div className="h-full flex flex-col">
+            <div className="p-4 hidden lg:block flex-shrink-0">
                 <h2 className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest flex items-center gap-2">
                     <FolderOpen className="w-3 h-3" aria-hidden="true" />
                     Sections
