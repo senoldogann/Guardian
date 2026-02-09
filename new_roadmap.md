@@ -41,6 +41,11 @@ Geliştirme ortamını hazırlamak, mevcut kodu bozmadan yeni modülleri izole e
    └── main.rs
    ```
 
+   **Net karar:**
+   - Rust modülleri: `guardian/src-tauri/src/<mod>/`
+   - Desktop UI: `guardian/src/`
+   - Website: `guardian/website/`
+
 4. **Minimum Redaction Gate (Phase 0'da - Kritik!)**
    ```rust
    // src-tauri/src/redaction/gate.rs
@@ -99,13 +104,13 @@ Tekrarlayan bulguları filtrelemek, sadece "yeni ve regresyon" olanları göster
   "workspace_id": "sha256(/path/to/workspace)",
   "rules_hash": "sha256(rules.md content)",
   "finding_ids": [
-    "sha256(rule_id + file_path + location_fingerprint)",
+    "sha256(rule_id + file_path + location_fingerprint + rules_hash)",
     "..."
   ]
 }
 ```
 
-**Not:** `finding_id` AI message'ine değil, **deterministik rule_id + file_path + location**'a dayanır. AI model/prompt değişse bile aynı issue aynı ID'yi alır.
+**Not:** `finding_id` AI message'ine değil, **deterministik rule_id + file_path + location_fingerprint + rules_hash**'a dayanır. AI model/prompt değişse bile aynı issue aynı ID'yi alır.
 
 #### 1.2 Yeni Modül: `baseline.rs`
 
@@ -302,7 +307,7 @@ jobs:
 
 #### 2.3 SARIF Formatı
 
-**Mapping:**
+**Mapping (v1 netleştirildi):**
 ```json
 {
   "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
@@ -316,7 +321,7 @@ jobs:
     },
     "results": [{
       "ruleId": "security-vulnerability",
-      "level": "error",  // critical -> error, warning -> warning
+      "level": "error",  // mapping: critical->error, warning->warning, info->note
       "message": { "text": "Raw SQL detected..." },
       "locations": [{
         "physicalLocation": {
@@ -330,6 +335,15 @@ jobs:
   }]
 }
 ```
+
+**RuleId Mapping:**
+- `ruleId` = internal rule_id (deterministic)
+- Eğer rule_id yoksa: `guardian-unknown-rule`
+
+**Severity Mapping:**
+- critical -> error
+- warning -> warning
+- info -> note
 
 #### 2.4 Pre-commit Hook (Opsiyonel)
 
@@ -440,7 +454,7 @@ pub fn contains_secrets(content: &str) -> Vec<SecretMatch> {
 
 **Migration Notu:** Mevcut history formatı farklı. Phase 3'te mevcut loglar `history.v0.jsonl` olarak archive edilecek, yeni schema `history.jsonl` olarak başlayacak. Watcher yeni formatı kullanacak.
 
-**Yeni Schema (v1):
+**Yeni Schema (v1):**
 ```json
 {
   "timestamp": "2026-02-09T10:00:00Z",
@@ -512,7 +526,7 @@ Mevcut `.guardian/` protokolünü stabilize etmek ve AI için makine okunur `cri
   "rules_hash": "sha256(...)",
   "critiques": [
     {
-      "finding_id": "sha256(rule_id|file_path|location)",
+      "finding_id": "sha256(rule_id|file_path|location|rules_hash)",
       "file_path": "src/db.rs",
       "severity": "critical",
       "category": "security",
@@ -569,10 +583,10 @@ Mevcut `.guardian/` protokolünü stabilize etmek ve AI için makine okunur `cri
 - `AGENT_INSTRUCTIONS.md` - AI kuralları ve protokol dokümantasyonu
 - Finding ID stabilizasyonu (deterministik):
   ```rust
-  fn finding_id(rule_id: &str, file: &str, location: Option<usize>) -> String {
+  fn finding_id(rule_id: &str, file: &str, location: Option<usize>, rules_hash: &str) -> String {
       // AI message'i değişken olduğu için rule_id kullan
       let loc = location.map(|l| l.to_string()).unwrap_or_default();
-      let normalized = format!("{}|{}|{}", rule_id, file, loc);
+      let normalized = format!("{}|{}|{}|{}", rule_id, file, loc, rules_hash);
       sha256(normalized)
   }
   ```
@@ -614,6 +628,10 @@ AI veya kullanıcının fix önerilerini güvenli bir şekilde review edip uygul
 #### 5.1 Fix Proposal Sistemi
 
 **Yeni Dosya:** `.guardian/fix_proposals.jsonl`
+
+**Önemli:** watcher.rs şu an `.guardian/` altını ignore ediyor. Bu yüzden Phase 5'te iki seçenekten biri netleşmeli:
+1) `.guardian/fix_proposals.jsonl` için **istisna** (chat.md gibi) ekle
+2) Fix proposals dosyasını `.guardian/` dışında, örn. `.guardian-proposals/` altında tut
 
 **Schema:**
 ```json
@@ -709,8 +727,8 @@ pub fn apply_proposal(proposal: &FixProposal) -> Result<()> {
     // 5. Derleme kontrolü (opsiyonel ama önerilir)
     // Önce temp dosyaya yaz, cargo check çalıştır, başarılıysa gerçek dosyaya uygula
     
-    // 5. Apply
-    apply_diff(&proposal.file_path, &proposal.diff)?;
+    // 5. Apply (full-file-content)
+    apply_full_file(&proposal.file_path, &proposal.proposed_content)?;
     
     Ok(())
 }
@@ -772,6 +790,15 @@ pub fn apply_proposal(proposal: &FixProposal) -> Result<()> {
 ---
 
 ## Teknik Detaylar
+
+### Pipeline Kaynağı (Source of Truth)
+
+**Net karar:**
+- **Watcher pipeline** (watcher.rs) = **source of truth** (GUI / realtime)
+- **Orchestrator pipeline** (orchestrator.rs) = **ek analiz / event-bus**, baseline ve CI için tek kaynak değil
+- **CLI** (guardian-cli) = watcher ile aynı rule/finding_id mantığını kullanır, fakat headless
+
+Bu ayrım planın her fazında korunur; baseline, finding_id, critiques.json her zaman watcher pipeline'dan üretilir.
 
 ### Veri Akış Diyagramı
 
@@ -837,7 +864,7 @@ interface GuardianContextType {
 }
 ```
 
-### Dosya Yapısı (Son Hali)
+### Dosya Yapısı (Son Hali) - Repo ile Uyumlu
 
 ```
 guardian/
