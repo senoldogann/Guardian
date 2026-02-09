@@ -70,10 +70,20 @@ pub fn mask_inline_secrets(content: &str) -> String {
         static ref PRIVATE_KEY_BLOCK: Regex = Regex::new(r"(?s)-----BEGIN[ A-Z0-9_-]*PRIVATE KEY-----.*?-----END[ A-Z0-9_-]*PRIVATE KEY-----").unwrap();
         static ref JWT: Regex = Regex::new(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b").unwrap();
 
+        // Redaction is not validation; we bias toward masking while avoiding extremely broad matches.
         static ref EMAIL_RE: Regex =
-            Regex::new(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}").unwrap();
-        static ref PHONE_RE: Regex = Regex::new(
-            r"\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"
+            Regex::new(r"[\p{L}0-9._%+-]+@[\p{L}0-9.-]+\.[\p{L}0-9-]{2,}").unwrap();
+
+        // E.164-ish: +<digits> with optional separators. We validate digit count in replacement.
+        static ref PHONE_E164: Regex = Regex::new(r"\+\d[\d\s().-]{6,}\d").unwrap();
+        // North America (NANP): requires separators/parentheses to reduce false positives.
+        static ref PHONE_NANP: Regex = Regex::new(
+            r"(?:\+?1[-.\s]?)?(?:\(\d{3}\)|\d{3})[-.\s]\d{3}[-.\s]\d{4}\b"
+        )
+        .unwrap();
+        // Turkey mobile: 05xx xxx xx xx (optional separators, optional leading 0).
+        static ref PHONE_TR_MOBILE: Regex = Regex::new(
+            r"\b0?5\d{2}[\s().-]?\d{3}[\s().-]?\d{2}[\s().-]?\d{2}\b"
         )
         .unwrap();
 
@@ -133,7 +143,21 @@ pub fn mask_inline_secrets(content: &str) -> String {
         .to_string();
 
     filtered = EMAIL_RE.replace_all(&filtered, "[REDACTED_EMAIL]").to_string();
-    filtered = PHONE_RE.replace_all(&filtered, "[REDACTED_PHONE]").to_string();
+    filtered = PHONE_E164
+        .replace_all(&filtered, |caps: &regex::Captures| {
+            let raw = caps.get(0).map(|m| m.as_str()).unwrap_or("");
+            let digits = raw.chars().filter(|c| c.is_ascii_digit()).count();
+            if (7..=15).contains(&digits) {
+                "[REDACTED_PHONE]".to_string()
+            } else {
+                raw.to_string()
+            }
+        })
+        .to_string();
+    filtered = PHONE_NANP.replace_all(&filtered, "[REDACTED_PHONE]").to_string();
+    filtered = PHONE_TR_MOBILE
+        .replace_all(&filtered, "[REDACTED_PHONE]")
+        .to_string();
 
     filtered
 }
@@ -191,5 +215,25 @@ mod tests {
         let masked = mask_inline_secrets(input);
         assert!(masked.contains("[REDACTED_JWT]"));
         assert!(!masked.contains("eyJhbGciOiJIUzI1Ni"));
+    }
+
+    #[test]
+    fn masks_unicode_emails() {
+        let input = "contact: çağrı@örnek.com and test@xn--rnek-0ra.com";
+        let masked = mask_inline_secrets(input);
+        assert!(masked.contains("[REDACTED_EMAIL]"));
+        assert!(!masked.contains("çağrı@örnek.com"));
+        assert!(!masked.contains("test@xn--rnek-0ra.com"));
+    }
+
+    #[test]
+    fn masks_phone_numbers_international_and_tr() {
+        let input = "Call +90 532 123 45 67, 0532 123 45 67, or (415) 555-2671";
+        let masked = mask_inline_secrets(input);
+        let count = masked.matches("[REDACTED_PHONE]").count();
+        assert!(count >= 3, "expected 3 phone redactions, got {count}: {masked}");
+        assert!(!masked.contains("+90 532 123 45 67"));
+        assert!(!masked.contains("0532 123 45 67"));
+        assert!(!masked.contains("(415) 555-2671"));
     }
 }

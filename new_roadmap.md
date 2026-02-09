@@ -572,6 +572,12 @@ pub fn contains_secrets(content: &str) -> Vec<SecretMatch> {
   - `cd src-tauri && cargo test` (pass)
   - `npm test` (pass)
 
+### Phase 3 - Follow-up (2026-02-09)
+- PII redaction iyilestirmeleri: `src-tauri/src/redaction/gate.rs`
+  - Telefon masking: E.164 (+...), TR mobil (05xx ...), NANP ((415) 555-2671 gibi) kapsami eklendi
+  - Unicode email redaction: Turkce karakterler ve IDN/punycode senaryolari icin test eklendi
+- Not: Unchanged file'lar zaten hash kontrolu ile audit edilmeden atlanir (tekrar redaction maliyeti dusuk).
+
 ---
 
 ## Phase 4: Agent Protocol Stabilizasyonu (2-3 Hafta)
