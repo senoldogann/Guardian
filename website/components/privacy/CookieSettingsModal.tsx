@@ -122,7 +122,7 @@ export function CookieSettingsModal() {
                                 <Button
                                     variant="ghost"
                                     onClick={handleReset}
-                                    className="rounded-xl h-11 px-6 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                                    className="rounded-xl h-11 px-6 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800"
                                 >
                                     Reset Consent
                                 </Button>

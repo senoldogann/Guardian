@@ -103,7 +103,7 @@ export function CommandHeader() {
                 </Link>
 
                 {/* Desktop Nav */}
-                <nav aria-label="Main navigation" className="hidden lg:flex items-center gap-0.5 flex-shrink min-w-0">
+                <nav aria-label="Main navigation" className="hidden lg:flex items-center gap-0.5 flex-1 justify-center">
                     {navItems.map((item) => {
                         const active = isActive(item.href);
                         return (

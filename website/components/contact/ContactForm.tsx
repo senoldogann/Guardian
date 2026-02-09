@@ -24,7 +24,7 @@ const SUBJECT_OPTIONS = [
 ];
 
 export function ContactForm() {
-    const [selectedTopic, setSelectedTopic] = useState<string>(SUBJECT_OPTIONS[0].id);
+    const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
     const [message, setMessage] = useState("");
     const [files, setFiles] = useState<File[]>([]);
     const [isSending, setIsSending] = useState(false);
@@ -44,13 +44,15 @@ export function ContactForm() {
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
+        if (!selectedTopic) return;
         setIsSending(true);
 
         // Mimic loading for better UX
         await new Promise(resolve => setTimeout(resolve, 800));
 
         const topic = SUBJECT_OPTIONS.find(t => t.id === selectedTopic);
-        const subject = `${topic?.subjectPrefix} Guardian Feedback`;
+        const subjectPrefix = topic?.subjectPrefix ?? "Message: ";
+        const subject = `${subjectPrefix}Guardian Feedback`;
 
         // Prepare mailto link
         const mailtoLink = `mailto:contact@senoldogan.dev?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
@@ -82,12 +84,12 @@ export function ContactForm() {
                             role="radio"
                             aria-checked={selectedTopic === option.id}
                             aria-label={option.label}
-                            className={cn(
-                                "flex items-center gap-3 p-4 rounded-xl border text-left transition-all duration-200",
-                                selectedTopic === option.id
-                                    ? "border-black dark:border-white bg-black/5 dark:bg-white/5 ring-1 ring-black dark:ring-white"
-                                    : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 bg-white dark:bg-black"
-                            )}
+                        className={cn(
+                            "flex items-center gap-3 p-4 rounded-xl border text-left transition-all duration-200",
+                            selectedTopic === option.id
+                                ? "border-black dark:border-white bg-black/5 dark:bg-white/5 ring-1 ring-black dark:ring-white"
+                                : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 bg-white dark:bg-black"
+                        )}
                         >
                             <div className={cn(
                                 "p-2 rounded-lg",
@@ -142,7 +144,7 @@ export function ContactForm() {
                         type="button"
                         variant="outline"
                         onClick={() => fileInputRef.current?.click()}
-                        className="gap-2 border-dashed hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-black dark:hover:text-white hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+                        className="gap-2 border-dashed border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 bg-white dark:bg-zinc-950 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-300 dark:hover:border-zinc-600 transition-colors"
                     >
                         <Paperclip className="w-4 h-4" aria-hidden="true" />
                         Attach Files
@@ -192,8 +194,8 @@ export function ContactForm() {
             <Button
                 type="submit"
                 size="lg"
-                disabled={!message.trim() || isSending}
-                aria-disabled={!message.trim() || isSending}
+                disabled={!message.trim() || !selectedTopic || isSending}
+                aria-disabled={!message.trim() || !selectedTopic || isSending}
                 className="w-full h-12 text-base font-semibold gap-2 bg-black text-white dark:bg-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-all rounded-xl"
             >
                 {isSending ? (
