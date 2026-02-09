@@ -41,10 +41,10 @@ const featureBlocks: LocalizedBlock[] = [
 
 export function FeaturesSection() {
     return (
-        <section className="py-24 md:py-32 relative overflow-x-hidden bg-white dark:bg-black transition-colors duration-300">
+        <section className="py-24 md:py-32 relative bg-white dark:bg-black transition-colors duration-300">
             <div className="absolute inset-0 bg-white dark:bg-black" />
 
-            <div className="container px-4 sm:px-6 lg:px-8 mx-auto relative z-10 overflow-x-hidden">
+            <div className="container px-4 sm:px-6 lg:px-8 mx-auto relative z-10">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
