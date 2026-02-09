@@ -6,7 +6,8 @@ static OPENAI_KEY: Lazy<Regex> = Lazy::new(|| Regex::new(r"sk-[A-Za-z0-9]{16,}")
 static GITHUB_TOKEN: Lazy<Regex> = Lazy::new(|| Regex::new(r"gh[pousr]_[A-Za-z0-9]{20,}").unwrap());
 static ANTHROPIC_KEY: Lazy<Regex> = Lazy::new(|| Regex::new(r"sk-ant-[A-Za-z0-9\\-_]{16,}").unwrap());
 static AWS_ACCESS_KEY: Lazy<Regex> = Lazy::new(|| Regex::new(r"AKIA[0-9A-Z]{16}").unwrap());
-static EMAIL: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?i)\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b").unwrap());
+static EMAIL: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b").unwrap());
 
 pub fn is_sensitive_file(path: &Path) -> bool {
     const SENSITIVE_NAMES: &[&str] = &[
@@ -89,3 +90,15 @@ fn redact_private_key_blocks(content: &str) -> String {
     out
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn masks_email_addresses() {
+        let input = "Contact: test@example.com";
+        let out = mask_inline_secrets(input);
+        assert!(out.contains("[REDACTED_EMAIL]"));
+        assert!(!out.contains("test@example.com"));
+    }
+}

@@ -416,6 +416,10 @@ repos:
   - Composite action: `.github/actions/guardian/action.yml`
   - Workflow (SARIF upload): `.github/workflows/guardian-scan.yml`
 - Repo hygiene: yanlışlıkla commit edilen `guardian-cli/target/` artifact'leri kaldırıldı ve `target/` ignore eklendi.
+- Small follow-ups:
+  - SARIF `$schema` URL artık resmi OASIS endpoint'ini kullanıyor.
+  - Email redaction regex'i düzeltildi ve unit test eklendi.
+  - GitHub composite action input validation eklendi (format/max_files/max_file_bytes/offline/mock).
 - Tests:
   - `cd src-tauri && cargo test` (pass)
   - `cd guardian-cli && cargo test` (pass)

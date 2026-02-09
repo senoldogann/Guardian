@@ -162,7 +162,7 @@ fn render_sarif(report: &ScanReport) -> Result<String> {
     }
 
     let sarif = serde_json::json!({
-        "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+        "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
         "version": "2.1.0",
         "runs": [{
             "tool": { "driver": { "name": "Guardian", "version": env!("CARGO_PKG_VERSION") } },
@@ -172,4 +172,3 @@ fn render_sarif(report: &ScanReport) -> Result<String> {
 
     Ok(serde_json::to_string_pretty(&sarif)?)
 }
-

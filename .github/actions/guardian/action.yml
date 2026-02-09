@@ -77,6 +77,27 @@ runs:
         ACTION_ROOT="$(cd "$GITHUB_ACTION_PATH/../../.." && pwd)"
         CLI="$ACTION_ROOT/guardian-cli/target/release/guardian-cli"
 
+        if ! [[ "${{ inputs.format }}" =~ ^(json|sarif|markdown)$ ]]; then
+          echo "guardian action: invalid format='${{ inputs.format }}' (expected json|sarif|markdown)" >&2
+          exit 2
+        fi
+        if ! [[ "${{ inputs.max_files }}" =~ ^[0-9]+$ ]] || [[ "${{ inputs.max_files }}" -lt 1 ]]; then
+          echo "guardian action: invalid max_files='${{ inputs.max_files }}' (expected integer >= 1)" >&2
+          exit 2
+        fi
+        if ! [[ "${{ inputs.max_file_bytes }}" =~ ^[0-9]+$ ]] || [[ "${{ inputs.max_file_bytes }}" -lt 1 ]]; then
+          echo "guardian action: invalid max_file_bytes='${{ inputs.max_file_bytes }}' (expected integer >= 1)" >&2
+          exit 2
+        fi
+        if ! [[ "${{ inputs.offline }}" =~ ^(true|false)$ ]]; then
+          echo "guardian action: invalid offline='${{ inputs.offline }}' (expected true|false)" >&2
+          exit 2
+        fi
+        if ! [[ "${{ inputs.mock }}" =~ ^(true|false)$ ]]; then
+          echo "guardian action: invalid mock='${{ inputs.mock }}' (expected true|false)" >&2
+          exit 2
+        fi
+
         args=(scan --root "${{ inputs.root }}" --format "${{ inputs.format }}" --max-files "${{ inputs.max_files }}" --max-file-bytes "${{ inputs.max_file_bytes }}")
 
         if [[ -n "${{ inputs.out }}" ]]; then
