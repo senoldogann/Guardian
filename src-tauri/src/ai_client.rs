@@ -59,6 +59,9 @@ impl AiClient {
     }
 
     fn ensure_valid_api_key(&self) -> Result<()> {
+        if self.provider_id == "mock" {
+            return Ok(());
+        }
         if config::is_placeholder_key(self.api_key.expose_secret()) && config::is_production() {
             anyhow::bail!("GUARDIAN_API_KEY is missing or still a placeholder");
         }
@@ -100,14 +103,30 @@ impl AiClient {
         user_prompt: &str,
         json_mode: bool,
     ) -> Result<String> {
+        let safe_user_prompt = crate::redaction::gate::mask_inline_secrets(user_prompt);
         let provider = self.provider_id.as_str();
         match provider {
+            "mock" => {
+                if json_mode {
+                    let is_batch = system_prompt.contains("JSON ARRAY MODE")
+                        || safe_user_prompt.starts_with("Batch Analysis Request");
+                    if is_batch {
+                        return Ok("[]".to_string());
+                    }
+                    return Ok(
+                        r#"{"file_path":"src/mock.ts","severity":"Info","message":"LGTM","suggestion":null,"chat_message":null,"suggested_diff":null}"#
+                            .to_string(),
+                    );
+                }
+
+                Ok("MOCK: OK".to_string())
+            }
             "ollama" => {
                 let mut payload = json!({
                     "model": self.model,
                     "messages": [
                         { "role": "system", "content": system_prompt },
-                        { "role": "user", "content": user_prompt }
+                        { "role": "user", "content": safe_user_prompt }
                     ],
                     "stream": false
                 });
@@ -141,7 +160,7 @@ impl AiClient {
                     "model": self.model,
                     "messages": [
                         { "role": "system", "content": system_prompt },
-                        { "role": "user", "content": user_prompt }
+                        { "role": "user", "content": safe_user_prompt }
                     ],
                     "temperature": 0.2
                 });
@@ -173,7 +192,7 @@ impl AiClient {
                     "max_tokens": 2048,
                     "system": system_prompt,
                     "messages": [
-                        { "role": "user", "content": user_prompt }
+                        { "role": "user", "content": safe_user_prompt }
                     ]
                 });
                 let url = format!("{}/messages", self.base_url.trim_end_matches('/'));
@@ -213,7 +232,7 @@ impl AiClient {
                         "parts": [{ "text": system_prompt }]
                     },
                     "contents": [
-                        { "role": "user", "parts": [{ "text": user_prompt }] }
+                        { "role": "user", "parts": [{ "text": safe_user_prompt }] }
                     ]
                 });
                 let url = format!(
@@ -254,7 +273,7 @@ impl AiClient {
                     "model": self.model,
                     "messages": [
                         { "role": "system", "content": system_prompt },
-                        { "role": "user", "content": user_prompt }
+                        { "role": "user", "content": safe_user_prompt }
                     ]
                 });
                 if json_mode {

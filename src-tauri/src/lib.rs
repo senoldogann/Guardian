@@ -3,6 +3,10 @@ mod watcher;
 // V2 Modules
 mod auth;
 mod config;
+mod baseline;
+mod ci;
+mod agent_protocol;
+mod redaction;
 mod context;
 mod executor;
 mod history_logger;

@@ -143,6 +143,18 @@ pub fn resolve_provider_config(app: &AppHandle) -> Result<ProviderConfig, String
     let mut config = load_provider_config(app)?;
     config = apply_defaults(config);
     match config.provider_id.as_str() {
+        "mock" => {
+            let enabled = cfg!(debug_assertions)
+                || std::env::var("GUARDIAN_MOCK")
+                    .ok()
+                    .is_some_and(|v| v.trim() == "1");
+            if enabled {
+                Ok(config)
+            } else {
+                Err("Provider 'mock' is only available when GUARDIAN_MOCK=1 (test/dev only)."
+                    .to_string())
+            }
+        }
         "ollama" | "ollama-cloud" | "openai" | "anthropic" | "gemini" | "github-models" => {
             Ok(config)
         }
@@ -350,6 +362,7 @@ pub async fn list_provider_models(
     api_key: Option<String>,
 ) -> Result<Vec<String>, String> {
     let models = match config.provider_id.as_str() {
+        "mock" => Ok(vec!["mock".to_string()]),
         "ollama" => list_ollama_models(&config.base_url).await,
         "ollama-cloud" => {
             // Ollama Cloud uses same API format but may require auth

@@ -1036,57 +1036,12 @@ fn build_prompt_data(items: &[BatchItem]) -> (Vec<(String, String)>, u64, HashMa
     (prompt_data, estimated_tokens, hash_by_path)
 }
 
-const SENSITIVE_FILE_NAMES: &[&str] = &[
-    ".env",
-    ".env.local",
-    ".env.production",
-    "config.json",
-    "secrets.yaml",
-    "secrets.yml",
-    ".credentials",
-    "credentials.json",
-];
-const SENSITIVE_EXTENSIONS: &[&str] = &["key", "pem", "p12", "pfx", "pkcs12", "jks", "keystore"];
-
 fn should_exclude_file(path: &Path) -> bool {
-    if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
-        if SENSITIVE_FILE_NAMES
-            .iter()
-            .any(|&name| file_name == name || file_name.ends_with(name))
-        {
-            return true;
-        }
-    }
-    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-        if SENSITIVE_EXTENSIONS
-            .iter()
-            .any(|&e| ext.eq_ignore_ascii_case(e))
-        {
-            return true;
-        }
-    }
-    false
+    crate::redaction::gate::is_sensitive_file(path)
 }
 
 fn filter_pii(content: &str) -> String {
-    use regex::Regex;
-    lazy_static::lazy_static! {
-        static ref API_KEY_RE: Regex = Regex::new(r"[A-Za-z0-9_-]{20,}").unwrap();
-        static ref EMAIL_RE: Regex = Regex::new(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}").unwrap();
-        static ref PHONE_RE: Regex = Regex::new(r"\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b").unwrap();
-    }
-
-    let mut filtered = content.to_string();
-    filtered = API_KEY_RE
-        .replace_all(&filtered, "[REDACTED_API_KEY]")
-        .to_string();
-    filtered = EMAIL_RE
-        .replace_all(&filtered, "[REDACTED_EMAIL]")
-        .to_string();
-    filtered = PHONE_RE
-        .replace_all(&filtered, "[REDACTED_PHONE]")
-        .to_string();
-    filtered
+    crate::redaction::gate::mask_inline_secrets(content)
 }
 
 fn truncate_content(content: &str) -> String {

@@ -78,9 +78,22 @@ Geliştirme ortamını hazırlamak, mevcut kodu bozmadan yeni modülleri izole e
    - **Hedef:** Phase 0'dan itibaren "Zero Trust: secret asla AI'a gitmez"
 
 ### Acceptance Criteria
-- [ ] `cargo test` başarılı
-- [ ] Yeni modüller mevcut watcher'ı bozmuyor
-- [ ] Branch merge conflict yok
+- [x] `cargo test` başarılı
+- [x] Yeni modüller mevcut watcher'ı bozmuyor
+- [x] Branch merge conflict yok
+
+### Phase 0 - Implemented (2026-02-09)
+- Branch created: `feature/roadmap-stable`
+- Added minimum redaction gate: `src-tauri/src/redaction/gate.rs`
+- Integrated redaction into:
+  - `src-tauri/src/watcher.rs` (sensitive file skip + inline masking)
+  - `src-tauri/src/ai_client.rs` (mask before outbound prompt)
+- Added mock AI provider for CI/dev: provider `mock` (enabled by `GUARDIAN_MOCK=1`)
+- Added module skeletons: `src-tauri/src/baseline/`, `src-tauri/src/ci/`, `src-tauri/src/agent_protocol/`
+- Added fixture workspace: `fixtures/test-project/`
+- Tests:
+  - `cd src-tauri && cargo test` (pass)
+  - `npm test` (pass)
 
 ---
 
