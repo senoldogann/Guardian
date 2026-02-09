@@ -27,7 +27,7 @@ tauri = { version = "2.0.0", features = [] }
 tauri-plugin-opener = "2.0.0"
 serde = { version = "1.0.200", features = ["derive"] }
 serde_json = "1.0.120"
-notify = "7.0.0"
+notify = "8.2.0"
 reqwest = { version = "0.12.5", features = ["json", "rustls-tls"] }
 tokio = { version = "1.35.0", features = ["full"] }
 tempfile = "3.10.0"
