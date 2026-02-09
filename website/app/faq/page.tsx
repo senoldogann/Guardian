@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const faqCategories = [
   {
@@ -133,6 +133,39 @@ const faqCategories = [
 export default function FAQPage() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  // Handle sticky positioning to stop at footer
+  useEffect(() => {
+    const handleScroll = () => {
+      const footer = document.querySelector('footer');
+      const sidebar = document.querySelector('aside');
+
+      if (!footer || !sidebar) return;
+
+      const sidebarContent = sidebar.firstElementChild as HTMLElement;
+      if (!sidebarContent) return;
+
+      const footerRect = footer.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+
+      // Calculate distance to footer
+      const distanceToFooter = footerRect.top - windowHeight;
+
+      // If footer is entering viewport or we're past it
+      if (distanceToFooter < 0) {
+        sidebarContent.style.maxHeight = `calc(100vh - 8rem - ${Math.abs(distanceToFooter)}px)`;
+      } else {
+        sidebarContent.style.maxHeight = 'calc(100vh - 8rem)';
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('resize', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-white dark:bg-black">
       <div className="mx-auto max-w-6xl px-4 pt-28 pb-20">
@@ -149,19 +182,19 @@ export default function FAQPage() {
           </p>
         </section>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-10 overflow-x-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-10 overflow-x-hidden relative">
           <aside className="hidden lg:block self-start">
-            <div className="sticky top-28 w-60 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white/80 dark:bg-neutral-950/50 backdrop-blur p-5 max-h-[calc(100vh-10rem)] overflow-y-auto">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
+            <div className="sticky top-28 w-60 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white/50 dark:bg-neutral-950/30 backdrop-blur p-1 max-h-[calc(100vh-10rem)] overflow-y-auto transition-all duration-200">
+              <div className="px-4 py-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
                 <FolderOpen className="h-4 w-4" aria-hidden="true" />
                 Categories
               </div>
-              <div className="mt-4 space-y-2">
+              <div className="space-y-1">
                 {faqCategories.filter(c => c.id !== "pricing").map((cat) => (
                   <a
                     key={cat.id}
                     href={`#${cat.id}`}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
+                    className="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium text-neutral-600 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-900 shadow-sm border border-transparent hover:border-neutral-200 dark:hover:border-neutral-800 transition-all"
                   >
                     <cat.icon className="h-4 w-4" aria-hidden="true" />
                     <span>{cat.title}</span>
@@ -173,27 +206,29 @@ export default function FAQPage() {
 
           <main className="lg:ml-0 relative">
             {/* Mobile Navigation Bar - Fixed position like docs */}
-            <div className="lg:hidden fixed left-0 right-0 top-20 z-40 px-4 py-3 bg-neutral-50/95 dark:bg-neutral-900/95 border-y border-neutral-200 dark:border-neutral-800 backdrop-blur-sm">
+            <div className="lg:hidden fixed left-4 right-4 top-24 z-40 flex items-center">
               <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
                 <SheetTrigger asChild>
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2 w-full justify-start bg-white/90 dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100/80 dark:hover:bg-neutral-900 hover:border-neutral-300 dark:hover:border-neutral-700 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
+                    className="w-full h-10 gap-2 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-sm hover:bg-white dark:hover:bg-neutral-900 rounded-xl justify-between px-4"
                   >
-                    <Menu className="w-4 h-4" aria-hidden="true" />
-                    <span className="text-sm">Browse FAQ Sections</span>
+                    <div className="flex items-center gap-2">
+                      <Menu className="w-4 h-4" aria-hidden="true" />
+                      <span className="text-sm font-medium">Browse FAQ Sections</span>
+                    </div>
+                    <ChevronDown className="w-4 h-4 opacity-50" />
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-80 p-0 bg-white dark:bg-black border-r border-neutral-200 dark:border-neutral-800">
-                  <SheetHeader className="p-4 border-b border-neutral-200 dark:border-neutral-800">
+                  <SheetHeader className="p-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50">
                     <SheetTitle className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-neutral-600 dark:text-neutral-400">
                       <FolderOpen className="w-4 h-4" aria-hidden="true" />
                       FAQ Sections
                     </SheetTitle>
                   </SheetHeader>
                   <ScrollArea className="h-[calc(100vh-5rem)] p-4">
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       {faqCategories.filter(c => c.id !== "pricing").map((cat) => (
                         <a
                           key={cat.id}
@@ -216,7 +251,7 @@ export default function FAQPage() {
               {faqCategories.filter(c => c.id !== "pricing").map((category) => (
                 <section key={category.id} id={category.id} className="scroll-mt-32">
                   <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-neutral-900 dark:bg-white flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-neutral-900 dark:bg-white flex items-center justify-center shadow-lg shadow-neutral-900/10 dark:shadow-white/10">
                       <category.icon className="w-5 h-5 text-white dark:text-black" />
                     </div>
                     <h2 className="text-2xl font-semibold text-neutral-950 dark:text-white">
@@ -228,15 +263,15 @@ export default function FAQPage() {
                     {category.questions.map((item, idx) => (
                       <details
                         key={idx}
-                        className="group rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/90 dark:bg-neutral-950/60 backdrop-blur"
+                        className="group rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950/40 backdrop-blur shadow-sm hover:shadow-md transition-all duration-300"
                       >
-                        <summary className="flex items-center justify-between p-6 cursor-pointer list-none hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors">
-                          <span className="font-semibold text-neutral-950 dark:text-white pr-4">{item.q}</span>
-                          <span className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center group-open:bg-neutral-900 dark:group-open:bg-white transition-colors">
-                            <ChevronDown className="w-5 h-5 text-neutral-600 dark:text-neutral-400 group-open:text-white dark:group-open:text-black group-open:rotate-180 transition-all" />
+                        <summary className="flex items-center justify-between p-6 cursor-pointer list-none">
+                          <span className="font-semibold text-neutral-950 dark:text-white pr-4 group-hover:text-neutral-700 dark:group-hover:text-neutral-200 transition-colors">{item.q}</span>
+                          <span className="flex-shrink-0 w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center group-open:bg-neutral-900 dark:group-open:bg-white transition-all group-hover:bg-neutral-200 dark:group-hover:bg-neutral-700">
+                            <ChevronDown className="w-5 h-5 text-neutral-600 dark:text-neutral-400 group-open:text-white dark:group-open:text-black group-open:rotate-180 transition-transform duration-300" />
                           </span>
                         </summary>
-                        <div className="px-6 pb-6 text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                        <div className="px-6 pb-6 text-neutral-600 dark:text-neutral-400 leading-relaxed text-base border-t border-transparent group-open:border-neutral-100 dark:group-open:border-neutral-800 pt-0 group-open:pt-4 transition-all">
                           {item.a}
                         </div>
                       </details>

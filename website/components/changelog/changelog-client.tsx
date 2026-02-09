@@ -55,7 +55,7 @@ export function ChangelogClient({ dict, groups }: Props) {
           {dict.changelog.description}
         </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-2" role="group" aria-label="Changelog filters">
+        <div className="mt-8 flex flex-wrap items-center gap-2" role="group" aria-label="Changelog filters">
           {filterItems.map((item) => (
             <button
               key={item.key}
@@ -144,30 +144,30 @@ export function ChangelogClient({ dict, groups }: Props) {
                         <div className="mt-6 grid gap-4">
                           {release.sections.length > 0
                             ? release.sections.map((section, sectionIndex) => (
-                                <div
-                                  key={`${release.id}-${section.title}-${sectionIndex}`}
-                                  className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-950/50 p-4"
-                                >
-                                  <h4 className="text-sm font-semibold text-neutral-900 dark:text-white">
-                                    {section.title || dict.changelog.sections}
-                                  </h4>
-                                  <ul className="mt-3 space-y-2 text-sm text-neutral-700 dark:text-neutral-300">
-                                    {section.items.map((item, index) => (
-                                      <li key={`${release.id}-${section.title}-${index}`} className="flex gap-2">
-                                        <span className="mt-2 h-1.5 w-1.5 rounded-full bg-neutral-400 dark:bg-neutral-500" />
-                                        <span>{item}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              ))
+                              <div
+                                key={`${release.id}-${section.title}-${sectionIndex}`}
+                                className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-950/50 p-4"
+                              >
+                                <h4 className="text-sm font-semibold text-neutral-900 dark:text-white">
+                                  {section.title || dict.changelog.sections}
+                                </h4>
+                                <ul className="mt-3 space-y-2 text-sm text-neutral-700 dark:text-neutral-300">
+                                  {section.items.map((item, index) => (
+                                    <li key={`${release.id}-${section.title}-${index}`} className="flex gap-2">
+                                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-neutral-400 dark:bg-neutral-500" />
+                                      <span>{item}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            ))
                             : release.body ? (
-                                <div className="prose dark:prose-invert max-w-none">
-                                  <MarkdownBlock value={release.body} />
-                                </div>
-                              ) : (
-                                <p className="text-neutral-500 dark:text-neutral-400">{dict.changelog.noNotes}</p>
-                              )}
+                              <div className="prose dark:prose-invert max-w-none">
+                                <MarkdownBlock value={release.body} />
+                              </div>
+                            ) : (
+                              <p className="text-neutral-500 dark:text-neutral-400">{dict.changelog.noNotes}</p>
+                            )}
                         </div>
                       </div>
                     </details>
@@ -178,8 +178,8 @@ export function ChangelogClient({ dict, groups }: Props) {
           ))}
         </div>
 
-        <aside className="lg:sticky lg:top-24 lg:h-[calc(100vh-6rem)]">
-          <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 backdrop-blur p-5">
+        <aside className="lg:block">
+          <div className="lg:sticky lg:top-24 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 backdrop-blur p-5 transition-all duration-200 mt-[52px]">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-medium tracking-[0.22em] uppercase text-neutral-500 dark:text-neutral-400">
                 {dict.changelog.archive}

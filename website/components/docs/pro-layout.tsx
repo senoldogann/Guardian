@@ -83,36 +83,70 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
         return () => observer.disconnect();
     }, [toc]);
 
+    // Handle sticky positioning to stop at footer
+    React.useEffect(() => {
+        const handleScroll = () => {
+            const footer = document.querySelector('footer');
+            const sidebars = document.querySelectorAll('aside');
+
+            if (!footer) return;
+
+            const footerRect = footer.getBoundingClientRect();
+            const windowHeight = window.innerHeight;
+
+            sidebars.forEach(sidebar => {
+                const sidebarContent = sidebar.firstElementChild as HTMLElement;
+                if (!sidebarContent) return;
+
+                // Calculate distance to footer
+                const distanceToFooter = footerRect.top - windowHeight;
+
+                // If footer is entering viewport or we're past it
+                if (distanceToFooter < 0) {
+                    sidebarContent.style.maxHeight = `calc(100vh - 8rem - ${Math.abs(distanceToFooter)}px)`;
+                } else {
+                    sidebarContent.style.maxHeight = 'calc(100vh - 8rem)';
+                }
+            });
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        window.addEventListener('resize', handleScroll);
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+            window.removeEventListener('resize', handleScroll);
+        };
+    }, []);
+
     return (
-        <div className="flex w-full min-h-screen pt-24 pb-12 bg-white dark:bg-black transition-colors duration-300 overflow-x-hidden">
+        <div className="flex w-full min-h-screen pt-24 pb-12 bg-white dark:bg-black transition-colors duration-300 overflow-x-hidden relative">
             {/* Desktop Sidebar (IDE Style) - Sticky, scrolls with content */}
             <aside className="hidden lg:block w-72 pl-6 pr-4 self-start">
-                <div className="sticky top-24 w-60 max-h-[calc(100vh-8rem)] overflow-y-auto">
+                <div className="sticky top-24 w-60 max-h-[calc(100vh-8rem)] overflow-y-auto transition-all duration-200">
                     <SidebarContent sidebar={sidebar} pathname={pathname} />
                 </div>
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 min-w-0 px-4 md:px-8 lg:px-12 lg:ml-72">
+            <main className="flex-1 min-w-0 px-4 md:px-8 lg:px-12 lg:ml-72" data-docs-body>
                 {/* Mobile Navigation Bar - Fixed position */}
-                <div className="lg:hidden fixed left-0 right-0 top-20 z-40 flex items-center gap-2 px-4 py-3 bg-neutral-50/95 dark:bg-neutral-900/95 border-y border-neutral-200 dark:border-neutral-800 backdrop-blur-sm">
+                <div className="lg:hidden fixed left-4 right-4 top-24 z-40 flex items-center gap-3">
                     {/* Mobile Nav Toggle */}
                     <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
                         <SheetTrigger asChild>
                             <Button
                                 variant="outline"
-                                size="sm"
-                                className="mobile-nav-button flex items-center gap-2 flex-1 justify-start bg-white/90 dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100/80 dark:hover:bg-neutral-900 hover:border-neutral-300 dark:hover:border-neutral-700 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
+                                className="flex-1 h-10 gap-2 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-sm hover:bg-white dark:hover:bg-neutral-900 rounded-xl"
                             >
                                 <Menu className="w-4 h-4" aria-hidden="true" />
-                                <span className="text-sm">Sections</span>
+                                <span className="text-sm font-medium">Sections</span>
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="w-80 p-0 bg-white dark:bg-black border-r border-neutral-200 dark:border-neutral-800">
-                            <SheetHeader className="p-4 border-b border-neutral-200 dark:border-neutral-800">
+                            <SheetHeader className="p-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50">
                                 <SheetTitle className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-neutral-600 dark:text-neutral-400">
                                     <FolderOpen className="w-4 h-4" aria-hidden="true" />
-                                    Documentation Sections
+                                    Documentation
                                 </SheetTitle>
                             </SheetHeader>
                             <ScrollArea className="h-[calc(100vh-5rem)] p-4">
@@ -131,15 +165,14 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
                             <SheetTrigger asChild>
                                 <Button
                                     variant="outline"
-                                    size="sm"
-                                    className="mobile-nav-button flex items-center gap-2 flex-1 justify-start bg-white/90 dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100/80 dark:hover:bg-neutral-900 hover:border-neutral-300 dark:hover:border-neutral-700 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
+                                    className="flex-1 h-10 gap-2 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-sm hover:bg-white dark:hover:bg-neutral-900 rounded-xl"
                                 >
+                                    <span className="text-sm font-medium">On This Page</span>
                                     <ChevronRight className="w-4 h-4" aria-hidden="true" />
-                                    <span className="text-sm">On This Page</span>
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="right" className="w-80 p-0 bg-white dark:bg-black border-l border-neutral-200 dark:border-neutral-800">
-                                <SheetHeader className="p-4 border-b border-neutral-200 dark:border-neutral-800">
+                                <SheetHeader className="p-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50">
                                     <SheetTitle className="text-sm font-bold uppercase tracking-widest text-neutral-600 dark:text-neutral-400">
                                         On This Page
                                     </SheetTitle>
@@ -165,7 +198,7 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
             {/* Desktop Table of Contents (Right Sidebar) - Sticky, scrolls with content */}
             {toc && toc.length > 0 && (
                 <aside className="hidden xl:block w-64 pr-6 self-start">
-                    <div className="sticky top-24 w-56 max-h-[calc(100vh-8rem)] p-4 flex flex-col overflow-y-auto">
+                    <div className="sticky top-24 w-56 max-h-[calc(100vh-8rem)] p-4 flex flex-col overflow-y-auto transition-all duration-200">
                         <h2 className="mb-4 text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest flex items-center gap-2 flex-shrink-0">
                             On This Page
                         </h2>
