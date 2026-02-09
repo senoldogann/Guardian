@@ -85,9 +85,9 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
 
     return (
         <div className="flex w-full min-h-screen pt-24 pb-12 bg-white dark:bg-black transition-colors duration-300 overflow-x-hidden">
-            {/* Desktop Sidebar (IDE Style) - Fixed on scroll */}
-            <aside className="hidden lg:block w-72 pl-6 pr-4">
-                <div className="fixed top-24 w-60 h-[calc(100vh-8rem)] overflow-y-auto">
+            {/* Desktop Sidebar (IDE Style) - Sticky, scrolls with content */}
+            <aside className="hidden lg:block w-72 pl-6 pr-4 self-start">
+                <div className="sticky top-24 w-60 max-h-[calc(100vh-8rem)] overflow-y-auto">
                     <SidebarContent sidebar={sidebar} pathname={pathname} />
                 </div>
             </aside>
@@ -162,10 +162,10 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
                 </div>
             </main>
 
-            {/* Desktop Table of Contents (Right Sidebar) - Fixed on scroll */}
+            {/* Desktop Table of Contents (Right Sidebar) - Sticky, scrolls with content */}
             {toc && toc.length > 0 && (
-                <aside className="hidden xl:block w-64 pr-6">
-                    <div className="fixed top-24 w-56 h-[calc(100vh-8rem)] p-4 flex flex-col overflow-y-auto">
+                <aside className="hidden xl:block w-64 pr-6 self-start">
+                    <div className="sticky top-24 w-56 max-h-[calc(100vh-8rem)] p-4 flex flex-col overflow-y-auto">
                         <h2 className="mb-4 text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest flex items-center gap-2 flex-shrink-0">
                             On This Page
                         </h2>
