@@ -178,7 +178,7 @@ export default function FAQPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex items-center gap-2 w-full justify-start bg-white dark:bg-black border-neutral-300 dark:border-neutral-700 text-black dark:text-white hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                    className="flex items-center gap-2 w-full justify-start bg-white/90 dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 text-neutral-800 dark:text-neutral-200 hover:bg-neutral-100/80 dark:hover:bg-neutral-900 hover:border-neutral-300 dark:hover:border-neutral-700 shadow-[0_1px_0_rgba(0,0,0,0.04)]"
                   >
                     <Menu className="w-4 h-4" aria-hidden="true" />
                     <span className="text-sm">Browse FAQ Sections</span>

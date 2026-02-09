@@ -127,7 +127,11 @@ export function CookieSettingsModal() {
                                     Reset Consent
                                 </Button>
                             )}
-                            <Button variant="outline" onClick={closeSettings} className="rounded-xl h-11 px-6 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-700">
+                            <Button
+                                variant="outline"
+                                onClick={closeSettings}
+                                className="rounded-xl h-11 px-6 text-zinc-900 dark:text-zinc-100 border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100"
+                            >
                                 Cancel
                             </Button>
                             <Button onClick={handleSave} className="bg-black text-white dark:bg-white dark:text-black rounded-xl h-11 px-6 hover:bg-zinc-800 dark:hover:bg-zinc-200">
