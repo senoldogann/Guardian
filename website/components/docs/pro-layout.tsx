@@ -290,7 +290,13 @@ function TocContent({
                             onItemClick?.();
                             const target = document.querySelector(item.url);
                             if (target) {
-                                target.scrollIntoView({ behavior: "smooth", block: "start" });
+                                const headerOffset = 100;
+                                const elementPosition = target.getBoundingClientRect().top;
+                                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                                window.scrollTo({
+                                    top: offsetPosition,
+                                    behavior: "smooth"
+                                });
                             }
                         }}
                         className={cn(

@@ -79,13 +79,13 @@ export function ChangelogClient({ dict, groups }: Props) {
         <div className="space-y-10">
           {filteredGroups.map((group) => (
             <div id={`month-${group.key}`} key={group.key} className="scroll-mt-28">
-              <div className="sticky top-[88px] z-10 -mx-4 px-4 py-3 bg-[color:rgba(248,249,252,0.92)] dark:bg-black/90 backdrop-blur border-y border-neutral-200/70 dark:border-neutral-800 lg:static lg:top-auto lg:z-auto lg:mx-0 lg:px-0 lg:py-0 lg:bg-transparent lg:border-0">
+              <div className="-mx-4 px-4 py-3 lg:mx-0 lg:px-0 lg:py-0">
                 <h2 className="text-lg font-semibold tracking-tight text-neutral-950 dark:text-white">
                   {group.label}
                 </h2>
               </div>
 
-              <div className="mt-6 space-y-6">
+              <div className="mt-4 space-y-6">
                 {group.releases.map((release) => (
                   <article
                     key={release.id}
@@ -178,7 +178,7 @@ export function ChangelogClient({ dict, groups }: Props) {
           ))}
         </div>
 
-        <aside className="lg:sticky lg:top-28 lg:h-[calc(100vh-7rem)]">
+        <aside className="lg:sticky lg:top-24 lg:h-[calc(100vh-6rem)]">
           <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 backdrop-blur p-5">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-medium tracking-[0.22em] uppercase text-neutral-500 dark:text-neutral-400">

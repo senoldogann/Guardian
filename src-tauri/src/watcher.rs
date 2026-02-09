@@ -73,6 +73,9 @@ const IGNORED_PATH_MARKERS: &[&str] = &[
     ".env",
 ];
 
+const MAX_AGENT_QUEUE_BYTES: u64 = 1 * 1024 * 1024;
+const MAX_AGENT_QUEUE_ARCHIVES: usize = 5;
+
 // Note: Configuration constants moved to config.rs, accessed via config::*() functions
 
 fn is_significant_warning(critique: &crate::ai_client::Critique) -> bool {
@@ -173,6 +176,36 @@ fn safe_path_label(path: &Path) -> String {
         .unwrap_or_else(|| "<unknown>".to_string())
 }
 
+fn normalize_rel_file_path(workspace_root: &Path, file_path: &str) -> String {
+    let input = Path::new(file_path);
+
+    if !input.is_absolute() {
+        let rel = file_path.trim().trim_start_matches("./").to_string();
+        return rel.replace('\\', "/");
+    }
+
+    if let Ok(rel) = input.strip_prefix(workspace_root) {
+        return rel
+            .to_string_lossy()
+            .replace('\\', "/")
+            .trim_start_matches("./")
+            .to_string();
+    }
+
+    let canonical_root =
+        dunce::canonicalize(workspace_root).unwrap_or_else(|_| workspace_root.to_path_buf());
+    let canonical_input = dunce::canonicalize(input).unwrap_or_else(|_| input.to_path_buf());
+    if let Ok(rel) = canonical_input.strip_prefix(&canonical_root) {
+        return rel
+            .to_string_lossy()
+            .replace('\\', "/")
+            .trim_start_matches("./")
+            .to_string();
+    }
+
+    file_path.trim().replace('\\', "/")
+}
+
 pub(crate) fn should_skip_path(path: &Path, is_chat: bool) -> bool {
     if is_chat {
         return false;
@@ -254,6 +287,30 @@ pub async fn start_watching(
 **Guardian**: I am listening.
 "#;
         let _ = tokio::fs::write(&chat_link_path, welcome_msg).await;
+    }
+
+    let agent_instructions_path = guardian_path.join("AGENT_INSTRUCTIONS.md");
+    if !agent_instructions_path.exists() {
+        let instructions = r#"# Guardian Agent Integration
+
+This workspace is monitored by Guardian. Files under `.guardian/` are generated and owned by Guardian.
+
+## Read
+- `.guardian/critiques.json` - machine-readable snapshot of active critiques
+- `.guardian/agent_queue.jsonl` - append-only event stream (use `tail -f`)
+- `.guardian/chat.md` - optional human-to-Guardian notes
+
+## Rules
+1. Prioritize: critical > warning > info
+2. Make minimal, safe changes (avoid large refactors unless requested)
+3. Run tests after changes
+
+## Forbidden
+- Do not edit any `.guardian/*` files
+- Do not read or exfiltrate secrets (`.env`, keys, credentials)
+- Do not auto-commit or auto-push
+"#;
+        let _ = tokio::fs::write(&agent_instructions_path, instructions).await;
     }
 
     // Spawn Batch Processor
@@ -408,10 +465,14 @@ fn handle_event(
         if should_clear || !path.exists() {
             let path_key = path.to_string_lossy().to_string();
 
-            if let Ok(mut lock) = ACTIVE_CRITIQUES.write() {
-                if lock.remove(&path_key).is_some() {
-                    app.emit("guardian:clear", path_key.clone()).ok();
-                }
+            let removed = if let Ok(mut lock) = ACTIVE_CRITIQUES.write() {
+                lock.remove(&path_key)
+            } else {
+                None
+            };
+
+            if removed.is_some() {
+                app.emit("guardian:clear", path_key.clone()).ok();
             }
 
             let storage_state = app.state::<Arc<Mutex<StorageManager>>>();
@@ -419,12 +480,14 @@ fn handle_event(
                 let _ = storage.remove_file_hash(&path_key);
             }
 
+            let rel_path = normalize_rel_file_path(Path::new(&root), &path_key);
             append_agent_event(
                 &root,
                 &json!({
                     "timestamp": Utc::now().to_rfc3339(),
                     "event": "clear",
-                    "file_path": path_key,
+                    "file_path": rel_path,
+                    "finding_id": removed.as_ref().and_then(|c| c.finding_id.clone()),
                     "reason": "removed"
                 }),
             );
@@ -756,23 +819,28 @@ fn handle_critiques(
         if critique.message.to_uppercase().trim() == "LGTM" {
             active_lock.remove(&path_key);
             app.emit("guardian:clear", path_key.clone()).ok();
+            let rel_path = normalize_rel_file_path(workspace_root, &path_key);
             append_agent_event(
                 root,
                 &json!({
                     "timestamp": Utc::now().to_rfc3339(),
                     "event": "clear",
-                    "file_path": path_key
+                    "file_path": rel_path,
+                    "finding_id": critique.finding_id,
+                    "reason": "lgtm"
                 }),
             );
         } else if !should_surface_critique(&critique) {
             if active_lock.remove(&path_key).is_some() {
                 app.emit("guardian:clear", path_key.clone()).ok();
+                let rel_path = normalize_rel_file_path(workspace_root, &path_key);
                 append_agent_event(
                     root,
                     &json!({
                         "timestamp": Utc::now().to_rfc3339(),
                         "event": "clear",
-                        "file_path": path_key,
+                        "file_path": rel_path,
+                        "finding_id": critique.finding_id,
                         "reason": "suppressed"
                     }),
                 );
@@ -781,16 +849,15 @@ fn handle_critiques(
             active_lock.insert(path_key.clone(), critique.clone());
             app.emit("guardian:critique", critique.clone()).ok();
             append_critique_event(root, &critique);
+            let rel_path = normalize_rel_file_path(workspace_root, &path_key);
             append_agent_event(
                 root,
                 &json!({
                     "timestamp": Utc::now().to_rfc3339(),
                     "event": "critique",
-                    "file_path": critique.file_path,
-                    "severity": critique.severity,
-                    "message": critique.message,
-                    "suggestion": critique.suggestion,
-                    "suggested_diff": critique.suggested_diff
+                    "file_path": rel_path,
+                    "finding_id": critique.finding_id,
+                    "severity": critique.severity
                 }),
             );
 
@@ -853,14 +920,16 @@ fn handle_critiques(
         .collect();
 
     for path in stale_paths {
-        active_lock.remove(&path);
+        let removed = active_lock.remove(&path);
         app.emit("guardian:clear", path.clone()).ok();
+        let rel_path = normalize_rel_file_path(workspace_root, &path);
         append_agent_event(
             root,
             &json!({
                 "timestamp": Utc::now().to_rfc3339(),
                 "event": "clear",
-                "file_path": path,
+                "file_path": rel_path,
+                "finding_id": removed.as_ref().and_then(|c| c.finding_id.clone()),
                 "reason": "missing_or_moved"
             }),
         );
@@ -1030,15 +1099,18 @@ fn sync_guardian_logs(
         let _ = writeln!(file, "# Guardian Active Critiques");
         let _ = writeln!(file, "Updated: {}\n", Utc::now().to_rfc3339());
         let _ = writeln!(file, "```json");
-        let mut entries: Vec<(&String, &crate::ai_client::Critique)> = critiques.iter().collect();
+        let mut entries: Vec<(String, &crate::ai_client::Critique)> = critiques
+            .iter()
+            .map(|(path, c)| (normalize_rel_file_path(root_path, path), c))
+            .collect();
         entries.sort_by(|(a, _), (b, _)| a.cmp(b));
-        for (path, c) in entries {
+        for (rel_path, c) in entries {
             if critical_info.is_none()
                 && c.severity.trim().eq_ignore_ascii_case("critical")
                 && c.message != "LGTM"
             {
                 critical_info = Some(StallInfo {
-                    file_path: path.clone(),
+                    file_path: rel_path.clone(),
                     reason: c.message.clone(),
                 });
             }
@@ -1048,7 +1120,7 @@ fn sync_guardian_logs(
                     .unwrap_or_else(|| crate::baseline::manager::finding_id_for_critique(root_path, c, &rules_hash));
             let json_line = json!({
                 "finding_id": finding_id,
-                "file_path": path,
+                "file_path": rel_path,
                 "severity": c.severity,
                 "message": c.message,
                 "suggestion": c.suggestion,
@@ -1062,17 +1134,20 @@ fn sync_guardian_logs(
 
     // Rewrite critiques.json (machine readable snapshot)
     if let Ok(mut file) = fs::File::create(&critiques_json_path) {
-        let mut entries: Vec<(&String, &crate::ai_client::Critique)> = critiques.iter().collect();
+        let mut entries: Vec<(String, &crate::ai_client::Critique)> = critiques
+            .iter()
+            .map(|(path, c)| (normalize_rel_file_path(root_path, path), c))
+            .collect();
         entries.sort_by(|(a, _), (b, _)| a.cmp(b));
         let mut payload_critiques = Vec::with_capacity(entries.len());
-        for (path, c) in entries {
+        for (rel_path, c) in entries {
             let finding_id =
                 c.finding_id
                     .clone()
                     .unwrap_or_else(|| crate::baseline::manager::finding_id_for_critique(root_path, c, &rules_hash));
             payload_critiques.push(json!({
                 "finding_id": finding_id,
-                "file_path": path,
+                "file_path": rel_path,
                 "severity": c.severity,
                 "message": c.message,
                 "suggestion": c.suggestion,

@@ -171,8 +171,9 @@ export default function FAQPage() {
             </div>
           </aside>
 
-          <main className="lg:ml-0">
-            <div className="lg:hidden sticky top-20 z-30 -mx-4 px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border-y border-neutral-200 dark:border-neutral-800">
+          <main className="lg:ml-0 relative">
+            {/* Mobile Navigation Bar - Fixed position like docs */}
+            <div className="lg:hidden fixed left-0 right-0 top-20 z-40 px-4 py-3 bg-neutral-50/95 dark:bg-neutral-900/95 border-y border-neutral-200 dark:border-neutral-800 backdrop-blur-sm">
               <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
                 <SheetTrigger asChild>
                   <Button
@@ -210,9 +211,10 @@ export default function FAQPage() {
               </Sheet>
             </div>
 
-            <div className="space-y-12">
+            {/* Content with padding for fixed mobile nav */}
+            <div className="space-y-12 lg:pt-0 pt-16">
               {faqCategories.filter(c => c.id !== "pricing").map((category) => (
-                <section key={category.id} id={category.id} className="scroll-mt-28">
+                <section key={category.id} id={category.id} className="scroll-mt-32">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-10 h-10 rounded-xl bg-neutral-900 dark:bg-white flex items-center justify-center">
                       <category.icon className="w-5 h-5 text-white dark:text-black" />
