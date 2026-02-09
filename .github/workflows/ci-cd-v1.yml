@@ -4,10 +4,24 @@
 name: 🚀 Guardian CI/CD (Self-Hosted)
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
+  # DISABLED: Local-first workflow - run tests locally before pushing
+  # workflow_dispatch:
+  #   description: 'Manual trigger only - tests run locally'
+  #   inputs:
+  #     reason:
+  #       description: 'Reason for running'
+  #       required: true
+  #       default: 'Manual test run'
+  
+  # Only run on PRs to main (optional - can be disabled too)
+  # pull_request:
+  #   branches: [main]
+  
+  # DISABLE push triggers entirely
+  # push:
+  #   branches: [main, develop]
+  
+  # Keep workflow_dispatch for emergency use only
   workflow_dispatch:
 
 jobs:
