@@ -94,8 +94,8 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
 
             {/* Main Content */}
             <main className="flex-1 min-w-0 px-4 md:px-8 lg:px-12 lg:ml-72">
-                {/* Mobile Navigation Bar */}
-                <div className="lg:hidden flex items-center gap-2 mb-6 -mx-4 px-4 py-3 bg-neutral-50 dark:bg-neutral-900 border-y border-neutral-200 dark:border-neutral-800 sticky top-20 z-30">
+                {/* Mobile Navigation Bar - Fixed position */}
+                <div className="lg:hidden fixed left-0 right-0 top-20 z-40 flex items-center gap-2 px-4 py-3 bg-neutral-50/95 dark:bg-neutral-900/95 border-y border-neutral-200 dark:border-neutral-800 backdrop-blur-sm">
                     {/* Mobile Nav Toggle */}
                     <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
                         <SheetTrigger asChild>
@@ -156,7 +156,8 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
                     )}
                 </div>
 
-                <div className="max-w-3xl mx-auto">
+                {/* Content with padding for fixed mobile nav */}
+                <div className="max-w-3xl mx-auto lg:pt-0 pt-16">
                     {children}
                 </div>
             </main>
