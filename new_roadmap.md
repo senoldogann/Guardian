@@ -29,15 +29,48 @@ Geliştirme ortamını hazırlamak, mevcut kodu bozmadan yeni modülleri izole e
    - Mock AI provider ekle (CI'da gerçek AI kullanmadan test için)
    - Test workspace oluştur (`fixtures/test-project/`)
 
-3. **Modül Yapısı**
+3. **Modül Yapısı** (src-tauri/src/ altında)
    ```
-   src/
-   ├── baseline/          # Yeni
-   ├── ci/               # Yeni
-   ├── agent_protocol/   # Yeni (sadece schema)
-   ├── redaction/        # Yeni
-   └── ...existing modules
+   src-tauri/src/
+   ├── baseline/          # Yeni - baseline yönetimi
+   ├── ci/               # Yeni - guardian-cli
+   ├── agent_protocol/   # Yeni - mevcut protokolü stabilize etme
+   ├── redaction/        # Yeni - Phase 0'da minimum gate
+   ├── lib/
+   │   └── (mevcut modüller: watcher, patcher, ai_client, vb.)
+   └── main.rs
    ```
+
+4. **Minimum Redaction Gate (Phase 0'da - Kritik!)**
+   ```rust
+   // src-tauri/src/redaction/gate.rs
+   pub fn is_sensitive_file(path: &Path) -> bool {
+       const SENSITIVE_NAMES: &[&str] = &[
+           ".env", ".env.local", ".env.production",
+           ".key", ".pem", ".p12", ".pfx",
+           "id_rsa", "id_ed25519",
+           "credentials", "secrets",
+       ];
+       const SENSITIVE_EXTS: &[&str] = &["key", "pem", "p12", "pfx"];
+       
+       let name = path.file_name().unwrap_or_default().to_str().unwrap_or("");
+       let ext = path.extension().unwrap_or_default().to_str().unwrap_or("");
+       
+       SENSITIVE_NAMES.iter().any(|s| name.contains(s))
+           || SENSITIVE_EXTS.iter().any(|e| ext == *e)
+   }
+   
+   pub fn mask_inline_secrets(content: &str) -> String {
+       // API Key pattern'lerini [REDACTED] ile değiştir
+       let api_key_pattern = regex::Regex::new(r"sk-[a-zA-Z0-9]{48}").unwrap();
+       api_key_pattern.replace_all(content, "[REDACTED_API_KEY]").to_string()
+   }
+   ```
+   
+   **Integration:**
+   - `watcher.rs`'de analiz öncesi: `if is_sensitive_file(path) { skip AI analysis }`
+   - `ai_client.rs`'de prompt oluştururken: `content = mask_inline_secrets(content)`
+   - **Hedef:** Phase 0'dan itibaren "Zero Trust: secret asla AI'a gitmez"
 
 ### Acceptance Criteria
 - [ ] `cargo test` başarılı
@@ -61,16 +94,18 @@ Tekrarlayan bulguları filtrelemek, sadece "yeni ve regresyon" olanları göster
 #### 1.1 Baseline Schema (JSON)
 ```json
 {
-  "schema_version": "1",
+  "schema_version": 1,
   "created_at": "2026-02-09T10:00:00Z",
   "workspace_id": "sha256(/path/to/workspace)",
   "rules_hash": "sha256(rules.md content)",
   "finding_ids": [
-    "sha256(file_path + severity + normalized_message)",
+    "sha256(rule_id + file_path + location_fingerprint)",
     "..."
   ]
 }
 ```
+
+**Not:** `finding_id` AI message'ine değil, **deterministik rule_id + file_path + location**'a dayanır. AI model/prompt değişse bile aynı issue aynı ID'yi alır.
 
 #### 1.2 Yeni Modül: `baseline.rs`
 
@@ -84,14 +119,25 @@ impl BaselineManager {
     /// Baseline oluştur (mevcut bulgulardan)
     pub fn create_baseline(&self, critiques: &[Critique]) -> Result<Baseline>;
     
-    /// Yeni/regresyon bulguları filtrele
-    pub fn filter_new_findings(&self, current: &[Critique], baseline: &Baseline) -> Vec<Critique>;
+    /// TÜM bulguları döndür, is_new/is_resolved flag'leri ile
+    /// UI'da "Show All" filtresi için gerekli
+    pub fn annotate_findings(&self, current: &[Critique], baseline: &Baseline) -> Vec<AnnotatedCritique>;
+    
+    /// Sadece yeni bulguları döndür (filtered view için)
+    pub fn filter_new_only(&self, annotated: &[AnnotatedCritique]) -> Vec<AnnotatedCritique>;
     
     /// Baseline geçerlilik kontrolü (rules_hash değişmiş mi?)
     pub fn is_baseline_valid(&self, baseline: &Baseline) -> bool;
     
     /// Status raporu (active, new, resolved sayıları)
     pub fn get_status(&self, baseline: &Baseline, current: &[Critique]) -> BaselineStatus;
+}
+
+pub struct AnnotatedCritique {
+    pub critique: Critique,
+    pub is_new: bool,           // baseline'de yoksa true
+    pub is_resolved: bool,      // baseline'de vardı ama şimdi yoksa true
+    pub is_active: bool,        // baseline'de de var, şimdi de var
 }
 
 pub struct BaselineStatus {
@@ -186,11 +232,41 @@ GUARDIAN_BASELINE_PATH=./.guardian/baseline.json  # opsiyonel
 GUARDIAN_MOCK=1 guardian-cli scan  # Test için sabit sonuç
 ```
 
+**Dağıtım Stratejisi:**
+1. **Pre-built Binary:** GitHub Releases'te `guardian-cli-linux-x64`, `guardian-cli-macos-x64`, `guardian-cli-macos-arm64`
+2. **npm Wrapper:** `npm install -g @guardian/cli` (binary'i indirir)
+3. **GitHub Action:** Composite action veya Docker image
+
+**CI Performans:**
+- Binary indirme: ~5-10 saniye
+- `cargo install`: ~2-3 dakika (kaçınılmalı)
+- Öneri: `guardian-cli` repo'ya dahil edilebilir veya action tarafından cached indirilir
+```bash
+GUARDIAN_MOCK=1 guardian-cli scan  # Test için sabit sonuç
+```
+
 #### 2.2 GitHub Actions
 
-**Dosya:** `.github/workflows/guardian.yml` (template olarak dokümante edilecek)
+**Dağıtım Stratejisi:**
 
-**Kullanım:**
+**Option A: Composite Action (Repo içinde)**
+`.github/actions/guardian/action.yml` dosyası olarak bu repo'da tutulur.
+
+**Option B: Binary Download (Hızlı)**
+```yaml
+- name: Download Guardian CLI
+  run: |
+    curl -sSL https://github.com/senoldogann/Guardian/releases/download/cli-v1.0.0/guardian-cli-linux-x64 -o guardian-cli
+    chmod +x guardian-cli
+    
+- name: Run Guardian
+  run: ./guardian-cli scan --root . --baseline .guardian/baseline.json
+  env:
+    GUARDIAN_PROVIDER: anthropic
+    GUARDIAN_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+**Kullanım Örneği:**
 ```yaml
 name: Guardian Security Scan
 
@@ -202,12 +278,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Download Guardian CLI
+        run: |
+          curl -sSL https://github.com/senoldogann/Guardian/releases/download/cli-v1.0.0/guardian-cli-linux-x64 -o guardian-cli
+          chmod +x guardian-cli
+      
       - name: Run Guardian
-        uses: guardian/action@v1  # Gelecekte
-        with:
-          provider: anthropic
-          api-key: ${{ secrets.ANTHROPIC_API_KEY }}
-          baseline: '.guardian/baseline.json'
+        run: ./guardian-cli scan --root . --format sarif --out guardian-report.sarif
+        env:
+          GUARDIAN_PROVIDER: anthropic
+          GUARDIAN_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       
       - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
@@ -282,19 +362,19 @@ repos:
 
 ---
 
-## Phase 3: Güvenlik ve Gizlilik Hardening (1-2 Hafta)
+## Phase 3: Advanced Redaction ve Audit (1-2 Hafta)
 
 ### Hedef
-Secret'ların AI'a sızmasını önlemek, audit trail oluşturmak, kullanıcıya transparanlık sağlamak.
+Phase 0'daki minimum redaction'ı genişletmek, UI'da transparanlık sağlamak, detaylı audit trail oluşturmak.
 
 ### Neden Şimdi?
-- CI entegrasyonu öncesi güvenlik kritik
-- Kullanıcı güveni için şart
-- Sonrasında agent entegrasyonu güvenle yapılabilir
+- CI entegrasyonu öncesi tam güvenlik kritik
+- Kullanıcıya "ne gittiğini gösterme" transparanlığı
+- Production-ready olmak için şart
 
 ### Implementation
 
-#### 3.1 Context Redaction (Kritik!)
+#### 3.1 Advanced Context Redaction (Phase 0'ın Genişletilmesi)
 
 **Yeni Modül:** `redaction.rs`
 
@@ -358,7 +438,9 @@ pub fn contains_secrets(content: &str) -> Vec<SecretMatch> {
 
 **Dosya:** `.guardian/history.jsonl` (append-only)
 
-**Schema:**
+**Migration Notu:** Mevcut history formatı farklı. Phase 3'te mevcut loglar `history.v0.jsonl` olarak archive edilecek, yeni schema `history.jsonl` olarak başlayacak. Watcher yeni formatı kullanacak.
+
+**Yeni Schema (v1):
 ```json
 {
   "timestamp": "2026-02-09T10:00:00Z",
@@ -399,15 +481,21 @@ pub fn contains_secrets(content: &str) -> Vec<SecretMatch> {
 
 ---
 
-## Phase 4: Agent Protocol v1 - Gözlem Modu (2-3 Hafta)
+## Phase 4: Agent Protocol Stabilizasyonu (2-3 Hafta)
 
 ### Hedef
-AI editor'lerin (Cursor, Copilot, vb.) Guardian'ı okuyabilmesi için standart bir protokol. **Sadece gözlem, otomatik düzeltme yok.**
+Mevcut `.guardian/` protokolünü stabilize etmek ve AI için makine okunur `critiques.json` eklemek. **Mevcut sistemi iyileştirme, sıfırdan yazma değil.**
 
-### Neden "Gözlem Modu"?
-- AI'nin otomatik düzeltmesi riskli
-- Önce "AI okusun" mantığıyla başlayıp, kullanıcı feedback'i alıp sonra auto-fix eklemek daha güvenli
-- AI agent'ler zaten file system'i okuyabiliyor, Guardian çıktılarını standart formatta verelim
+### Mevcut Durum (Zaten Çalışıyor)
+- `agent_queue.jsonl` - watcher.rs zaten üretiyor
+- `history.jsonl` - audit log zaten var
+- `STALL` - kritik durumda zaten yazılıyor
+- `critiques.md` - insan okunur format zaten var
+
+### Eklenecek
+- `critiques.json` - AI için makine okunur snapshot
+- `AGENT_INSTRUCTIONS.md` - AI kuralları ve protokol dokümantasyonu
+- Finding ID stabilizasyonu (AI model değişse bile aynı issue aynı ID)
 
 ### Implementation
 
@@ -418,20 +506,21 @@ AI editor'lerin (Cursor, Copilot, vb.) Guardian'ı okuyabilmesi için standart b
 1. **`critiques.json`** - Tam snapshot (AI için makine okunur)
 ```json
 {
-  "protocol_version": "1",
+  "protocol_version": 1,
   "timestamp": "2026-02-09T10:00:00Z",
   "workspace_id": "sha256(/path)",
   "rules_hash": "sha256(...)",
   "critiques": [
     {
-      "finding_id": "sha256(...)",
+      "finding_id": "sha256(rule_id|file_path|location)",
       "file_path": "src/db.rs",
       "severity": "critical",
       "category": "security",
+      "rule_id": "sql-injection-raw",
       "message": "Raw SQL detected",
-      "line": null,  // v2'de eklenebilir
+      "line": null,
       "content_hash": "sha256(file content)",
-      "is_new": true,  // baseline'e göre
+      "is_new": true,
       "suggestion": "Use parameterized queries",
       "confidence": 0.92
     }
@@ -467,15 +556,23 @@ AI editor'lerin (Cursor, Copilot, vb.) Guardian'ı okuyabilmesi için standart b
 - Derleme hatası oluşturacak değişiklikler önerme
 ```
 
-#### 4.2 Watcher Entegrasyonu
+#### 4.2 Mevcut Sistemi Stabilize Etme
 
-**Değişiklikler:**
-- Her critique event'i `agent_queue.jsonl`'e yaz
-- `critiques.json`'u her sync'de yeniden yaz (atomic write)
-- Finding ID hesaplama (deterministik):
+**Zaten Var Olan:**
+- `agent_queue.jsonl` - watcher zaten üretiyor
+- `history.jsonl` - audit log zaten var
+- `STALL` - kritik durumda zaten yazılıyor
+- `critiques.md` - insan okunur format zaten var
+
+**Yeni Eklenecek:**
+- `critiques.json` - AI için makine okunur snapshot
+- `AGENT_INSTRUCTIONS.md` - AI kuralları ve protokol dokümantasyonu
+- Finding ID stabilizasyonu (deterministik):
   ```rust
-  fn finding_id(file: &str, severity: &str, msg: &str) -> String {
-      let normalized = format!("{}|{}|{}", file, severity, msg.trim());
+  fn finding_id(rule_id: &str, file: &str, location: Option<usize>) -> String {
+      // AI message'i değişken olduğu için rule_id kullan
+      let loc = location.map(|l| l.to_string()).unwrap_or_default();
+      let normalized = format!("{}|{}|{}", rule_id, file, loc);
       sha256(normalized)
   }
   ```
@@ -525,18 +622,20 @@ AI veya kullanıcının fix önerilerini güvenli bir şekilde review edip uygul
   "timestamp": "2026-02-09T10:00:00Z",
   "finding_id": "sha256(...)",
   "file_path": "src/db.rs",
-  "status": "pending",  // pending | reviewing | approved | rejected | applied
-  "proposed_by": "ai-agent",  // veya "user"
-  "original_content_hash": "sha256(...)",  // Patch uygulanabilir mi kontrolü için
+  "status": "pending",
+  "proposed_by": "ai-agent",
+  "original_content_hash": "sha256(...)",
   "suggestion": "Use parameterized queries",
-  "diff": {
-    "old_range": { "start": 15, "end": 20 },
-    "new_content": "// New code here\nconn.execute(\"SELECT * FROM users WHERE id = ?\", [user_id])?;"
-  },
+  "proposed_content": "// TAM DOSYA ICERIGI\n// Mevcut patcher.rs full-file-content bekliyor\n// Bu format diff yerine güvenli ve deterministic\nuse std::...;\n// ... tüm dosya ...",
   "confidence": 0.89,
   "reasoning": "Prevents SQL injection by using prepared statements"
 }
 ```
+
+**Önemli:** Mevcut `patcher.rs` full-file-content beklediği için, proposal da **tam dosya içeriği** sunmalı. Diff parçası yerine, önerilen yeni dosyanın tam hali. Bu sayede:
+1. Patch çakışması riski azalır
+2. Patcher mevcut güvenlik kontrollerini kullanır
+3. Kullanıcı review'da tam dosyayı görebilir
 
 **Akış:**
 1. AI `fix_proposals.jsonl`'ye proposal yazar
@@ -603,9 +702,12 @@ pub fn apply_proposal(proposal: &FixProposal) -> Result<()> {
     }
     
     // 4. Secret içeriyor mu?
-    if contains_secrets(&proposal.diff.new_content) {
+    if contains_secrets(&proposal.proposed_content) {
         return Err("Proposed fix contains potential secrets");
     }
+    
+    // 5. Derleme kontrolü (opsiyonel ama önerilir)
+    // Önce temp dosyaya yaz, cargo check çalıştır, başarılıysa gerçek dosyaya uygula
     
     // 5. Apply
     apply_diff(&proposal.file_path, &proposal.diff)?;
@@ -746,10 +848,9 @@ guardian/
 │       ├── watcher.rs              # Var olan
 │       ├── ai_client.rs            # Var olan
 │       ├── patcher.rs              # Var olan
-│       ├── skills/
+│               ├── skills/
 │       │   ├── mod.rs
-│       │   ├── hasher.rs           # Var olan
-│       │   └── rules.rs            # Var olan
+│       │   └── hasher.rs           # Var olan
 │       ├── baseline/               # Phase 1
 │       │   ├── mod.rs
 │       │   └── manager.rs
@@ -821,6 +922,89 @@ guardian/
 3. **Fix Rate:** Critical bulguların 24 saat içinde fix/reject oranı > %30
 4. **False Positive:** Kullanıcı tarafından "buna gerek yok" olarak işaretlenen bulgular < %10
 5. **Secret Safety:** AI'a sızan secret sayısı: 0
+
+---
+
+## Sonuç
+
+Bu roadmap Guardian'ı **önce stabil ve güvenilir**, sonra **AI entegre** bir araç haline getirmeyi hedefliyor.
+
+**Ana prensipler:**
+1. **Güvenlik > Kolaylık** - Secret'lar asla risk altında olmamalı
+2. **İnsan kontrolü** - AI önerir, insan karar verir
+3. **Az gürültü** - Sadece anlamlı bulgular göster
+4. **Entegrasyon** - CI/CD olmadan tam bir araç değil
+
+**Başlangıç için önerim:**
+Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanılabilir hale getirecektir.
+
+---
+
+## Kararlar ve Varsayımlar (Kilitleme)
+
+### 1. CI'da Cloud AI Kullanımı
+**Karar:** ✅ **Evet, cloud AI kullanılabilir**
+
+- Guardian CLI cloud AI provider (Anthropic, OpenAI) kullanabilir
+- **Ancak:** "Mock/Deterministik" mod da şart
+  - `GUARDIAN_MOCK=1` ile offline test
+  - `GUARDIAN_OFFLINE=1` ile AI'sız kural bazlı tarama (basit regex/pattern)
+- CI'da maliyet kontrolü için token limit ve caching mekanizması
+
+### 2. Baseline Amacı ve UI Davranışı
+**Karar:** 📊 **"Default'ta yeni/regresyon göster, istenirse hepsini gör"**
+
+- **Default View:** Sadece `is_new=true` olanlar gösterilir
+- **Filtre Seçenekleri:**
+  - "Show All" - Tüm bulgular (is_new/is_active/is_resolved flag'leriyle)
+  - "New Since Baseline" - Sadece yeni (default)
+  - "Resolved" - Düzeltilenler
+  - "Critical" - Seviyeye göre filtre
+- **Gösterim:** Her bulgu yanında badge: 🆕 New | ✅ Resolved | ⚪ Active
+- **Hedef:** "Borç" gizlenmiyor, sadece gürültü azaltılıyor
+
+### 3. finding_id Stabilizasyonu
+**Karar:** 🔐 **rule_id + file_path + location (line/column)**
+
+- AI message'i değişken olduğu için hash'e **dahil edilmeyecek**
+- rule_id: Örnek: "sql-injection-raw", "unsafe-unwrap", "deprecated-api"
+- AI model/prompt versiyonu değişse bile aynı issue aynı ID'yi alır
+- Baseline karşılaştırması bu ID üzerinden yapılır
+
+### 4. Fix Proposal Formatı
+**Karar:** 📄 **Tam dosya içeriği (Full-file-content)**
+
+- Mevcut `patcher.rs` ile uyumlu
+- Diff parçası yerine önerilen dosyanın tam hali
+- `original_content_hash` ile çakışma kontrolü
+- Güvenlik: Path traversal, .guardian/ yazma, secret içerme kontrolleri
+
+### 5. Redaction Zamanlaması
+**Karar:** 🛡️ **Phase 0'da Minimum Gate, Phase 3'te Advanced**
+
+**Phase 0 (Minimum):**
+- Sensitive file skip (.env, .key, vb.)
+- Inline secret masking (API key pattern'leri)
+
+**Phase 3 (Advanced):**
+- UI preview (ne gittiğini göster)
+- Audit log
+- Detaylı regex'ler
+- Token sayacı
+
+### 6. Agent Protocol Stratejisi
+**Karar:** 🔄 **Mevcut sistemi stabilize etme, sıfırdan yazma değil**
+
+**Zaten var:** agent_queue.jsonl, history.jsonl, STALL, critiques.md
+**Eklenecek:** critiques.json (AI için), AGENT_INSTRUCTIONS.md
+**Değişecek:** Finding ID'ler stabil hale getirilecek
+
+### 7. CLI Dağıtımı
+**Karar:** 🚀 **Pre-built Binary + GitHub Action Composite**
+
+- GitHub Releases'te binary'ler (Linux x64, macOS x64/ARM)
+- `.github/actions/guardian/` bu repo'da composite action
+- `cargo install` yerine binary download (hız için)
 
 ---
 
