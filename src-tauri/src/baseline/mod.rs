@@ -1,2 +1,5 @@
-// Phase 1: Baseline + regression tracking lives here.
+pub mod manager;
 
+pub use manager::{
+    Baseline, BaselineManager, BaselineStatusView,
+};

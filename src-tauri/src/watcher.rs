@@ -212,6 +212,11 @@ pub async fn start_watching(
 
     info!(target: "guardian::watcher", "Watcher started on: {}", target_path);
 
+    // Scope is single-root; avoid leaking stale critiques across roots.
+    if let Ok(mut lock) = ACTIVE_CRITIQUES.write() {
+        lock.clear();
+    }
+
     // UNIVERSAL BOOTSTRAP: Neuro-Link
     let guardian_path = Path::new(&target_path).join(".guardian");
     if !guardian_path.exists() {
@@ -651,6 +656,7 @@ fn handle_critiques(
     estimated_tokens: u64,
     auto_verify_enabled: bool,
 ) {
+    let rules_hash = crate::skills::hasher::get_rules_fingerprint(root);
     // OPTIMIZATION: Use write lock only when necessary
     let mut active_lock = match ACTIVE_CRITIQUES.write() {
         Ok(guard) => guard,
@@ -663,7 +669,11 @@ fn handle_critiques(
 
     let mut critical_info: Option<StallInfo> = None;
     // Process Results
-    for critique in critiques {
+    for mut critique in critiques {
+        critique.finding_id = Some(crate::baseline::manager::finding_id_for_critique(
+            &critique,
+            &rules_hash,
+        ));
         // Critiques for specific files
         let path_key = critique.file_path.clone();
         if critique.message.to_uppercase().trim() == "LGTM" {
@@ -931,16 +941,21 @@ fn sync_guardian_logs(
     }
 
     let critiques_path = guardian_dir.join("critiques.md");
+    let critiques_json_path = guardian_dir.join("critiques.json");
     let chat_path = guardian_dir.join("chat_queue.md");
 
     let mut critical_info: Option<StallInfo> = None;
+    let rules_hash = crate::skills::hasher::get_rules_fingerprint(root);
+    let workspace_id = crate::baseline::manager::compute_workspace_id(root_path).unwrap_or_default();
 
     // Rewrite critiques.md
     if let Ok(mut file) = fs::File::create(&critiques_path) {
         let _ = writeln!(file, "# Guardian Active Critiques");
         let _ = writeln!(file, "Updated: {}\n", Utc::now().to_rfc3339());
         let _ = writeln!(file, "```json");
-        for (path, c) in critiques {
+        let mut entries: Vec<(&String, &crate::ai_client::Critique)> = critiques.iter().collect();
+        entries.sort_by(|(a, _), (b, _)| a.cmp(b));
+        for (path, c) in entries {
             if critical_info.is_none()
                 && c.severity.trim().eq_ignore_ascii_case("critical")
                 && c.message != "LGTM"
@@ -950,7 +965,12 @@ fn sync_guardian_logs(
                     reason: c.message.clone(),
                 });
             }
+            let finding_id =
+                c.finding_id
+                    .clone()
+                    .unwrap_or_else(|| crate::baseline::manager::finding_id_for_critique(c, &rules_hash));
             let json_line = json!({
+                "finding_id": finding_id,
                 "file_path": path,
                 "severity": c.severity,
                 "message": c.message,
@@ -961,6 +981,36 @@ fn sync_guardian_logs(
             let _ = writeln!(file, "{}", json_line);
         }
         let _ = writeln!(file, "```\n");
+    }
+
+    // Rewrite critiques.json (machine readable snapshot)
+    if let Ok(mut file) = fs::File::create(&critiques_json_path) {
+        let mut entries: Vec<(&String, &crate::ai_client::Critique)> = critiques.iter().collect();
+        entries.sort_by(|(a, _), (b, _)| a.cmp(b));
+        let mut payload_critiques = Vec::with_capacity(entries.len());
+        for (path, c) in entries {
+            let finding_id =
+                c.finding_id
+                    .clone()
+                    .unwrap_or_else(|| crate::baseline::manager::finding_id_for_critique(c, &rules_hash));
+            payload_critiques.push(json!({
+                "finding_id": finding_id,
+                "file_path": path,
+                "severity": c.severity,
+                "message": c.message,
+                "suggestion": c.suggestion,
+                "chat_message": c.chat_message,
+                "suggested_diff": c.suggested_diff
+            }));
+        }
+        let payload = json!({
+            "protocol_version": 1,
+            "timestamp": Utc::now().to_rfc3339(),
+            "workspace_id": workspace_id,
+            "rules_hash": rules_hash,
+            "critiques": payload_critiques
+        });
+        let _ = writeln!(file, "{}", serde_json::to_string_pretty(&payload).unwrap_or_default());
     }
 
     // Rewrite chat_queue.md
@@ -993,6 +1043,17 @@ fn sync_guardian_logs(
     let _ = fs::remove_file(root_path.join(".guardian_chat_queue.md"));
 
     critical_info
+}
+
+pub(crate) fn active_critiques_for_root(root: &str) -> Vec<crate::ai_client::Critique> {
+    let root_path = Path::new(root);
+    let Ok(lock) = ACTIVE_CRITIQUES.read() else {
+        return Vec::new();
+    };
+    lock.values()
+        .filter(|critique| Path::new(&critique.file_path).starts_with(root_path))
+        .cloned()
+        .collect()
 }
 
 fn calculate_hash(content: &str) -> String {

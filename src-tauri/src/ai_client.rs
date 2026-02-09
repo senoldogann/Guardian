@@ -25,6 +25,8 @@ pub struct Critique {
     pub suggestion: Option<String>,
     pub chat_message: Option<String>,
     pub suggested_diff: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub finding_id: Option<String>,
 }
 
 impl AiClient {

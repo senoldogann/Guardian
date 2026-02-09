@@ -20,6 +20,7 @@ export interface Critique {
     message: string;
     suggestion?: string;
     suggested_diff?: string;
+    finding_id?: string;
 }
 
 interface CritiqueAccordionRowProps {
@@ -29,9 +30,10 @@ interface CritiqueAccordionRowProps {
     onToggle: () => void;
     onAskGuru: () => void;
     onFix: () => void; // Clean Code: Callback for UI update
+    findingStatus?: "new" | "active";
 }
 
-export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onAskGuru, onFix }: CritiqueAccordionRowProps): ReactElement {
+export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onAskGuru, onFix, findingStatus }: CritiqueAccordionRowProps): ReactElement {
     const severity = log.severity.toLowerCase();
     const isCritical = severity === "critical";
     const isWarning = severity === "warning";
@@ -92,6 +94,19 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ l
                     <div className="flex items-center gap-2">
                         <FileCode className={clsx("w-3.5 h-3.5", isCritical ? "text-rose-400" : isWarning ? "text-amber-400" : "text-[var(--accent-500)]")} />
                         <span className="font-bold text-sm truncate" title={log.file_path}>{fileName}</span>
+                        {findingStatus && (
+                            <span
+                                className={clsx(
+                                    "px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border",
+                                    findingStatus === "new"
+                                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                        : "bg-white/5 text-text-muted border-border-main"
+                                )}
+                                title={findingStatus === "new" ? "New since baseline" : "Present in baseline"}
+                            >
+                                {findingStatus === "new" ? "NEW" : "ACTIVE"}
+                            </span>
+                        )}
                     </div>
                     <div className="text-xs opacity-30 font-mono pl-5 truncate">{dirDisplay}</div>
                 </div>

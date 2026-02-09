@@ -287,6 +287,69 @@ async fn stop_monitoring(watcher: tauri::State<'_, WatcherSupervisor>) -> Result
 }
 
 #[tauri::command]
+async fn get_baseline(root: String) -> Result<Option<baseline::Baseline>, String> {
+    let root_path = std::path::Path::new(&root);
+    if !root_path.exists() || !root_path.is_dir() {
+        return Err(format!(
+            "Workspace root not accessible: {}. Select the correct folder in Scope.",
+            root
+        ));
+    }
+    let manager = baseline::BaselineManager::new(root_path.to_path_buf());
+    manager.load().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn create_baseline(root: String) -> Result<baseline::BaselineStatusView, String> {
+    let root_path = std::path::Path::new(&root);
+    if !root_path.exists() || !root_path.is_dir() {
+        return Err(format!(
+            "Workspace root not accessible: {}. Select the correct folder in Scope.",
+            root
+        ));
+    }
+
+    let manager = baseline::BaselineManager::new(root_path.to_path_buf());
+    let critiques = watcher::active_critiques_for_root(&root);
+    let baseline = manager.create_baseline(&critiques).map_err(|e| e.to_string())?;
+    manager
+        .status(&baseline, &critiques)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn clear_baseline(root: String) -> Result<(), String> {
+    let root_path = std::path::Path::new(&root);
+    if !root_path.exists() || !root_path.is_dir() {
+        return Err(format!(
+            "Workspace root not accessible: {}. Select the correct folder in Scope.",
+            root
+        ));
+    }
+    let manager = baseline::BaselineManager::new(root_path.to_path_buf());
+    manager.delete().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn get_baseline_status(root: String) -> Result<Option<baseline::BaselineStatusView>, String> {
+    let root_path = std::path::Path::new(&root);
+    if !root_path.exists() || !root_path.is_dir() {
+        return Err(format!(
+            "Workspace root not accessible: {}. Select the correct folder in Scope.",
+            root
+        ));
+    }
+
+    let manager = baseline::BaselineManager::new(root_path.to_path_buf());
+    let Some(baseline) = manager.load().map_err(|e| e.to_string())? else {
+        return Ok(None);
+    };
+    let critiques = watcher::active_critiques_for_root(&root);
+    let status = manager.status(&baseline, &critiques).map_err(|e| e.to_string())?;
+    Ok(Some(status))
+}
+
+#[tauri::command]
 async fn start_github_login() -> Result<auth::github::DeviceCodeResponse, String> {
     let client_id = config::github_client_id().map_err(|e| e.to_string())?;
     auth::github::request_device_code(&client_id)
@@ -1107,6 +1170,10 @@ pub fn run() -> AnyhowResult<()> {
         .invoke_handler(tauri::generate_handler![
             start_monitoring,
             stop_monitoring,
+            get_baseline,
+            create_baseline,
+            clear_baseline,
+            get_baseline_status,
             start_github_login,
             complete_github_login,
             logout_github,

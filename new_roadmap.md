@@ -195,10 +195,29 @@ pub struct BaselineStatus {
 3. **E2E:** Baseline set et -> yeni bulgu ekle -> sadece yeni göster
 
 ### Acceptance Criteria
-- [ ] Baseline oluşturulabiliyor
-- [ ] Eski bulgular "new" olarak işaretlenmiyor
-- [ ] Rules değişince baseline invalid sayılıyor
-- [ ] UI'da filtreleme çalışıyor
+- [x] Baseline oluşturulabiliyor
+- [x] Eski bulgular "new" olarak işaretlenmiyor
+- [x] Rules değişince baseline invalid sayılıyor
+- [x] UI'da filtreleme çalışıyor
+
+### Phase 1 - Implemented (2026-02-09)
+- Baseline schema + manager eklendi: `src-tauri/src/baseline/manager.rs`
+  - `.guardian/baseline.json` yazma/okuma
+  - Rules hash değişince baseline invalid
+- Deterministik `finding_id` (Phase 1 v1): `sha256(guardian-v1::<severity>|file_path||rules_hash)`
+  - `Critique` payload'ına `finding_id` eklendi
+- Watcher output genişletildi:
+  - `.guardian/critiques.md` JSON satırlarına `finding_id` eklendi
+  - `.guardian/critiques.json` snapshot eklendi (protocol_version=1)
+- Tauri commands eklendi:
+  - `get_baseline`, `create_baseline`, `clear_baseline`, `get_baseline_status`
+- UI (Desktop) baseline panel + filtre eklendi:
+  - "Set Baseline" + "Reset"
+  - View: All | New | Resolved
+  - Finding satırlarında NEW/ACTIVE badge
+- Tests:
+  - `cd src-tauri && cargo test` (pass)
+  - `npm test` (pass)
 
 ---
 

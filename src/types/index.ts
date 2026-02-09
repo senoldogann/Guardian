@@ -109,6 +109,34 @@ export interface Critique {
   message: string;
   suggestion?: string;
   suggested_diff?: string;
+  finding_id?: string;
+}
+
+export interface BaselineFinding {
+  finding_id: string;
+  file_path: string;
+  severity: string;
+  message?: string | null;
+}
+
+export interface Baseline {
+  schema_version: number;
+  created_at: string;
+  workspace_id: string;
+  rules_hash: string;
+  finding_ids: string[];
+  findings?: BaselineFinding[];
+}
+
+export interface BaselineStatusView {
+  valid: boolean;
+  baseline_age_days: number;
+  active: number;
+  new_since_baseline: number;
+  resolved_since_baseline: number;
+  rules_hash_current: string;
+  rules_hash_baseline: string;
+  created_at: string;
 }
 
 // Provider options
