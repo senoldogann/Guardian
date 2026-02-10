@@ -18,7 +18,10 @@ import {
   Files,
   Share2,
   Eye,
+  EyeOff,
   ClipboardCheck,
+  ClipboardList,
+  DatabaseZap,
 } from "lucide-react";
 import clsx from "clsx";
 import { CritiqueAccordionRow } from "./components/CritiqueAccordionRow";
@@ -705,8 +708,18 @@ function App(): ReactElement {
       return s !== "rejected" && s !== "applied";
     }).length;
   }, [fixProposals]);
+  const hasAiContextData = Boolean(aiContext && aiContext.files.length > 0);
+  const hasReviewData = Boolean((fixProposals?.proposals?.length ?? 0) > 0);
 
   const engineModel = settings.providerDraft?.model?.trim() || "Not set";
+  const showFloatingFilter = active || filter.trim().length > 0;
+  const embeddingModeLabel = useMemo(() => {
+    const mode = settings.embeddingDraft?.mode ?? "auto";
+    if (mode === "openai") return "OpenAI";
+    if (mode === "ollama") return "Ollama";
+    if (mode === "local") return "Local Hash";
+    return "Auto";
+  }, [settings.embeddingDraft?.mode]);
   const launchGate = useMemo(() => {
     if (!path) {
       return { canLaunch: false, blockingReason: "Select a workspace scope first." };
@@ -775,6 +788,25 @@ function App(): ReactElement {
         onTavilyKeyChange={settings.onTavilyKeyChange}
         onSaveTavilyKey={settings.saveTavilyKey}
         onClearTavilyKey={settings.clearTavilyKey}
+        embeddingDraft={settings.embeddingDraft}
+        embeddingError={settings.embeddingError}
+        embeddingSaving={settings.embeddingSaving}
+        embeddingOpenAiKeyStatus={settings.embeddingOpenAiKeyStatus}
+        embeddingOpenAiKeyInput={settings.embeddingOpenAiKeyInput}
+        embeddingOpenAiKeyMasked={settings.embeddingOpenAiKeyMasked}
+        embeddingOpenAiKeyError={settings.embeddingOpenAiKeyError}
+        embeddingOpenAiKeySaving={settings.embeddingOpenAiKeySaving}
+        onEmbeddingModeChange={settings.onEmbeddingModeChange}
+        onEmbeddingOpenAiBaseUrlChange={settings.onEmbeddingOpenAiBaseUrlChange}
+        onEmbeddingOllamaBaseUrlChange={settings.onEmbeddingOllamaBaseUrlChange}
+        onEmbeddingOpenAiModelChange={settings.onEmbeddingOpenAiModelChange}
+        onEmbeddingOllamaModelChange={settings.onEmbeddingOllamaModelChange}
+        onSaveEmbeddingSettings={settings.saveEmbeddingSettings}
+        onRefreshEmbeddingSettings={settings.refreshEmbeddingSettings}
+        onEmbeddingOpenAiKeyFocus={settings.onEmbeddingOpenAiKeyFocus}
+        onEmbeddingOpenAiKeyChange={settings.onEmbeddingOpenAiKeyChange}
+        onSaveEmbeddingOpenAiKey={settings.saveEmbeddingOpenAiKey}
+        onClearEmbeddingOpenAiKey={settings.clearEmbeddingOpenAiKey}
         updateInfo={settings.updateInfo}
         updateChecking={settings.updateChecking}
         updateInstalling={settings.updateInstalling}
@@ -835,11 +867,11 @@ function App(): ReactElement {
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: -80, opacity: 0, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl bg-gradient-to-r from-[var(--accent-400)] to-[var(--accent-600)] text-white shadow-2xl shadow-black/30 flex items-center gap-4 min-w-[320px]"
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl bg-[var(--accent-500)] text-white shadow-2xl shadow-black/30 flex items-center gap-4 min-w-[320px]"
           >
             <div className="flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Update Available</p>
-              <p className="text-sm font-semibold">v{settings.updateInfo.current_version} → v{settings.updateInfo.latest_version}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">Update Available</p>
+              <p className="text-sm font-semibold text-white">v{settings.updateInfo.current_version} → v{settings.updateInfo.latest_version}</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -851,7 +883,7 @@ function App(): ReactElement {
               </button>
               <button
                 onClick={() => settings.setUpdateDismissed(true)}
-                className="px-3 py-2 rounded-lg bg-white/20 hover:bg-white/30 text-sm font-medium transition-colors cursor-pointer"
+                className="px-3 py-2 rounded-lg bg-black/20 hover:bg-black/30 text-white text-sm font-medium transition-colors cursor-pointer"
               >
                 Dismiss
               </button>
@@ -875,240 +907,291 @@ function App(): ReactElement {
 
       <main className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-64 bg-surface border-r border-border-main p-5 flex flex-col gap-8 transition-colors duration-300">
-          <div className="flex flex-col gap-1 bg-background/50 p-2 rounded-xl border border-border-main">
-            <button
-              onClick={() => setView("monitor")}
-              className={clsx("w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-lg transition-all flex items-center gap-3 cursor-pointer", view === "monitor" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-50 hover:opacity-100")}
-            >
-              <Activity className="w-4 h-4" /> Monitor
-            </button>
-            <button
-              onClick={() => setView("chat")}
-              className={clsx("w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-lg transition-all flex items-center gap-3 cursor-pointer", view === "chat" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-50 hover:opacity-100")}
-            >
-              <MessageSquare className="w-4 h-4" /> Guru
-            </button>
-            <button
-              onClick={() => setView("diagram")}
-              className={clsx("w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-lg transition-all flex items-center gap-3 cursor-pointer", view === "diagram" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-50 hover:opacity-100")}
-            >
-              <Share2 className="w-4 h-4" /> Project Map
-            </button>
-            <button
-              onClick={() => setView("ai-context")}
-              className={clsx("w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-lg transition-all flex items-center gap-3 cursor-pointer", view === "ai-context" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-50 hover:opacity-100")}
-            >
-              <Eye className="w-4 h-4" /> AI Context
-            </button>
-            <button
-              onClick={() => setView("reviews")}
-              className={clsx(
-                "w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-lg transition-all flex items-center justify-between gap-3 cursor-pointer",
-                view === "reviews" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-50 hover:opacity-100"
-              )}
-            >
-              <span className="flex items-center gap-3">
-                <ClipboardCheck className="w-4 h-4" /> Reviews
-              </span>
-              {pendingFixProposalsCount > 0 && (
-                <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-amber-500/10 text-amber-200 border-amber-500/20 tabular-nums">
-                  {pendingFixProposalsCount}
-                </span>
-              )}
-            </button>
-          </div>
-
-          <section className="space-y-6">
-            <div className="grid grid-cols-2 gap-3">
-              <StatMini label="Files" count={context?.total_files || 0} icon={<Files className="w-3.5 h-3.5 text-zinc-400" />} color="text-[var(--stat-strong)]" />
-              <StatMini label="Issues" count={stats.total} icon={<AlertCircle className="w-3.5 h-3.5 text-amber-400" />} color="text-[var(--stat-strong)]" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest px-1">Scope</label>
-              <div className="group relative">
-                <Folder className="absolute left-3 top-3 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors pointer-events-none" />
-                <input
-                  readOnly
-                  onClick={selectScope}
-                  className="w-full bg-background border border-border-main rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none focus:border-opacity-100 transition-all placeholder:opacity-50 cursor-pointer hover:bg-border-main"
-                  value={scopeLabel}
-                  placeholder="Select workspace"
-                />
-              </div>
-            </div>
-
-            <CostMetric tokens={usage.tokens} calls={usage.calls} />
-
-            <div className="p-3 rounded-xl bg-background/50 border border-border-main space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Baseline</span>
-                <span
+        <aside className="w-72 xl:w-80 min-w-[17rem] bg-surface border-r border-border-main transition-colors duration-300 flex flex-col min-h-0">
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 custom-scrollbar">
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-border-main bg-background/45 p-2 space-y-1.5">
+                <button
+                  onClick={() => setView("monitor")}
                   className={clsx(
-                    "text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md border",
-                    baselineLoading
-                      ? "bg-white/5 text-text-muted border-border-main"
-                      : baselineStatus?.valid
-                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                        : baselineStatus
-                          ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                          : "bg-white/5 text-text-muted border-border-main"
+                    "w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all flex items-center gap-3 cursor-pointer",
+                    view === "monitor" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-70 hover:opacity-100"
                   )}
                 >
-                  {baselineLoading ? "LOADING" : baselineStatus?.valid ? "VALID" : baselineStatus ? "INVALID" : "NONE"}
-                </span>
+                  <Activity className="w-4 h-4" /> Monitor
+                </button>
+                <button
+                  onClick={() => setView("chat")}
+                  className={clsx(
+                    "w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all flex items-center gap-3 cursor-pointer",
+                    view === "chat" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-70 hover:opacity-100"
+                  )}
+                >
+                  <MessageSquare className="w-4 h-4" /> Guru
+                </button>
+                <button
+                  onClick={() => setView("diagram")}
+                  className={clsx(
+                    "w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all flex items-center gap-3 cursor-pointer",
+                    view === "diagram" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-70 hover:opacity-100"
+                  )}
+                >
+                  <Share2 className="w-4 h-4" /> Project Map
+                </button>
+                <button
+                  onClick={() => setView("ai-context")}
+                  className={clsx(
+                    "w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all flex items-center justify-between gap-3 cursor-pointer",
+                    view === "ai-context" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-70 hover:opacity-100"
+                  )}
+                >
+                  <span className="flex items-center gap-3">
+                    <Eye className="w-4 h-4" /> AI Context
+                  </span>
+                  <span
+                    className={clsx(
+                      "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border",
+                      hasAiContextData
+                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                        : "bg-white/5 text-text-muted border-border-main"
+                    )}
+                  >
+                    {hasAiContextData ? "READY" : "EMPTY"}
+                  </span>
+                </button>
+                <button
+                  onClick={() => setView("reviews")}
+                  className={clsx(
+                    "w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all flex items-center justify-between gap-3 cursor-pointer",
+                    view === "reviews" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-70 hover:opacity-100"
+                  )}
+                >
+                  <span className="flex items-center gap-3">
+                    <ClipboardCheck className="w-4 h-4" /> Reviews
+                  </span>
+                  {pendingFixProposalsCount > 0 ? (
+                    <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-amber-500/10 text-amber-200 border-amber-500/20 tabular-nums">
+                      {pendingFixProposalsCount}
+                    </span>
+                  ) : (
+                    <span
+                      className={clsx(
+                        "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border",
+                        hasReviewData
+                          ? "bg-white/10 text-text-main border-border-main"
+                          : "bg-white/5 text-text-muted border-border-main"
+                      )}
+                    >
+                      {hasReviewData ? "LOG" : "EMPTY"}
+                    </span>
+                  )}
+                </button>
               </div>
 
-              {baselineStatus ? (
-                <div className="text-[10px] font-mono text-text-muted space-y-1">
-                  <div>Age: {baselineStatus.baseline_age_days}d</div>
-                  <div>
-                    {baselineMetrics
-                      ? `${baselineMetrics.active} active • ${baselineMetrics.new} new • ${baselineMetrics.resolved} resolved`
-                      : "Baseline loaded"}
+              <div className="rounded-xl border border-border-main bg-background/35 p-3 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <StatMini
+                    label="Files"
+                    count={context?.total_files || 0}
+                    icon={<Files className="w-3.5 h-3.5 text-zinc-400" />}
+                    color="text-[var(--stat-strong)]"
+                  />
+                  <StatMini
+                    label="Issues"
+                    count={stats.total}
+                    icon={<AlertCircle className="w-3.5 h-3.5 text-amber-400" />}
+                    color="text-[var(--stat-strong)]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">Scope</label>
+                  <div className="group relative">
+                    <Folder className="absolute left-3 top-3 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors pointer-events-none" />
+                    <input
+                      readOnly
+                      onClick={selectScope}
+                      className="w-full bg-background border border-border-main rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none focus:border-opacity-100 transition-all placeholder:opacity-50 cursor-pointer hover:bg-border-main"
+                      value={scopeLabel}
+                      placeholder="Select workspace"
+                    />
                   </div>
                 </div>
-              ) : (
-                <div className="text-[10px] text-text-muted">
-                  No baseline set for this workspace.
-                </div>
-              )}
+              </div>
 
-              {baselineStatus && !baselineValid && (
-                <div className="text-[10px] text-amber-400">
-                  Baseline invalid (rules changed). Reset baseline to re-enable filtering.
-                </div>
-              )}
+              <CostMetric tokens={usage.tokens} calls={usage.calls} />
 
-              {baselineError && (
-                <div className="text-[10px] text-rose-400">
-                  {baselineError}
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <button
-                  onClick={setBaselineNow}
-                  disabled={!path || baselineLoading}
-                  className="flex-1 px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Set Baseline
-                </button>
-                {baselineStatus && (
-                  <button
-                    onClick={clearBaselineNow}
-                    disabled={!path || baselineLoading}
-                    className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-text-main rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              <div className="p-3 rounded-xl bg-background/50 border border-border-main space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Baseline</span>
+                  <span
+                    className={clsx(
+                      "text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md border",
+                      baselineLoading
+                        ? "bg-white/5 text-text-muted border-border-main"
+                        : baselineStatus?.valid
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : baselineStatus
+                            ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                            : "bg-white/5 text-text-muted border-border-main"
+                    )}
                   >
-                    Reset
+                    {baselineLoading ? "LOADING" : baselineStatus?.valid ? "VALID" : baselineStatus ? "INVALID" : "NONE"}
+                  </span>
+                </div>
+
+                {baselineStatus ? (
+                  <div className="text-[10px] font-mono text-text-muted space-y-1">
+                    <div>Age: {baselineStatus.baseline_age_days}d</div>
+                    <div>
+                      {baselineMetrics
+                        ? `${baselineMetrics.active} active • ${baselineMetrics.new} new • ${baselineMetrics.resolved} resolved`
+                        : "Baseline loaded"}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-text-muted">
+                    No baseline set for this workspace.
+                  </div>
+                )}
+
+                {baselineStatus && !baselineValid && (
+                  <div className="text-[10px] text-amber-400">
+                    Baseline invalid (rules changed). Reset baseline to re-enable filtering.
+                  </div>
+                )}
+
+                {baselineError && (
+                  <div className="text-[10px] text-rose-400">
+                    {baselineError}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={setBaselineNow}
+                    disabled={!path || baselineLoading}
+                    className="flex-1 px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Set Baseline
                   </button>
+                  {baselineStatus && (
+                    <button
+                      onClick={clearBaselineNow}
+                      disabled={!path || baselineLoading}
+                      className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-text-main rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+
+                {baselineValid && (
+                  <div className="grid grid-cols-3 gap-1">
+                    <button
+                      onClick={() => setBaselineView("all")}
+                      className={clsx(
+                        "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
+                        baselineView === "all"
+                          ? "bg-white/10 text-text-main border-border-main"
+                          : "bg-transparent text-text-muted border-border-main hover:bg-white/5"
+                      )}
+                    >
+                      All
+                    </button>
+                    <button
+                      onClick={() => setBaselineView("new")}
+                      className={clsx(
+                        "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
+                        baselineView === "new"
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : "bg-transparent text-text-muted border-border-main hover:bg-white/5"
+                      )}
+                    >
+                      New
+                    </button>
+                    <button
+                      onClick={() => setBaselineView("resolved")}
+                      className={clsx(
+                        "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
+                        baselineView === "resolved"
+                          ? "bg-white/10 text-text-main border-border-main"
+                          : "bg-transparent text-text-muted border-border-main hover:bg-white/5"
+                      )}
+                    >
+                      Resolved
+                    </button>
+                  </div>
                 )}
               </div>
 
-              {baselineValid && (
-                <div className="grid grid-cols-3 gap-1">
+              <div className="p-3 rounded-xl bg-background/50 border border-border-main space-y-2">
+                <div className="flex items-center gap-2">
+                  <Box className="w-3 h-3 opacity-50" />
+                  <span className="text-[10px] font-bold opacity-60 uppercase">Engine Status</span>
+                </div>
+                <p className="text-[10px] text-text-muted leading-relaxed font-mono">Model: {engineModel}</p>
+                <div className="flex items-center justify-between rounded-lg border border-border-main bg-background/60 px-2.5 py-2">
+                  <span className="text-[10px] text-text-muted flex items-center gap-1.5">
+                    <DatabaseZap className="w-3.5 h-3.5" />
+                    Embedding: <span className="text-[var(--text-main)]">{embeddingModeLabel}</span>
+                  </span>
                   <button
-                    onClick={() => setBaselineView("all")}
-                    className={clsx(
-                      "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
-                      baselineView === "all"
-                        ? "bg-white/10 text-text-main border-border-main"
-                        : "bg-transparent text-text-muted border-border-main hover:bg-white/5"
-                    )}
+                    onClick={() => {
+                      settings.setSettingsTab("embedding");
+                      setSettingsOpen(true);
+                    }}
+                    className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors cursor-pointer"
                   >
-                    All
+                    Setup
                   </button>
-                  <button
-                    onClick={() => setBaselineView("new")}
-                    className={clsx(
-                      "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
-                      baselineView === "new"
-                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                        : "bg-transparent text-text-muted border-border-main hover:bg-white/5"
+                </div>
+                <div className="h-1 w-full bg-border-main rounded-full overflow-hidden">
+                  <div className={clsx("h-full transition-all duration-1000", active ? "w-full bg-[var(--accent-500)]" : "w-0 bg-border-main")} />
+                </div>
+              </div>
+
+              {auth.authGateVisible && (auth.showAuthGate || auth.requiresVerified) && !active && (
+                <div className="rounded-xl border border-amber-500/20 bg-white text-zinc-900 dark:bg-amber-500/10 dark:text-amber-200 px-3 py-2 text-[10px] space-y-2">
+                  <div>
+                    {auth.showAuthGate
+                      ? "GitHub login is required before starting monitoring."
+                      : "Cached session detected. Verify online to refresh GitHub access."}
+                  </div>
+                  <div className="flex gap-2">
+                    {!auth.showAuthGate && (
+                      <button
+                        onClick={auth.refreshAuthSession}
+                        disabled={auth.authLoading}
+                        className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Verify Now
+                      </button>
                     )}
-                  >
-                    New
-                  </button>
-                  <button
-                    onClick={() => setBaselineView("resolved")}
-                    className={clsx(
-                      "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
-                      baselineView === "resolved"
-                        ? "bg-white/10 text-text-main border-border-main"
-                        : "bg-transparent text-text-muted border-border-main hover:bg-white/5"
+                    {auth.authError && (
+                      <span className="text-[10px] text-rose-500">{auth.authError}</span>
                     )}
+                    {!auth.authError && auth.authWarning && (
+                      <span className="text-[10px] text-amber-500">{auth.authWarning}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {settings.requiresApiKey && !active && (
+                <div className="rounded-xl border border-rose-500/20 bg-white text-rose-600 dark:bg-rose-500/10 dark:text-rose-500 px-3 py-2 text-[10px] space-y-2">
+                  <div>Setup required: add your {settings.providerLabel} API key.</div>
+                  <button
+                    onClick={() => setSettingsOpen(true)}
+                    className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-rose-500 text-white rounded-md hover:opacity-90 transition-colors"
                   >
-                    Resolved
+                    Open Settings
                   </button>
                 </div>
               )}
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">Filter</label>
-              <div className="group relative">
-                <Search className="absolute left-3 top-2.5 w-3.5 h-3.5 text-zinc-500 group-focus-within:text-white transition-colors" />
-                <input
-                  className="w-full bg-background border border-border-main rounded-lg py-2 pl-9 pr-3 text-xs outline-none focus:border-opacity-100 transition-all placeholder:opacity-50"
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                  placeholder="Search Issues..."
-                />
-              </div>
-            </div>
-          </section>
-
-          <section className="mt-auto pt-6 border-t border-border-main space-y-4">
-            <div className="p-3 rounded-xl bg-background/50 border border-border-main space-y-2">
-              <div className="flex items-center gap-2">
-                <Box className="w-3 h-3 opacity-50" />
-                <span className="text-[10px] font-bold opacity-60 uppercase">Engine Status</span>
-              </div>
-              <p className="text-[10px] text-text-muted leading-relaxed font-mono">Model: {engineModel}</p>
-              <div className="h-1 w-full bg-border-main rounded-full overflow-hidden">
-                <div className={clsx("h-full transition-all duration-1000", active ? "w-full bg-[var(--accent-500)]" : "w-0 bg-border-main")} />
-              </div>
-            </div>
-
-            {auth.authGateVisible && (auth.showAuthGate || auth.requiresVerified) && !active && (
-              <div className="rounded-xl border border-amber-500/20 bg-white text-zinc-900 dark:bg-amber-500/10 dark:text-amber-200 px-3 py-2 text-[10px] space-y-2">
-                <div>
-                  {auth.showAuthGate
-                    ? "GitHub login is required before starting monitoring."
-                    : "Cached session detected. Verify online to refresh GitHub access."}
-                </div>
-                <div className="flex gap-2">
-                  {!auth.showAuthGate && (
-                    <button
-                      onClick={auth.refreshAuthSession}
-                      disabled={auth.authLoading}
-                      className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Verify Now
-                    </button>
-                  )}
-                  {auth.authError && (
-                    <span className="text-[10px] text-rose-500">{auth.authError}</span>
-                  )}
-                  {!auth.authError && auth.authWarning && (
-                    <span className="text-[10px] text-amber-500">{auth.authWarning}</span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {settings.requiresApiKey && !active && (
-              <div className="rounded-xl border border-rose-500/20 bg-white text-rose-600 dark:bg-rose-500/10 dark:text-rose-500 px-3 py-2 text-[10px] space-y-2">
-                <div>Setup required: add your {settings.providerLabel} API key.</div>
-                <button
-                  onClick={() => setSettingsOpen(true)}
-                  className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-rose-500 text-white rounded-md hover:opacity-90 transition-colors"
-                >
-                  Open Settings
-                </button>
-              </div>
-            )}
-
+          <section className="shrink-0 border-t border-border-main bg-surface/95 px-4 py-3 space-y-2">
             <button
               onClick={canToggleMonitoring ? toggleMonitoring : undefined}
               disabled={!canToggleMonitoring}
@@ -1143,6 +1226,30 @@ function App(): ReactElement {
             <div className="w-40 text-right shrink-0">Actions / Sev</div>
           </div>
 
+          {showFloatingFilter && (
+            <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 w-full max-w-xl px-4 pointer-events-none">
+              <div className="pointer-events-auto mx-auto max-w-md rounded-xl border border-border-main bg-surface/90 backdrop-blur px-3 py-2 shadow-lg shadow-black/15">
+                <div className="group relative flex items-center gap-2">
+                  <Search className="w-3.5 h-3.5 text-zinc-500 group-focus-within:text-white transition-colors" />
+                  <input
+                    className="w-full bg-transparent text-xs outline-none placeholder:opacity-50"
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                    placeholder="Search issues (file, message, severity)..."
+                  />
+                  {filter.trim().length > 0 && (
+                    <button
+                      onClick={() => setFilter("")}
+                      className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {active && filteredLogs.length !== 0 && baselineView !== "resolved" && (
             <div
               className={clsx(
@@ -1153,7 +1260,12 @@ function App(): ReactElement {
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar">
+          <div
+            className={clsx(
+              "flex-1 overflow-y-auto px-2 custom-scrollbar",
+              showFloatingFilter ? "pt-16 pb-2" : "py-2"
+            )}
+          >
             {baselineView === "resolved" ? (
               <div className="space-y-2">
                 {!baselineStatus ? (
@@ -1300,6 +1412,9 @@ function App(): ReactElement {
         >
           {!path ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-muted text-sm">
+              <div className="w-16 h-16 rounded-2xl border border-border-main bg-background/40 flex items-center justify-center">
+                <ClipboardList className="w-7 h-7 text-text-muted/80" />
+              </div>
               <div className="text-xs uppercase tracking-widest">No workspace selected.</div>
               <div className="text-[10px] text-text-muted max-w-md text-center">
                 Select a workspace, then write proposals to <span className="text-[var(--text-main)]">.guardian-proposals/fix_proposals.jsonl</span>.
@@ -1332,6 +1447,9 @@ function App(): ReactElement {
         >
           {!path ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-muted text-sm">
+              <div className="w-16 h-16 rounded-2xl border border-border-main bg-background/40 flex items-center justify-center">
+                <EyeOff className="w-7 h-7 text-text-muted/80" />
+              </div>
               <div className="text-xs uppercase tracking-widest">No workspace selected.</div>
               <div className="text-[10px] text-text-muted max-w-md text-center">
                 Select a workspace, start monitoring, and modify a file to capture the outbound AI payload.

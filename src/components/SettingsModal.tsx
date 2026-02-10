@@ -9,10 +9,14 @@ import {
   RefreshCw,
   Search,
   Download,
+  Database,
+  CircleHelp,
+  ExternalLink,
 } from "lucide-react";
 import { openExternal } from "../lib/tauri";
 
-export type SettingsTab = "provider" | "web" | "updates" | "export";
+export type EmbeddingMode = "auto" | "openai" | "ollama" | "local";
+export type SettingsTab = "provider" | "embedding" | "web" | "updates" | "export";
 
 export interface ProviderConfig {
   provider_id: string;
@@ -29,6 +33,14 @@ export interface ApiKeyStatus {
 export interface TavilyKeyStatus {
   has_key: boolean;
   source: string;
+}
+
+export interface EmbeddingRuntimeConfig {
+  mode: EmbeddingMode;
+  openai_base_url?: string | null;
+  ollama_base_url?: string | null;
+  openai_model?: string | null;
+  ollama_model?: string | null;
 }
 
 export interface UpdateCheckResult {
@@ -52,6 +64,25 @@ export const getProviderDefaults = (providerId: string) => {
   const match = PROVIDER_OPTIONS.find((p) => p.id === providerId);
   return match ?? PROVIDER_OPTIONS[0];
 };
+
+interface InfoPopoverProps {
+  title: string;
+  note: string;
+}
+
+function InfoPopover({ title, note }: InfoPopoverProps): ReactElement {
+  return (
+    <details className="relative inline-block">
+      <summary className="list-none cursor-pointer select-none text-text-muted hover:text-text-main transition-colors">
+        <CircleHelp className="w-3.5 h-3.5" />
+      </summary>
+      <div className="absolute right-0 mt-2 w-72 rounded-lg border border-border-main bg-surface p-3 shadow-2xl z-20">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-text-main">{title}</p>
+        <p className="mt-1 text-[10px] leading-relaxed text-text-muted">{note}</p>
+      </div>
+    </details>
+  );
+}
 
 export interface SettingsModalProps {
   open: boolean;
@@ -98,6 +129,27 @@ export interface SettingsModalProps {
   onTavilyKeyChange: (value: string) => void;
   onSaveTavilyKey: () => void;
   onClearTavilyKey: () => void;
+
+  // Embeddings
+  embeddingDraft: EmbeddingRuntimeConfig | null;
+  embeddingError: string | null;
+  embeddingSaving: boolean;
+  embeddingOpenAiKeyStatus: ApiKeyStatus | null;
+  embeddingOpenAiKeyInput: string;
+  embeddingOpenAiKeyMasked: boolean;
+  embeddingOpenAiKeyError: string | null;
+  embeddingOpenAiKeySaving: boolean;
+  onEmbeddingModeChange: (mode: EmbeddingMode) => void;
+  onEmbeddingOpenAiBaseUrlChange: (value: string) => void;
+  onEmbeddingOllamaBaseUrlChange: (value: string) => void;
+  onEmbeddingOpenAiModelChange: (value: string) => void;
+  onEmbeddingOllamaModelChange: (value: string) => void;
+  onSaveEmbeddingSettings: () => void;
+  onRefreshEmbeddingSettings: () => void;
+  onEmbeddingOpenAiKeyFocus: () => void;
+  onEmbeddingOpenAiKeyChange: (value: string) => void;
+  onSaveEmbeddingOpenAiKey: () => void;
+  onClearEmbeddingOpenAiKey: () => void;
 
   // Updates
   updateInfo: UpdateCheckResult | null;
@@ -154,6 +206,25 @@ export function SettingsModal({
   onTavilyKeyChange,
   onSaveTavilyKey,
   onClearTavilyKey,
+  embeddingDraft,
+  embeddingError,
+  embeddingSaving,
+  embeddingOpenAiKeyStatus,
+  embeddingOpenAiKeyInput,
+  embeddingOpenAiKeyMasked,
+  embeddingOpenAiKeyError,
+  embeddingOpenAiKeySaving,
+  onEmbeddingModeChange,
+  onEmbeddingOpenAiBaseUrlChange,
+  onEmbeddingOllamaBaseUrlChange,
+  onEmbeddingOpenAiModelChange,
+  onEmbeddingOllamaModelChange,
+  onSaveEmbeddingSettings,
+  onRefreshEmbeddingSettings,
+  onEmbeddingOpenAiKeyFocus,
+  onEmbeddingOpenAiKeyChange,
+  onSaveEmbeddingOpenAiKey,
+  onClearEmbeddingOpenAiKey,
   updateInfo,
   updateChecking,
   updateInstalling,
@@ -229,6 +300,7 @@ export function SettingsModal({
 
         <div className="flex flex-wrap gap-2 border-b border-border-main pb-4">
           <button onClick={() => onSettingsTabChange("provider")} className={settingsTabClass("provider")}>Provider</button>
+          <button onClick={() => onSettingsTabChange("embedding")} className={settingsTabClass("embedding")}>Embedding</button>
           <button onClick={() => onSettingsTabChange("web")} className={settingsTabClass("web")}>Web Search</button>
           <button onClick={() => onSettingsTabChange("updates")} className={settingsTabClass("updates")}>Updates</button>
           <button onClick={() => onSettingsTabChange("export")} className={settingsTabClass("export")}>Export</button>
@@ -236,9 +308,15 @@ export function SettingsModal({
 
         {settingsTab === "provider" && (
           <div className="space-y-6">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
-              <Server className="w-4 h-4 text-[var(--accent-500)]" />
-              AI Provider
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                <Server className="w-4 h-4 text-[var(--accent-500)]" />
+                AI Provider
+              </div>
+              <InfoPopover
+                title="Provider Setup"
+                note="Save provider and model first, then add the API key if required. Use Ollama for local runs and OpenAI/Anthropic/Gemini for cloud."
+              />
             </div>
             <div className="space-y-3">
               <div className="text-[10px] text-text-muted">
@@ -336,9 +414,15 @@ export function SettingsModal({
             </div>
 
             <div className="pt-4 border-t border-border-main space-y-4">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
-                <KeyRound className="w-4 h-4 text-[var(--accent-500)]" />
-                API Key
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                  <KeyRound className="w-4 h-4 text-[var(--accent-500)]" />
+                  API Key
+                </div>
+                <InfoPopover
+                  title="API Key"
+                  note="API key requirement depends on your selected provider. Paste the key and click Save Key; it is stored only in local keychain."
+                />
               </div>
               <div className="text-[10px] text-text-muted">
                 {apiKeyStatus?.has_key
@@ -405,9 +489,15 @@ export function SettingsModal({
             </div>
 
             <div className="pt-4 border-t border-border-main space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
-                <ShieldAlert className="w-4 h-4 text-[var(--accent-500)]" />
-                Safety
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                  <ShieldAlert className="w-4 h-4 text-[var(--accent-500)]" />
+                  Safety
+                </div>
+                <InfoPopover
+                  title="Automatic Verification"
+                  note="When enabled, Guardian can run project commands (npm/cargo, etc.). Keep it on only for trusted repositories."
+                />
               </div>
               <div className="text-[10px] text-text-muted">
                 Automatic Verification can run project commands (npm/cargo/etc) in your monitored workspace. Keep it off unless you fully trust the repo.
@@ -432,11 +522,170 @@ export function SettingsModal({
           </div>
         )}
 
+        {settingsTab === "embedding" && (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                <Database className="w-4 h-4 text-[var(--accent-500)]" />
+                Semantic Embeddings
+              </div>
+              <InfoPopover
+                title="Embedding Mode"
+                note="In auto mode, OpenAI -> Ollama -> Local hash is tried in order. Feature still works via local fallback even without a key."
+              />
+            </div>
+            <div className="text-[10px] text-text-muted">
+              Embedding settings are optional. If no key/model is available, Guardian falls back to local hash embeddings.
+            </div>
+            <div className="rounded-xl border border-border-main bg-background/40 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] uppercase tracking-widest text-zinc-500">Mode</label>
+                <button
+                  onClick={onRefreshEmbeddingSettings}
+                  className="text-[10px] uppercase tracking-widest text-zinc-500 hover:text-text-main transition-colors"
+                >
+                  Refresh Runtime
+                </button>
+              </div>
+              <select
+                disabled={!isDesktop || !embeddingDraft}
+                value={embeddingDraft?.mode ?? "auto"}
+                onChange={(e) => onEmbeddingModeChange(e.target.value as EmbeddingMode)}
+                className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main"
+              >
+                <option value="auto">Auto (OpenAI -&gt; Ollama -&gt; Local)</option>
+                <option value="openai">OpenAI Embeddings</option>
+                <option value="ollama">Ollama Local Embeddings</option>
+                <option value="local">Local Hash Only (No Network)</option>
+              </select>
+
+              <div className="grid grid-cols-1 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">OpenAI Base URL</label>
+                  <input
+                    disabled={!isDesktop || !embeddingDraft}
+                    value={embeddingDraft?.openai_base_url ?? ""}
+                    onChange={(e) => onEmbeddingOpenAiBaseUrlChange(e.target.value)}
+                    className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
+                    placeholder="https://api.openai.com/v1"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">OpenAI Model</label>
+                  <input
+                    disabled={!isDesktop || !embeddingDraft}
+                    value={embeddingDraft?.openai_model ?? ""}
+                    onChange={(e) => onEmbeddingOpenAiModelChange(e.target.value)}
+                    className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
+                    placeholder="text-embedding-3-small"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">Ollama Base URL</label>
+                  <input
+                    disabled={!isDesktop || !embeddingDraft}
+                    value={embeddingDraft?.ollama_base_url ?? ""}
+                    onChange={(e) => onEmbeddingOllamaBaseUrlChange(e.target.value)}
+                    className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
+                    placeholder="http://127.0.0.1:11434"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">Ollama Model</label>
+                  <input
+                    disabled={!isDesktop || !embeddingDraft}
+                    value={embeddingDraft?.ollama_model ?? ""}
+                    onChange={(e) => onEmbeddingOllamaModelChange(e.target.value)}
+                    className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
+                    placeholder="nomic-embed-text"
+                  />
+                </div>
+              </div>
+
+              <div className="text-[10px] text-text-muted">
+                Local setup: install Ollama and run <span className="font-mono text-[var(--text-main)]">ollama pull nomic-embed-text</span>.
+              </div>
+
+              {embeddingError && (
+                <div className="text-[10px] text-rose-400">{embeddingError}</div>
+              )}
+
+              <button
+                onClick={onSaveEmbeddingSettings}
+                disabled={!isDesktop || embeddingSaving || !embeddingDraft}
+                className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
+              >
+                {embeddingSaving ? "Saving..." : "Save Embedding Settings"}
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-border-main bg-background/40 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                  <KeyRound className="w-4 h-4 text-[var(--accent-500)]" />
+                  OpenAI Embedding Key (Optional)
+                </div>
+                <InfoPopover
+                  title="Optional Key"
+                  note="This key is used only when embedding calls go to OpenAI. Ollama and Local modes work without this key."
+                />
+              </div>
+              <div className="text-[10px] text-text-muted">
+                Used only when embedding mode can call OpenAI. Not required for Ollama/local modes.
+              </div>
+              <div className="text-[10px] text-text-muted">
+                {embeddingOpenAiKeyStatus?.has_key
+                  ? `OpenAI key stored (${embeddingOpenAiKeyStatus.source}).`
+                  : "No OpenAI embedding key stored."}
+              </div>
+              <input
+                disabled={!isDesktop}
+                type="password"
+                value={embeddingOpenAiKeyInput}
+                onFocus={onEmbeddingOpenAiKeyFocus}
+                onChange={(e) => onEmbeddingOpenAiKeyChange(e.target.value)}
+                className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
+                placeholder="Enter OpenAI key for embeddings"
+              />
+              {embeddingOpenAiKeyError && (
+                <div className="text-[10px] text-rose-400">{embeddingOpenAiKeyError}</div>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={onSaveEmbeddingOpenAiKey}
+                  disabled={
+                    !isDesktop ||
+                    embeddingOpenAiKeySaving ||
+                    !embeddingOpenAiKeyInput.trim() ||
+                    (embeddingOpenAiKeyMasked && embeddingOpenAiKeyInput === API_KEY_MASK)
+                  }
+                  className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
+                >
+                  {embeddingOpenAiKeySaving ? "Saving..." : "Save Key"}
+                </button>
+                <button
+                  onClick={onClearEmbeddingOpenAiKey}
+                  disabled={!isDesktop || embeddingOpenAiKeySaving}
+                  className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors disabled:opacity-50"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {settingsTab === "web" && (
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
-              <Search className="w-4 h-4 text-[var(--accent-500)]" />
-              Web Search (Tavily)
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                <Search className="w-4 h-4 text-[var(--accent-500)]" />
+                Web Search (Tavily)
+              </div>
+              <InfoPopover
+                title="Web Search"
+                note="Tavily key is required for Guru to fetch internet context. Without it, web search stays off and local context is used."
+              />
             </div>
             <div className="text-[10px] text-text-muted">
               Allow Guru to use Tavily web results when needed. Web search is optional and only used when your prompt suggests external context.
@@ -516,10 +765,14 @@ export function SettingsModal({
                 {updateStatusLabel}
               </span>
             </div>
-            {updateInfo?.notes && (
-              <div className="text-[10px] text-text-muted bg-white/5 border border-border-main rounded-lg px-3 py-2">
-                {updateInfo.notes}
-              </div>
+            {updateInfo?.status === "available" && (
+              <button
+                onClick={() => openExternal("https://guardian.dev/changelog")}
+                className="flex items-center gap-2 text-[10px] text-[var(--accent-500)] hover:text-[var(--accent-400)] transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" />
+                <span className="underline">View changelog on website</span>
+              </button>
             )}
             <div className="flex flex-wrap gap-2">
               <button
