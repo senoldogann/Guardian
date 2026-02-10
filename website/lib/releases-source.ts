@@ -10,6 +10,7 @@ type ReleaseSnapshot = {
 const SNAPSHOT_REVALIDATE_SECONDS = 60;
 const FALLBACK_TTL_MS = 5 * 60 * 1000;
 const SNAPSHOT_URL = "https://github.com/senoldogann/guardian-distribution/releases/latest/download/releases.json";
+const SNAPSHOT_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 let fallbackCache: { expiresAt: number; releases: GithubRelease[] } | null = null;
 
 function getSnapshotUrl(): string {
@@ -20,6 +21,13 @@ function isReleaseSnapshot(value: unknown): value is ReleaseSnapshot {
   if (!value || typeof value !== "object") return false;
   const snapshot = value as ReleaseSnapshot;
   return Array.isArray(snapshot.releases);
+}
+
+function isSnapshotFresh(snapshot: ReleaseSnapshot): boolean {
+  if (!snapshot.generated_at) return false;
+  const parsed = Date.parse(snapshot.generated_at);
+  if (Number.isNaN(parsed)) return false;
+  return Date.now() - parsed < SNAPSHOT_MAX_AGE_MS;
 }
 
 function isSnapshotUsable(releases: GithubRelease[]): boolean {
@@ -43,6 +51,9 @@ export async function fetchReleaseSnapshot(limit = 40): Promise<GithubRelease[]>
     if (response.ok) {
       const json = (await response.json()) as unknown;
       if (isReleaseSnapshot(json) && json.releases) {
+        if (!isSnapshotFresh(json)) {
+          throw new Error("Release snapshot is stale");
+        }
         const releases = json.releases
           .filter((release) => !release.draft)
           .slice(0, limit);
