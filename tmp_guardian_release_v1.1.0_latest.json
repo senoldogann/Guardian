@@ -1,0 +1,11 @@
+{
+  "version": "v1.1.0",
+  "notes": "Phase 6 Complete: Semantic search with sqlite-vec ANN, diff-focused AI context (92% token reduction), guardian.lock for reproducible scans, Reviews queue for fix proposals, and protocol stabilization.\n\nKey Features:\n- Semantic vector search with OpenAI/Ollama/Local embedding providers\n- Diff-focused context reduces AI token usage by ~92%\n- Guardian.lock ensures consistent scans across teams\n- Reviews queue for structured fix workflow\n- 229 tests passing\n\nmacOS ARM64 (Apple Silicon) build with code signing and notarization.",
+  "pub_date": "2026-02-10T20:30:00Z",
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSVFpmdFBXdUlEMy9mSmI3c3EzZC9sUitIcWI3Z1RsZGJiUmliaURVRnZ2dWVQUXg1REtZTmRTeUwxc05VbGpjRVk1eTM1ZCtYL29BeC9tcGd4VG1CT1hwb1lJekxUYndBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzcwNzQ5NDQ4CWZpbGU6R3VhcmRpYW5fMS4xLjBfYWFyY2g2NC5kbWcKRjFHZDRVRmYrRmowVmhjUTBaYUZINUNqNWt4elR2MDRPa1FFRW5LRmRHYW9SY0NqdWlUS1ozTTRTK3BjW2FmM0tveDJGb1FhZm5TYTdwN25NZmlZRFE9PQo=",
+      "url": "https://github.com/senoldogann/guardian-distribution/releases/download/v1.1.0/Guardian_1.1.0_aarch64.dmg"
+    }
+  }
+}

@@ -538,11 +538,7 @@ pub fn contains_secrets(content: &str) -> Vec<SecretMatch> {
 
 **Not:** Phase 3'te redaction/masking davranisi varsayilan olarak aktif. UI ayarlari (toggle/slider) bir sonraki iterasyonda eklenecek.
 
-- [ ] Redact sensitive files (default: on)
-- [ ] Redact detected secrets (default: on)
-- [ ] Log AI interactions (default: on)
-- [ ] Allow AI to suggest fixes for security issues (default: off - Phase 5'te)
-- [ ] Max file size slider (default: 100KB)
+Bu ayarlar `v1.2.0` backlog'una taşınmıştır (bkz. `v1.2.0 Yapilacaklar Listesi`).
 
 ### Test Plan
 1. **Unit:** Hassas dosya tespiti
@@ -803,7 +799,7 @@ Legacy destek: Eger `.guardian/fix_proposals.jsonl` varsa, Guardian bunu `.guard
 - [x] Review UI'sı çalışıyor
 - [x] Patch güvenli bir şekilde uygulanıyor
 - [x] Hiçbir fix otomatik uygulanmıyor
-- [ ] Git entegrasyonu (varsa) çalışıyor
+- Git entegrasyonu (opsiyonel) `v1.2.0` backlog'una taşındı (bkz. `v1.2.0 Yapilacaklar Listesi`).
 
 ### Phase 5 - Implemented (2026-02-09)
 - Fix proposal queue eklendi (append-only JSONL):
@@ -855,73 +851,108 @@ Legacy destek: Eger `.guardian/fix_proposals.jsonl` varsa, Guardian bunu `.guard
 ### Phase 6 - Started (2026-02-09)
 
 #### 6.1 Local Vector DB (v1 semantic bootstrap)
-- [x] Local semantic vector storage eklendi (`.guardian/memory.db`):
+- Local semantic vector storage eklendi (`.guardian/memory.db`):
   - `semantic_vectors` tablosu: `workspace`, `file_path`, `content_hash`, `critique_id`, `severity`, `embedding_json`, `embedding_dim`, `source_mode`, `preview`
   - Index: `idx_semantic_workspace_severity (workspace, severity, created_at DESC)`
-- [x] 6.2 diff cache + baseline finding kimlikleriyle entegrasyon:
+- 6.2 diff cache + baseline finding kimlikleriyle entegrasyon:
   - Watcher pipeline içinde critique + context metni embedding'e çevrilip indexleniyor
   - `finding_id` / `content_hash` ile tekrar eden bulgulara karşı deterministik bağ kuruluyor
-- [x] Semantic recall use-case'i aktive edildi:
+- Semantic recall use-case'i aktive edildi:
   - Yeni kritik bulguda geçmiş kritikler için benzerlik araması yapılıyor
   - Eşik üstü eşleşmeler için `guardian:info` event'i yayınlanıyor
-- [x] Guru chat semantic araması eklendi:
+- Guru chat semantic araması eklendi:
   - `"benzer" / "similar" / "semantic" / "critical pattern"` gibi sorgular similarity search tetikliyor
   - Sonuçlar Guru context'ine `Semantic Similarity Matches` bloğu olarak ekleniyor
-- [x] Embedding provider stratejisi (Phase 6.1 v1):
+- Embedding provider stratejisi (Phase 6.1 v1):
   - Varsayılan: OpenAI `text-embedding-3-small`
   - Opsiyonel local model: Ollama `nomic-embed-text`
   - Offline/hatada fallback: deterministik local hash embedding
-- [x] sqlite-vec native vector KNN index entegrasyonu (6.1.1)
+- sqlite-vec native vector KNN index entegrasyonu (6.1.1)
   - `sqlite-vec` Rust binding eklendi (`src-tauri/Cargo.toml`)
   - `semantic_vectors_ann` virtual table: `vec0(embedding float[256])`
   - Primary path: ANN KNN search (`MATCH + k`) + distance tabanli similarity mapping
   - Fallback path: ANN hata/uyumsuzlukta mevcut Rust cosine scan otomatik devreye girer
-- [ ] HNSW/IVF seviye ANN stratejisi (6.1.2 - opsiyonel)
-  - `sqlite-vec` mevcut `vec0` yoluna ek olarak alternatif index stratejisi degerlendirilecek
+- HNSW/IVF seviye ANN stratejisi (6.1.2 - opsiyonel) `v1.2.0` backlog'una taşındı.
 
 #### 6.2 AI Context Optimizasyonu (v1 diff-focused)
-- [x] Watcher AI context üretimi diff-odaklı hale getirildi:
+- Watcher AI context üretimi diff-odaklı hale getirildi:
   - Son başarılı audit snapshot'ı ile karşılaştırma
   - Değişen hunks + `+/-` satır özeti
   - İlk audit için `snapshot-compressed` fallback
-- [x] Prompt tarafı güncellendi:
+- Prompt tarafı güncellendi:
   - Batch girdisi artık `Diff-Focused Context` olarak gönderiliyor
   - Model talimatı diff/snapshot sıkıştırmasını dikkate alacak şekilde genişletildi
-- [x] Token optimizasyonu:
+- Token optimizasyonu:
   - Hunk limitleme (`DIFF_MAX_HUNKS`)
   - Satır/karakter bazlı truncation + summary compression
-- [x] Unit testler eklendi:
+- Unit testler eklendi:
   - `diff_context_is_used_when_previous_snapshot_exists`
   - `snapshot_context_is_used_without_previous_snapshot`
 
 #### 6.3 guardian.lock (v1 bootstrap)
-- [x] `guardian.lock` schema v1 eklendi (desktop + CLI)
-- [x] Watcher pipeline her sync'te `guardian.lock` dosyasini senkronize eder
-- [x] Tauri command'leri eklendi:
+- `guardian.lock` schema v1 eklendi (desktop + CLI)
+- Watcher pipeline her sync'te `guardian.lock` dosyasini senkronize eder
+- Tauri command'leri eklendi:
   - `get_guardian_lock_status`
   - `ensure_guardian_lock`
-- [x] `guardian-cli` lock parametreleri eklendi:
+- `guardian-cli` lock parametreleri eklendi:
   - `--lock <path>`
   - `--lock-mode off|warn|strict` (default: `warn`)
-- [x] `guardian-cli` strict mode: `rules_hash/workspace/schema` uyumsuzlugunda scan fail
-- [x] CLI report schema'sina `guardian_lock` metadata eklendi (json + markdown)
-- [x] Rust unit testleri eklendi (desktop + CLI lock akisi)
+- `guardian-cli` strict mode: `rules_hash/workspace/schema` uyumsuzlugunda scan fail
+- CLI report schema'sina `guardian_lock` metadata eklendi (json + markdown)
+- Rust unit testleri eklendi (desktop + CLI lock akisi)
 
 #### 6.1 Ek Testler (semantic)
-- [x] `semantic_vector_search_returns_similar_matches` (storage)
-- [x] `semantic_vector_ann_path_handles_256d_embeddings` (sqlite-vec ANN path)
-- [x] `local_embedding_is_deterministic` (semantic index)
-- [x] `semantic_query_returns_indexed_match` (semantic retrieval)
+- `semantic_vector_search_returns_similar_matches` (storage)
+- `semantic_vector_ann_path_handles_256d_embeddings` (sqlite-vec ANN path)
+- `local_embedding_is_deterministic` (semantic index)
+- `semantic_query_returns_indexed_match` (semantic retrieval)
 
 #### Release Hazırlığı (2026-02-10)
-- [x] Migration guide hazırlandı:
+- Migration guide hazırlandı:
   - `docs/MIGRATION_GUIDE_PHASE6.md`
   - Kapsam: `guardian.lock` v1 + baseline `schema_version=2` geçişi
-- [x] Changelog güncellendi:
+- Changelog güncellendi:
   - `CHANGELOG.md` içinde Phase 4, Phase 5, Phase 6.1, 6.2, 6.3 özetleri eklendi (`[Unreleased]`)
-- [x] 6.2 token performans raporu eklendi:
+- 6.2 token performans raporu eklendi:
   - `docs/reports/PHASE6_TOKEN_PERFORMANCE.md`
   - Ölçüm: `snapshot_tokens=1504` → `diff_tokens=127` (`-91.56%`)
+
+#### 6.1 UX Tamamlama (Desktop Sidebar + Embedding Setup) (2026-02-10)
+- Sol sidebar yeniden düzenlendi:
+  - İçerik alanı kaydırılabilir hale getirildi (`overflow-y-auto`) ve launch alanı alta sabitlendi
+  - Scope, istatistik, baseline, filtre ve engine bilgileri daha kompakt kart düzenine taşındı
+- `REVIEWS` ve `AI CONTEXT` boş durumları görsel olarak iyileştirildi:
+  - Veri yokken ilgili tab ekranında ortalanmış ikon + açıklama gösteriliyor
+  - Workspace seçili değilken de her iki tab için ikonlu boş durum eklendi
+- Embedding ayarlarının kullanıcı erişimi netleştirildi:
+  - `Settings -> Embedding` sekmesi ile mode/model/base URL alanları aktif
+  - OpenAI embedding key opsiyonel; Ollama/local kullanım senaryoları destekleniyor
+  - Sidebar `Engine Status` kartına embedding mode görünürlüğü + `Setup` hızlı erişim eklendi
+
+#### 6.1 UX Tamamlama - Tests (2026-02-10)
+- `cd guardian && npm test` (pass, 11 file / 61 test)
+- `cd src-tauri && cargo test` (pass, 54 test)
+- `cd guardian-cli && cargo test` (pass, 7 test)
+- `cd website && npm run test:run` (pass, 8 file / 107 test)
+- `python3 .agent/scripts/verify_all.py` (pass)
+
+#### 6.1 UX Iteration 2 (Filter Relocation + Setup Popups) (2026-02-10)
+- Sol menudeki `Filter` alanı kaldirildi.
+- `Filter` monitor ekranina tasindi:
+  - Launch sonrasi merkezde floating arama kutusu olarak gorunur
+  - UI cakismasini onlemek icin monitor liste alani dinamik ust bosluk alir
+- Kurulum alanlarina yonlendirici bilgi popup'lari eklendi:
+  - Provider Setup, API Key, Safety
+  - Embedding Mode, Optional Embedding Key
+  - Web Search (Tavily)
+
+#### 6.1 UX Iteration 2 - Tests (2026-02-10)
+- `cd guardian && npm test` (pass, 11 file / 61 test)
+- `cd src-tauri && cargo test` (pass, 54 test)
+- `cd guardian-cli && cargo test` (pass, 7 test)
+- `cd website && npm run test:run` (pass, 8 file / 107 test)
+- `python3 .agent/scripts/verify_all.py` (pass)
 
 ### Phase 6 - Tests (2026-02-09)
 - `cd guardian && npm test` (pass)
@@ -936,6 +967,33 @@ Legacy destek: Eger `.guardian/fix_proposals.jsonl` varsa, Guardian bunu `.guard
 - `cd website && npm run test:run` (pass, 8 file / 107 test)
 - `cd src-tauri && cargo test diff_context_reduces_token_estimate_for_localized_change -- --nocapture` (pass, benchmark)
 - `python3 .agent/scripts/verify_all.py` (pass)
+
+## v1.2.0 Yapilacaklar Listesi
+
+### Guvenlik ve Ayarlar (Phase 3 follow-up)
+- [ ] `Redact sensitive files` toggle (default: on)
+- [ ] `Redact detected secrets` toggle (default: on)
+- [ ] `Log AI interactions` toggle (default: on)
+- [ ] `Allow AI to suggest fixes for security issues` toggle (default: off)
+- [ ] `Max file size` slider (default: 100KB)
+
+### Fix Workflow ve Git Entegrasyonu (Phase 5 follow-up)
+- [ ] Git repo algilandiginda `stash -> apply -> diff` yardimci akisini ekle
+- [ ] Review/apply sonrasi commit message onerisi akisini Settings ile kontrol edilebilir yap
+
+### Semantic Search Scale-Up (Phase 6.1.2 - opsiyonel)
+- [ ] sqlite-vec icin HNSW/IVF benzeri ANN stratejisini benchmark ederek kararlandir
+- [ ] Büyük workspace senaryolari icin ANN recall/performance raporu ekle
+
+### Roadmap Hygiene + Review (2026-02-10)
+- Phase 6 tamamlanan checklist maddeleri implemented-summary formatina alindi.
+- Daginik acik maddeler tek backlog altında `v1.2.0 Yapilacaklar Listesi`ne taşındı.
+- Full test refresh:
+  - `cd guardian && npm test` (pass, 11 file / 61 test)
+  - `cd src-tauri && cargo test` (pass, 54 test)
+  - `cd guardian-cli && cargo test` (pass, 7 test)
+  - `cd website && npm run test:run` (pass, 8 file / 107 test)
+  - `python3 .agent/scripts/verify_all.py` (pass)
 
 ---
 

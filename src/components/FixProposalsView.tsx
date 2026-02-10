@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { RefreshCw } from "lucide-react";
+import { ClipboardList, RefreshCw } from "lucide-react";
 import clsx from "clsx";
 import type { FixProposal, FixProposalsSnapshot } from "../types";
 
@@ -33,6 +33,9 @@ export function FixProposalsView({
   if (!snapshot && !loading && !error) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-4 py-12">
+        <div className="w-16 h-16 rounded-2xl border border-border-main bg-background/40 flex items-center justify-center">
+          <ClipboardList className="w-7 h-7 text-text-muted/80" />
+        </div>
         <div className="text-center space-y-1">
           <h3 className="font-bold text-sm text-zinc-500">No Fix Proposals</h3>
           <p className="text-[10px] text-zinc-500 font-mono italic max-w-md">
@@ -237,4 +240,3 @@ function ProposalCard({
     </details>
   );
 }
-

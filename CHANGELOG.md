@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.1] - 2026-02-10 🐛 HOTFIX
+
+### Fixed
+- **Updater Signature**: Fixed "Invalid encoding in minisign data" error by correctly signing the DMG file
+- **Update Popup UI**: 
+  - Fixed background color in dark mode (changed from gradient to solid accent color)
+  - Fixed text colors for better visibility
+  - Fixed "Dismiss" button contrast in dark mode
+- **Settings Updates Tab**: 
+  - Removed inline changelog text
+  - Added "View changelog on website" link pointing to www.guardianide.com
+
+---
+
 ## [1.1.0] - 2026-02-10 🚀 PHASE 6 COMPLETE
 
 ### Added

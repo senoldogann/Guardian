@@ -184,6 +184,18 @@ struct EmbeddingResult {
     source_mode: String,
 }
 
+fn configured_embed_mode() -> String {
+    let preferred = std::env::var("GUARDIAN_EMBED_MODE")
+        .ok()
+        .map(|v| v.trim().to_lowercase())
+        .filter(|v| !v.is_empty());
+    let legacy = std::env::var("GUARDIAN_EMBED_PROVIDER")
+        .ok()
+        .map(|v| v.trim().to_lowercase())
+        .filter(|v| !v.is_empty());
+    preferred.or(legacy).unwrap_or_else(|| "auto".to_string())
+}
+
 async fn embed_text(text: &str) -> EmbeddingResult {
     if is_offline_mode() {
         return EmbeddingResult {
@@ -192,12 +204,11 @@ async fn embed_text(text: &str) -> EmbeddingResult {
         };
     }
 
-    let provider = std::env::var("GUARDIAN_EMBED_PROVIDER")
-        .unwrap_or_else(|_| "openai".to_string())
-        .trim()
-        .to_lowercase();
-
-    match provider.as_str() {
+    match configured_embed_mode().as_str() {
+        "local" | "local-hash" => EmbeddingResult {
+            vector: local_hash_embedding(text),
+            source_mode: "local-hash-manual".to_string(),
+        },
         "ollama" => match embed_with_ollama(text).await {
             Ok(raw) => EmbeddingResult {
                 vector: compress_embedding(&raw, CANONICAL_EMBED_DIM),
@@ -211,7 +222,7 @@ async fn embed_text(text: &str) -> EmbeddingResult {
                 }
             }
         },
-        _ => match embed_with_openai(text).await {
+        "openai" => match embed_with_openai(text).await {
             Ok(raw) => EmbeddingResult {
                 vector: compress_embedding(&raw, CANONICAL_EMBED_DIM),
                 source_mode: format!("openai:{}", embedding_model_for("openai")),
@@ -224,14 +235,47 @@ async fn embed_text(text: &str) -> EmbeddingResult {
                 }
             }
         },
+        _ => match embed_with_openai(text).await {
+            Ok(raw) => EmbeddingResult {
+                vector: compress_embedding(&raw, CANONICAL_EMBED_DIM),
+                source_mode: format!("openai:{}", embedding_model_for("openai")),
+            },
+            Err(openai_err) => {
+                warn!(
+                    target: "guardian::semantic",
+                    "OpenAI embedding failed in auto mode, trying Ollama: {}",
+                    openai_err
+                );
+                match embed_with_ollama(text).await {
+                    Ok(raw) => EmbeddingResult {
+                        vector: compress_embedding(&raw, CANONICAL_EMBED_DIM),
+                        source_mode: format!("ollama:{}", embedding_model_for("ollama")),
+                    },
+                    Err(ollama_err) => {
+                        warn!(
+                            target: "guardian::semantic",
+                            "Ollama embedding failed in auto mode, falling back to local: {}",
+                            ollama_err
+                        );
+                        EmbeddingResult {
+                            vector: local_hash_embedding(text),
+                            source_mode: "local-hash-fallback".to_string(),
+                        }
+                    }
+                }
+            }
+        },
     }
 }
 
 async fn embed_with_openai(text: &str) -> Result<Vec<f32>> {
     let key = config::api_key_for_provider("openai")?;
     let model = embedding_model_for("openai");
-    let base_url = std::env::var("GUARDIAN_EMBED_BASE_URL")
-        .unwrap_or_else(|_| crate::provider::OPENAI_BASE_URL.to_string());
+    let base_url = std::env::var("GUARDIAN_EMBED_BASE_URL_OPENAI")
+        .ok()
+        .filter(|v| !v.trim().is_empty())
+        .or_else(|| std::env::var("GUARDIAN_EMBED_BASE_URL").ok())
+        .unwrap_or_else(|| crate::provider::OPENAI_BASE_URL.to_string());
     let url = format!("{}/embeddings", base_url.trim_end_matches('/'));
 
     let client = Client::new();
@@ -261,8 +305,11 @@ async fn embed_with_openai(text: &str) -> Result<Vec<f32>> {
 
 async fn embed_with_ollama(text: &str) -> Result<Vec<f32>> {
     let model = embedding_model_for("ollama");
-    let base_url = std::env::var("GUARDIAN_EMBED_BASE_URL")
-        .unwrap_or_else(|_| config::DEFAULT_HOST.to_string());
+    let base_url = std::env::var("GUARDIAN_EMBED_BASE_URL_OLLAMA")
+        .ok()
+        .filter(|v| !v.trim().is_empty())
+        .or_else(|| std::env::var("GUARDIAN_EMBED_BASE_URL").ok())
+        .unwrap_or_else(|| config::DEFAULT_HOST.to_string());
     let url = format!("{}/api/embeddings", base_url.trim_end_matches('/'));
 
     let client = Client::new();

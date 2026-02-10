@@ -114,6 +114,15 @@ struct ApiKeyStatus {
     warning: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+struct EmbeddingRuntimeConfig {
+    mode: String,
+    openai_base_url: Option<String>,
+    ollama_base_url: Option<String>,
+    openai_model: Option<String>,
+    ollama_model: Option<String>,
+}
+
 #[derive(Serialize, Deserialize)]
 struct StoredAuthUser {
     user: auth::github::GithubUser,
@@ -1044,6 +1053,110 @@ async fn set_provider_config(
     provider::save_provider_config(&app, config)
 }
 
+fn read_optional_env(key: &str) -> Option<String> {
+    std::env::var(key)
+        .ok()
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty())
+}
+
+fn normalize_embedding_mode(mode: &str) -> Result<String, String> {
+    let normalized = mode.trim().to_lowercase();
+    let normalized = match normalized.as_str() {
+        "" => "auto".to_string(),
+        "openai" => "openai".to_string(),
+        "ollama" => "ollama".to_string(),
+        "local" | "local-hash" => "local".to_string(),
+        "auto" => "auto".to_string(),
+        other => {
+            return Err(format!(
+                "Unsupported embedding mode '{}'. Use auto|openai|ollama|local.",
+                other
+            ))
+        }
+    };
+    Ok(normalized)
+}
+
+fn normalize_optional_url(value: Option<String>, field: &str) -> Result<Option<String>, String> {
+    let Some(raw) = value.map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) else {
+        return Ok(None);
+    };
+    let parsed = url::Url::parse(&raw).map_err(|e| format!("Invalid {} URL: {}", field, e))?;
+    let scheme = parsed.scheme();
+    if scheme != "http" && scheme != "https" {
+        return Err(format!("{} URL must use http or https.", field));
+    }
+    Ok(Some(raw))
+}
+
+fn normalize_optional_model(value: Option<String>) -> Option<String> {
+    value.map(|v| v.trim().to_string()).filter(|v| !v.is_empty())
+}
+
+#[tauri::command]
+async fn get_embedding_runtime_config() -> Result<EmbeddingRuntimeConfig, String> {
+    let mode = normalize_embedding_mode(
+        &read_optional_env("GUARDIAN_EMBED_MODE")
+            .or_else(|| read_optional_env("GUARDIAN_EMBED_PROVIDER"))
+            .unwrap_or_else(|| "auto".to_string()),
+    )?;
+
+    Ok(EmbeddingRuntimeConfig {
+        mode,
+        openai_base_url: read_optional_env("GUARDIAN_EMBED_BASE_URL_OPENAI")
+            .or_else(|| read_optional_env("GUARDIAN_EMBED_BASE_URL")),
+        ollama_base_url: read_optional_env("GUARDIAN_EMBED_BASE_URL_OLLAMA")
+            .or_else(|| read_optional_env("GUARDIAN_EMBED_BASE_URL")),
+        openai_model: read_optional_env("GUARDIAN_EMBED_MODEL"),
+        ollama_model: read_optional_env("GUARDIAN_EMBED_MODEL_OLLAMA"),
+    })
+}
+
+#[tauri::command]
+async fn set_embedding_runtime_config(
+    config: EmbeddingRuntimeConfig,
+) -> Result<EmbeddingRuntimeConfig, String> {
+    let mode = normalize_embedding_mode(&config.mode)?;
+    let openai_base_url = normalize_optional_url(config.openai_base_url, "OpenAI embedding")?;
+    let ollama_base_url = normalize_optional_url(config.ollama_base_url, "Ollama embedding")?;
+    let openai_model = normalize_optional_model(config.openai_model);
+    let ollama_model = normalize_optional_model(config.ollama_model);
+
+    match mode.as_str() {
+        "auto" => {
+            std::env::remove_var("GUARDIAN_EMBED_MODE");
+            std::env::remove_var("GUARDIAN_EMBED_PROVIDER");
+        }
+        "openai" | "ollama" | "local" => {
+            std::env::set_var("GUARDIAN_EMBED_MODE", mode.as_str());
+            std::env::set_var("GUARDIAN_EMBED_PROVIDER", mode.as_str());
+        }
+        _ => {}
+    }
+
+    match openai_base_url {
+        Some(url) => std::env::set_var("GUARDIAN_EMBED_BASE_URL_OPENAI", url),
+        None => std::env::remove_var("GUARDIAN_EMBED_BASE_URL_OPENAI"),
+    }
+    match ollama_base_url {
+        Some(url) => std::env::set_var("GUARDIAN_EMBED_BASE_URL_OLLAMA", url),
+        None => std::env::remove_var("GUARDIAN_EMBED_BASE_URL_OLLAMA"),
+    }
+    std::env::remove_var("GUARDIAN_EMBED_BASE_URL");
+
+    match openai_model {
+        Some(model) => std::env::set_var("GUARDIAN_EMBED_MODEL", model),
+        None => std::env::remove_var("GUARDIAN_EMBED_MODEL"),
+    }
+    match ollama_model {
+        Some(model) => std::env::set_var("GUARDIAN_EMBED_MODEL_OLLAMA", model),
+        None => std::env::remove_var("GUARDIAN_EMBED_MODEL_OLLAMA"),
+    }
+
+    get_embedding_runtime_config().await
+}
+
 #[tauri::command]
 async fn list_provider_models(
     app: AppHandle,
@@ -1358,6 +1471,8 @@ pub fn run() -> AnyhowResult<()> {
             get_project_context,
             get_provider_config,
             set_provider_config,
+            get_embedding_runtime_config,
+            set_embedding_runtime_config,
             list_provider_models,
             get_api_key_status,
             set_user_api_key,

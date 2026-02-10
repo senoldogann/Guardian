@@ -20,7 +20,17 @@ export type TavilyKeyStatus = {
   source: string;
 };
 
-export type SettingsTab = "provider" | "web" | "updates" | "export";
+export type EmbeddingMode = "auto" | "openai" | "ollama" | "local";
+
+export type EmbeddingRuntimeConfig = {
+  mode: EmbeddingMode;
+  openai_base_url?: string | null;
+  ollama_base_url?: string | null;
+  openai_model?: string | null;
+  ollama_model?: string | null;
+};
+
+export type SettingsTab = "provider" | "embedding" | "web" | "updates" | "export";
 
 export type UpdateCheckResult = {
   status: string;
@@ -64,6 +74,30 @@ const buildFallbackUpdateInfo = (
   last_checked_at: new Date().toISOString(),
 });
 
+const DEFAULT_EMBEDDING_CONFIG: EmbeddingRuntimeConfig = {
+  mode: "auto",
+  openai_base_url: "",
+  ollama_base_url: "http://127.0.0.1:11434",
+  openai_model: "text-embedding-3-small",
+  ollama_model: "nomic-embed-text",
+};
+
+const normalizeEmbeddingConfig = (
+  input?: Partial<EmbeddingRuntimeConfig> | null
+): EmbeddingRuntimeConfig => {
+  const modeRaw = (input?.mode ?? DEFAULT_EMBEDDING_CONFIG.mode).toString().toLowerCase();
+  const mode: EmbeddingMode = modeRaw === "openai" || modeRaw === "ollama" || modeRaw === "local"
+    ? modeRaw
+    : "auto";
+  return {
+    mode,
+    openai_base_url: (input?.openai_base_url ?? DEFAULT_EMBEDDING_CONFIG.openai_base_url ?? "").toString(),
+    ollama_base_url: (input?.ollama_base_url ?? DEFAULT_EMBEDDING_CONFIG.ollama_base_url ?? "").toString(),
+    openai_model: (input?.openai_model ?? DEFAULT_EMBEDDING_CONFIG.openai_model ?? "").toString(),
+    ollama_model: (input?.ollama_model ?? DEFAULT_EMBEDDING_CONFIG.ollama_model ?? "").toString(),
+  };
+};
+
 export interface UseSettingsReturn {
   // Provider
   providerDraft: ProviderConfig | null;
@@ -72,6 +106,16 @@ export interface UseSettingsReturn {
   providerModels: string[];
   providerModelLoading: boolean;
   providerModelError: string | null;
+
+  // Embeddings
+  embeddingDraft: EmbeddingRuntimeConfig | null;
+  embeddingError: string | null;
+  embeddingSaving: boolean;
+  embeddingOpenAiKeyStatus: ApiKeyStatus | null;
+  embeddingOpenAiKeyInput: string;
+  embeddingOpenAiKeyMasked: boolean;
+  embeddingOpenAiKeyError: string | null;
+  embeddingOpenAiKeySaving: boolean;
 
   // API Key
   apiKeyStatus: ApiKeyStatus | null;
@@ -111,6 +155,17 @@ export interface UseSettingsReturn {
   onModelChange: (value: string) => void;
   refreshProviderModels: (force?: boolean, resetModel?: boolean, override?: ProviderConfig) => Promise<void>;
   saveProviderSettings: () => Promise<void>;
+  onEmbeddingModeChange: (mode: EmbeddingMode) => void;
+  onEmbeddingOpenAiBaseUrlChange: (value: string) => void;
+  onEmbeddingOllamaBaseUrlChange: (value: string) => void;
+  onEmbeddingOpenAiModelChange: (value: string) => void;
+  onEmbeddingOllamaModelChange: (value: string) => void;
+  saveEmbeddingSettings: () => Promise<void>;
+  refreshEmbeddingSettings: () => Promise<void>;
+  onEmbeddingOpenAiKeyFocus: () => void;
+  onEmbeddingOpenAiKeyChange: (value: string) => void;
+  saveEmbeddingOpenAiKey: () => Promise<void>;
+  clearEmbeddingOpenAiKey: () => Promise<void>;
   onApiKeyFocus: () => void;
   onApiKeyChange: (value: string) => void;
   saveApiKey: () => Promise<void>;
@@ -149,6 +204,16 @@ export function useSettings(
   const [providerModelError, setProviderModelError] = useState<string | null>(null);
   const providerModelCacheRef = useRef<Map<string, string[]>>(new Map());
   const providerIdentityRef = useRef<{ id: string; base_url: string } | null>(null);
+
+  // Embedding state
+  const [embeddingDraft, setEmbeddingDraft] = useState<EmbeddingRuntimeConfig | null>(null);
+  const [embeddingError, setEmbeddingError] = useState<string | null>(null);
+  const [embeddingSaving, setEmbeddingSaving] = useState(false);
+  const [embeddingOpenAiKeyStatus, setEmbeddingOpenAiKeyStatus] = useState<ApiKeyStatus | null>(null);
+  const [embeddingOpenAiKeyInput, setEmbeddingOpenAiKeyInput] = useState("");
+  const [embeddingOpenAiKeyMasked, setEmbeddingOpenAiKeyMasked] = useState(false);
+  const [embeddingOpenAiKeyError, setEmbeddingOpenAiKeyError] = useState<string | null>(null);
+  const [embeddingOpenAiKeySaving, setEmbeddingOpenAiKeySaving] = useState(false);
 
   // API Key state
   const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus | null>(null);
@@ -248,6 +313,45 @@ export function useSettings(
     loadTavilyStatus();
   }, [isDesktop, settingsOpen]);
 
+  useEffect(() => {
+    if (!isDesktop) return;
+    const syncEmbeddingConfig = async (): Promise<void> => {
+      const stored = readStoredEmbeddingConfig();
+      if (stored) {
+        setEmbeddingDraft(stored);
+        try {
+          const applied = await invoke<EmbeddingRuntimeConfig>("set_embedding_runtime_config", {
+            config: stored,
+          });
+          const normalized = normalizeEmbeddingConfig(applied);
+          setEmbeddingDraft(normalized);
+          persistEmbeddingConfig(normalized);
+          setEmbeddingError(null);
+          return;
+        } catch (error) {
+          setEmbeddingError(error instanceof Error ? error.message : String(error));
+        }
+      }
+      await refreshEmbeddingSettings();
+    };
+    void syncEmbeddingConfig();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDesktop]);
+
+  useEffect(() => {
+    if (!isDesktop || !settingsOpen) return;
+    const loadEmbeddingOpenAiKeyStatus = async (): Promise<void> => {
+      try {
+        const status = await invoke<ApiKeyStatus>("get_api_key_status", { providerId: "openai" });
+        applyEmbeddingOpenAiKeyStatus(status);
+      } catch (e: unknown) {
+        setEmbeddingOpenAiKeyError(e instanceof Error ? e.message : String(e));
+      }
+    };
+    void loadEmbeddingOpenAiKeyStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDesktop, settingsOpen]);
+
   // Check for updates on mount
   useEffect(() => {
     if (!isDesktop) return;
@@ -326,6 +430,69 @@ export function useSettings(
     }
   }, []);
 
+  const applyEmbeddingOpenAiKeyStatus = useCallback((status: ApiKeyStatus | null | undefined): void => {
+    if (!status || typeof status.has_key !== "boolean") {
+      setEmbeddingOpenAiKeyStatus(null);
+      setEmbeddingOpenAiKeyError("Embedding OpenAI key status could not be loaded.");
+      setEmbeddingOpenAiKeyMasked(false);
+      setEmbeddingOpenAiKeyInput("");
+      return;
+    }
+    setEmbeddingOpenAiKeyStatus(status);
+    if (status.warning) {
+      setEmbeddingOpenAiKeyError(status.warning);
+    } else {
+      setEmbeddingOpenAiKeyError(null);
+    }
+    if (status.has_key) {
+      setEmbeddingOpenAiKeyMasked(true);
+      setEmbeddingOpenAiKeyInput(API_KEY_MASK);
+    } else {
+      setEmbeddingOpenAiKeyMasked(false);
+      setEmbeddingOpenAiKeyInput("");
+    }
+  }, []);
+
+  const readStoredEmbeddingConfig = useCallback((): EmbeddingRuntimeConfig | null => {
+    if (typeof window === "undefined") return null;
+    const mode = localStorage.getItem(STORAGE_KEYS.EMBEDDING_MODE);
+    const openaiBaseUrl = localStorage.getItem(STORAGE_KEYS.EMBEDDING_OPENAI_BASE_URL);
+    const ollamaBaseUrl = localStorage.getItem(STORAGE_KEYS.EMBEDDING_OLLAMA_BASE_URL);
+    const openaiModel = localStorage.getItem(STORAGE_KEYS.EMBEDDING_OPENAI_MODEL);
+    const ollamaModel = localStorage.getItem(STORAGE_KEYS.EMBEDDING_OLLAMA_MODEL);
+    if (!mode && !openaiBaseUrl && !ollamaBaseUrl && !openaiModel && !ollamaModel) {
+      return null;
+    }
+    return normalizeEmbeddingConfig({
+      mode: (mode || "auto") as EmbeddingMode,
+      openai_base_url: openaiBaseUrl || "",
+      ollama_base_url: ollamaBaseUrl || "",
+      openai_model: openaiModel || "",
+      ollama_model: ollamaModel || "",
+    });
+  }, []);
+
+  const persistEmbeddingConfig = useCallback((config: EmbeddingRuntimeConfig): void => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEYS.EMBEDDING_MODE, config.mode);
+    localStorage.setItem(STORAGE_KEYS.EMBEDDING_OPENAI_BASE_URL, (config.openai_base_url || "").trim());
+    localStorage.setItem(STORAGE_KEYS.EMBEDDING_OLLAMA_BASE_URL, (config.ollama_base_url || "").trim());
+    localStorage.setItem(STORAGE_KEYS.EMBEDDING_OPENAI_MODEL, (config.openai_model || "").trim());
+    localStorage.setItem(STORAGE_KEYS.EMBEDDING_OLLAMA_MODEL, (config.ollama_model || "").trim());
+  }, []);
+
+  const refreshEmbeddingSettings = useCallback(async (): Promise<void> => {
+    if (!isDesktop) return;
+    try {
+      const runtime = await invoke<EmbeddingRuntimeConfig>("get_embedding_runtime_config");
+      setEmbeddingDraft(normalizeEmbeddingConfig(runtime));
+      setEmbeddingError(null);
+    } catch (error) {
+      setEmbeddingError(error instanceof Error ? error.message : String(error));
+      setEmbeddingDraft((prev) => prev ?? normalizeEmbeddingConfig(DEFAULT_EMBEDDING_CONFIG));
+    }
+  }, [isDesktop]);
+
   const isValidUrl = (value: string): boolean => {
     try {
       const parsed = new URL(value);
@@ -334,6 +501,110 @@ export function useSettings(
       return false;
     }
   };
+
+  const onEmbeddingModeChange = useCallback((mode: EmbeddingMode): void => {
+    setEmbeddingDraft((prev) => normalizeEmbeddingConfig({ ...(prev ?? DEFAULT_EMBEDDING_CONFIG), mode }));
+  }, []);
+
+  const onEmbeddingOpenAiBaseUrlChange = useCallback((value: string): void => {
+    setEmbeddingDraft((prev) =>
+      normalizeEmbeddingConfig({ ...(prev ?? DEFAULT_EMBEDDING_CONFIG), openai_base_url: value })
+    );
+  }, []);
+
+  const onEmbeddingOllamaBaseUrlChange = useCallback((value: string): void => {
+    setEmbeddingDraft((prev) =>
+      normalizeEmbeddingConfig({ ...(prev ?? DEFAULT_EMBEDDING_CONFIG), ollama_base_url: value })
+    );
+  }, []);
+
+  const onEmbeddingOpenAiModelChange = useCallback((value: string): void => {
+    setEmbeddingDraft((prev) =>
+      normalizeEmbeddingConfig({ ...(prev ?? DEFAULT_EMBEDDING_CONFIG), openai_model: value })
+    );
+  }, []);
+
+  const onEmbeddingOllamaModelChange = useCallback((value: string): void => {
+    setEmbeddingDraft((prev) =>
+      normalizeEmbeddingConfig({ ...(prev ?? DEFAULT_EMBEDDING_CONFIG), ollama_model: value })
+    );
+  }, []);
+
+  const saveEmbeddingSettings = useCallback(async (): Promise<void> => {
+    if (!isDesktop || !embeddingDraft) return;
+    setEmbeddingSaving(true);
+    setEmbeddingError(null);
+    try {
+      const next = normalizeEmbeddingConfig(embeddingDraft);
+      if (next.openai_base_url && !isValidUrl(next.openai_base_url)) {
+        throw new Error("OpenAI embedding base URL must be a valid http/https URL.");
+      }
+      if (next.ollama_base_url && !isValidUrl(next.ollama_base_url)) {
+        throw new Error("Ollama embedding base URL must be a valid http/https URL.");
+      }
+      const applied = await invoke<EmbeddingRuntimeConfig>("set_embedding_runtime_config", {
+        config: {
+          mode: next.mode,
+          openai_base_url: next.openai_base_url?.trim() || null,
+          ollama_base_url: next.ollama_base_url?.trim() || null,
+          openai_model: next.openai_model?.trim() || null,
+          ollama_model: next.ollama_model?.trim() || null,
+        },
+      });
+      const normalized = normalizeEmbeddingConfig(applied);
+      setEmbeddingDraft(normalized);
+      persistEmbeddingConfig(normalized);
+    } catch (e: unknown) {
+      setEmbeddingError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setEmbeddingSaving(false);
+    }
+  }, [isDesktop, embeddingDraft, persistEmbeddingConfig]);
+
+  const onEmbeddingOpenAiKeyFocus = useCallback((): void => {
+    if (embeddingOpenAiKeyMasked) {
+      setEmbeddingOpenAiKeyInput("");
+      setEmbeddingOpenAiKeyMasked(false);
+    }
+  }, [embeddingOpenAiKeyMasked]);
+
+  const onEmbeddingOpenAiKeyChange = useCallback((value: string): void => {
+    setEmbeddingOpenAiKeyInput(value);
+  }, []);
+
+  const saveEmbeddingOpenAiKey = useCallback(async (): Promise<void> => {
+    if (!isDesktop) return;
+    setEmbeddingOpenAiKeySaving(true);
+    setEmbeddingOpenAiKeyError(null);
+    try {
+      const trimmed = embeddingOpenAiKeyInput.trim();
+      if (!trimmed || (embeddingOpenAiKeyMasked && trimmed === API_KEY_MASK)) {
+        throw new Error("Embedding OpenAI key cannot be empty.");
+      }
+      await invoke("set_user_api_key", { apiKey: trimmed, providerId: "openai" });
+      const status = await invoke<ApiKeyStatus>("get_api_key_status", { providerId: "openai" });
+      applyEmbeddingOpenAiKeyStatus(status);
+    } catch (e: unknown) {
+      setEmbeddingOpenAiKeyError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setEmbeddingOpenAiKeySaving(false);
+    }
+  }, [isDesktop, embeddingOpenAiKeyInput, embeddingOpenAiKeyMasked, applyEmbeddingOpenAiKeyStatus]);
+
+  const clearEmbeddingOpenAiKey = useCallback(async (): Promise<void> => {
+    if (!isDesktop) return;
+    setEmbeddingOpenAiKeySaving(true);
+    setEmbeddingOpenAiKeyError(null);
+    try {
+      await invoke("clear_user_api_key", { providerId: "openai" });
+      const status = await invoke<ApiKeyStatus>("get_api_key_status", { providerId: "openai" });
+      applyEmbeddingOpenAiKeyStatus(status);
+    } catch (e: unknown) {
+      setEmbeddingOpenAiKeyError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setEmbeddingOpenAiKeySaving(false);
+    }
+  }, [isDesktop, applyEmbeddingOpenAiKeyStatus]);
 
   const onProviderChange = useCallback((nextId: string): void => {
     const defaults = getProviderDefaults(nextId);
@@ -632,6 +903,14 @@ export function useSettings(
     providerModels,
     providerModelLoading,
     providerModelError,
+    embeddingDraft,
+    embeddingError,
+    embeddingSaving,
+    embeddingOpenAiKeyStatus,
+    embeddingOpenAiKeyInput,
+    embeddingOpenAiKeyMasked,
+    embeddingOpenAiKeyError,
+    embeddingOpenAiKeySaving,
     apiKeyStatus,
     apiKeyInput,
     apiKeyMasked,
@@ -657,6 +936,17 @@ export function useSettings(
     onModelChange,
     refreshProviderModels,
     saveProviderSettings,
+    onEmbeddingModeChange,
+    onEmbeddingOpenAiBaseUrlChange,
+    onEmbeddingOllamaBaseUrlChange,
+    onEmbeddingOpenAiModelChange,
+    onEmbeddingOllamaModelChange,
+    saveEmbeddingSettings,
+    refreshEmbeddingSettings,
+    onEmbeddingOpenAiKeyFocus,
+    onEmbeddingOpenAiKeyChange,
+    saveEmbeddingOpenAiKey,
+    clearEmbeddingOpenAiKey,
     onApiKeyFocus,
     onApiKeyChange,
     saveApiKey,
