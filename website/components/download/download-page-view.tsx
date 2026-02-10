@@ -31,14 +31,14 @@ export async function DownloadPageView({ dict }: Props) {
         <p className="text-xs font-medium tracking-[0.22em] uppercase text-neutral-500">
           {dict.download.eyebrow}
         </p>
-        <h1 className="mt-4 text-4xl sm:text-5xl font-semibold tracking-tight text-neutral-950">
+        <h1 className="mt-4 text-4xl sm:text-5xl font-semibold tracking-tight text-neutral-950 dark:text-white">
           {dict.download.title}
         </h1>
-        <p className="mt-4 max-w-2xl text-base sm:text-lg text-neutral-600">
+        <p className="mt-4 max-w-2xl text-base sm:text-lg text-neutral-600 dark:text-neutral-400">
           {dict.download.description}
         </p>
-        <p className="mt-5 text-sm text-neutral-600">
-          {dict.download.latestLabel}: <span className="font-medium text-neutral-950">v{latestTag}</span>
+        <p className="mt-5 text-sm text-neutral-600 dark:text-neutral-400">
+          {dict.download.latestLabel}: <span className="font-medium text-neutral-950 dark:text-white">v{latestTag}</span>
         </p>
         {fetchError ? <p className="mt-2 text-sm text-red-600">{fetchError}</p> : null}
       </section>
