@@ -1,0 +1,182 @@
+---
+title: "Reviews & Fix Proposals"
+summary: "Manage suggested fixes through the review queue."
+section: "Features"
+order: 4
+---
+
+## Overview
+
+The **Reviews** feature (introduced in v1.1.0) provides a structured workflow for managing AI-suggested code fixes. Instead of immediately applying fixes, you can review, request changes, or reject suggestions with documented reasoning.
+
+## How It Works
+
+When Guardian detects issues and Guru suggests fixes:
+
+1. **Detection**: AI identifies an issue
+2. **Proposal**: A fix is generated and added to the queue
+3. **Review**: You review the proposal in the Reviews panel
+4. **Decision**: Apply, reject, or request review
+
+## Accessing Reviews
+
+Click the **Reviews** tab in the left sidebar to open the review queue.
+
+## Review Queue Interface
+
+The Reviews panel shows:
+
+| Section | Description |
+|---------|-------------|
+| **Pending** | Proposals awaiting your review |
+| **Done** | Previously reviewed proposals (applied/rejected) |
+| **Details** | Full context and suggested changes |
+
+## Proposal Lifecycle
+
+### Status States
+
+A proposal can be in one of these states:
+
+```
+Pending ──► Review Requested ──► Applied
+    │
+    └──────► Rejected
+```
+
+| Status | Description |
+|--------|-------------|
+| **Pending** | New proposal, not yet reviewed |
+| **Review Requested** | You've asked for more context or alternatives |
+| **Applied** | Fix has been applied to the codebase |
+| **Rejected** | Fix was dismissed with reason |
+
+## Taking Action
+
+### Request Review
+
+When you need more information before deciding:
+
+1. Select the proposal
+2. Click **Request Review**
+3. Add a note explaining what you'd like clarified
+4. Guru will provide additional context
+
+### Apply Fix
+
+When you're satisfied with the proposal:
+
+1. Review the **Proposed Changes** diff
+2. Click **Apply Fix** to implement
+3. The file is updated and the proposal status changes to "Applied"
+
+> **Warning**: Always review the proposed diff before applying. Verify it addresses the issue without introducing new problems.
+
+### Reject Fix
+
+When the proposal isn't appropriate:
+
+1. Click **Reject**
+2. Optionally add a reason for rejection
+3. The proposal moves to "Done" with "Rejected" status
+
+## Understanding Proposals
+
+Each proposal shows:
+
+### Metadata
+
+- **File**: Path to the affected file
+- **Severity**: Critical, Warning, or Info
+- **Confidence**: AI's confidence score (0.0 - 1.0)
+- **Reasoning**: Why this fix is suggested
+
+### Proposed Changes
+
+The diff view shows:
+- Original code (removed)
+- Proposed code (added)
+- Syntax highlighting for your language
+
+> **Note**: Guardian only accepts **full file content**, not patch/diff format. The AI should provide the complete updated file.
+
+## Storage
+
+Fix proposals are stored in your workspace:
+
+```
+.guardian-proposals/
+└── fix_proposals.jsonl
+```
+
+- Append-only log format
+- Human-readable JSON Lines
+- Survives app restarts
+- Can be version controlled (optional)
+
+## Best Practices
+
+### Review Workflow
+
+1. **Start with high severity**: Review Critical proposals first
+2. **Check confidence**: High confidence (>0.8) proposals are usually safe
+3. **Read reasoning**: Understand *why* the fix is suggested
+4. **Test after applying**: Run tests to ensure the fix works
+5. **Document rejections**: Note why you rejected for future reference
+
+### When to Reject
+
+Reject proposals when:
+- The fix doesn't address the root cause
+- It would break existing functionality
+- The code style doesn't match your project
+- You have a better alternative in mind
+
+### When to Request Review
+
+Ask for more context when:
+- You're unsure about the impact
+- There might be edge cases
+- You want to see alternative approaches
+- The reasoning isn't clear
+
+## Integration with Baseline
+
+Reviewed and applied fixes:
+- Are tracked in your baseline
+- Won't be flagged as "new" in future scans
+- Can be marked as "resolved" in the baseline panel
+
+## Privacy & Security
+
+- Proposals are stored **locally** in your workspace
+- No external calls when reviewing (unless you request AI review)
+- You control what gets applied to your codebase
+- Rejection reasons are stored locally for your reference
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| No proposals showing | Run a scan first to generate proposals |
+| Can't apply fix | Check file permissions and ensure file hasn't changed |
+| Proposal outdated | Reject and re-scan to get fresh proposals |
+| UI not updating | Restart the app (proposals are preserved) |
+
+## CLI Support
+
+For CI/CD integration, use the CLI:
+
+```bash
+# Generate proposals during scan
+guardian-cli scan --root . --out report.json
+
+# Review mode is desktop-only
+# Use the desktop app for interactive review
+```
+
+## Coming Soon
+
+- **Batch operations**: Apply/reject multiple proposals at once
+- **Review templates**: Save common rejection reasons
+- **Team annotations**: Share review notes with team members

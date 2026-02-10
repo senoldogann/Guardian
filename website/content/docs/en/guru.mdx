@@ -134,6 +134,66 @@ Guru explanations are educational:
 - Understand the principles behind suggestions
 - Apply learnings to new code proactively
 
+## Semantic Search (v1.1.0+)
+
+Guardian includes **semantic search** to find similar code patterns across your codebase:
+
+### How It Works
+
+When you scan your project, Guardian creates semantic embeddings of findings and stores them locally. This enables similarity-based retrieval.
+
+### Using Semantic Search
+
+Trigger semantic search by using these keywords in your query:
+
+```
+"Find similar issues to this"
+"Show me critical patterns like this"
+"Are there semantic matches for this vulnerability?"
+"Benzer kritikler var mı?"
+```
+
+### Search Triggers
+
+Guru automatically uses semantic search when you include:
+- **English**: "similar", "like this", "resemble", "pattern", "semantic"
+- **Turkish**: "benzer", "örüntü", "semantik"
+
+### What You'll See
+
+When semantic matches are found, Guru includes them in the context:
+
+```
+### Semantic Similarity Matches
+- `src/auth.ts` [Critical] similarity=0.87 (openai:text-embedding-3-small)
+  - preview: SQL injection in user input validation
+- `src/db.rs` [Critical] similarity=0.82 (openai:text-embedding-3-small)
+  - preview: Raw SQL concatenation with user input
+```
+
+### Embedding Providers
+
+Guardian supports multiple embedding strategies:
+
+| Provider | Model | Use Case |
+|----------|-------|----------|
+| **OpenAI** (default) | `text-embedding-3-small` | Best quality, requires API key |
+| **Ollama** | `nomic-embed-text` | Local/offline option |
+| **Local Hash** | Deterministic fallback | Offline mode, no external calls |
+
+Configure via environment variables:
+```bash
+GUARDIAN_EMBED_PROVIDER=ollama  # or "openai"
+GUARDIAN_EMBED_MODEL=text-embedding-3-small
+GUARDIAN_OFFLINE=1  # Forces local hash fallback
+```
+
+### Privacy
+
+- Embeddings are stored **locally** in `.guardian/memory.db`
+- No code leaves your machine for embedding generation (local hash mode)
+- OpenAI/Ollama modes send only the analyzed code snippet
+
 ## Limitations
 
 Guru is powerful but has limits:
@@ -144,6 +204,7 @@ Guru is powerful but has limits:
 | May not know proprietary patterns | Provide context in prompts |
 | Suggestions need review | Always verify before applying |
 | Rate limits apply | Configure provider limits |
+| Semantic search requires prior scans | Run a scan first to build the index |
 
 ## Privacy Considerations
 

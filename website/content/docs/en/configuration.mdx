@@ -98,9 +98,101 @@ This exports:
 - Theme preference
 - Other application settings
 
+## Guardian Lock (v1.1.0+)
+
+The `guardian.lock` file ensures reproducible scans across different machines and time periods.
+
+### What It Does
+
+- Pins rules version (hash)
+- Records workspace ID
+- Tracks Guardian version
+- Ensures scan consistency
+
+### Lock File Location
+
+```
+your-project/
+├── guardian.lock          # Auto-generated
+├── .guardian/
+│   └── baseline.json
+└── .agent/rules/
+```
+
+### Lock Schema
+
+```json
+{
+  "schema_version": 1,
+  "created_at": "2026-02-10T12:00:00Z",
+  "updated_at": "2026-02-10T12:00:00Z",
+  "guardian_version": "1.1.0",
+  "workspace_id": "sha256-hash",
+  "rules_hash": "abc123...",
+  "rules_source": ".agent/rules"
+}
+```
+
+### CLI Enforcement Modes
+
+When using `guardian-cli`, you can enforce lock compliance:
+
+```bash
+# Warn mode (default): Warn on mismatch but continue
+ guardian-cli scan --root . --lock-mode warn
+
+# Strict mode: Fail scan on any mismatch
+guardian-cli scan --root . --lock-mode strict
+
+# Off mode: Ignore lock file
+guardian-cli scan --root . --lock-mode off
+```
+
+### Migration
+
+If upgrading from pre-v1.1.0:
+
+1. Open your project in Guardian Desktop
+2. Run a scan (lock file auto-created)
+3. Recreate baseline via UI
+4. See [Migration Guide](/docs/migration) for details
+
+## Semantic Index Settings (v1.1.0+)
+
+Configure semantic search behavior:
+
+### Embedding Provider
+
+Choose how code embeddings are generated:
+
+```bash
+# Environment Variables
+GUARDIAN_EMBED_PROVIDER=openai      # or "ollama"
+GUARDIAN_EMBED_MODEL=text-embedding-3-small
+GUARDIAN_EMBED_MODEL_OLLAMA=nomic-embed-text
+GUARDIAN_OFFLINE=1                  # Forces local hash mode
+```
+
+| Mode | Quality | Latency | Offline |
+|------|---------|---------|---------|
+| OpenAI | ⭐⭐⭐ | ~500ms | ❌ |
+| Ollama | ⭐⭐ | ~200ms | ✅ |
+| Local Hash | ⭐ | ~10ms | ✅ |
+
+### Similarity Thresholds
+
+Guardian uses two thresholds:
+
+- **0.55**: Minimum for general search results
+- **0.72**: Minimum for critical finding recall
+
+These are tuned for code similarity detection.
+
 ## Best Practices
 
 1. **Backup Configuration**: Export settings before major changes
 2. **Secure API Keys**: Never share or commit API keys
 3. **Test After Changes**: Verify Guru works after changing providers
 4. **Keep Updated**: Enable automatic update checks
+5. **Commit guardian.lock**: Include in version control for team consistency
+6. **Use Strict Mode in CI**: Enforce lock compliance in CI/CD pipelines
