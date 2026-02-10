@@ -767,7 +767,7 @@ export function SettingsModal({
             </div>
             {updateInfo?.status === "available" && (
               <button
-                onClick={() => openExternal("https://guardian.dev/changelog")}
+                onClick={() => openExternal("https://www.guardianide.com/changelog")}
                 className="flex items-center gap-2 text-[10px] text-[var(--accent-500)] hover:text-[var(--accent-400)] transition-colors"
               >
                 <ExternalLink className="w-3 h-3" />
