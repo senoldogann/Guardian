@@ -151,8 +151,10 @@ pub fn resolve_provider_config(app: &AppHandle) -> Result<ProviderConfig, String
             if enabled {
                 Ok(config)
             } else {
-                Err("Provider 'mock' is only available when GUARDIAN_MOCK=1 (test/dev only)."
-                    .to_string())
+                Err(
+                    "Provider 'mock' is only available when GUARDIAN_MOCK=1 (test/dev only)."
+                        .to_string(),
+                )
             }
         }
         "ollama" | "ollama-cloud" | "openai" | "anthropic" | "gemini" | "github-models" => {

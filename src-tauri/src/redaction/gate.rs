@@ -42,10 +42,7 @@ pub fn is_sensitive_file(path: &Path) -> bool {
     }
 
     if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-        if SENSITIVE_EXTS
-            .iter()
-            .any(|&s| ext.eq_ignore_ascii_case(s))
-        {
+        if SENSITIVE_EXTS.iter().any(|&s| ext.eq_ignore_ascii_case(s)) {
             return true;
         }
     }
@@ -142,7 +139,9 @@ pub fn mask_inline_secrets(content: &str) -> String {
         .replace_all(&filtered, "$1$2'[REDACTED_SECRET]'")
         .to_string();
 
-    filtered = EMAIL_RE.replace_all(&filtered, "[REDACTED_EMAIL]").to_string();
+    filtered = EMAIL_RE
+        .replace_all(&filtered, "[REDACTED_EMAIL]")
+        .to_string();
     filtered = PHONE_E164
         .replace_all(&filtered, |caps: &regex::Captures| {
             let raw = caps.get(0).map(|m| m.as_str()).unwrap_or("");
@@ -154,7 +153,9 @@ pub fn mask_inline_secrets(content: &str) -> String {
             }
         })
         .to_string();
-    filtered = PHONE_NANP.replace_all(&filtered, "[REDACTED_PHONE]").to_string();
+    filtered = PHONE_NANP
+        .replace_all(&filtered, "[REDACTED_PHONE]")
+        .to_string();
     filtered = PHONE_TR_MOBILE
         .replace_all(&filtered, "[REDACTED_PHONE]")
         .to_string();
@@ -231,7 +232,10 @@ mod tests {
         let input = "Call +90 532 123 45 67, 0532 123 45 67, or (415) 555-2671";
         let masked = mask_inline_secrets(input);
         let count = masked.matches("[REDACTED_PHONE]").count();
-        assert!(count >= 3, "expected 3 phone redactions, got {count}: {masked}");
+        assert!(
+            count >= 3,
+            "expected 3 phone redactions, got {count}: {masked}"
+        );
         assert!(!masked.contains("+90 532 123 45 67"));
         assert!(!masked.contains("0532 123 45 67"));
         assert!(!masked.contains("(415) 555-2671"));

@@ -1,4 +1,5 @@
 mod baseline;
+mod guardian_lock;
 mod output;
 mod redaction;
 mod rules_hash;
@@ -71,6 +72,14 @@ struct ScanArgs {
     /// API key (prefer env GUARDIAN_API_KEY). Passing via flag can leak into shell history.
     #[arg(long)]
     api_key: Option<String>,
+
+    /// guardian.lock path (defaults to <root>/guardian.lock).
+    #[arg(long)]
+    lock: Option<PathBuf>,
+
+    /// guardian.lock enforcement mode.
+    #[arg(long, value_enum, default_value_t = LockModeArg::Warn)]
+    lock_mode: LockModeArg,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
@@ -78,6 +87,13 @@ enum OutputFormat {
     Json,
     Sarif,
     Markdown,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
+enum LockModeArg {
+    Off,
+    Warn,
+    Strict,
 }
 
 fn main() {
@@ -101,6 +117,12 @@ fn main() {
             model: args.model,
             base_url: args.base_url,
             api_key: args.api_key,
+            lock_path: args.lock,
+            lock_mode: match args.lock_mode {
+                LockModeArg::Off => guardian_lock::LockMode::Off,
+                LockModeArg::Warn => guardian_lock::LockMode::Warn,
+                LockModeArg::Strict => guardian_lock::LockMode::Strict,
+            },
         }) {
             Ok(exit_code) => exit_code,
             Err(err) => {
@@ -112,4 +134,3 @@ fn main() {
 
     std::process::exit(code);
 }
-

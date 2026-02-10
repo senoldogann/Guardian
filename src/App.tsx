@@ -18,6 +18,7 @@ import {
   Files,
   Share2,
   Eye,
+  ClipboardCheck,
 } from "lucide-react";
 import clsx from "clsx";
 import { CritiqueAccordionRow } from "./components/CritiqueAccordionRow";
@@ -30,9 +31,10 @@ import { OnboardingWizard } from "./components/OnboardingWizard";
 import { ToastContainer } from "./components/Toast";
 import { SettingsModal } from "./components/SettingsModal";
 import { AIContextPreview } from "./components/AIContextPreview";
+import { FixProposalsView } from "./components/FixProposalsView";
 import { useAuth } from "./hooks/useAuth";
 import { useSettings } from "./hooks/useSettings";
-import type { ProjectContext, Critique, ApiKeyStatus, Baseline, BaselineFinding, BaselineStatusView, AiContextSnapshot } from "./types";
+import type { ProjectContext, Critique, ApiKeyStatus, Baseline, BaselineFinding, BaselineStatusView, AiContextSnapshot, FixProposalsSnapshot, FixProposal } from "./types";
 import { STORAGE_KEYS } from "./constants";
 
 function App(): ReactElement {
@@ -72,7 +74,10 @@ function App(): ReactElement {
   const [aiContext, setAiContext] = useState<AiContextSnapshot | null>(null);
   const [aiContextLoading, setAiContextLoading] = useState(false);
   const [aiContextError, setAiContextError] = useState<string | null>(null);
-  const [view, setView] = useState<"monitor" | "chat" | "diagram" | "ai-context">("monitor");
+  const [fixProposals, setFixProposals] = useState<FixProposalsSnapshot | null>(null);
+  const [fixProposalsLoading, setFixProposalsLoading] = useState(false);
+  const [fixProposalsError, setFixProposalsError] = useState<string | null>(null);
+  const [view, setView] = useState<"monitor" | "chat" | "diagram" | "ai-context" | "reviews">("monitor");
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Theme state
@@ -90,6 +95,7 @@ function App(): ReactElement {
   // Hooks
   const auth = useAuth();
   const settings = useSettings(exportAuditToPdf, settingsOpen);
+  const toast = useToast();
 
   const scopeLabel = useMemo(() => {
     if (!path) return "";
@@ -142,6 +148,8 @@ function App(): ReactElement {
         setContextError(null);
         setAiContext(null);
         setAiContextError(null);
+        setFixProposals(null);
+        setFixProposalsError(null);
         setFilter("");
         setBaseline(null);
         setBaselineStatus(null);
@@ -249,6 +257,27 @@ function App(): ReactElement {
     }
   }, [path]);
 
+  const refreshFixProposals = useCallback(async (): Promise<void> => {
+    if (!path) {
+      setFixProposals(null);
+      setFixProposalsError(null);
+      return;
+    }
+
+    setFixProposalsLoading(true);
+    setFixProposalsError(null);
+    try {
+      const value = await invoke<FixProposalsSnapshot>("get_fix_proposals", { root: path });
+      setFixProposals(value ?? null);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      setFixProposals(null);
+      setFixProposalsError(message);
+    } finally {
+      setFixProposalsLoading(false);
+    }
+  }, [path]);
+
   // Event listeners
   useEffect(() => {
     let disposed = false;
@@ -336,6 +365,11 @@ function App(): ReactElement {
       setAiContextError(null);
     });
 
+    void register<FixProposalsSnapshot>("guardian:fix-proposals", (event) => {
+      setFixProposals(event.payload);
+      setFixProposalsError(null);
+    });
+
     // Health Check
     invoke("ping").catch(e => {
       setLogs(prev => ({
@@ -367,6 +401,11 @@ function App(): ReactElement {
     if (view !== "ai-context") return;
     void refreshAiContext();
   }, [view, refreshAiContext]);
+
+  useEffect(() => {
+    if (view !== "reviews") return;
+    void refreshFixProposals();
+  }, [view, refreshFixProposals]);
 
   const setBaselineNow = useCallback(async (): Promise<void> => {
     if (!path) return;
@@ -503,6 +542,67 @@ function App(): ReactElement {
     setView("chat");
   }, []);
 
+  const toAbsoluteWorkspacePath = useCallback((filePath: string): string => {
+    const trimmed = (filePath ?? "").trim();
+    if (!trimmed || !path) return trimmed;
+
+    const isWindowsAbs = /^[a-zA-Z]:[\\/]/.test(trimmed) || trimmed.startsWith("\\\\");
+    if (trimmed.startsWith("/") || isWindowsAbs) {
+      return trimmed;
+    }
+
+    const root = path.replace(/[\\/]+$/, "");
+    const rel = trimmed.replace(/^[\\/]+/, "");
+    return `${root}/${rel}`;
+  }, [path]);
+
+  const requestReviewForProposal = useCallback(async (proposal: FixProposal): Promise<void> => {
+    if (!path) {
+      toast.showWarning("Select a workspace scope first.");
+      return;
+    }
+    const content = proposal.proposed_content ?? "";
+    if (!content.trim()) {
+      toast.showError("Proposal is missing proposed_content.");
+      return;
+    }
+
+    const absPath = toAbsoluteWorkspacePath(proposal.file_path);
+    try {
+      await invoke("apply_fix", { filePath: absPath, newContent: content });
+      const updated = await invoke<FixProposalsSnapshot>("set_fix_proposal_status", {
+        root: path,
+        proposalId: proposal.proposal_id,
+        status: "review_requested",
+        note: null,
+      });
+      setFixProposals(updated ?? null);
+      toast.showSuccess("Review requested. Check Guru for the approval result.");
+      setView("chat");
+    } catch (e) {
+      toast.showError(`Failed to request review: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }, [path, toast, toAbsoluteWorkspacePath]);
+
+  const setProposalStatus = useCallback(async (proposalId: string, status: string): Promise<void> => {
+    if (!path) {
+      toast.showWarning("Select a workspace scope first.");
+      return;
+    }
+    try {
+      const updated = await invoke<FixProposalsSnapshot>("set_fix_proposal_status", {
+        root: path,
+        proposalId,
+        status,
+        note: null,
+      });
+      setFixProposals(updated ?? null);
+      toast.showSuccess(`Proposal marked: ${status}`);
+    } catch (e) {
+      toast.showError(`Failed to update proposal: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }, [path, toast]);
+
   const visibleLogs = useMemo((): Critique[] => {
     const entries = Object.values(logs);
     return entries.filter(entry => entry.severity !== "Info");
@@ -598,6 +698,14 @@ function App(): ReactElement {
     };
   }, [visibleLogs]);
 
+  const pendingFixProposalsCount = useMemo(() => {
+    const proposals = fixProposals?.proposals ?? [];
+    return proposals.filter((p) => {
+      const s = (p.status || "").toLowerCase();
+      return s !== "rejected" && s !== "applied";
+    }).length;
+  }, [fixProposals]);
+
   const engineModel = settings.providerDraft?.model?.trim() || "Not set";
   const launchGate = useMemo(() => {
     if (!path) {
@@ -624,8 +732,6 @@ function App(): ReactElement {
     return { canLaunch: true, blockingReason: null };
   }, [path, settings.providerDraft, settings.requiresApiKey, settings.providerLabel, auth.requiresVerified, auth.authState]);
   const canToggleMonitoring = active || launchGate.canLaunch;
-
-  useToast();
 
   return (
     <div className="flex h-screen w-full bg-background text-text-main flex-col font-sans overflow-hidden transition-colors duration-300">
@@ -794,6 +900,22 @@ function App(): ReactElement {
               className={clsx("w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-lg transition-all flex items-center gap-3 cursor-pointer", view === "ai-context" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-50 hover:opacity-100")}
             >
               <Eye className="w-4 h-4" /> AI Context
+            </button>
+            <button
+              onClick={() => setView("reviews")}
+              className={clsx(
+                "w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-lg transition-all flex items-center justify-between gap-3 cursor-pointer",
+                view === "reviews" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-50 hover:opacity-100"
+              )}
+            >
+              <span className="flex items-center gap-3">
+                <ClipboardCheck className="w-4 h-4" /> Reviews
+              </span>
+              {pendingFixProposalsCount > 0 && (
+                <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-amber-500/10 text-amber-200 border-amber-500/20 tabular-nums">
+                  {pendingFixProposalsCount}
+                </span>
+              )}
             </button>
           </div>
 
@@ -1167,6 +1289,38 @@ function App(): ReactElement {
             onWebSearchToggle={settings.onWebSearchToggle}
             webSearchReady={settings.webSearchReady}
           />
+        </section>
+
+        {/* Reviews View */}
+        <section
+          className={clsx(
+            "flex-1 overflow-hidden p-0 flex flex-col bg-background transition-colors duration-300",
+            view === "reviews" ? "flex" : "hidden"
+          )}
+        >
+          {!path ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-muted text-sm">
+              <div className="text-xs uppercase tracking-widest">No workspace selected.</div>
+              <div className="text-[10px] text-text-muted max-w-md text-center">
+                Select a workspace, then write proposals to <span className="text-[var(--text-main)]">.guardian-proposals/fix_proposals.jsonl</span>.
+              </div>
+              <button
+                onClick={selectScope}
+                className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer"
+              >
+                Select Workspace
+              </button>
+            </div>
+          ) : (
+            <FixProposalsView
+              snapshot={fixProposals}
+              loading={fixProposalsLoading}
+              error={fixProposalsError}
+              onRefresh={refreshFixProposals}
+              onRequestReview={requestReviewForProposal}
+              onSetStatus={setProposalStatus}
+            />
+          )}
         </section>
 
         {/* AI Context View */}

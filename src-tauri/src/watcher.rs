@@ -10,9 +10,11 @@ use once_cell::sync::Lazy;
 use serde::Serialize;
 use serde_json::json;
 use sha2::{Digest, Sha256};
+use similar::{ChangeTag, TextDiff};
 use std::collections::HashMap;
 use std::fs;
 use std::fs::OpenOptions;
+use std::io::BufRead;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -27,6 +29,8 @@ use tracing::{debug, error, info, warn};
 // GLOBAL STATE for active critiques to enable "real-time sync/delete"
 // OPTIMIZATION: Using RwLock instead of Mutex for better read concurrency
 static ACTIVE_CRITIQUES: Lazy<Arc<RwLock<HashMap<String, crate::ai_client::Critique>>>> =
+    Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
+static LAST_AUDITED_CONTENTS: Lazy<Arc<RwLock<HashMap<String, String>>>> =
     Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
 #[derive(Debug, Clone, Serialize)]
@@ -49,6 +53,39 @@ pub struct AiContextSnapshot {
 }
 
 static LAST_AI_CONTEXT: Lazy<Arc<RwLock<Option<AiContextSnapshot>>>> =
+    Lazy::new(|| Arc::new(RwLock::new(None)));
+
+#[derive(Debug, Clone, Serialize)]
+pub struct FixProposal {
+    pub proposal_id: String,
+    pub timestamp: String,
+    pub status: String,
+    pub file_path: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub finding_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proposed_by: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub original_content_hash: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub suggestion: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub proposed_content: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reasoning: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct FixProposalsSnapshot {
+    pub timestamp: String,
+    pub root: String,
+    pub source_path: String,
+    pub proposals: Vec<FixProposal>,
+}
+
+static LAST_FIX_PROPOSALS: Lazy<Arc<RwLock<Option<FixProposalsSnapshot>>>> =
     Lazy::new(|| Arc::new(RwLock::new(None)));
 
 const NON_LOGIC_EXTENSIONS: &[&str] = &[
@@ -75,6 +112,9 @@ const IGNORED_PATH_MARKERS: &[&str] = &[
 
 const MAX_AGENT_QUEUE_BYTES: u64 = 1 * 1024 * 1024;
 const MAX_AGENT_QUEUE_ARCHIVES: usize = 5;
+const FIX_PROPOSALS_DIR: &str = ".guardian-proposals";
+const FIX_PROPOSALS_FILE: &str = "fix_proposals.jsonl";
+const DIFF_MAX_HUNKS: usize = 6;
 
 // Note: Configuration constants moved to config.rs, accessed via config::*() functions
 
@@ -152,6 +192,23 @@ fn is_guardian_chat(path: &Path) -> bool {
     path_str.ends_with(".guardian/chat.md") || path_str.ends_with(".guardian\\chat.md")
 }
 
+fn is_fix_proposals_file(path: &Path) -> bool {
+    let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+        return false;
+    };
+    if name != FIX_PROPOSALS_FILE {
+        return false;
+    }
+    let Some(parent) = path
+        .parent()
+        .and_then(|p| p.file_name())
+        .and_then(|n| n.to_str())
+    else {
+        return false;
+    };
+    parent == FIX_PROPOSALS_DIR || parent == ".guardian"
+}
+
 fn has_ignored_marker(path: &str) -> bool {
     IGNORED_PATH_MARKERS
         .iter()
@@ -204,6 +261,208 @@ fn normalize_rel_file_path(workspace_root: &Path, file_path: &str) -> String {
     }
 
     file_path.trim().replace('\\', "/")
+}
+
+fn fix_proposals_preferred_path(root: &Path) -> PathBuf {
+    root.join(FIX_PROPOSALS_DIR).join(FIX_PROPOSALS_FILE)
+}
+
+fn fix_proposals_legacy_path(root: &Path) -> PathBuf {
+    root.join(".guardian").join(FIX_PROPOSALS_FILE)
+}
+
+fn migrate_fix_proposals_if_needed(root: &Path) -> PathBuf {
+    let preferred = fix_proposals_preferred_path(root);
+    if preferred.exists() {
+        return preferred;
+    }
+
+    let legacy = fix_proposals_legacy_path(root);
+    if !legacy.exists() {
+        return preferred;
+    }
+
+    if let Some(parent) = preferred.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+
+    if fs::rename(&legacy, &preferred).is_ok() {
+        return preferred;
+    }
+
+    if let Ok(raw) = fs::read(&legacy) {
+        if fs::write(&preferred, raw).is_ok() {
+            let _ = fs::remove_file(&legacy);
+        }
+    }
+
+    preferred
+}
+
+pub(crate) fn fix_proposals_path_for_root(root: &str) -> PathBuf {
+    migrate_fix_proposals_if_needed(Path::new(root))
+}
+
+pub(crate) fn refresh_fix_proposals_for_root(root: &str) -> FixProposalsSnapshot {
+    let snapshot = load_fix_proposals_snapshot(root);
+    if let Ok(mut lock) = LAST_FIX_PROPOSALS.write() {
+        *lock = Some(snapshot.clone());
+    }
+    snapshot
+}
+
+pub(crate) fn last_fix_proposals_for_root(root: &str) -> Option<FixProposalsSnapshot> {
+    let Ok(lock) = LAST_FIX_PROPOSALS.read() else {
+        return None;
+    };
+    lock.as_ref().filter(|snap| snap.root == root).cloned()
+}
+
+fn load_fix_proposals_snapshot(root: &str) -> FixProposalsSnapshot {
+    let root_path = Path::new(root);
+    let proposals_path = migrate_fix_proposals_if_needed(root_path);
+    let mut map: HashMap<String, FixProposal> = HashMap::new();
+
+    let timestamp_now = Utc::now().to_rfc3339();
+    let source_path = proposals_path.to_string_lossy().to_string();
+
+    let file = match fs::File::open(&proposals_path) {
+        Ok(file) => file,
+        Err(_) => {
+            return FixProposalsSnapshot {
+                timestamp: timestamp_now,
+                root: root.to_string(),
+                source_path,
+                proposals: Vec::new(),
+            }
+        }
+    };
+
+    let reader = std::io::BufReader::new(file);
+    for line in reader.lines().flatten() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let value: serde_json::Value = match serde_json::from_str(trimmed) {
+            Ok(value) => value,
+            Err(_) => continue,
+        };
+
+        let proposal_id = value
+            .get("proposal_id")
+            .and_then(|v| v.as_str())
+            .map(|s| s.trim().to_string());
+        let Some(proposal_id) = proposal_id.filter(|s| !s.is_empty()) else {
+            continue;
+        };
+
+        let kind = value
+            .get("type")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_lowercase();
+        let has_content = value
+            .get("proposed_content")
+            .and_then(|v| v.as_str())
+            .is_some();
+
+        let status = value
+            .get("status")
+            .and_then(|v| v.as_str())
+            .unwrap_or(if has_content { "pending" } else { "" })
+            .trim()
+            .to_lowercase();
+
+        let ts = value
+            .get("timestamp")
+            .and_then(|v| v.as_str())
+            .unwrap_or(&timestamp_now)
+            .to_string();
+
+        let file_path = value
+            .get("file_path")
+            .and_then(|v| v.as_str())
+            .map(|s| normalize_rel_file_path(root_path, s))
+            .unwrap_or_default();
+
+        if kind == "proposal" || has_content {
+            let proposed_content = value
+                .get("proposed_content")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+
+            let current = FixProposal {
+                proposal_id: proposal_id.clone(),
+                timestamp: ts,
+                status: if status.is_empty() {
+                    "pending".to_string()
+                } else {
+                    status
+                },
+                file_path,
+                finding_id: value
+                    .get("finding_id")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                proposed_by: value
+                    .get("proposed_by")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                original_content_hash: value
+                    .get("original_content_hash")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                suggestion: value
+                    .get("suggestion")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+                proposed_content,
+                confidence: value
+                    .get("confidence")
+                    .and_then(|v| v.as_f64())
+                    .map(|n| n as f32),
+                reasoning: value
+                    .get("reasoning")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+            };
+
+            map.insert(proposal_id, current);
+            continue;
+        }
+
+        if kind == "status" || !status.is_empty() {
+            let entry = map.entry(proposal_id.clone()).or_insert(FixProposal {
+                proposal_id,
+                timestamp: ts.clone(),
+                status: "pending".to_string(),
+                file_path,
+                finding_id: None,
+                proposed_by: None,
+                original_content_hash: None,
+                suggestion: None,
+                proposed_content: None,
+                confidence: None,
+                reasoning: None,
+            });
+
+            entry.timestamp = ts;
+            if !status.is_empty() {
+                entry.status = status;
+            }
+        }
+    }
+
+    let mut proposals: Vec<FixProposal> = map.into_values().collect();
+    proposals.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+
+    FixProposalsSnapshot {
+        timestamp: timestamp_now,
+        root: root.to_string(),
+        source_path,
+        proposals,
+    }
 }
 
 pub(crate) fn should_skip_path(path: &Path, is_chat: bool) -> bool {
@@ -272,6 +531,9 @@ pub async fn start_watching(
     if let Ok(mut lock) = ACTIVE_CRITIQUES.write() {
         lock.clear();
     }
+    if let Ok(mut lock) = LAST_AUDITED_CONTENTS.write() {
+        lock.clear();
+    }
 
     // UNIVERSAL BOOTSTRAP: Neuro-Link
     let guardian_path = Path::new(&target_path).join(".guardian");
@@ -299,6 +561,7 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
 - `.guardian/critiques.json` - machine-readable snapshot of active critiques
 - `.guardian/agent_queue.jsonl` - append-only event stream (use `tail -f`)
 - `.guardian/chat.md` - optional human-to-Guardian notes
+- `.guardian-proposals/fix_proposals.jsonl` - optional fix proposal queue (append-only JSONL)
 
 ## Rules
 1. Prioritize: critical > warning > info
@@ -309,9 +572,30 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
 - Do not edit any `.guardian/*` files
 - Do not read or exfiltrate secrets (`.env`, keys, credentials)
 - Do not auto-commit or auto-push
+
+## Fix Proposals
+- If you want Guardian to review a fix, append a proposal to `.guardian-proposals/fix_proposals.jsonl`.
+- Proposals MUST include `proposal_id`, `timestamp`, `file_path`, and `proposed_content` (FULL updated file content).
 "#;
         let _ = tokio::fs::write(&agent_instructions_path, instructions).await;
     }
+    if let Ok(existing) = tokio::fs::read_to_string(&agent_instructions_path).await {
+        if !existing.contains("fix_proposals.jsonl") {
+            let mut updated = existing;
+            updated.push_str(
+                "\n\n## Fix Proposals\n- Append proposals to `.guardian-proposals/fix_proposals.jsonl` (append-only JSONL).\n- Required fields: `proposal_id`, `timestamp`, `file_path`, `proposed_content` (FULL updated file content).\n",
+            );
+            let _ = tokio::fs::write(&agent_instructions_path, updated).await;
+        }
+    }
+
+    let proposals_dir = Path::new(&target_path).join(FIX_PROPOSALS_DIR);
+    if !proposals_dir.exists() {
+        let _ = fs::create_dir_all(&proposals_dir);
+    }
+
+    let proposals_snapshot = refresh_fix_proposals_for_root(&target_path);
+    app.emit("guardian:fix-proposals", proposals_snapshot).ok();
 
     // Spawn Batch Processor
     let batch_app = app.clone();
@@ -461,6 +745,11 @@ fn handle_event(
 
     for path in event.paths {
         let is_chat = is_guardian_chat(&path);
+        if is_fix_proposals_file(&path) {
+            let snapshot = refresh_fix_proposals_for_root(&root);
+            app.emit("guardian:fix-proposals", snapshot).ok();
+            continue;
+        }
 
         if should_clear || !path.exists() {
             let path_key = path.to_string_lossy().to_string();
@@ -658,6 +947,7 @@ async fn process_batch(
         *last_request = Instant::now();
         match call {
             Ok(critiques) => {
+                let critiques_for_semantic = critiques.clone();
                 handle_critiques(
                     app,
                     root,
@@ -667,6 +957,14 @@ async fn process_batch(
                     estimated_tokens,
                     auto_verify_enabled,
                 );
+                schedule_semantic_indexing(
+                    app.clone(),
+                    root.to_string(),
+                    &items,
+                    &hash_by_path,
+                    critiques_for_semantic,
+                );
+                update_last_audited_contents(&items);
                 return;
             }
             Err(e) => {
@@ -699,6 +997,7 @@ async fn process_batch(
                         append_ai_request_history(root, client, single_tokens, &single_context);
                         match client.analyze_batch(single_prompt).await {
                             Ok(critiques) => {
+                                let critiques_for_semantic = critiques.clone();
                                 handle_critiques(
                                     app,
                                     root,
@@ -708,6 +1007,14 @@ async fn process_batch(
                                     single_tokens,
                                     auto_verify_enabled,
                                 );
+                                schedule_semantic_indexing(
+                                    app.clone(),
+                                    root.to_string(),
+                                    &single_items,
+                                    &single_hash,
+                                    critiques_for_semantic,
+                                );
+                                update_last_audited_contents(&single_items);
                             }
                             Err(err) => {
                                 app.emit(
@@ -760,7 +1067,12 @@ fn emit_ai_context(
     app.emit("guardian:ai-context", snapshot).ok();
 }
 
-fn append_ai_request_history(root: &str, client: &AiClient, tokens_in: u64, files: &[AiContextFile]) {
+fn append_ai_request_history(
+    root: &str,
+    client: &AiClient,
+    tokens_in: u64,
+    files: &[AiContextFile],
+) {
     let redacted_files = files.iter().filter(|f| f.redacted).count();
     let truncated_files = files.iter().filter(|f| f.truncated).count();
 
@@ -873,8 +1185,7 @@ fn handle_critiques(
 
             // Autonomous Verification Trigger
             let is_critical = critique.severity.trim().eq_ignore_ascii_case("critical");
-            if auto_verify_enabled && is_critical && critique.message != "LGTM"
-            {
+            if auto_verify_enabled && is_critical && critique.message != "LGTM" {
                 if critical_info.is_none() {
                     critical_info = Some(StallInfo {
                         file_path: critique.file_path.clone(),
@@ -963,6 +1274,142 @@ fn handle_critiques(
         json!({ "tokens": estimated_tokens, "calls": items.len() }),
     )
     .ok();
+}
+
+fn schedule_semantic_indexing(
+    app: AppHandle,
+    root: String,
+    items: &[BatchItem],
+    hash_by_path: &HashMap<String, String>,
+    critiques: Vec<crate::ai_client::Critique>,
+) {
+    if critiques.is_empty() || items.is_empty() {
+        return;
+    }
+
+    let root_path = Path::new(&root);
+    let rules_hash = crate::skills::hasher::get_rules_fingerprint(&root);
+
+    let mut context_by_path: HashMap<String, String> = HashMap::new();
+    let mut hash_by_key: HashMap<String, String> = HashMap::new();
+    for item in items {
+        let context = prepare_ai_context_file(item);
+        let abs_path = context.file_path.clone();
+        let rel_path = normalize_rel_file_path(root_path, &abs_path);
+        context_by_path.insert(abs_path.clone(), context.content.clone());
+        context_by_path
+            .entry(rel_path.clone())
+            .or_insert(context.content);
+
+        if let Some(hash) = hash_by_path.get(&abs_path) {
+            hash_by_key.insert(abs_path.clone(), hash.clone());
+            hash_by_key.entry(rel_path).or_insert_with(|| hash.clone());
+        }
+    }
+
+    let mut entries: Vec<crate::semantic_index::SemanticIndexInput> = Vec::new();
+    for critique in critiques {
+        if critique.message.trim().eq_ignore_ascii_case("lgtm")
+            || !should_surface_critique(&critique)
+        {
+            continue;
+        }
+        let Some(context) = context_by_path.get(&critique.file_path) else {
+            continue;
+        };
+        let critique_id = critique.finding_id.clone().unwrap_or_else(|| {
+            crate::baseline::manager::finding_id_for_critique(root_path, &critique, &rules_hash)
+        });
+        let content_hash = hash_by_key
+            .get(&critique.file_path)
+            .cloned()
+            .unwrap_or_default();
+
+        let mut semantic_text = format!(
+            "file_path: {}\nseverity: {}\nmessage: {}\n",
+            critique.file_path, critique.severity, critique.message
+        );
+        if let Some(why) = &critique.why {
+            semantic_text.push_str(&format!("why: {}\n", why));
+        }
+        if let Some(suggestion) = &critique.suggestion {
+            semantic_text.push_str(&format!("suggestion: {}\n", suggestion));
+        }
+        semantic_text.push_str("\ncontext:\n");
+        semantic_text.push_str(context);
+
+        entries.push(crate::semantic_index::SemanticIndexInput {
+            file_path: critique.file_path,
+            content_hash,
+            critique_id,
+            severity: critique.severity,
+            text: semantic_text,
+        });
+    }
+
+    if entries.is_empty() {
+        return;
+    }
+
+    let storage = app.state::<Arc<Mutex<StorageManager>>>().inner().clone();
+    tokio::spawn(async move {
+        match crate::semantic_index::index_entries_with_similarity(storage, &root, entries).await {
+            Ok(outcomes) => {
+                let indexed_count = outcomes.len();
+                let recalled = outcomes
+                    .iter()
+                    .filter(|o| !o.similar_critical.is_empty())
+                    .count();
+
+                for outcome in &outcomes {
+                    if !outcome.severity.eq_ignore_ascii_case("critical")
+                        || outcome.similar_critical.is_empty()
+                    {
+                        continue;
+                    }
+                    let similar_files = outcome
+                        .similar_critical
+                        .iter()
+                        .map(|m| format!("{} ({:.2})", m.file_path, m.similarity))
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    app.emit(
+                        "guardian:info",
+                        format!(
+                            "Semantic recall: {} [{}|{}] benzer kritik bulundu -> {}",
+                            outcome.file_path,
+                            outcome.critique_id,
+                            outcome.source_mode,
+                            similar_files
+                        ),
+                    )
+                    .ok();
+                }
+
+                append_history_event(
+                    &root,
+                    HistoryEvent {
+                        timestamp: Utc::now().to_rfc3339(),
+                        event: "semantic_index".to_string(),
+                        finding_id: None,
+                        file_path: None,
+                        model: None,
+                        provider: None,
+                        redacted: None,
+                        tokens_in: None,
+                        tokens_out: None,
+                        details: Some(json!({
+                            "indexed": indexed_count,
+                            "critical_recalled": recalled,
+                        })),
+                    },
+                );
+            }
+            Err(err) => {
+                warn!(target: "guardian::semantic", "Semantic indexing skipped: {}", err);
+            }
+        }
+    });
 }
 
 // Replaces analyze_file
@@ -1080,6 +1527,14 @@ fn sync_guardian_logs(
     critiques: &HashMap<String, crate::ai_client::Critique>,
 ) -> Option<StallInfo> {
     let root_path = Path::new(root);
+    if let Err(err) = crate::guardian_lock::sync_guardian_lock(root_path) {
+        warn!(
+            target: "guardian::watcher",
+            "guardian.lock sync failed (root={}): {}",
+            safe_path_label(root_path),
+            err
+        );
+    }
     let guardian_dir = root_path.join(".guardian");
 
     if !guardian_dir.exists() {
@@ -1092,7 +1547,8 @@ fn sync_guardian_logs(
 
     let mut critical_info: Option<StallInfo> = None;
     let rules_hash = crate::skills::hasher::get_rules_fingerprint(root);
-    let workspace_id = crate::baseline::manager::compute_workspace_id(root_path).unwrap_or_default();
+    let workspace_id =
+        crate::baseline::manager::compute_workspace_id(root_path).unwrap_or_default();
 
     // Rewrite critiques.md
     if let Ok(mut file) = fs::File::create(&critiques_path) {
@@ -1114,10 +1570,9 @@ fn sync_guardian_logs(
                     reason: c.message.clone(),
                 });
             }
-            let finding_id =
-                c.finding_id
-                    .clone()
-                    .unwrap_or_else(|| crate::baseline::manager::finding_id_for_critique(root_path, c, &rules_hash));
+            let finding_id = c.finding_id.clone().unwrap_or_else(|| {
+                crate::baseline::manager::finding_id_for_critique(root_path, c, &rules_hash)
+            });
             let json_line = json!({
                 "finding_id": finding_id,
                 "file_path": rel_path,
@@ -1141,10 +1596,9 @@ fn sync_guardian_logs(
         entries.sort_by(|(a, _), (b, _)| a.cmp(b));
         let mut payload_critiques = Vec::with_capacity(entries.len());
         for (rel_path, c) in entries {
-            let finding_id =
-                c.finding_id
-                    .clone()
-                    .unwrap_or_else(|| crate::baseline::manager::finding_id_for_critique(root_path, c, &rules_hash));
+            let finding_id = c.finding_id.clone().unwrap_or_else(|| {
+                crate::baseline::manager::finding_id_for_critique(root_path, c, &rules_hash)
+            });
             payload_critiques.push(json!({
                 "finding_id": finding_id,
                 "file_path": rel_path,
@@ -1162,7 +1616,11 @@ fn sync_guardian_logs(
             "rules_hash": rules_hash,
             "critiques": payload_critiques
         });
-        let _ = writeln!(file, "{}", serde_json::to_string_pretty(&payload).unwrap_or_default());
+        let _ = writeln!(
+            file,
+            "{}",
+            serde_json::to_string_pretty(&payload).unwrap_or_default()
+        );
     }
 
     // Rewrite chat_queue.md
@@ -1212,9 +1670,7 @@ pub(crate) fn last_ai_context_for_root(root: &str) -> Option<AiContextSnapshot> 
     let Ok(lock) = LAST_AI_CONTEXT.read() else {
         return None;
     };
-    lock.as_ref()
-        .filter(|snap| snap.root == root)
-        .cloned()
+    lock.as_ref().filter(|snap| snap.root == root).cloned()
 }
 
 fn calculate_hash(content: &str) -> String {
@@ -1324,24 +1780,37 @@ fn filter_pii(content: &str) -> String {
     crate::redaction::gate::mask_inline_secrets(content)
 }
 
+fn update_last_audited_contents(items: &[BatchItem]) {
+    let Ok(mut lock) = LAST_AUDITED_CONTENTS.write() else {
+        return;
+    };
+    for item in items {
+        let key = item.path.to_string_lossy().to_string();
+        let filtered = filter_pii(&item.content);
+        lock.insert(key, filtered);
+    }
+}
+
+fn last_audited_content(path: &Path) -> Option<String> {
+    let key = path.to_string_lossy().to_string();
+    let Ok(lock) = LAST_AUDITED_CONTENTS.read() else {
+        return None;
+    };
+    lock.get(&key).cloned()
+}
+
 fn prepare_ai_context_file(item: &BatchItem) -> AiContextFile {
     let max_content_lines = config::max_content_lines();
     let max_content_chars = config::max_content_chars();
     let filtered = filter_pii(&item.content);
     let redacted = filtered != item.content;
-    let mut truncated = false;
-
-    let mut lines: Vec<&str> = filtered.lines().collect();
-    if lines.len() > max_content_lines {
-        lines.truncate(max_content_lines);
-        truncated = true;
-    }
-    let mut joined = lines.join("\n");
-    if joined.len() > max_content_chars {
-        joined.truncate(max_content_chars);
-        joined.push_str("\n... (truncated)");
-        truncated = true;
-    }
+    let previous = last_audited_content(&item.path);
+    let (joined, truncated) = build_diff_focused_context(
+        previous.as_deref(),
+        &filtered,
+        max_content_lines,
+        max_content_chars,
+    );
 
     let token_estimate = estimate_tokens(&joined);
 
@@ -1352,6 +1821,107 @@ fn prepare_ai_context_file(item: &BatchItem) -> AiContextFile {
         truncated,
         content: joined,
     }
+}
+
+fn build_diff_focused_context(
+    previous: Option<&str>,
+    current: &str,
+    max_content_lines: usize,
+    max_content_chars: usize,
+) -> (String, bool) {
+    match previous {
+        Some(prev) if prev != current => {
+            let diff = TextDiff::from_lines(prev, current);
+            let grouped = diff.grouped_ops(2);
+            let mut body = String::new();
+            let mut added = 0usize;
+            let mut removed = 0usize;
+            let mut changed = 0usize;
+            let mut truncated = grouped.len() > DIFF_MAX_HUNKS;
+
+            for (idx, group) in grouped.iter().take(DIFF_MAX_HUNKS).enumerate() {
+                changed += 1;
+                body.push_str(&format!("@@ hunk {} @@\n", idx + 1));
+                for op in group {
+                    for change in diff.iter_changes(op) {
+                        let prefix = match change.tag() {
+                            ChangeTag::Delete => {
+                                removed += 1;
+                                "-"
+                            }
+                            ChangeTag::Insert => {
+                                added += 1;
+                                "+"
+                            }
+                            ChangeTag::Equal => " ",
+                        };
+                        let mut line = change.to_string();
+                        if line.ends_with('\n') {
+                            line.pop();
+                        }
+                        if line.len() > 240 {
+                            line.truncate(240);
+                            line.push('…');
+                            truncated = true;
+                        }
+                        body.push_str(prefix);
+                        body.push_str(&line);
+                        body.push('\n');
+                    }
+                }
+                body.push('\n');
+            }
+
+            if changed == 0 {
+                return build_snapshot_context(current, max_content_lines, max_content_chars);
+            }
+
+            let header = format!(
+                "Mode: diff-focused\nDiff summary: {} hunks, +{} / -{} lines (post-redaction).\n\n",
+                changed, added, removed
+            );
+            let mut full = String::with_capacity(header.len() + body.len());
+            full.push_str(&header);
+            full.push_str(&body);
+            truncate_context(full, max_content_lines, max_content_chars, truncated)
+        }
+        _ => build_snapshot_context(current, max_content_lines, max_content_chars),
+    }
+}
+
+fn build_snapshot_context(
+    current: &str,
+    max_content_lines: usize,
+    max_content_chars: usize,
+) -> (String, bool) {
+    let total_lines = current.lines().count();
+    let non_empty_lines = current.lines().filter(|l| !l.trim().is_empty()).count();
+    let mut payload = format!(
+        "Mode: snapshot-compressed\nSnapshot summary: {} lines ({} non-empty, post-redaction).\n\n",
+        total_lines, non_empty_lines
+    );
+    payload.push_str(current);
+    truncate_context(payload, max_content_lines, max_content_chars, false)
+}
+
+fn truncate_context(
+    content: String,
+    max_content_lines: usize,
+    max_content_chars: usize,
+    mut truncated: bool,
+) -> (String, bool) {
+    let mut lines: Vec<&str> = content.lines().collect();
+    if lines.len() > max_content_lines {
+        lines.truncate(max_content_lines);
+        truncated = true;
+    }
+    let mut joined = lines.join("\n");
+    if joined.len() > max_content_chars {
+        joined.truncate(max_content_chars);
+        joined.push_str("\n... (truncated)");
+        truncated = true;
+    }
+    (joined, truncated)
 }
 
 fn is_rate_limit_error(err: &str) -> bool {
@@ -1397,7 +1967,10 @@ mod tests_protocol {
             );
         }
 
-        assert!(queue_path.exists(), "agent_queue.jsonl must exist after rotation");
+        assert!(
+            queue_path.exists(),
+            "agent_queue.jsonl must exist after rotation"
+        );
 
         let archives: Vec<_> = fs::read_dir(&guardian_dir)
             .expect("read_dir")
@@ -1405,7 +1978,9 @@ mod tests_protocol {
             .filter(|e| {
                 let name = e.file_name();
                 let name = name.to_string_lossy();
-                name != "agent_queue.jsonl" && name.starts_with("agent_queue.") && name.ends_with(".jsonl")
+                name != "agent_queue.jsonl"
+                    && name.starts_with("agent_queue.")
+                    && name.ends_with(".jsonl")
             })
             .collect();
 
@@ -1453,5 +2028,60 @@ mod tests_protocol {
         assert_eq!(parsed["protocol_version"], 1);
         assert_eq!(parsed["critiques"][0]["file_path"], "src/main.rs");
         assert_eq!(parsed["critiques"][0]["finding_id"], "finding-123");
+    }
+
+    #[test]
+    fn diff_context_is_used_when_previous_snapshot_exists() {
+        let previous = "fn main() {\n  let risky = true;\n}\n";
+        let current = "fn main() {\n  let safe = true;\n}\n";
+
+        let (content, truncated) = build_diff_focused_context(Some(previous), current, 120, 10_000);
+
+        assert!(!truncated);
+        assert!(content.contains("Mode: diff-focused"));
+        assert!(content.contains("+  let safe = true;"));
+        assert!(content.contains("-  let risky = true;"));
+    }
+
+    #[test]
+    fn snapshot_context_is_used_without_previous_snapshot() {
+        let current = "fn main() {\n  println!(\"hello\");\n}\n";
+        let (content, truncated) = build_diff_focused_context(None, current, 120, 10_000);
+
+        assert!(!truncated);
+        assert!(content.contains("Mode: snapshot-compressed"));
+        assert!(content.contains("Snapshot summary:"));
+        assert!(content.contains("println!(\"hello\")"));
+    }
+
+    #[test]
+    fn diff_context_reduces_token_estimate_for_localized_change() {
+        let mut previous_lines: Vec<String> = Vec::new();
+        for idx in 0..400 {
+            previous_lines.push(format!(
+                "const VALUE_{idx:03} = \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\";"
+            ));
+        }
+        let previous = previous_lines.join("\n");
+
+        let mut current_lines = previous_lines;
+        current_lines[198] =
+            "const VALUE_198 = \"SECURITY_PATCH_APPLIED_WITH_MINIMAL_SCOPE\";".to_string();
+        let current = current_lines.join("\n");
+
+        let (snapshot_content, _) = build_diff_focused_context(None, &current, 220, 6000);
+        let (diff_content, _) = build_diff_focused_context(Some(&previous), &current, 220, 6000);
+
+        let snapshot_tokens = estimate_tokens(&snapshot_content);
+        let diff_tokens = estimate_tokens(&diff_content);
+        eprintln!(
+            "diff-benchmark snapshot_tokens={} diff_tokens={}",
+            snapshot_tokens, diff_tokens
+        );
+
+        assert!(snapshot_tokens > diff_tokens);
+        let saved = snapshot_tokens - diff_tokens;
+        let ratio = saved as f64 / snapshot_tokens as f64;
+        assert!(ratio > 0.50);
     }
 }

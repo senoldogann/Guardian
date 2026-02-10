@@ -1,4 +1,5 @@
 use crate::baseline::{load_baseline, resolve_baseline_path, Baseline};
+use crate::guardian_lock::{self, LockMode};
 use crate::output::{render_report, write_report, Finding, ReportFormat, ScanReport};
 use crate::redaction::{is_sensitive_file, mask_inline_secrets};
 use crate::rules_hash::get_rules_fingerprint;
@@ -6,7 +7,7 @@ use anyhow::{Context, Result};
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
-use std::collections::{HashSet};
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -24,6 +25,8 @@ pub struct ScanConfig {
     pub model: Option<String>,
     pub base_url: Option<String>,
     pub api_key: Option<String>,
+    pub lock_path: Option<PathBuf>,
+    pub lock_mode: LockMode,
 }
 
 #[derive(Debug, Clone)]
@@ -82,6 +85,13 @@ pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
             .as_ref()
             .map(|p| p.to_string_lossy().to_string()),
     );
+    let resolved_lock_path = guardian_lock::resolve_lock_path(&root, cfg.lock_path.clone());
+    let lock_summary =
+        guardian_lock::sync_guardian_lock(&root, &rules_hash, &resolved_lock_path, cfg.lock_mode)?;
+    if lock_summary.status == "synced_with_warning" {
+        eprintln!("guardian-cli: warning: {}", lock_summary.message);
+    }
+    report.guardian_lock = Some(lock_summary);
 
     let files = collect_files(&root, cfg.max_files, cfg.max_file_bytes)?;
     report.summary.files_scanned = files.len();
@@ -105,7 +115,11 @@ pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
     let payload = render_report(&report, cfg.format)?;
     write_report(&payload, cfg.out.as_deref())?;
 
-    Ok(if report.summary.new_critical > 0 { 1 } else { 0 })
+    Ok(if report.summary.new_critical > 0 {
+        1
+    } else {
+        0
+    })
 }
 
 fn load_and_validate_baseline(path: &Path, rules_hash: &str) -> Result<Baseline> {
@@ -254,7 +268,11 @@ fn should_scan_extension(path: &Path) -> bool {
     ];
     path.extension()
         .and_then(|e| e.to_str())
-        .map(|ext| EXTENSIONS.iter().any(|allowed| ext.eq_ignore_ascii_case(allowed)))
+        .map(|ext| {
+            EXTENSIONS
+                .iter()
+                .any(|allowed| ext.eq_ignore_ascii_case(allowed))
+        })
         .unwrap_or(false)
 }
 
@@ -298,7 +316,8 @@ fn offline_scan(
 ) -> Vec<Finding> {
     let mut out = Vec::new();
     for file in files {
-        if let Some((severity, message, suggestion)) = offline_analyze(&file.rel_path, &file.content)
+        if let Some((severity, message, suggestion)) =
+            offline_analyze(&file.rel_path, &file.content)
         {
             let finding_id = finding_id_for_file(rules_hash, severity, file.rel_path.as_str());
             let is_new = !baseline_set.contains(finding_id.as_str());
@@ -335,7 +354,10 @@ fn severity_rank(sev: &str) -> u8 {
     }
 }
 
-fn offline_analyze(file_path: &str, content: &str) -> Option<(&'static str, String, Option<String>)> {
+fn offline_analyze(
+    file_path: &str,
+    content: &str,
+) -> Option<(&'static str, String, Option<String>)> {
     let lower = content.to_lowercase();
 
     let critical_patterns = ["eval(", "child_process.exec(", "child_process.execsync("];
@@ -354,7 +376,10 @@ fn offline_analyze(file_path: &str, content: &str) -> Option<(&'static str, Stri
         return Some((
             "Warning",
             format!("Potential XSS risk in {file_path} (dangerouslySetInnerHTML)."),
-            Some("Ensure content is trusted or sanitized; avoid rendering untrusted HTML.".to_string()),
+            Some(
+                "Ensure content is trusted or sanitized; avoid rendering untrusted HTML."
+                    .to_string(),
+            ),
         ));
     }
 
@@ -422,7 +447,8 @@ fn ai_scan(
             if critique.message.trim().eq_ignore_ascii_case("LGTM") {
                 continue;
             }
-            let normalized_path = normalize_ai_path(root, critique.file_path.as_str(), &allowed_paths);
+            let normalized_path =
+                normalize_ai_path(root, critique.file_path.as_str(), &allowed_paths);
             let Some(file_path) = normalized_path else {
                 continue;
             };
@@ -512,7 +538,10 @@ fn send_anthropic(
         .json(&payload)
         .send()?;
     if !response.status().is_success() {
-        anyhow::bail!("Anthropic request failed: {}", response.text().unwrap_or_default());
+        anyhow::bail!(
+            "Anthropic request failed: {}",
+            response.text().unwrap_or_default()
+        );
     }
     let response_json: serde_json::Value = response.json()?;
     let content = response_json["content"]
@@ -540,14 +569,20 @@ fn send_openai(
         ],
         "temperature": 0.2
     });
-    let url = format!("{}/chat/completions", provider.base_url.trim_end_matches('/'));
+    let url = format!(
+        "{}/chat/completions",
+        provider.base_url.trim_end_matches('/')
+    );
     let response = client
         .post(&url)
         .bearer_auth(provider.api_key.expose_secret())
         .json(&payload)
         .send()?;
     if !response.status().is_success() {
-        anyhow::bail!("OpenAI request failed: {}", response.text().unwrap_or_default());
+        anyhow::bail!(
+            "OpenAI request failed: {}",
+            response.text().unwrap_or_default()
+        );
     }
     let response_json: serde_json::Value = response.json()?;
     let content_str = response_json["choices"][0]["message"]["content"]
@@ -581,7 +616,10 @@ fn send_gemini(
         .json(&payload)
         .send()?;
     if !response.status().is_success() {
-        anyhow::bail!("Gemini request failed: {}", response.text().unwrap_or_default());
+        anyhow::bail!(
+            "Gemini request failed: {}",
+            response.text().unwrap_or_default()
+        );
     }
     let response_json: serde_json::Value = response.json()?;
     let candidates = response_json["candidates"]
@@ -616,7 +654,10 @@ fn send_ollama(
     let url = format!("{}/api/chat", provider.base_url.trim_end_matches('/'));
     let response = client.post(&url).json(&payload).send()?;
     if !response.status().is_success() {
-        anyhow::bail!("Ollama request failed: {}", response.text().unwrap_or_default());
+        anyhow::bail!(
+            "Ollama request failed: {}",
+            response.text().unwrap_or_default()
+        );
     }
     let response_json: serde_json::Value = response.json()?;
     let content_str = response_json["message"]["content"]
@@ -736,6 +777,8 @@ mod tests {
             model: None,
             base_url: None,
             api_key: None,
+            lock_path: None,
+            lock_mode: LockMode::Warn,
         })
         .unwrap();
 
@@ -762,6 +805,8 @@ mod tests {
             model: None,
             base_url: None,
             api_key: None,
+            lock_path: None,
+            lock_mode: LockMode::Warn,
         })
         .unwrap();
 
@@ -788,6 +833,8 @@ mod tests {
             model: None,
             base_url: None,
             api_key: None,
+            lock_path: None,
+            lock_mode: LockMode::Warn,
         })
         .unwrap();
 
@@ -805,7 +852,11 @@ mod tests {
             finding_ids: vec![finding_id],
             findings: Vec::new(),
         };
-        fs::write(&baseline_path, serde_json::to_string_pretty(&baseline).unwrap()).unwrap();
+        fs::write(
+            &baseline_path,
+            serde_json::to_string_pretty(&baseline).unwrap(),
+        )
+        .unwrap();
 
         let report_path_2 = root.join("report2.json");
         let code = run_scan(ScanConfig {
@@ -821,9 +872,67 @@ mod tests {
             model: None,
             base_url: None,
             api_key: None,
+            lock_path: None,
+            lock_mode: LockMode::Warn,
         })
         .unwrap();
 
         assert_eq!(code, 0);
+    }
+
+    #[test]
+    fn strict_lock_mode_rejects_rules_hash_mismatch() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        write_file(root, "src/a.ts", "const x = 1;\n");
+
+        let first_report = root.join("report1.json");
+        run_scan(ScanConfig {
+            root: root.to_path_buf(),
+            format: ReportFormat::Json,
+            out: Some(first_report),
+            baseline_path: None,
+            max_files: 50,
+            max_file_bytes: 50_000,
+            offline: true,
+            mock: false,
+            provider: None,
+            model: None,
+            base_url: None,
+            api_key: None,
+            lock_path: None,
+            lock_mode: LockMode::Warn,
+        })
+        .unwrap();
+
+        let lock_path = root.join("guardian.lock");
+        let mut lock_json: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&lock_path).unwrap()).unwrap();
+        lock_json["rules_hash"] = serde_json::Value::String("outdated".to_string());
+        fs::write(
+            &lock_path,
+            serde_json::to_string_pretty(&lock_json).unwrap(),
+        )
+        .unwrap();
+
+        let second_report = root.join("report2.json");
+        let result = run_scan(ScanConfig {
+            root: root.to_path_buf(),
+            format: ReportFormat::Json,
+            out: Some(second_report),
+            baseline_path: None,
+            max_files: 50,
+            max_file_bytes: 50_000,
+            offline: true,
+            mock: false,
+            provider: None,
+            model: None,
+            base_url: None,
+            api_key: None,
+            lock_path: None,
+            lock_mode: LockMode::Strict,
+        });
+
+        assert!(result.is_err());
     }
 }

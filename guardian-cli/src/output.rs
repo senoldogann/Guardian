@@ -1,3 +1,4 @@
+use crate::guardian_lock::GuardianLockSummary;
 use anyhow::{Context, Result};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
@@ -41,6 +42,8 @@ pub struct ScanReport {
     pub rules_hash: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub baseline_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub guardian_lock: Option<GuardianLockSummary>,
     pub summary: ScanSummary,
     pub findings: Vec<Finding>,
 }
@@ -53,6 +56,7 @@ impl ScanReport {
             root,
             rules_hash,
             baseline_path,
+            guardian_lock: None,
             summary: ScanSummary {
                 files_scanned: 0,
                 findings: 0,
@@ -66,7 +70,9 @@ impl ScanReport {
 
 pub fn render_report(report: &ScanReport, format: ReportFormat) -> Result<String> {
     match format {
-        ReportFormat::Json => Ok(serde_json::to_string_pretty(report).context("JSON encode failed")?),
+        ReportFormat::Json => {
+            Ok(serde_json::to_string_pretty(report).context("JSON encode failed")?)
+        }
         ReportFormat::Markdown => Ok(render_markdown(report)),
         ReportFormat::Sarif => Ok(render_sarif(report)?),
     }
@@ -103,6 +109,12 @@ fn render_markdown(report: &ScanReport) -> String {
     out.push_str(&format!("- Rules hash: `{}`\n", report.rules_hash));
     if let Some(path) = &report.baseline_path {
         out.push_str(&format!("- Baseline: `{}`\n", path));
+    }
+    if let Some(lock) = &report.guardian_lock {
+        out.push_str(&format!(
+            "- guardian.lock: `{}` ({}, mode={})\n",
+            lock.path, lock.status, lock.mode
+        ));
     }
     out.push('\n');
 

@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0] - 2026-02-10 🚀 PHASE 6 COMPLETE
+
+### Added
+- **Phase 6.1 Semantic Index (Desktop)**:
+  - Local semantic vector persistence in `.guardian/memory.db` (`semantic_vectors` table).
+  - Embedding strategy with provider routing:
+    - OpenAI `text-embedding-3-small` (default),
+    - Ollama `nomic-embed-text` (optional),
+    - deterministic local hash fallback (offline/error).
+  - Semantic recall flow for new critical findings in watcher pipeline.
+- **Guru Semantic Context**:
+  - Query-time semantic similarity retrieval for prompts like "benzer/similar/semantic/critical pattern".
+  - Retrieved matches are appended into Guru context as `Semantic Similarity Matches`.
+- **Phase 5 Review Queue**:
+  - Append-only fix proposal queue (`.guardian-proposals/fix_proposals.jsonl`).
+  - Review status transitions (`review_requested`, `rejected`, `applied`) with Tauri commands and desktop UI integration.
+
+### Changed
+- **Phase 6.2 Diff-Focused AI Context**:
+  - Watcher prompt payload now prioritizes diff hunks over full snapshot context when prior snapshot exists.
+  - Added hunk limits and truncation controls for consistent token usage.
+- **Phase 6.1.1 sqlite-vec KNN path**:
+  - Added native sqlite-vec index path for 256-d semantic embeddings (`semantic_vectors_ann` via `vec0`).
+  - Semantic retrieval now uses sqlite-vec KNN-first search with automatic cosine fallback on incompatibility/error.
+- **Phase 6.3 guardian.lock**:
+  - Introduced `guardian.lock` schema v1 for rules/workspace/version pinning.
+  - Desktop auto-syncs lock state; CLI supports `--lock` and `--lock-mode off|warn|strict`.
+- **Phase 4 Protocol Stabilization**:
+  - `.guardian/critiques.json` + `.guardian/critiques.md` paths normalized to relative paths.
+  - `agent_queue.jsonl` payloads minimized and archive rotation stabilized (size + retention policy).
+
+### Documentation
+- Added `docs/MIGRATION_GUIDE_PHASE6.md` for `guardian.lock` v1 and baseline `schema_version=2` migration.
+- Added `docs/reports/PHASE6_TOKEN_PERFORMANCE.md` with measured 6.2 token reduction benchmark.
+
 ## [1.0.0] - 2026-02-08 🚀 MAJOR RELEASE
 
 ### 🎉 Production Ready - v1.0.0

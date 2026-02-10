@@ -1,12 +1,12 @@
 mod ai_client;
+mod guardian_lock;
 mod watcher;
 // V2 Modules
+mod agent_protocol;
 mod auth;
-mod config;
 mod baseline;
 mod ci;
-mod agent_protocol;
-mod redaction;
+mod config;
 mod context;
 mod executor;
 mod history_logger;
@@ -14,6 +14,8 @@ mod kernel;
 mod patcher;
 mod provider;
 mod rag_lite;
+mod redaction;
+mod semantic_index;
 mod skills;
 mod storage;
 #[cfg(test)]
@@ -311,7 +313,9 @@ async fn create_baseline(root: String) -> Result<baseline::BaselineStatusView, S
 
     let manager = baseline::BaselineManager::new(root_path.to_path_buf());
     let critiques = watcher::active_critiques_for_root(&root);
-    let baseline = manager.create_baseline(&critiques).map_err(|e| e.to_string())?;
+    let baseline = manager
+        .create_baseline(&critiques)
+        .map_err(|e| e.to_string())?;
     history_logger::append_history_event(
         &root,
         history_logger::HistoryEvent {
@@ -364,8 +368,36 @@ async fn get_baseline_status(root: String) -> Result<Option<baseline::BaselineSt
         return Ok(None);
     };
     let critiques = watcher::active_critiques_for_root(&root);
-    let status = manager.status(&baseline, &critiques).map_err(|e| e.to_string())?;
+    let status = manager
+        .status(&baseline, &critiques)
+        .map_err(|e| e.to_string())?;
     Ok(Some(status))
+}
+
+#[tauri::command]
+async fn get_guardian_lock_status(
+    root: String,
+) -> Result<guardian_lock::GuardianLockStatus, String> {
+    let root_path = std::path::Path::new(&root);
+    if !root_path.exists() || !root_path.is_dir() {
+        return Err(format!(
+            "Workspace root not accessible: {}. Select the correct folder in Scope.",
+            root
+        ));
+    }
+    guardian_lock::status(root_path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn ensure_guardian_lock(root: String) -> Result<guardian_lock::GuardianLockStatus, String> {
+    let root_path = std::path::Path::new(&root);
+    if !root_path.exists() || !root_path.is_dir() {
+        return Err(format!(
+            "Workspace root not accessible: {}. Select the correct folder in Scope.",
+            root
+        ));
+    }
+    guardian_lock::sync_guardian_lock(root_path).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -379,6 +411,60 @@ async fn get_last_ai_context(root: String) -> Result<Option<watcher::AiContextSn
     }
 
     Ok(watcher::last_ai_context_for_root(&root))
+}
+
+#[tauri::command]
+async fn get_fix_proposals(root: String) -> Result<watcher::FixProposalsSnapshot, String> {
+    let root_path = std::path::Path::new(&root);
+    if !root_path.exists() || !root_path.is_dir() {
+        return Err(format!(
+            "Workspace root not accessible: {}. Select the correct folder in Scope.",
+            root
+        ));
+    }
+
+    Ok(watcher::refresh_fix_proposals_for_root(&root))
+}
+
+#[tauri::command]
+async fn set_fix_proposal_status(
+    root: String,
+    proposal_id: String,
+    status: String,
+    note: Option<String>,
+) -> Result<watcher::FixProposalsSnapshot, String> {
+    let root_path = std::path::Path::new(&root);
+    if !root_path.exists() || !root_path.is_dir() {
+        return Err(format!(
+            "Workspace root not accessible: {}. Select the correct folder in Scope.",
+            root
+        ));
+    }
+
+    let path = watcher::fix_proposals_path_for_root(&root);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)
+        .map_err(|e| e.to_string())?;
+
+    let payload = serde_json::json!({
+        "type": "status",
+        "timestamp": chrono::Utc::now().to_rfc3339(),
+        "proposal_id": proposal_id,
+        "status": status,
+        "note": note,
+        "actor": "user",
+    });
+    let encoded = serde_json::to_string(&payload).unwrap_or_else(|_| "{}".to_string());
+    use std::io::Write;
+    writeln!(file, "{}", encoded).map_err(|e| e.to_string())?;
+
+    Ok(watcher::refresh_fix_proposals_for_root(&root))
 }
 
 #[tauri::command]
@@ -719,6 +805,29 @@ async fn ask_guru(
     let (clean_query, force_web) = normalize_web_query(&query);
     let mut context = rag_lite::search_context(&path, &clean_query);
     append_issue_file_context(&mut context, &path, &storage);
+    if semantic_index::should_use_semantic_search(&clean_query) {
+        match semantic_index::search_similar_for_query(
+            storage.inner().clone(),
+            &path,
+            &clean_query,
+            5,
+        )
+        .await
+        {
+            Ok(matches) if !matches.is_empty() => {
+                context.push_str("\n\n");
+                context.push_str(&semantic_index::render_semantic_matches(&matches));
+            }
+            Ok(_) => {}
+            Err(err) => {
+                warn!(
+                    target: "guardian::semantic",
+                    "Semantic search context skipped: {}",
+                    err
+                );
+            }
+        }
+    }
 
     // 1.5 Optional Web Search (Tavily)
     if web_search.unwrap_or(false) {
@@ -1231,7 +1340,11 @@ pub fn run() -> AnyhowResult<()> {
             create_baseline,
             clear_baseline,
             get_baseline_status,
+            get_guardian_lock_status,
+            ensure_guardian_lock,
             get_last_ai_context,
+            get_fix_proposals,
+            set_fix_proposal_status,
             start_github_login,
             complete_github_login,
             logout_github,

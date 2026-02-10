@@ -1,5 +1,3 @@
 pub mod manager;
 
-pub use manager::{
-    Baseline, BaselineManager, BaselineStatusView,
-};
+pub use manager::{Baseline, BaselineManager, BaselineStatusView};

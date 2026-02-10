@@ -9,6 +9,9 @@ Scope: macOS (ARM + Intel) and Windows release pipeline, private source + public
    - `src-tauri/Cargo.toml`
    - `src-tauri/tauri.conf.json`
 2. Add a matching entry in `CHANGELOG.md`.
+3. Confirm release docs are updated:
+   - `docs/MIGRATION_GUIDE_PHASE6.md` (lock/baseline migration)
+   - `docs/reports/PHASE6_TOKEN_PERFORMANCE.md` (diff-context token impact)
 
 ## 2) Local Verification
 

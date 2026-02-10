@@ -156,6 +156,27 @@ export interface AiContextSnapshot {
   files: AiContextFile[];
 }
 
+export interface FixProposal {
+  proposal_id: string;
+  timestamp: string;
+  status: string;
+  file_path: string;
+  finding_id?: string | null;
+  proposed_by?: string | null;
+  original_content_hash?: string | null;
+  suggestion?: string | null;
+  proposed_content?: string | null;
+  confidence?: number | null;
+  reasoning?: string | null;
+}
+
+export interface FixProposalsSnapshot {
+  timestamp: string;
+  root: string;
+  source_path: string;
+  proposals: FixProposal[];
+}
+
 // Provider options
 export interface ProviderOption {
   id: string;

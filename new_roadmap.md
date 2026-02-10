@@ -714,11 +714,10 @@ AI veya kullanıcının fix önerilerini güvenli bir şekilde review edip uygul
 
 #### 5.1 Fix Proposal Sistemi
 
-**Yeni Dosya:** `.guardian/fix_proposals.jsonl`
+**Yeni Dosya (Karar):** `.guardian-proposals/fix_proposals.jsonl`
 
-**Önemli:** watcher.rs şu an `.guardian/` altını ignore ediyor. Bu yüzden Phase 5'te iki seçenekten biri netleşmeli:
-1) `.guardian/fix_proposals.jsonl` için **istisna** (chat.md gibi) ekle
-2) Fix proposals dosyasını `.guardian/` dışında, örn. `.guardian-proposals/` altında tut
+**Not:** `watcher.rs` `.guardian/` altini ignore ettigi icin fix proposal queue `.guardian/` disina alindi.
+Legacy destek: Eger `.guardian/fix_proposals.jsonl` varsa, Guardian bunu `.guardian-proposals/fix_proposals.jsonl` altina migrate eder.
 
 **Schema:**
 ```json
@@ -737,6 +736,11 @@ AI veya kullanıcının fix önerilerini güvenli bir şekilde review edip uygul
 }
 ```
 
+**Status Update (Append-only):**
+```json
+{"type":"status","timestamp":"...","proposal_id":"uuid","status":"review_requested|rejected|applied","note":null,"actor":"user"}
+```
+
 **Önemli:** Mevcut `patcher.rs` full-file-content beklediği için, proposal da **tam dosya içeriği** sunmalı. Diff parçası yerine, önerilen yeni dosyanın tam hali. Bu sayede:
 1. Patch çakışması riski azalır
 2. Patcher mevcut güvenlik kontrollerini kullanır
@@ -744,82 +748,42 @@ AI veya kullanıcının fix önerilerini güvenli bir şekilde review edip uygul
 
 **Akış:**
 1. AI `fix_proposals.jsonl`'ye proposal yazar
-2. Watcher bunu tespit eder
-3. UI'da "Review Pending Fixes" bildirimi çıkar
-4. Kullanıcı review eder (approve/reject/edit)
-5. Onaylanırsa patch uygulanır
+2. Watcher bunu tespit eder ve UI'ya `guardian:fix-proposals` event'i gonderir
+3. UI'da `Reviews` ekraninda pending proposal listesi gorunur
+4. Kullanici "Request Review" der -> `apply_fix` ile Guardian review pipeline baslar
+5. Guru Chat'te "Verified Safe" / "Guardian Auto-Corrected" sonucu gelir
+6. Kullanici **Confirm & Apply** ile `confirm_fix` calistirir (auto-apply yok)
+7. (Opsiyonel) Proposal status `applied`/`rejected` olarak isaretlenir
 
 #### 5.2 Watcher Entegrasyonu
 
 **Değişiklikler:**
-- `.guardian/fix_proposals.jsonl`'i izle (watcher audit etmez)
-- Yeni proposal gelince UI'ya event gönder (Tauri emit)
-- Proposal durumunu takip et
+- `.guardian-proposals/fix_proposals.jsonl`'i izle (watcher audit etmez)
+- Snapshot cache + event: `guardian:fix-proposals`
+- Tauri commands:
+  - `get_fix_proposals` (refresh/read)
+  - `set_fix_proposal_status` (append-only status update)
 
 #### 5.3 UI - Review Paneli
 
-**Yeni View:** `ReviewView`
-
-**Ekran:**
-```
-┌──────────────────────────────────────────────────────┐
-│ Pending Fix Reviews (3)                              │
-├──────────────────────────────────────────────────────┤
-│ 🔴 Critical: SQL Injection in src/db.rs             │
-│    Proposed by: AI Agent                             │
-│    Confidence: 89%                                   │
-│                                                      │
-│    [View Diff] [Approve] [Edit] [Reject]            │
-│                                                      │
-│    --- Original (Line 15-20)                         │
-│    +++ Proposed                                      │
-│    @@                                               │
-│    -  conn.execute(&format!("SELECT ...", id));     │
-│    +  conn.execute("SELECT ...", [id])?;            │
-└──────────────────────────────────────────────────────┘
-```
+**Yeni View:** `Reviews` (Sidebar)
 
 **İşlemler:**
-- **View Diff:** Side-by-side diff göster
-- **Approve:** Patch uygula, git commit öner (mesaj hazır)
-- **Edit:** Öneriyi düzenle ( Monaco editor veya textarea)
-- **Reject:** Reddet, sebep sor (AI learning için)
+- **Request Review:** Guardian AI review'u baslatir (son karar yine kullanicida)
+- **Reject / Mark Applied:** JSONL status guncellemesi (append-only)
+- **Final Apply:** Guru Chat'te `Confirm & Apply`
 
 #### 5.4 Patcher Güvenlik Kontrolleri
 
-**Mevcut `patcher.rs` güçlendirmeleri:**
-```rust
-pub fn apply_proposal(proposal: &FixProposal) -> Result<()> {
-    // 1. Original content hash kontrolü (dosya değişmiş mi?)
-    let current_hash = sha256(fs::read(&proposal.file_path)?);
-    if current_hash != proposal.original_content_hash {
-        return Err("File has changed since proposal was created");
-    }
-    
-    // 2. Path traversal kontrolü
-    if proposal.file_path.contains("..") || !proposal.file_path.starts_with(workspace_root) {
-        return Err("Invalid file path");
-    }
-    
-    // 3. .guardian/ yazma kontrolü
-    if proposal.file_path.contains(".guardian/") {
-        return Err("Cannot modify .guardian files");
-    }
-    
-    // 4. Secret içeriyor mu?
-    if contains_secrets(&proposal.proposed_content) {
-        return Err("Proposed fix contains potential secrets");
-    }
-    
-    // 5. Derleme kontrolü (opsiyonel ama önerilir)
-    // Önce temp dosyaya yaz, cargo check çalıştır, başarılıysa gerçek dosyaya uygula
-    
-    // 5. Apply (full-file-content)
-    apply_full_file(&proposal.file_path, &proposal.proposed_content)?;
-    
-    Ok(())
-}
-```
+**Mevcut `patcher.rs` kontrolleri (aktif):**
+- Path traversal reject
+- Symlink component reject
+- Workspace root disina cikma reject
+- Diff payload reject (full-file-content zorunlu)
+
+**Not (Planlanan):**
+- Proposed content icinde secret pattern block (opsiyonel, false-positive riski var)
+- `.guardian/*` dosyalarina patch uygulanmasini engelle
 
 #### 5.5 Git Entegrasyonu (Opsiyonel)
 
@@ -835,11 +799,25 @@ pub fn apply_proposal(proposal: &FixProposal) -> Result<()> {
 4. **E2E:** UI'dan review ve apply
 
 ### Acceptance Criteria
-- [ ] Proposal dosyası oluşturulabiliyor
-- [ ] Review UI'sı çalışıyor
-- [ ] Patch güvenli bir şekilde uygulanıyor
-- [ ] Hiçbir fix otomatik uygulanmıyor
+- [x] Proposal dosyası oluşturulabiliyor
+- [x] Review UI'sı çalışıyor
+- [x] Patch güvenli bir şekilde uygulanıyor
+- [x] Hiçbir fix otomatik uygulanmıyor
 - [ ] Git entegrasyonu (varsa) çalışıyor
+
+### Phase 5 - Implemented (2026-02-09)
+- Fix proposal queue eklendi (append-only JSONL):
+  - `.guardian-proposals/fix_proposals.jsonl` (migrate: legacy `.guardian/fix_proposals.jsonl`)
+  - Status updates: `review_requested|rejected|applied`
+- Backend:
+  - Watcher snapshot cache + event: `src-tauri/src/watcher.rs` (`guardian:fix-proposals`)
+  - Commands: `get_fix_proposals`, `set_fix_proposal_status`: `src-tauri/src/lib.rs`
+- UI:
+  - Yeni sidebar view: `Reviews`: `src/App.tsx`
+  - Component: `src/components/FixProposalsView.tsx`
+- Tests:
+  - `cd src-tauri && cargo test` (pass)
+  - `npm test` (pass)
 
 ---
 
@@ -873,6 +851,91 @@ pub fn apply_proposal(proposal: &FixProposal) -> Result<()> {
   - Dosya hash'i değişmemiş mi?
   - Test'ler geçiyor mu? (cargo test öncesi)
   - Derleme hatası yok mu?
+
+### Phase 6 - Started (2026-02-09)
+
+#### 6.1 Local Vector DB (v1 semantic bootstrap)
+- [x] Local semantic vector storage eklendi (`.guardian/memory.db`):
+  - `semantic_vectors` tablosu: `workspace`, `file_path`, `content_hash`, `critique_id`, `severity`, `embedding_json`, `embedding_dim`, `source_mode`, `preview`
+  - Index: `idx_semantic_workspace_severity (workspace, severity, created_at DESC)`
+- [x] 6.2 diff cache + baseline finding kimlikleriyle entegrasyon:
+  - Watcher pipeline içinde critique + context metni embedding'e çevrilip indexleniyor
+  - `finding_id` / `content_hash` ile tekrar eden bulgulara karşı deterministik bağ kuruluyor
+- [x] Semantic recall use-case'i aktive edildi:
+  - Yeni kritik bulguda geçmiş kritikler için benzerlik araması yapılıyor
+  - Eşik üstü eşleşmeler için `guardian:info` event'i yayınlanıyor
+- [x] Guru chat semantic araması eklendi:
+  - `"benzer" / "similar" / "semantic" / "critical pattern"` gibi sorgular similarity search tetikliyor
+  - Sonuçlar Guru context'ine `Semantic Similarity Matches` bloğu olarak ekleniyor
+- [x] Embedding provider stratejisi (Phase 6.1 v1):
+  - Varsayılan: OpenAI `text-embedding-3-small`
+  - Opsiyonel local model: Ollama `nomic-embed-text`
+  - Offline/hatada fallback: deterministik local hash embedding
+- [x] sqlite-vec native vector KNN index entegrasyonu (6.1.1)
+  - `sqlite-vec` Rust binding eklendi (`src-tauri/Cargo.toml`)
+  - `semantic_vectors_ann` virtual table: `vec0(embedding float[256])`
+  - Primary path: ANN KNN search (`MATCH + k`) + distance tabanli similarity mapping
+  - Fallback path: ANN hata/uyumsuzlukta mevcut Rust cosine scan otomatik devreye girer
+- [ ] HNSW/IVF seviye ANN stratejisi (6.1.2 - opsiyonel)
+  - `sqlite-vec` mevcut `vec0` yoluna ek olarak alternatif index stratejisi degerlendirilecek
+
+#### 6.2 AI Context Optimizasyonu (v1 diff-focused)
+- [x] Watcher AI context üretimi diff-odaklı hale getirildi:
+  - Son başarılı audit snapshot'ı ile karşılaştırma
+  - Değişen hunks + `+/-` satır özeti
+  - İlk audit için `snapshot-compressed` fallback
+- [x] Prompt tarafı güncellendi:
+  - Batch girdisi artık `Diff-Focused Context` olarak gönderiliyor
+  - Model talimatı diff/snapshot sıkıştırmasını dikkate alacak şekilde genişletildi
+- [x] Token optimizasyonu:
+  - Hunk limitleme (`DIFF_MAX_HUNKS`)
+  - Satır/karakter bazlı truncation + summary compression
+- [x] Unit testler eklendi:
+  - `diff_context_is_used_when_previous_snapshot_exists`
+  - `snapshot_context_is_used_without_previous_snapshot`
+
+#### 6.3 guardian.lock (v1 bootstrap)
+- [x] `guardian.lock` schema v1 eklendi (desktop + CLI)
+- [x] Watcher pipeline her sync'te `guardian.lock` dosyasini senkronize eder
+- [x] Tauri command'leri eklendi:
+  - `get_guardian_lock_status`
+  - `ensure_guardian_lock`
+- [x] `guardian-cli` lock parametreleri eklendi:
+  - `--lock <path>`
+  - `--lock-mode off|warn|strict` (default: `warn`)
+- [x] `guardian-cli` strict mode: `rules_hash/workspace/schema` uyumsuzlugunda scan fail
+- [x] CLI report schema'sina `guardian_lock` metadata eklendi (json + markdown)
+- [x] Rust unit testleri eklendi (desktop + CLI lock akisi)
+
+#### 6.1 Ek Testler (semantic)
+- [x] `semantic_vector_search_returns_similar_matches` (storage)
+- [x] `semantic_vector_ann_path_handles_256d_embeddings` (sqlite-vec ANN path)
+- [x] `local_embedding_is_deterministic` (semantic index)
+- [x] `semantic_query_returns_indexed_match` (semantic retrieval)
+
+#### Release Hazırlığı (2026-02-10)
+- [x] Migration guide hazırlandı:
+  - `docs/MIGRATION_GUIDE_PHASE6.md`
+  - Kapsam: `guardian.lock` v1 + baseline `schema_version=2` geçişi
+- [x] Changelog güncellendi:
+  - `CHANGELOG.md` içinde Phase 4, Phase 5, Phase 6.1, 6.2, 6.3 özetleri eklendi (`[Unreleased]`)
+- [x] 6.2 token performans raporu eklendi:
+  - `docs/reports/PHASE6_TOKEN_PERFORMANCE.md`
+  - Ölçüm: `snapshot_tokens=1504` → `diff_tokens=127` (`-91.56%`)
+
+### Phase 6 - Tests (2026-02-09)
+- `cd guardian && npm test` (pass)
+- `cd src-tauri && cargo test` (pass)
+- `cd guardian-cli && cargo test` (pass)
+- `cd website && npm run test:run` (pass)
+
+### Phase 6.1 - Tests (2026-02-10)
+- `cd guardian && npm test` (pass, 11 file / 61 test)
+- `cd src-tauri && cargo test` (pass, 54 test)
+- `cd guardian-cli && cargo test` (pass, 7 test)
+- `cd website && npm run test:run` (pass, 8 file / 107 test)
+- `cd src-tauri && cargo test diff_context_reduces_token_estimate_for_localized_change -- --nocapture` (pass, benchmark)
+- `python3 .agent/scripts/verify_all.py` (pass)
 
 ---
 

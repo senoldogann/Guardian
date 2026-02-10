@@ -160,4 +160,3 @@ fn normalize_rel_file_path(workspace_root: &Path, file_path: &str) -> String {
 
     file_path.trim().replace('\\', "/")
 }
-

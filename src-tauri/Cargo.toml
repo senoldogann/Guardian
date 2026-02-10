@@ -1,6 +1,6 @@
 [package]
 name = "Guardian"
-version = "1.0.0"
+version = "1.1.0"
 description = "Guardian is a desktop application that monitors your file system and detects changes in your projects. It uses AI to analyze the changes and provides you with insights about your projects."
 authors = ["Senol Dogan"]
 edition = "2021"
@@ -62,3 +62,5 @@ rand = "0.8"
 regex = "1.10"
 lazy_static = "1.4"
 dunce = "1"
+similar = "2.6"
+sqlite-vec = "0.1.7-alpha.2"

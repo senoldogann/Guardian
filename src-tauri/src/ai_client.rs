@@ -408,9 +408,10 @@ Your mission is to audit multiple files simultaneously for 'AI Smell', security 
 
 GUIDELINES:
 1. ANALYZE each file in the batch individually but consider their inter-dependencies.
-2. BE STRICT: Catch SPAP v2.2 violations.
-3. OUTPUT: A JSON Array of Critique objects. Each 'message' MUST include a WHY statement (risk/impact).
-4. If a file looks good, you CAN skip it in the output OR return a "LGTM" message.
+2. INPUT IS DIFF-FOCUSED: `context` may contain compressed snapshot text or diff hunks.
+3. BE STRICT: Catch SPAP v2.2 violations.
+4. OUTPUT: A JSON Array of Critique objects. Each 'message' MUST include a WHY statement (risk/impact).
+5. If a file looks good, you CAN skip it in the output OR return a "LGTM" message.
 
 JSON ARRAY MODE:
 [
@@ -425,12 +426,12 @@ JSON ARRAY MODE:
 ]"#;
 
         let mut user_prompt = String::from("Batch Analysis Request:\n\n");
-        for (idx, (path, diff)) in batch.iter().enumerate() {
+        for (idx, (path, context)) in batch.iter().enumerate() {
             user_prompt.push_str(&format!(
-                "--- FILE {} ---\nPath: {}\nContent:\n{}\n\n",
+                "--- FILE {} ---\nPath: {}\nDiff-Focused Context:\n{}\n\n",
                 idx + 1,
                 path,
-                diff
+                context
             ));
         }
 
