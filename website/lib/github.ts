@@ -101,7 +101,7 @@ function normalizeRelease(release: GithubRelease): GithubRelease {
 }
 
 async function githubFetch<T>(path: string): Promise<T | null> {
-  const token = process.env.GITHUB_PUBLIC_READ_TOKEN;
+  let token = process.env.GITHUB_PUBLIC_READ_TOKEN;
   const startTime = Date.now();
   
   // Load token security modules
@@ -115,12 +115,16 @@ async function githubFetch<T>(path: string): Promise<T | null> {
         console.error("[GitHub API] Token format validation failed");
       }
       tokenAudit?.logValidationFailure("invalid_format", path);
-      return null;
-    }
-    if (process.env.NODE_ENV !== "test") {
+      // Invalid token, try without token (public API)
+      token = undefined;
+    } else if (process.env.NODE_ENV !== "test") {
       const hasPermissions = await ensureTokenPermissions(token, path);
       if (!hasPermissions) {
-        return null;
+        // Token doesn't have permissions, try without token (public API)
+        if (process.env.NODE_ENV === "development") {
+          console.warn("[GitHub API] Token has insufficient permissions, falling back to public API");
+        }
+        token = undefined;
       }
     }
   }
