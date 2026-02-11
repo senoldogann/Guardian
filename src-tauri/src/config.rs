@@ -21,7 +21,7 @@ const MIN_TIMEOUT_SECS: u64 = 5;
 const MAX_TIMEOUT_SECS: u64 = 180;
 
 // Watcher Configuration
-pub const DEFAULT_MAX_BATCH_SIZE: usize = 2;
+pub const DEFAULT_MAX_BATCH_SIZE: usize = 3;
 pub const DEFAULT_MAX_CONTENT_CHARS: usize = 6000;
 pub const DEFAULT_MAX_CONTENT_LINES: usize = 220;
 pub const DEFAULT_MIN_BATCH_INTERVAL_SECS: u64 = 2;

@@ -8,7 +8,10 @@ mod tests {
         let files = vec![
             "src/main.rs",
             "src/style.css",
+            "src/security.test.ts",
             "package.json",
+            "docs/architecture.md",
+            "scripts/release.sh",
             ".guardian/chat.md",
             ".guardian/STALL",
             "target/debug/bin",
@@ -27,7 +30,10 @@ mod tests {
         assert!(filtered.contains(&"src/main.rs"));
         assert!(filtered.contains(&".guardian/chat.md"));
         assert!(!filtered.contains(&"src/style.css"));
+        assert!(!filtered.contains(&"src/security.test.ts"));
         assert!(!filtered.contains(&"target/debug/bin"));
+        assert!(!filtered.contains(&"docs/architecture.md"));
+        assert!(!filtered.contains(&"scripts/release.sh"));
         assert!(!filtered.contains(&".guardian/STALL"));
     }
 }

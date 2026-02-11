@@ -88,11 +88,12 @@ pub struct FixProposalsSnapshot {
 static LAST_FIX_PROPOSALS: Lazy<Arc<RwLock<Option<FixProposalsSnapshot>>>> =
     Lazy::new(|| Arc::new(RwLock::new(None)));
 
-const NON_LOGIC_EXTENSIONS: &[&str] = &[
-    "css", "json", "md", "svg", "lock", "log", "patch", "png", "jpg", "jpeg", "gif", "ico",
+const LOGIC_EXTENSIONS: &[&str] = &[
+    "rs", "ts", "tsx", "js", "jsx", "mjs", "cjs", "py", "go", "java", "kt", "swift", "cs", "rb",
+    "php", "c", "cc", "cpp", "h", "hpp", "sql", "vue", "svelte",
 ];
 
-const IGNORED_PATH_MARKERS: &[&str] = &[
+const IGNORED_PATH_SEGMENTS: &[&str] = &[
     ".git",
     "target",
     "node_modules",
@@ -106,8 +107,41 @@ const IGNORED_PATH_MARKERS: &[&str] = &[
     ".next",
     "coverage",
     ".guardian",
-    "docs/legacy",
-    ".env",
+    "docs",
+    "doc",
+    "test",
+    "tests",
+    "__tests__",
+    "__mocks__",
+    "mocks",
+    "fixtures",
+    "scripts",
+    ".github",
+    ".idea",
+    ".opencode",
+    ".loki",
+    "tmp",
+    "temp",
+    "vendor",
+    "third_party",
+    "storybook-static",
+];
+
+const IGNORED_FILE_NAMES: &[&str] = &[
+    "dockerfile",
+    "docker-compose.yml",
+    "docker-compose.yaml",
+    "makefile",
+    "justfile",
+    "pnpm-lock.yaml",
+    "package-lock.json",
+    "yarn.lock",
+    "bun.lockb",
+    "cargo.lock",
+    "readme.md",
+    "changelog.md",
+    "license",
+    "default.rules",
 ];
 
 const MAX_AGENT_QUEUE_BYTES: u64 = 1 * 1024 * 1024;
@@ -210,19 +244,41 @@ fn is_fix_proposals_file(path: &Path) -> bool {
 }
 
 fn has_ignored_marker(path: &str) -> bool {
-    IGNORED_PATH_MARKERS
-        .iter()
-        .any(|marker| path.contains(marker))
+    let lowered = path.replace('\\', "/").to_lowercase();
+    if lowered
+        .split('/')
+        .any(|segment| IGNORED_PATH_SEGMENTS.contains(&segment))
+    {
+        return true;
+    }
+
+    let file_name = lowered.rsplit('/').next().unwrap_or_default();
+    IGNORED_FILE_NAMES.contains(&file_name)
+}
+
+fn is_test_like_file_name(file_name: &str) -> bool {
+    let name = file_name.to_lowercase();
+    name.contains(".test.")
+        || name.contains(".spec.")
+        || name.ends_with("_test.rs")
+        || name.ends_with("_test.go")
+        || name.ends_with("_spec.rb")
 }
 
 fn is_non_logic_extension(path: &Path) -> bool {
-    path.extension()
-        .and_then(|ext| ext.to_str())
-        .map(|ext| {
-            let lowered = ext.to_lowercase();
-            NON_LOGIC_EXTENSIONS.contains(&lowered.as_str())
-        })
-        .unwrap_or(false)
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or_default();
+    if is_test_like_file_name(file_name) {
+        return true;
+    }
+
+    let Some(ext) = path.extension().and_then(|ext| ext.to_str()) else {
+        return true;
+    };
+    let lowered = ext.to_lowercase();
+    !LOGIC_EXTENSIONS.contains(&lowered.as_str())
 }
 
 fn safe_path_label(path: &Path) -> String {

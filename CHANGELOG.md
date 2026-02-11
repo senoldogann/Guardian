@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.1] - 2026-02-12
+
+### Highlights
+- Source-focused scan policy now skips low-signal files by default (`docs`, `tests`, `scripts`, lockfiles, Dockerfiles, rule files), reducing token waste.
+- Batch processor default flush threshold increased from `2` to `3` files (`GUARDIAN_MAX_BATCH_SIZE` default).
+
+### Changed
+- Desktop watcher and `guardian-cli` file filtering are now aligned to the same code-first scan policy.
+- Version sync updated across app, Tauri, and website to `1.2.1`.
+
 ## [1.2.0] - 2026-02-10
 
 ### Highlights

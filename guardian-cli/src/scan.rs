@@ -264,8 +264,24 @@ fn collect_files(root: &Path, max_files: usize, max_file_bytes: u64) -> Result<V
 
 fn should_scan_extension(path: &Path) -> bool {
     const EXTENSIONS: &[&str] = &[
-        "rs", "ts", "tsx", "js", "jsx", "py", "go", "java", "kt", "swift", "cs", "rb",
+        "rs", "ts", "tsx", "js", "jsx", "mjs", "cjs", "py", "go", "java", "kt", "swift", "cs",
+        "rb", "php", "c", "cc", "cpp", "h", "hpp", "sql", "vue", "svelte",
     ];
+
+    let file_name = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default()
+        .to_lowercase();
+    if file_name.contains(".test.")
+        || file_name.contains(".spec.")
+        || file_name.ends_with("_test.rs")
+        || file_name.ends_with("_test.go")
+        || file_name.ends_with("_spec.rb")
+    {
+        return false;
+    }
+
     path.extension()
         .and_then(|e| e.to_str())
         .map(|ext| {
@@ -287,10 +303,52 @@ fn should_skip_rel_path(rel: &str) -> bool {
         "coverage",
         ".guardian",
         ".agent",
+        "docs",
+        "doc",
+        "test",
+        "tests",
+        "__tests__",
+        "__mocks__",
+        "mocks",
+        "fixtures",
+        "scripts",
+        ".github",
+        ".idea",
+        ".opencode",
+        ".loki",
+        "tmp",
+        "temp",
+        "vendor",
+        "third_party",
+        "storybook-static",
     ];
 
-    rel.split('/')
+    let lowered = rel.to_lowercase();
+    if lowered
+        .split('/')
         .any(|segment| IGNORED_DIRS.iter().any(|d| segment == *d))
+    {
+        return true;
+    }
+
+    let file_name = lowered.rsplit('/').next().unwrap_or_default();
+    matches!(
+        file_name,
+        "dockerfile"
+            | "docker-compose.yml"
+            | "docker-compose.yaml"
+            | "makefile"
+            | "justfile"
+            | "pnpm-lock.yaml"
+            | "package-lock.json"
+            | "yarn.lock"
+            | "bun.lockb"
+            | "cargo.lock"
+            | "readme.md"
+            | "changelog.md"
+            | "license"
+            | "default.rules"
+    )
 }
 
 fn truncate_content(content: &str) -> String {
@@ -755,6 +813,27 @@ mod tests {
             fs::create_dir_all(parent).unwrap();
         }
         fs::write(path, content).unwrap();
+    }
+
+    #[test]
+    fn collect_files_prioritizes_source_code_and_skips_noise() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+
+        write_file(root, "src/main.ts", "export const a = 1;\n");
+        write_file(root, "main.py", "print('ok')\n");
+        write_file(root, "tests/main.test.ts", "describe('x', () => {})\n");
+        write_file(root, "docs/guide.md", "# docs\n");
+        write_file(root, "scripts/release.sh", "echo release\n");
+        write_file(root, "pnpm-lock.yaml", "lockfileVersion: '9.0'\n");
+        write_file(root, "Dockerfile", "FROM node:20\n");
+        write_file(root, "policy-engine.Dockerfile", "FROM rust:1.80\n");
+
+        let files = collect_files(root, 100, 50_000).unwrap();
+        let mut paths: Vec<String> = files.into_iter().map(|f| f.rel_path).collect();
+        paths.sort();
+
+        assert_eq!(paths, vec!["main.py".to_string(), "src/main.ts".to_string()]);
     }
 
     #[test]

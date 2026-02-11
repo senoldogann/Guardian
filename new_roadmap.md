@@ -1499,6 +1499,55 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
 - `cd guardian/website && npm run test:run` ✅ (107/107)
 - `python3 .agent/scripts/verify_all.py` ✅
 
+### v1.2.0 Stabilization - Phase 11 (Source-Focused Scan Policy) (2026-02-11)
+- Root cause:
+  - Guardian varsayılan tarama kapsamı script/docs/test/lock dosyalarını da kapsadığı için gereksiz token tüketimi ve düşük değerli bulgu gürültüsü oluşuyordu.
+  - Desktop watcher ve CLI arasında dosya filtreleme davranışı tam hizalı değildi.
+- Uygulanan değişiklikler:
+  - `src-tauri/src/watcher.rs`:
+    - `LOGIC_EXTENSIONS` allowlist tabanlı tarama eklendi (yalnızca kod odaklı uzantılar).
+    - `IGNORED_PATH_SEGMENTS` ile `docs`, `tests`, `scripts`, `fixtures`, `.opencode`, `.loki` vb. dizinler default skip edildi.
+    - `IGNORED_FILE_NAMES` ile `Dockerfile`, lockfile ve benzeri yüksek gürültülü dosyalar skip edildi.
+    - Test dosyası patternleri (`*.test.*`, `*.spec.*`, `*_test.rs`) skip edildi.
+  - `guardian-cli/src/scan.rs`:
+    - Desktop ile aynı source-focused politika uygulanarak extension/path/file-name filtreleri güçlendirildi.
+    - Yeni test eklendi: `collect_files_prioritizes_source_code_and_skips_noise`.
+  - `src-tauri/src/tests_watcher.rs`:
+    - Filter simülasyon testi docs/scripts/test dosyalarını kapsayacak şekilde genişletildi.
+- Etki:
+  - Varsayılan tarama davranışı “ana sistem kodu”na odaklandı.
+  - Lockfile/markdown/shell/test/rules benzeri dosyaların analiz edilmesi engellenerek token maliyeti ve false-positive gürültüsü düşürüldü.
+- Phase 11 testleri:
+  - `cd guardian && npm test` ✅ (64/64)
+  - `cd guardian/src-tauri && cargo test` ✅ (64/64)
+  - `cd guardian/guardian-cli && cargo test` ✅ (8/8)
+  - `cd guardian/website && npm run test:run` ✅ (107/107)
+  - `cd guardian && npm run verify` ✅ (unit 64/64, e2e 17/17, build PASS, rust 64/64)
+  - `python3 .agent/scripts/verify_all.py` ✅
+
+### v1.2.1 Release Prep - Phase 12 (Batch Flush 3 + Version Bump) (2026-02-12)
+- Root cause:
+  - Batch processor varsayılan flush eşiği `2` olduğu için yüksek değişim anlarında çok sık AI batch çağrısı oluşuyordu.
+  - Phase 11 source-focused scan iyileştirmesini uygulamaya alabilmek için yeni patch release gereksinimi oluştu.
+- Uygulanan değişiklikler:
+  - `src-tauri/src/config.rs`:
+    - `DEFAULT_MAX_BATCH_SIZE` değeri `2 -> 3` yükseltildi.
+  - Sürüm senkronizasyonu:
+    - `package.json` → `1.2.1`
+    - `website/package.json` → `1.2.1`
+    - `src-tauri/Cargo.toml` → `1.2.1`
+    - `src-tauri/tauri.conf.json` → `1.2.1`
+    - lock dosyaları `scripts/bump_version.sh patch` ile senkron güncellendi.
+  - Release notları:
+    - `CHANGELOG.md` içine `1.2.1` maddesi eklendi (source-focused scanning + batch flush threshold update).
+- Phase 12 testleri:
+  - `cd guardian && npm test` ✅ (64/64)
+  - `cd guardian/src-tauri && cargo test` ✅ (64/64)
+  - `cd guardian/guardian-cli && cargo test` ✅ (8/8)
+  - `cd guardian/website && npm run test:run` ✅ (107/107)
+  - `cd guardian && npm run verify` ✅ (unit 64/64, e2e 17/17, build PASS, rust 64/64)
+  - `python3 .agent/scripts/verify_all.py` ✅
+
 ---
 
 ## Kararlar ve Varsayımlar (Kilitleme)
