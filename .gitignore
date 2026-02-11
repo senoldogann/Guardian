@@ -44,3 +44,7 @@ src-tauri/guardian.key.pub
 # Lock files - COMMITTED for reproducible builds
 # DO NOT ignore Cargo.lock or package-lock.json
 # See README.md for details
+
+# Temporary Release Artifacts
+tmp_guardian_release_v1.1.0_latest.json
+dist-releases.raw.json

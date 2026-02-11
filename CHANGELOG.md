@@ -7,19 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.2.0] - 2026-02-10 🧱 STABILIZATION
+## [1.2.0] - 2026-02-10
+
+### Highlights
+- Ollama launch no longer requires an API key; requests skip `Authorization` when key is missing.
+- Batch critique `file_path` is normalized/whitelisted to prevent ghost findings and monitor state drift.
+- AI Context and Reviews moved to an inspector split layout for faster triage and reduced scroll load.
 
 ### Fixed
-- **E2E Release Gate**: Fixed Playwright strict-mode selector ambiguity and aligned filter search test with the new UI.
-- **Ollama Offline UX**: Ollama provider no longer requires an API key to launch; requests omit `Authorization` header when no key is configured.
-- **Batch Audit Safety**: Normalized/whitelisted `file_path` for batch critiques to prevent ghost findings and state inconsistencies.
-- **Local Distribution Scripts**: Release tooling now accepts `latest.json.version` with or without the leading `v` prefix.
+- Playwright release-gate regressions: strict-mode Guru selector ambiguity and filter visibility expectation mismatch.
+- Local distribution scripts now accept `latest.json.version` in both `1.2.0` and `v1.2.0` formats.
 
 ### Changed
-- **AI Context + Reviews UX**: Replaced the long accordion layouts with an inspector split view (list/filters on the left, preview/actions on the right) to reduce scroll fatigue and speed up triage.
-- **Settings (Updates) About Links**: Added "Built by Senol Dogan" and quick links to the website + contact page.
-- **Local Release Flow**: Added a one-command local release script (`scripts/release_all_local.sh`) to run verify, build, collect artifacts, publish to distribution, and sync release notes from `CHANGELOG.md`.
-- **Updater Artifact Generation**: Re-enabled Tauri updater artifact generation in `tauri.conf.json` and added `latest.json` fallback generation from updater `.tar.gz + .sig` when needed.
+- Added one-command local release flow: `scripts/release_all_local.sh` (verify, build, artifact collect, distribution publish, changelog sync).
+- Re-enabled Tauri updater artifact generation and fallback `latest.json` generation from `.tar.gz + .sig`.
+- Added Updates tab About links in Settings (website and contact).
 
 ## [1.1.1] - 2026-02-10 🐛 HOTFIX
 
