@@ -34,7 +34,7 @@ function isSnapshotUsable(releases: GithubRelease[]): boolean {
   if (releases.length === 0) return false;
   const suspiciousBody = releases.some((release) => {
     const body = release.body?.trim() || "";
-    return body.startsWith("@/") || body.includes("/Users/") || body.includes("CHANGELOG.md");
+    return body.startsWith("@/") || body.includes("/Users/");
   });
   return !suspiciousBody;
 }
@@ -43,6 +43,20 @@ export async function fetchReleaseSnapshot(limit = 40): Promise<GithubRelease[]>
   if (fallbackCache && fallbackCache.expiresAt > Date.now()) {
     return fallbackCache.releases.slice(0, limit);
   }
+
+  try {
+    const apiReleases = await getReleases(limit);
+    if (isSnapshotUsable(apiReleases)) {
+      fallbackCache = {
+        expiresAt: Date.now() + FALLBACK_TTL_MS,
+        releases: apiReleases,
+      };
+      return apiReleases;
+    }
+  } catch {
+    // Ignore API failures and continue with snapshot fallback.
+  }
+
   try {
     const response = await fetch(getSnapshotUrl(), {
       next: { revalidate: SNAPSHOT_REVALIDATE_SECONDS }

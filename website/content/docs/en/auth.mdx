@@ -7,7 +7,7 @@ order: 3
 
 ## Overview
 
-Guardian requires authentication credentials to communicate with AI providers. This guide covers how to configure, manage, and secure your authentication setup.
+Guardian uses GitHub device authorization to unlock monitoring. AI providers are configured separately in Settings.
 
 ## Supported Providers
 
@@ -19,16 +19,24 @@ Guardian supports multiple AI providers for code analysis:
 | **OpenAI** | Hosted models | General purpose, fast responses |
 | **Anthropic** | Hosted models | Deep code analysis, security review |
 | **Google Gemini** | Hosted models | High speed, multimodal |
-| **Hosted Models** | Provider-hosted AI models | Managed infrastructure |
+| **GitHub Models** | GitHub-hosted models | Managed infrastructure |
 
-## Initial Setup
+## GitHub Sign-In
+
+1. Click **Sign In with GitHub** when prompted.
+2. Follow the device authorization flow in your browser.
+3. Return to Guardian and click **Check Now** if needed.
+
+## Provider Setup
+
+Follow the steps below to configure your AI provider.
 
 ### Step 1: Obtain API Keys
 
 1. **OpenAI**: Visit [platform.openai.com](https://platform.openai.com)
 2. **Anthropic**: Visit [console.anthropic.com](https://console.anthropic.com)
 3. **Google**: Visit [aistudio.google.com](https://aistudio.google.com)
-4. **Hosted Models**: Generate the provider API key with the minimum required scope (see the in-app Settings note).
+4. **GitHub Models**: Generate a fine-grained GitHub token with `models:read` permission (see the in-app Settings note).
 5. **Ollama**: No API key required for local installation
 
 ### Step 2: Configure in Guardian
@@ -40,7 +48,7 @@ Open Settings (gear icon) and configure your provider:
 3. Choose a **Model** from the available options
 4. Click **Save** to apply
 
-### Step 3: Test Connection
+### Step 3: Validate Connection
 
 The app will automatically validate your credentials when you start monitoring or use Guru.
 
@@ -51,8 +59,6 @@ Guardian uses platform-native secure storage:
 | Platform | Storage Method | Encryption |
 |----------|---------------|------------|
 | **macOS** | Keychain | OS-managed |
-| **Windows** | Credential Manager (DPAPI) | OS-managed |
-| **Linux** | Secret Service API | OS-managed |
 
 > **Security Note**: API keys are never stored in plain text files or exposed in logs.
 

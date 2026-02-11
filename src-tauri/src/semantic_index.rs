@@ -5,8 +5,9 @@ use reqwest::Client;
 use secrecy::ExposeSecret;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
+use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
 use std::sync::{Arc, Mutex};
-use tracing::warn;
+use tracing::{debug, warn};
 
 const CANONICAL_EMBED_DIM: usize = 256;
 const MAX_INDEX_TEXT_CHARS: usize = 8_000;
@@ -16,6 +17,7 @@ const DEFAULT_OLLAMA_EMBED_MODEL: &str = "nomic-embed-text";
 const DEFAULT_MATCH_LIMIT: usize = 5;
 const MIN_SIMILARITY_THRESHOLD: f32 = 0.55;
 const CRITICAL_SIMILARITY_THRESHOLD: f32 = 0.72;
+static AUTO_OPENAI_KEY_MISSING_LOGGED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, Clone)]
 pub struct SemanticIndexInput {
@@ -184,6 +186,15 @@ struct EmbeddingResult {
     source_mode: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum EmbeddingExecutionPlan {
+    LocalOnly,
+    OllamaOnly,
+    OpenAiOnly,
+    AutoOpenAiFirst,
+    AutoOllamaFirst,
+}
+
 fn configured_embed_mode() -> String {
     let preferred = std::env::var("GUARDIAN_EMBED_MODE")
         .ok()
@@ -196,6 +207,32 @@ fn configured_embed_mode() -> String {
     preferred.or(legacy).unwrap_or_else(|| "auto".to_string())
 }
 
+fn has_openai_embedding_key() -> bool {
+    match config::user_api_key_for_provider("openai") {
+        Ok(Some(key)) => {
+            let trimmed = key.expose_secret().trim();
+            !trimmed.is_empty() && !config::is_placeholder_key(trimmed)
+        }
+        _ => false,
+    }
+}
+
+fn embedding_execution_plan(mode: &str, has_openai_key: bool) -> EmbeddingExecutionPlan {
+    let normalized = mode.trim().to_lowercase();
+    match normalized.as_str() {
+        "local" | "local-hash" => EmbeddingExecutionPlan::LocalOnly,
+        "ollama" => EmbeddingExecutionPlan::OllamaOnly,
+        "openai" => EmbeddingExecutionPlan::OpenAiOnly,
+        _ => {
+            if has_openai_key {
+                EmbeddingExecutionPlan::AutoOpenAiFirst
+            } else {
+                EmbeddingExecutionPlan::AutoOllamaFirst
+            }
+        }
+    }
+}
+
 async fn embed_text(text: &str) -> EmbeddingResult {
     if is_offline_mode() {
         return EmbeddingResult {
@@ -204,12 +241,15 @@ async fn embed_text(text: &str) -> EmbeddingResult {
         };
     }
 
-    match configured_embed_mode().as_str() {
-        "local" | "local-hash" => EmbeddingResult {
+    let mode = configured_embed_mode();
+    let plan = embedding_execution_plan(&mode, has_openai_embedding_key());
+
+    match plan {
+        EmbeddingExecutionPlan::LocalOnly => EmbeddingResult {
             vector: local_hash_embedding(text),
             source_mode: "local-hash-manual".to_string(),
         },
-        "ollama" => match embed_with_ollama(text).await {
+        EmbeddingExecutionPlan::OllamaOnly => match embed_with_ollama(text).await {
             Ok(raw) => EmbeddingResult {
                 vector: compress_embedding(&raw, CANONICAL_EMBED_DIM),
                 source_mode: format!("ollama:{}", embedding_model_for("ollama")),
@@ -222,7 +262,7 @@ async fn embed_text(text: &str) -> EmbeddingResult {
                 }
             }
         },
-        "openai" => match embed_with_openai(text).await {
+        EmbeddingExecutionPlan::OpenAiOnly => match embed_with_openai(text).await {
             Ok(raw) => EmbeddingResult {
                 vector: compress_embedding(&raw, CANONICAL_EMBED_DIM),
                 source_mode: format!("openai:{}", embedding_model_for("openai")),
@@ -235,7 +275,7 @@ async fn embed_text(text: &str) -> EmbeddingResult {
                 }
             }
         },
-        _ => match embed_with_openai(text).await {
+        EmbeddingExecutionPlan::AutoOpenAiFirst => match embed_with_openai(text).await {
             Ok(raw) => EmbeddingResult {
                 vector: compress_embedding(&raw, CANONICAL_EMBED_DIM),
                 source_mode: format!("openai:{}", embedding_model_for("openai")),
@@ -265,6 +305,32 @@ async fn embed_text(text: &str) -> EmbeddingResult {
                 }
             }
         },
+        EmbeddingExecutionPlan::AutoOllamaFirst => {
+            if !AUTO_OPENAI_KEY_MISSING_LOGGED.swap(true, AtomicOrdering::Relaxed) {
+                debug!(
+                    target: "guardian::semantic",
+                    "Auto embedding: OpenAI key missing, skipping OpenAI and trying Ollama."
+                );
+            }
+
+            match embed_with_ollama(text).await {
+                Ok(raw) => EmbeddingResult {
+                    vector: compress_embedding(&raw, CANONICAL_EMBED_DIM),
+                    source_mode: format!("ollama:{}", embedding_model_for("ollama")),
+                },
+                Err(ollama_err) => {
+                    warn!(
+                        target: "guardian::semantic",
+                        "Ollama embedding failed in auto mode, falling back to local: {}",
+                        ollama_err
+                    );
+                    EmbeddingResult {
+                        vector: local_hash_embedding(text),
+                        source_mode: "local-hash-fallback".to_string(),
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -427,6 +493,34 @@ mod tests {
         assert_eq!(a.len(), CANONICAL_EMBED_DIM);
         assert_eq!(b.len(), CANONICAL_EMBED_DIM);
         assert_eq!(a, b);
+    }
+
+    #[test]
+    fn auto_embedding_policy_without_openai_key_prefers_ollama() {
+        assert_eq!(
+            embedding_execution_plan("auto", false),
+            EmbeddingExecutionPlan::AutoOllamaFirst
+        );
+    }
+
+    #[test]
+    fn auto_embedding_policy_with_openai_key_prefers_openai() {
+        assert_eq!(
+            embedding_execution_plan("auto", true),
+            EmbeddingExecutionPlan::AutoOpenAiFirst
+        );
+    }
+
+    #[test]
+    fn explicit_ollama_mode_never_uses_openai_branch() {
+        assert_eq!(
+            embedding_execution_plan("ollama", false),
+            EmbeddingExecutionPlan::OllamaOnly
+        );
+        assert_eq!(
+            embedding_execution_plan("ollama", true),
+            EmbeddingExecutionPlan::OllamaOnly
+        );
     }
 
     #[tokio::test]

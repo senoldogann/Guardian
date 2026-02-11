@@ -14,7 +14,7 @@ describe("FixProposalsView", () => {
     expect(screen.getByText("No Fix Proposals")).toBeInTheDocument();
   });
 
-  it("renders proposals and allows requesting review", () => {
+  it("renders proposals and allows requesting review", async () => {
     const onRequestReview = vi.fn();
     const onSetStatus = vi.fn();
     const snapshot: FixProposalsSnapshot = {
@@ -42,17 +42,16 @@ describe("FixProposalsView", () => {
 
     expect(screen.getByText(/Fix Proposals/i)).toBeInTheDocument();
     expect(screen.getByText(/Pending:/)).toBeInTheDocument();
-    expect(screen.getByText("src/a.ts")).toBeInTheDocument();
+    expect(screen.getAllByText("src/a.ts").length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByText("src/a.ts"));
-    expect(screen.getByText(snapshot.proposals[0].proposed_content!)).toBeInTheDocument();
+    expect(await screen.findByText(snapshot.proposals[0].proposed_content!)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /request review/i }));
     expect(onRequestReview).toHaveBeenCalledTimes(1);
     expect(onRequestReview).toHaveBeenCalledWith(snapshot.proposals[0]);
   });
 
-  it("allows rejecting a proposal", () => {
+  it("allows rejecting a proposal", async () => {
     const onSetStatus = vi.fn();
     const snapshot: FixProposalsSnapshot = {
       timestamp: "2026-02-09T00:00:00Z",
@@ -70,9 +69,9 @@ describe("FixProposalsView", () => {
     };
 
     render(<FixProposalsView snapshot={snapshot} onSetStatus={onSetStatus} />);
+    expect(await screen.findByText(snapshot.proposals[0].proposed_content!)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /reject/i }));
     expect(onSetStatus).toHaveBeenCalledTimes(1);
     expect(onSetStatus).toHaveBeenCalledWith("p1", "rejected");
   });
 });
-

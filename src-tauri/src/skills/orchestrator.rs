@@ -22,7 +22,7 @@ impl AgentOrchestrator {
         app: tauri::AppHandle,
         provider: ProviderConfig,
     ) -> Result<Self> {
-        let api_key = config::api_key_for_provider(&provider.provider_id)?;
+        let api_key = config::api_key_for_provider_or_empty(&provider.provider_id)?;
         let ai = Arc::new(AiClient::new(
             provider.provider_id.clone(),
             provider.base_url,

@@ -37,10 +37,10 @@ Guru understands natural language queries:
 
 ### Web Search
 
-Enable web search by adding `@web` to your query or enabling it in Settings:
+Enable web search by toggling it on in Settings (requires a Tavily key). You can also add `/web` or `@web` to your query:
 
 ```
-"@web What are the latest React best practices?"
+"/web What are the latest React best practices?"
 "Explain the latest TypeScript 5 features @web"
 ```
 
@@ -150,14 +150,12 @@ Trigger semantic search by using these keywords in your query:
 "Find similar issues to this"
 "Show me critical patterns like this"
 "Are there semantic matches for this vulnerability?"
-"Benzer kritikler var mı?"
 ```
 
 ### Search Triggers
 
 Guru automatically uses semantic search when you include:
 - **English**: "similar", "like this", "resemble", "pattern", "semantic"
-- **Turkish**: "benzer", "örüntü", "semantik"
 
 ### What You'll See
 
@@ -177,20 +175,23 @@ Guardian supports multiple embedding strategies:
 
 | Provider | Model | Use Case |
 |----------|-------|----------|
-| **OpenAI** (default) | `text-embedding-3-small` | Best quality, requires API key |
+| **Auto** (default) | `openai:text-embedding-3-small` or `ollama:nomic-embed-text` | Uses OpenAI when a valid key exists; otherwise starts with Ollama and falls back to local hash |
+| **OpenAI** | `text-embedding-3-small` | Best quality, requires API key |
 | **Ollama** | `nomic-embed-text` | Local/offline option |
 | **Local Hash** | Deterministic fallback | Offline mode, no external calls |
 
 Configure via environment variables:
 ```bash
-GUARDIAN_EMBED_PROVIDER=ollama  # or "openai"
+GUARDIAN_EMBED_MODE=ollama  # or "openai", "local", "auto"
+GUARDIAN_EMBED_PROVIDER=openai  # legacy alias
 GUARDIAN_EMBED_MODEL=text-embedding-3-small
+GUARDIAN_EMBED_MODEL_OLLAMA=nomic-embed-text
 GUARDIAN_OFFLINE=1  # Forces local hash fallback
 ```
 
 ### Privacy
 
-- Embeddings are stored **locally** in `.guardian/memory.db`
+- Embeddings are stored **locally** in `~/.guardian/memory.db`
 - No code leaves your machine for embedding generation (local hash mode)
 - OpenAI/Ollama modes send only the analyzed code snippet
 

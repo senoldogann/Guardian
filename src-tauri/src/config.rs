@@ -248,6 +248,20 @@ pub fn api_key_for_provider(provider_id: &str) -> Result<SecretString> {
     bail!("User API key is missing. Set your own key in Settings.")
 }
 
+pub fn api_key_for_provider_or_empty(provider_id: &str) -> Result<SecretString> {
+    if normalize_provider_id(provider_id) == "ollama" {
+        if let Some(key) = user_api_key_for_provider(provider_id)? {
+            let trimmed = key.expose_secret().trim();
+            if !is_placeholder_key(trimmed) {
+                return Ok(SecretString::new(trimmed.to_string().into()));
+            }
+        }
+        return Ok(SecretString::new(String::new().into()));
+    }
+
+    api_key_for_provider(provider_id)
+}
+
 pub fn tavily_keys() -> Result<Vec<SecretString>> {
     let mut keys: Vec<SecretString> = Vec::new();
     if let Some(key) = user_tavily_key()? {

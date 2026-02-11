@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fs;
 use std::time::Duration;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 #[derive(Debug, Clone)]
 pub struct AiClient {
@@ -71,7 +71,7 @@ impl AiClient {
     }
 
     fn ensure_valid_api_key(&self) -> Result<()> {
-        if self.provider_id == "mock" {
+        if self.provider_id == "mock" || self.provider_id == "ollama" {
             return Ok(());
         }
         if config::is_placeholder_key(self.api_key.expose_secret()) && config::is_production() {
@@ -106,6 +106,85 @@ impl AiClient {
             &content[start..=end]
         } else {
             content.trim()
+        }
+    }
+
+    fn repair_invalid_json_escapes(content: &str) -> Option<String> {
+        let mut output = String::with_capacity(content.len());
+        let mut chars = content.chars().peekable();
+        let mut in_string = false;
+        let mut escaped = false;
+        let mut changed = false;
+
+        while let Some(ch) = chars.next() {
+            if !in_string {
+                if ch == '"' {
+                    in_string = true;
+                }
+                output.push(ch);
+                continue;
+            }
+
+            if escaped {
+                output.push(ch);
+                escaped = false;
+                continue;
+            }
+
+            if ch == '\\' {
+                let next = chars.peek().copied();
+                let valid_escape = match next {
+                    Some('"' | '\\' | '/' | 'b' | 'f' | 'n' | 'r' | 't') => true,
+                    Some('u') => {
+                        let mut lookahead = chars.clone();
+                        lookahead.next();
+                        let mut ok = true;
+                        for _ in 0..4 {
+                            match lookahead.next() {
+                                Some(hex) if hex.is_ascii_hexdigit() => {}
+                                _ => {
+                                    ok = false;
+                                    break;
+                                }
+                            }
+                        }
+                        ok
+                    }
+                    Some(_) | None => false,
+                };
+
+                if valid_escape {
+                    output.push(ch);
+                    escaped = true;
+                } else {
+                    output.push('\\');
+                    output.push('\\');
+                    changed = true;
+                }
+                continue;
+            }
+
+            if ch == '\r' || ch == '\n' || ch == '\t' {
+                output.push('\\');
+                output.push(match ch {
+                    '\r' => 'r',
+                    '\n' => 'n',
+                    _ => 't',
+                });
+                changed = true;
+                continue;
+            }
+
+            if ch == '"' {
+                in_string = false;
+            }
+            output.push(ch);
+        }
+
+        if changed {
+            Some(output)
+        } else {
+            None
         }
     }
 
@@ -146,13 +225,12 @@ impl AiClient {
                     payload["format"] = json!("json");
                 }
                 let url = format!("{}/api/chat", self.base_url.trim_end_matches('/'));
-                let response = self
-                    .client
-                    .post(&url)
-                    .header(
-                        "Authorization",
-                        format!("Bearer {}", self.api_key.expose_secret()),
-                    )
+                let mut request = self.client.post(&url);
+                let token = self.api_key.expose_secret().trim();
+                if !config::is_placeholder_key(token) {
+                    request = request.bearer_auth(token);
+                }
+                let response = request
                     .json(&payload)
                     .send()
                     .await
@@ -351,14 +429,25 @@ JSON MODE:
 
         debug!(target: "guardian::ai", "AI response received (len={})", clean_json.len());
 
-        // SECURITY: JSON Schema validation before deserialization
+        let mut repaired_json: Option<String> = None;
         if let Err(validation_errors) = crate::validation::validate_critique(clean_json) {
-            error!(target: "guardian::ai", "JSON Schema validation failed for critique: {:?}", validation_errors);
-            anyhow::bail!(
-                "AI response failed security validation: {}. Raw content: {}",
-                validation_errors.join("; "),
-                &clean_json[..clean_json.len().min(500)]
-            );
+            if validation_errors.iter().any(|e| e.contains("Invalid JSON syntax")) {
+                if let Some(repaired) = Self::repair_invalid_json_escapes(clean_json) {
+                    if crate::validation::validate_critique(&repaired).is_ok() {
+                        warn!(target: "guardian::ai", "AI JSON had invalid escapes; repaired for parsing.");
+                        repaired_json = Some(repaired);
+                    }
+                }
+            }
+
+            if repaired_json.is_none() {
+                error!(target: "guardian::ai", "JSON Schema validation failed for critique: {:?}", validation_errors);
+                anyhow::bail!(
+                    "AI response failed security validation: {}. Raw content: {}",
+                    validation_errors.join("; "),
+                    &clean_json[..clean_json.len().min(500)]
+                );
+            }
         }
 
         // SECURITY: Validate file_path content for injection attacks
@@ -367,7 +456,8 @@ JSON MODE:
             anyhow::bail!("File path contains potentially dangerous content: {}", e);
         }
 
-        let mut critique: Critique = serde_json::from_str(clean_json).with_context(|| {
+        let parse_target = repaired_json.as_deref().unwrap_or(clean_json);
+        let mut critique: Critique = serde_json::from_str(parse_target).with_context(|| {
             format!(
                 "Failed to parse AI JSON response. Raw content: {}",
                 clean_json
@@ -391,6 +481,13 @@ JSON MODE:
             if let Err(e) = crate::validation::sanitize_string_content(chat_msg, "chat_message") {
                 error!(target: "guardian::ai", "Chat message field sanitization failed: {}", e);
                 critique.chat_message = None; // Clear dangerous chat message rather than fail
+            }
+        }
+
+        if let Some(ref diff) = critique.suggested_diff {
+            if let Err(e) = crate::validation::sanitize_code_content(diff, "suggested_diff") {
+                error!(target: "guardian::ai", "Clearing dangerous suggested_diff: {}", e);
+                critique.suggested_diff = None;
             }
         }
 
@@ -441,16 +538,29 @@ JSON ARRAY MODE:
         debug!(target: "guardian::ai", "AI batch response received (len={})", clean_json.len());
 
         // SECURITY: JSON Schema validation for batch response
+        let mut repaired_json: Option<String> = None;
         if let Err(validation_errors) = crate::validation::validate_batch_critiques(clean_json) {
-            error!(target: "guardian::ai", "JSON Schema validation failed for batch: {:?}", validation_errors);
-            anyhow::bail!(
-                "AI batch response failed security validation: {}. Raw content preview: {}",
-                validation_errors.join("; "),
-                &clean_json[..clean_json.len().min(500)]
-            );
+            if validation_errors.iter().any(|e| e.contains("Invalid JSON syntax")) {
+                if let Some(repaired) = Self::repair_invalid_json_escapes(clean_json) {
+                    if crate::validation::validate_batch_critiques(&repaired).is_ok() {
+                        warn!(target: "guardian::ai", "AI batch JSON had invalid escapes; repaired for parsing.");
+                        repaired_json = Some(repaired);
+                    }
+                }
+            }
+
+            if repaired_json.is_none() {
+                error!(target: "guardian::ai", "JSON Schema validation failed for batch: {:?}", validation_errors);
+                anyhow::bail!(
+                    "AI batch response failed security validation: {}. Raw content preview: {}",
+                    validation_errors.join("; "),
+                    &clean_json[..clean_json.len().min(500)]
+                );
+            }
         }
 
-        let critiques = parse_batch_json(&content_str, clean_json)
+        let parse_target = repaired_json.as_deref().unwrap_or(clean_json);
+        let critiques = parse_batch_json(&content_str, parse_target)
             .with_context(|| format!("Failed to parse Batch JSON. Raw: {}", clean_json))?;
 
         // SECURITY: Sanitize all critiques in the batch
@@ -479,7 +589,7 @@ JSON ARRAY MODE:
                 }
 
                 if let Some(ref diff) = critique.suggested_diff {
-                    if let Err(e) = crate::validation::sanitize_string_content(diff, "suggested_diff") {
+                    if let Err(e) = crate::validation::sanitize_code_content(diff, "suggested_diff") {
                         error!(target: "guardian::ai", "Clearing dangerous suggested_diff: {}", e);
                         critique.suggested_diff = None;
                     }
@@ -602,5 +712,34 @@ fn extract_json_window(content: &str, open: char, close: char) -> Option<&str> {
         Some(&content[start..=end])
     } else {
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::AiClient;
+
+    #[test]
+    fn test_repair_invalid_escape_sequence() {
+        let raw = r#"{"message":"bad \q escape"}"#;
+        assert!(serde_json::from_str::<serde_json::Value>(raw).is_err());
+
+        let repaired = AiClient::repair_invalid_json_escapes(raw)
+            .expect("Repair should return a corrected string");
+        let parsed = serde_json::from_str::<serde_json::Value>(&repaired)
+            .expect("Repaired JSON should parse");
+        assert_eq!(parsed["message"].as_str(), Some("bad \\q escape"));
+    }
+
+    #[test]
+    fn test_repair_unescaped_newline() {
+        let raw = "{\"message\":\"line1\nline2\"}";
+        assert!(serde_json::from_str::<serde_json::Value>(raw).is_err());
+
+        let repaired = AiClient::repair_invalid_json_escapes(raw)
+            .expect("Repair should return a corrected string");
+        let parsed = serde_json::from_str::<serde_json::Value>(&repaired)
+            .expect("Repaired JSON should parse");
+        assert_eq!(parsed["message"].as_str(), Some("line1\nline2"));
     }
 }

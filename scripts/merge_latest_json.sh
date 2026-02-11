@@ -37,6 +37,7 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 VERSION="${TAG#v}"
+VERSION_V="v${VERSION}"
 FILES=()
 
 for file in "$@"; do
@@ -49,8 +50,8 @@ for file in "$@"; do
     echo "Error: latest.json missing version: $file"
     exit 1
   fi
-  if [[ "$file_version" != "$VERSION" ]]; then
-    echo "Error: latest.json version ($file_version) does not match tag ($VERSION): $file"
+  if [[ "$file_version" != "$VERSION" && "$file_version" != "$VERSION_V" ]]; then
+    echo "Error: latest.json version ($file_version) does not match tag ($VERSION or $VERSION_V): $file"
     exit 1
   fi
   FILES+=("$file")

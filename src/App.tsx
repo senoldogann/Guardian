@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback, type ReactElement } from "react";
-import { invoke, listen, openDialog, type UnlistenFn } from "./lib/tauri";
+import { invoke, listen, openDialog, isTauriRuntime, type UnlistenFn } from "./lib/tauri";
 import { exportAuditToPdf } from "./lib/exportAuditPdf";
 import { handleError } from "./lib/error";
 import { useToast } from "./hooks/useToast";
@@ -40,6 +40,22 @@ import { useSettings } from "./hooks/useSettings";
 import type { ProjectContext, Critique, ApiKeyStatus, Baseline, BaselineFinding, BaselineStatusView, AiContextSnapshot, FixProposalsSnapshot, FixProposal } from "./types";
 import { STORAGE_KEYS } from "./constants";
 
+function critiqueStateKey(critique: Critique): string {
+  const finding = critique.finding_id?.trim();
+  if (finding) return finding;
+  return critique.file_path;
+}
+
+function isSystemLogEntry(key: string, critique: Critique): boolean {
+  return key.startsWith("System") || critique.file_path.startsWith("System");
+}
+
+function normalizeVersionLabel(version: string | null | undefined): string {
+  const trimmed = version?.trim() ?? "";
+  if (!trimmed) return "Unknown";
+  return trimmed.startsWith("v") ? trimmed : `v${trimmed}`;
+}
+
 function App(): ReactElement {
   // Core state
   const [showOnboarding, setShowOnboarding] = useState(() => {
@@ -63,11 +79,10 @@ function App(): ReactElement {
     return "";
   });
   const [filter, setFilter] = useState<string>("");
-  const [expandedFile, setExpandedFile] = useState<string | null>(null);
+  const [expandedLogKey, setExpandedLogKey] = useState<string | null>(null);
   const [stalled, setStalled] = useState<{ file: string; reason: string } | null>(null);
   const [stallOverlayOpen, setStallOverlayOpen] = useState(false);
   const stallSignatureRef = useRef<string | null>(null);
-  const baselineViewAutoRef = useRef(false);
   const stallSignature = stallSignatureRef.current ?? "";
   const [pendingGuruPrompt, setPendingGuruPrompt] = useState<AutoPrompt | null>(null);
   const [usage, setUsage] = useState({ tokens: 0, calls: 0 });
@@ -113,6 +128,37 @@ function App(): ReactElement {
     localStorage.setItem(STORAGE_KEYS.THEME, theme);
   }, [theme]);
 
+  useEffect(() => {
+    let disposed = false;
+
+    const syncWindowTitle = async (): Promise<void> => {
+      if (!isTauriRuntime()) {
+        document.title = "Guardian";
+        return;
+      }
+
+      try {
+        const rawVersion = await invoke<string>("get_app_version");
+        if (disposed) return;
+        const title = `Guardian ${normalizeVersionLabel(rawVersion)}`;
+        document.title = title;
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        if (disposed) return;
+        await getCurrentWindow().setTitle(title);
+      } catch {
+        if (!disposed) {
+          document.title = "Guardian";
+        }
+      }
+    };
+
+    void syncWindowTitle();
+
+    return () => {
+      disposed = true;
+    };
+  }, []);
+
 
 
   const selectScope = async (): Promise<void> => {
@@ -142,7 +188,7 @@ function App(): ReactElement {
         setActive(false);
         setStatus("Idle");
         setLogs({});
-        setExpandedFile(null);
+        setExpandedLogKey(null);
         setStalled(null);
         setStallOverlayOpen(false);
         stallSignatureRef.current = null;
@@ -158,7 +204,6 @@ function App(): ReactElement {
         setBaselineStatus(null);
         setBaselineError(null);
         setBaselineView("all");
-        baselineViewAutoRef.current = false;
         setPath(selected);
         if (typeof window !== "undefined") {
           localStorage.setItem(STORAGE_KEYS.LAST_PATH, selected);
@@ -204,6 +249,36 @@ function App(): ReactElement {
     }
   }, [path]);
 
+  const refreshMonitorCritiques = useCallback(async (): Promise<void> => {
+    if (!path) return;
+    try {
+      const critiques = await invoke<Critique[]>("get_monitor_critiques", { root: path });
+      const monitorCritiques = Array.isArray(critiques) ? critiques : [];
+      setLogs((prev) => {
+        const next: Record<string, Critique> = {};
+        for (const [key, critique] of Object.entries(prev)) {
+          if (isSystemLogEntry(key, critique)) {
+            next[key] = critique;
+          }
+        }
+        for (const critique of monitorCritiques) {
+          next[critiqueStateKey(critique)] = critique;
+        }
+        return next;
+      });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      setLogs((prev) => ({
+        ...prev,
+        ["System:MonitorSync"]: {
+          file_path: "System",
+          severity: "Warning",
+          message: `Monitor snapshot sync failed: ${message}`,
+        },
+      }));
+    }
+  }, [path]);
+
   const refreshBaseline = useCallback(async (): Promise<void> => {
     if (!path) {
       setBaseline(null);
@@ -223,11 +298,6 @@ function App(): ReactElement {
         root: path,
       });
       setBaselineStatus(statusValue ?? null);
-
-      if (!baselineViewAutoRef.current) {
-        setBaselineView(statusValue?.valid ? "new" : "all");
-        baselineViewAutoRef.current = true;
-      }
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       setBaseline(null);
@@ -300,17 +370,23 @@ function App(): ReactElement {
     };
 
     void register<Critique>("guardian:critique", (event) => {
+      const stateKey = critiqueStateKey(event.payload);
       setLogs((prev) => ({
         ...prev,
-        [event.payload.file_path]: event.payload
+        [stateKey]: event.payload
       }));
       setStatus("Monitoring Active");
     });
 
     void register<string>("guardian:clear", (event) => {
       setLogs((prev) => {
-        const newLogs = { ...prev };
-        delete newLogs[event.payload];
+        const newLogs: Record<string, Critique> = {};
+        for (const [key, critique] of Object.entries(prev)) {
+          const shouldDrop = key === event.payload || critique.file_path === event.payload;
+          if (!shouldDrop) {
+            newLogs[key] = critique;
+          }
+        }
         return newLogs;
       });
     });
@@ -397,8 +473,16 @@ function App(): ReactElement {
   }, [refreshContext]);
 
   useEffect(() => {
+    void refreshMonitorCritiques();
+  }, [refreshMonitorCritiques]);
+
+  useEffect(() => {
     void refreshBaseline();
   }, [refreshBaseline]);
+
+  useEffect(() => {
+    setExpandedLogKey((prev) => (prev && logs[prev] ? prev : null));
+  }, [logs]);
 
   useEffect(() => {
     if (view !== "ai-context") return;
@@ -416,8 +500,6 @@ function App(): ReactElement {
     setBaselineError(null);
     try {
       await invoke<BaselineStatusView>("create_baseline", { root: path });
-      baselineViewAutoRef.current = true;
-      setBaselineView("new");
       await refreshBaseline();
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
@@ -433,7 +515,6 @@ function App(): ReactElement {
     setBaselineError(null);
     try {
       await invoke("clear_baseline", { root: path });
-      baselineViewAutoRef.current = false;
       await refreshBaseline();
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
@@ -518,6 +599,7 @@ function App(): ReactElement {
 
       try {
         await invoke("start_monitoring", { path, autoVerifyEnabled: settings.autoVerifyEnabled });
+        await refreshMonitorCritiques();
         setActive(true);
         setStatus("Monitoring Active");
       } catch (e: unknown) {
@@ -712,7 +794,9 @@ function App(): ReactElement {
   const hasReviewData = Boolean((fixProposals?.proposals?.length ?? 0) > 0);
 
   const engineModel = settings.providerDraft?.model?.trim() || "Not set";
-  const showFloatingFilter = active || filter.trim().length > 0;
+  const isDesktop = isTauriRuntime();
+  const showFloatingFilter =
+    !isDesktop || active || baselineView === "resolved" || filter.trim().length > 0;
   const embeddingModeLabel = useMemo(() => {
     const mode = settings.embeddingDraft?.mode ?? "auto";
     if (mode === "openai") return "OpenAI";
@@ -867,23 +951,25 @@ function App(): ReactElement {
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: -80, opacity: 0, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl bg-[var(--accent-500)] text-white shadow-2xl shadow-black/30 flex items-center gap-4 min-w-[320px]"
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl border border-border-main bg-surface/95 text-text-main shadow-2xl shadow-black/20 flex items-center gap-4 min-w-[320px] backdrop-blur-sm"
           >
             <div className="flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/80">Update Available</p>
-              <p className="text-sm font-semibold text-white">v{settings.updateInfo.current_version} → v{settings.updateInfo.latest_version}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Update Available</p>
+              <p className="text-sm font-semibold text-text-main">
+                {normalizeVersionLabel(settings.updateInfo.current_version)} → {normalizeVersionLabel(settings.updateInfo.latest_version)}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={settings.installUpdate}
                 disabled={settings.updateInstalling}
-                className="px-4 py-2 rounded-lg bg-white text-[var(--accent-600)] font-semibold text-sm hover:bg-white/90 transition-all cursor-pointer disabled:opacity-50 shadow-lg"
+                className="px-4 py-2 rounded-lg bg-[var(--text-main)] text-[var(--surface)] font-semibold text-sm hover:opacity-90 transition-all cursor-pointer disabled:opacity-50 shadow-lg"
               >
                 {settings.updateInstalling ? "Updating..." : "Install Update"}
               </button>
               <button
                 onClick={() => settings.setUpdateDismissed(true)}
-                className="px-3 py-2 rounded-lg bg-black/20 hover:bg-black/30 text-white text-sm font-medium transition-colors cursor-pointer"
+                className="px-3 py-2 rounded-lg border border-border-main bg-background/70 hover:bg-background text-text-main text-sm font-medium transition-colors cursor-pointer"
               >
                 Dismiss
               </button>
@@ -1358,11 +1444,15 @@ function App(): ReactElement {
               <div className="space-y-2">
                 {filteredLogs.map((log, index) => (
                   <CritiqueAccordionRow
-                    key={log.file_path}
+                    key={critiqueStateKey(log)}
                     log={log}
                     index={index + 1}
-                    isExpanded={expandedFile === log.file_path}
-                    onToggle={() => setExpandedFile(expandedFile === log.file_path ? null : log.file_path)}
+                    isExpanded={expandedLogKey === critiqueStateKey(log)}
+                    onToggle={() =>
+                      setExpandedLogKey((prev) =>
+                        prev === critiqueStateKey(log) ? null : critiqueStateKey(log)
+                      )
+                    }
                     onAskGuru={() => askGuruForLog(log, false)}
                     findingStatus={
                       baselineValid && log.finding_id
@@ -1372,12 +1462,13 @@ function App(): ReactElement {
                         : undefined
                     }
                     onFix={() => {
+                      const stateKey = critiqueStateKey(log);
                       setLogs(prev => {
                         const newLogs = { ...prev };
-                        delete newLogs[log.file_path];
+                        delete newLogs[stateKey];
                         return newLogs;
                       });
-                      if (expandedFile === log.file_path) setExpandedFile(null);
+                      if (expandedLogKey === stateKey) setExpandedLogKey(null);
                     }}
                   />
                 ))}

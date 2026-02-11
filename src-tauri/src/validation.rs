@@ -284,6 +284,31 @@ pub fn sanitize_string_content(content: &str, field_name: &str) -> Result<String
     Ok(content.to_string())
 }
 
+pub fn sanitize_code_content(content: &str, field_name: &str) -> Result<String, String> {
+    if content.contains('\0') {
+        return Err(format!("{} contains null bytes", field_name));
+    }
+
+    let dangerous_unicode = ['\u{202A}', '\u{202B}', '\u{202C}', '\u{202D}', '\u{202E}'];
+    for ch in dangerous_unicode {
+        if content.contains(ch) {
+            return Err(format!(
+                "{} contains potentially dangerous Unicode characters",
+                field_name
+            ));
+        }
+    }
+
+    if content
+        .chars()
+        .any(|c| c.is_control() && !matches!(c, '\n' | '\r' | '\t'))
+    {
+        return Err(format!("{} contains control characters", field_name));
+    }
+
+    Ok(content.to_string())
+}
+
 /// Validates that file_path doesn't contain path traversal attempts
 ///
 /// This is a secondary defense in addition to the patcher's validation
@@ -347,6 +372,16 @@ mod tests {
 
         let result = validate_critique(invalid_json);
         assert!(result.is_err(), "Invalid severity must be rejected");
+    }
+
+    #[test]
+    fn test_sanitize_code_content_allows_system_keyword() {
+        let input = "fn system_call() {\n    println!(\"ok\");\n}";
+        let result = sanitize_code_content(input, "suggested_diff");
+        assert!(
+            result.is_ok(),
+            "Code content should allow system keyword usage"
+        );
     }
 
     #[test]

@@ -80,12 +80,9 @@ test.describe("Download Page", () => {
   
   test("should show platform-specific content", async ({ page }) => {
     await page.waitForLoadState("networkidle");
-    
-    // Page should mention operating systems
-    const osRegex = /macOS|Windows|Linux/i;
-    const osText = page.getByText(osRegex);
-    
-    await expect(osText.first()).toBeVisible();
+
+    const detectedText = page.getByText(/Detected:/i);
+    await expect(detectedText.first()).toBeVisible();
   });
   
   test("should have asset information", async ({ page }) => {

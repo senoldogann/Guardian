@@ -995,6 +995,149 @@ Legacy destek: Eger `.guardian/fix_proposals.jsonl` varsa, Guardian bunu `.guard
   - `cd website && npm run test:run` (pass, 8 file / 107 test)
   - `python3 .agent/scripts/verify_all.py` (pass)
 
+### v1.2.0 Stabilization - Phase 1 (2026-02-10)
+- Root cause kaydi:
+  - Monitor acilisinda eski bulgular hydrate edilmiyordu (yalnizca live `guardian:critique` event akisi vardi).
+  - Baseline gecerliyse UI otomatik `New` gorunumune cekiliyordu.
+- Uygulanan degisiklikler:
+  - Backend snapshot hydrate eklendi:
+    - `src-tauri/src/watcher.rs`: `critiques_from_snapshot_for_root` (`.guardian/critiques.json`, `protocol_version=1`, bozuk payload -> bos liste)
+    - `src-tauri/src/lib.rs`: yeni Tauri command `get_monitor_critiques`
+  - Frontend monitor hydrate + merge:
+    - `src/App.tsx`: `refreshMonitorCritiques` eklendi (path degisimi + app acilisi + launch sonrasi)
+    - Event merge key stratejisi: `finding_id` oncelikli, fallback `file_path`
+    - `guardian:clear` temizligi key+file_path bazinda genisletildi
+  - Baseline varsayilan gorunumu sabitlendi:
+    - `src/App.tsx`: `refreshBaseline` ve `setBaselineNow` icindeki otomatik `New` gecisi kaldirildi
+- Phase 1 testleri:
+  - `cd guardian && npm test` (pass, 11 file / 63 test)
+  - `cd guardian/src-tauri && cargo test` (pass, 56 test)
+  - `cd guardian/guardian-cli && cargo test` (pass, 7 test)
+  - `cd guardian/website && npm run test:run` (pass, 8 file / 107 test)
+  - `python3 .agent/scripts/verify_all.py` (pass)
+
+### v1.2.0 Stabilization - Phase 2 (2026-02-10)
+- Root cause kaydi:
+  - `Embedding mode=auto` akisi her durumda once OpenAI denedigi icin OpenAI key yoksa log spam olusuyordu.
+  - Ollama/local fallback calissa bile her cagri oncesi gereksiz OpenAI hata uyari satiri uretiliyordu.
+- Uygulanan degisiklikler:
+  - `src-tauri/src/semantic_index.rs`:
+    - `embedding_execution_plan` helper'i eklendi (`LocalOnly`, `OllamaOnly`, `OpenAiOnly`, `AutoOpenAiFirst`, `AutoOllamaFirst`)
+    - `has_openai_embedding_key` ile auto policy key-var/yok kararina baglandi
+    - Auto modda OpenAI key yoksa OpenAI denemesi atlanip direkt Ollama -> Local fallback calismasi aktif edildi
+    - Key-yok bilgisinde `warn` yerine tek-seferlik `debug` loga gecildi (spam azaltimi)
+  - `src/components/SettingsModal.tsx`:
+    - Embedding mode bilgi notu auto policy davranisini net ifade edecek sekilde guncellendi
+- Phase 2 testleri:
+  - `cd guardian && npm test` (pass, 11 file / 63 test)
+  - `cd guardian/src-tauri && cargo test` (pass, 59 test)
+  - `cd guardian/guardian-cli && cargo test` (pass, 7 test)
+  - `cd guardian/website && npm run test:run` (pass, 8 file / 107 test)
+  - `python3 .agent/scripts/verify_all.py` (pass)
+
+### v1.2.0 Stabilization - Phase 3 (2026-02-10)
+- Root cause kaydi:
+  - `src-tauri/src/watcher.rs` icindeki `last_fix_proposals_for_root` fonksiyonu kullanilmadigi icin her `cargo test`/build adiminda `dead_code` warning uretiyordu.
+- Uygulanan degisiklikler:
+  - `src-tauri/src/watcher.rs`:
+    - Kullanilmayan `last_fix_proposals_for_root` helper'i kaldirildi.
+    - Fix proposal akisinda davranis degisikligi yapilmadan internal cleanup tamamlandi.
+- Phase 3 testleri:
+  - `cd guardian && npm test` (pass, 11 file / 63 test)
+  - `cd guardian/src-tauri && cargo test` (pass, 59 test, `last_fix_proposals_for_root` dead_code warning temiz)
+  - `cd guardian/guardian-cli && cargo test` (pass, 7 test)
+  - `cd guardian/website && npm run test:run` (pass, 8 file / 107 test)
+  - `python3 .agent/scripts/verify_all.py` (pass)
+
+### v1.2.0 Stabilization - Phase 4 (Integrated Verification) (2026-02-10)
+- Final acceptance checklist:
+  - [x] Monitor eski + yeni bulgulari hydrate + live merge ile gosteriyor.
+  - [x] Varsayilan filtre `All`; `New/Resolved` yalnizca manuel secimle aktif oluyor.
+  - [x] Auto embedding mode, OpenAI key yoksa OpenAI denemesini atlayip Ollama/Local fallback ile ilerliyor.
+  - [x] `last_fix_proposals_for_root` dead_code warning'i temizlendi.
+  - [x] Tum phase test paketleri tam komut setiyle tekrar calistirildi.
+
+### v1.2.0 Stabilization - Phase 5 (E2E Gate Fixes) (2026-02-10)
+- Root cause kaydi:
+  - Playwright strict-mode selector `name: /Guru/i` birden fazla butonu match ediyordu (sidebar `Guru` + `Ask Guru to resolve` vb.).
+  - Filter input placeholder degismisti ve input web preview modunda DOM'a render edilmedigi icin E2E time-out aliyordu.
+- Uygulanan degisiklikler:
+  - `tests/e2e/app.spec.ts`:
+    - Guru selector'u `name: /^Guru$/i` olacak sekilde daraltildi.
+    - Filter selector'u yeni placeholder davranisina uygun hale getirildi (`/Search issues/i`).
+  - `src/App.tsx`:
+    - Web preview (non‑Tauri) modunda floating filter her zaman gorunur yapildi (E2E ve docs preview akisi icin).
+    - Desktop (Tauri) modunda mevcut davranis korunur (active / resolved view / filter dolu).
+- Phase 5 testleri:
+  - `cd guardian && npm run verify` (pass, 17/17 e2e)
+
+### v1.2.0 Stabilization - Phase 6 (Ollama API Key Optional) (2026-02-10)
+- Root cause kaydi:
+  - Provider `ollama` seciliyken bile API key eksikligi launch akisini blokluyordu; offline/local hikayesini zedeliyordu.
+  - Ollama request'lerinde key yokken bile `Authorization` header gonderiliyor ve bazi ortamlarda gereksiz hata riski olusuyordu.
+- Uygulanan degisiklikler:
+  - Desktop UI:
+    - `src/hooks/useSettings.ts`: `requiresApiKey` Ollama icin `false` (cloud provider'lar icin `true`) olacak sekilde guncellendi.
+    - `src/hooks/__tests__/useSettings.test.ts`: Ollama vs OpenAI API key requirement unit testi eklendi.
+  - Tauri backend:
+    - `src-tauri/src/config.rs`: `api_key_for_provider_or_empty` helper'i eklendi (Ollama key yoksa bos key ile devam).
+    - `src-tauri/src/lib.rs`: `start_monitoring` + Guru akisi Ollama icin key zorunlulugunu kaldiracak sekilde guncellendi.
+    - `src-tauri/src/skills/orchestrator.rs`: Ollama icin key zorunlulugu kaldirildi.
+    - `src-tauri/src/ai_client.rs`:
+      - `ensure_valid_api_key` Ollama icin bypass edildi.
+      - Ollama `send_chat` branch'i key yoksa `Authorization` header gondermeyecek sekilde degistirildi.
+- Phase 6 testleri:
+  - `cd guardian && npm test` (pass, 11 file / 64 test)
+  - `cd guardian/src-tauri && cargo test` (pass)
+
+### v1.2.0 Stabilization - Phase 7 (Distribution Scripts Version Robustness) (2026-02-10)
+- Root cause kaydi:
+  - `guardian-distribution` repo'sunda `latest.json.version` bazi surumlerde `v1.1.x` formatinda; local publish/merge scriptleri ise `1.1.x` bekliyordu.
+  - Bu mismatch bir sonraki local publish akisini kirma riski tasiyordu.
+- Uygulanan degisiklikler:
+  - `scripts/merge_latest_json.sh`: `version` alaninda hem `1.1.1` hem `v1.1.1` formatlarini kabul edecek sekilde guncellendi.
+  - `scripts/publish_distribution_local.sh` + `scripts/publish_distribution.sh`: latest.json version check hem `1.1.1` hem `v1.1.1` kabul edecek sekilde guncellendi.
+- Phase 7 testleri:
+  - Smoke test: `merge_latest_json.sh` `v1.1.1` tag'i ile `latest.json.version=v1.1.1` payload'ini basariyla merge ediyor.
+
+### v1.2.0 Stabilization - Phase 8 (Batch Critique file_path Normalization) (2026-02-10)
+- Root cause kaydi:
+  - Batch AI response `file_path` alani bazi provider/modellerde relative/yanlis gelebilir.
+  - Watcher state (`ACTIVE_CRITIQUES`) bu alani key olarak kullandigi icin ghost finding / clear/hydrate tutarsizligi riski vardi.
+- Uygulanan degisiklikler:
+  - `src-tauri/src/watcher.rs`:
+    - Batch AI critique `file_path` degeri analyzed `BatchItem.path` whitelist'ine gore normalize edildi (abs/rel/basename + canonicalize heuristics).
+    - Normalize edilemeyen path'ler multi-file batch'te drop edilir (ghost state yerine fail-safe).
+    - Semantic indexing pipeline normalize edilmis path'leri kullanacak sekilde duzeltildi.
+    - Unit testler eklendi:
+      - `batch_critique_file_paths_are_normalized_to_analyzed_paths`
+      - `batch_critique_file_paths_drop_unmapped_paths_when_ambiguous`
+- Phase 8 testleri:
+  - `cd guardian/src-tauri && cargo test` (pass, 61 test)
+
+### v1.2.0 Stabilization - Phase 9 (Version Bump + Release Notes) (2026-02-10)
+- Uygulanan degisiklikler:
+  - Version bump:
+    - `guardian/package.json` -> `1.2.0`
+    - `guardian/src-tauri/Cargo.toml` -> `1.2.0`
+    - `guardian/src-tauri/tauri.conf.json` -> `1.2.0` (window title dahil)
+  - `CHANGELOG.md`:
+    - `1.2.0` stabilizasyon notlari eklendi.
+  - `docs/LOCAL_RELEASE_RUNBOOK.md`:
+    - `latest.json.version` check notu `v` prefix uyumluluguna gore guncellendi.
+- Phase 9 testleri:
+  - (final) full test paketi + verify gate (asagidaki checklist)
+
+### v1.2.0 Stabilization - Phase 10 (sqlite-vec vec0 Init Order Fix) (2026-02-10)
+- Root cause kaydi:
+  - `sqlite3_auto_extension` kaydi mevcut SQLite connection acildiktan sonra yapiliyordu; bu nedenle ayni connection icinde `vec0` sanal tablo modulu gorunmeyip `no such module: vec0` warn uretebiliyordu.
+- Uygulanan degisiklikler:
+  - `src-tauri/src/storage/mod.rs`:
+    - sqlite-vec auto-extension register islemi connection acilmadan onceye alindi.
+    - Amaç: destekli build’lerde `semantic_vectors_ann` (vec0) tablosunun dogru init olmasi; destek yoksa mevcut cosine fallback aynen devam.
+- Phase 10 testleri:
+  - `cd guardian/src-tauri && cargo test` (pass, 64 test)
+
 ---
 
 ## Teknik Detaylar
@@ -1172,6 +1315,156 @@ Bu roadmap Guardian'ı **önce stabil ve güvenilir**, sonra **AI entegre** bir 
 
 **Başlangıç için önerim:**
 Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanılabilir hale getirecektir.
+
+---
+
+## v1.2.0 Release Automation - Auto Version Sync (2026-02-11)
+
+### Kapsam
+- Guardian uygulaması ve website için sürüm yönetimi tek komutla otomatik hale getirildi.
+- Local release akışı, tag vermeden patch bump yapacak şekilde güncellendi.
+- Tauri pencere başlığında statik `Guardian vX.Y.Z` bağımlılığı kaldırıldı (runtime version set devam ediyor).
+
+### Değişen Dosyalar
+- `guardian/scripts/bump_version.sh` (yeni)
+  - `package.json`, `website/package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json` sürümlerini senkronlar
+  - `patch|minor|major|<semver>` destekler
+- `guardian/scripts/release_all_local.sh`
+  - `[tag]` opsiyonel hale getirildi
+  - `--bump patch|minor|major|<semver>` eklendi
+  - Versiyon mismatch durumunda otomatik sync eder
+- `guardian/package.json`
+  - `version:bump`, `version:minor`, `version:major` scriptleri eklendi
+- `guardian/src-tauri/tauri.conf.json`
+  - window title `Guardian` olarak normalize edildi
+- `guardian/docs/RELEASING_LOCAL.md`
+  - tek komutla auto bump release akışı dokümante edildi
+- `guardian/docs/LOCAL_RELEASE_RUNBOOK.md`
+  - bump/sync komutları ve yeni release kullanım örnekleri güncellendi
+- `guardian/website/package.json`
+  - website sürümü ana uygulama sürümüyle senkronlandı (`1.2.0`)
+
+### Test ve Doğrulama
+- `cd guardian && npm test` ✅ (64/64)
+- `cd guardian/src-tauri && cargo test` ✅ (64/64)
+- `cd guardian/guardian-cli && cargo test` ✅ (7/7)
+- `cd guardian/website && npm run test:run` ✅ (107/107)
+- `cd guardian && npm run verify` ✅ (unit 64/64, e2e 17/17, build PASS, rust PASS)
+- `cd /Users/dogan/Desktop/new-idee && python3 .agent/scripts/verify_all.py` ✅
+
+### Kullanım Özeti
+- Patch release: `scripts/release_all_local.sh`
+- Minor release: `scripts/release_all_local.sh --bump minor`
+- Explicit version: `scripts/release_all_local.sh v1.2.3`
+
+---
+
+## v1.2.0 Website Stabilization - Changelog + Download Mobile + Top Bar Theme (2026-02-11)
+
+### Kapsam
+- Changelog sayfasında en güncel tag'in kaçırılması riski giderildi.
+- Download sayfasında mobilde yatay taşma (horizontal scroll), dar alanda buton sıkışması ve eski sürüm görünümü düzeltildi.
+- Mobil tarayıcı üst bar/beyaz alan problemi için layout/theme-color ve ilk render tema başlangıcı iyileştirildi.
+
+### Değişen Dosyalar
+- `guardian/website/lib/releases-source.ts`
+  - Release kaynağı API-first olacak şekilde düzenlendi, snapshot fallback korundu.
+- `guardian/website/lib/github.ts`
+  - Release filtreleme akışı gereksiz dışlamalara karşı sadeleştirildi.
+- `guardian/website/components/changelog/changelog-page-view.tsx`
+  - `getLatestRelease` sonucu snapshot listesinde yoksa listeye ekleniyor.
+- `guardian/website/components/download/download-page-view.tsx`
+  - Latest release için API önceliği ve snapshot fallback davranışı eklendi.
+- `guardian/website/app/download/download-client.tsx`
+  - Mobil uyumlu düzen: kart ve aksiyon satırları küçük ekranda dikey akışa geçti, CTA sarımı iyileştirildi.
+- `guardian/website/components/ui/command-header.tsx`
+  - Header görseli koyu/açık mod ile tutarlı hale getirildi, mobil aksiyonlar yeniden dengelendi.
+- `guardian/website/components/ui/direct-download-button.tsx`
+  - Header içi buton stili, üst bar ile kontrast uyumlu hale getirildi.
+- `guardian/website/app/layout.tsx`
+  - `viewport.themeColor` ve erken tema init script'i ile mobil üst bar beyaz flash azaltıldı.
+- `guardian/website/app/globals.css`
+  - `html.light/html.dark` arka planları net tanımlandı.
+- `guardian/website/e2e/download.spec.ts`
+  - Yeni UI/algılama davranışına göre assertion'lar güncellendi.
+
+### Test ve Doğrulama
+- `cd guardian && npm test` ✅ (64/64)
+- `cd guardian/src-tauri && cargo test` ✅ (64/64)
+- `cd guardian/guardian-cli && cargo test` ✅ (7/7)
+- `cd guardian/website && npm run test:run` ✅ (107/107)
+- `cd guardian && npm run verify` ✅ (unit 64/64, e2e 17/17, build PASS, rust PASS)
+- `cd guardian/website && npx playwright test e2e/download.spec.ts` ✅ (72/72)
+- `cd /Users/dogan/Desktop/new-idee && python3 .agent/scripts/verify_all.py` ✅
+
+---
+
+## v1.2.0 UI Stabilization - Update Banner + Runtime Version Title (2026-02-11)
+
+### Kapsam
+- Update available popup light/dark modda aşırı beyaz kontrast üretmeyecek şekilde tema token'larıyla yeniden düzenlendi.
+- Uygulama pencere başlığı runtime sürümden dinamik olarak set edilerek `Guardian vX.Y.Z` formatında sabitlendi.
+
+### Değişen Dosyalar
+- `guardian/src/App.tsx`
+  - `normalizeVersionLabel` helper eklendi (`v` prefix normalize için)
+  - Tauri runtime'da `get_app_version` ile sürüm çekilip pencere başlığı `getCurrentWindow().setTitle(...)` ile senkronlandı
+  - Update popup sınıfları `bg-surface / border-border-main / text-text-main` token setine geçirildi
+  - Update versiyon etiketleri normalize edilerek `v1.1.1 -> v1.2.0` gibi tutarlı render edildi
+
+### Test ve Doğrulama
+- `cd guardian && npm test` ✅ (64/64)
+- `cd guardian/src-tauri && cargo test` ✅ (64/64)
+- `cd guardian/guardian-cli && cargo test` ✅ (7/7)
+- `cd guardian/website && npm run test:run` ✅ (107/107)
+- `cd guardian && npm run verify` ✅ (unit 64/64, e2e 17/17, build PASS, rust PASS)
+- `python3 .agent/scripts/verify_all.py` ✅
+
+---
+
+## v1.2.0 UX - AI Context + Reviews Inspector Split (2026-02-11)
+
+**Hedef:** AI Context ve Reviews ekranlarını tek-uzun-scroll yerine "Inspector Split" (solda liste/filtre, sağda preview) düzenine taşıyarak okunabilirliği ve triage hızını artırmak. Tema/token renklerine dokunulmadı (özellikle `guardian/src/App.css` değişmedi).
+
+### Değişen Dosyalar
+- `guardian/src/components/AIContextPreview.tsx`: File list + search + redacted/truncated filtreleri + selected preview + copy aksiyonları
+- `guardian/src/components/FixProposalsView.tsx`: Proposal list + search + status filtreleri + selected preview + copy aksiyonları + action butonları aynı davranışla
+- `guardian/src/components/SettingsModal.tsx`: Updates tab'ına About/Support bölümü (website + contact linkleri)
+- `guardian/src/components/__tests__/AIContextPreview.test.tsx`: Split-view davranışına göre güncellendi
+- `guardian/src/components/__tests__/FixProposalsView.test.tsx`: Split-view davranışına göre güncellendi
+
+### Notlar
+- `String.prototype.replaceAll` TS target uyumsuzluğu nedeniyle `replace(/\\\\/g, "/")` ile normalize edildi.
+- AI Context redaction/truncation banner'ı light/dark uyumlu, token renklerine dokunmadan nötr yüzey stiliyle güncellendi.
+- Dev UX: Vite React Fast Refresh uyarısını azaltmak için `SettingsModal.tsx` içindeki `PROVIDER_OPTIONS` / `getProviderDefaults` export'ları kaldırıldı (dosya artık component-odaklı export yapıyor).
+
+### Release (Local) İyileştirmesi
+- `guardian/scripts/release_all_local.sh`: Tek komutla `verify → build → artifact collect → distribution publish → release notes` akışı eklendi.
+
+### v1.2.0 Release Execution (2026-02-11)
+- Distribution release yayını tamamlandı: `https://github.com/senoldogann/guardian-distribution/releases/tag/v1.2.0`
+- Yayınlanan asset'ler:
+  - `Guardian_1.2.0_aarch64.dmg`
+  - `Guardian.app.tar.gz`
+  - `Guardian.app.tar.gz.sig`
+  - `latest.json`
+  - `releases.json`
+- Build/publish sırasında `latest.json` Tauri output'unda yoksa updater `.tar.gz + .sig` üzerinden otomatik üretim eklendi.
+- `src-tauri/tauri.conf.json` içinde `bundle.createUpdaterArtifacts = true` yapıldı.
+- Notarization bu run'da env eksikliği nedeniyle atlandı (signed build + updater artifacts üretildi).
+
+### Release Sonrası Doğrulama
+- `cd guardian && npm run verify` ✅
+- `cd guardian/guardian-cli && cargo test` ✅ (7/7)
+- `cd guardian/website && npm run test:run` ✅ (107/107)
+- `python3 .agent/scripts/verify_all.py` ✅
+
+### Doğrulama (Test Sonuçları)
+- `cd guardian && npm run verify` ✅ (unit: 64/64, e2e: 17/17, build: PASS, rust tests: 64/64)
+- `cd guardian/src-tauri && cargo test` ✅ (64/64)
+- `cd guardian/guardian-cli && cargo test` ✅ (7/7)
+- `cd guardian/website && npm run test:run` ✅ (107/107)
+- `python3 .agent/scripts/verify_all.py` ✅
 
 ---
 

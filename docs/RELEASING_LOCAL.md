@@ -3,6 +3,32 @@
 This repo (`senoldogann/Guardian`) does **not** run GitHub Actions. Releases are built locally and
 uploaded manually to the public distribution repo (`senoldogann/guardian-distribution`).
 
+Quick runbook:
+- `docs/LOCAL_RELEASE_RUNBOOK.md`
+
+Recommended (single command) flow:
+
+```bash
+cd guardian
+scripts/release_all_local.sh
+```
+
+This script:
+- auto bumps/syncs versions (default: patch)
+- runs `npm run verify`
+- builds the macOS bundle(s)
+- collects artifacts into `./artifacts/vX.Y.Z`
+- publishes the release to the public distribution repo
+- updates distribution release notes from `CHANGELOG.md`
+
+Optional:
+
+```bash
+scripts/release_all_local.sh --bump minor
+scripts/release_all_local.sh --bump major
+scripts/release_all_local.sh v1.2.3   # explicit tag/version
+```
+
 ## Terminology
 
 - **Source repo**: private/dev repo with code (`senoldogann/Guardian`)

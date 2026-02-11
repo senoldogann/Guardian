@@ -12,11 +12,8 @@ order: 4
 **Symptoms**: Nothing happens when clicking the app icon
 
 **Solutions**:
-1. **Check System Requirements**: Verify macOS 13+, Windows 10+, or Ubuntu 22.04+
-2. **Delete Preferences**:
-   - macOS: `rm -rf ~/Library/Application\ Support/Guardian`
-   - Windows: Delete `%APPDATA%\Guardian`
-   - Linux: `rm -rf ~/.config/guardian`
+1. **Check System Requirements**: Verify macOS 12+. Windows/Linux apply once those builds are published.
+2. **Delete Preferences**: `rm -rf ~/Library/Application\ Support/Guardian`
 3. **Reinstall**: Download fresh installer and reinstall
 
 ### "Damaged app" on macOS
@@ -30,29 +27,6 @@ xattr -cr /Applications/Guardian.app
 
 Or go to **System Preferences > Security & Privacy** and click "Open Anyway"
 
-### Windows Defender blocks installer
-
-**Solution**: 
-1. Click "More info" on the warning
-2. Click "Run anyway"
-3. Consider adding an exclusion for Guardian
-
-### Linux AppImage won't run
-
-**Solution**:
-```bash
-chmod +x Guardian-*.AppImage
-./Guardian-*.AppImage
-```
-
-If still failing, install FUSE:
-```bash
-# Ubuntu/Debian
-sudo apt install libfuse2
-
-# Fedora
-sudo dnf install fuse-libs
-```
 
 ## Authentication Issues
 
@@ -66,7 +40,7 @@ sudo dnf install fuse-libs
    - Anthropic: [console.anthropic.com](https://console.anthropic.com)
    - OpenAI: [platform.openai.com](https://platform.openai.com)
 3. Generate a new key if necessary
-4. Ensure correct provider is selected in **Settings > Providers**
+4. Ensure correct provider is selected in **Settings > Provider**
 
 ### "Rate Limit Exceeded"
 
@@ -75,7 +49,7 @@ sudo dnf install fuse-libs
 **Solutions**:
 1. Wait 1 minute for rate limit reset
 2. Reduce concurrent scans
-3. Increase rate limit in **Settings > Providers > Rate Limits**
+3. Increase rate limit in **Settings > Provider** (if supported by your provider)
 4. Check provider dashboard for usage limits
 
 ### "Provider Unavailable"
@@ -97,7 +71,7 @@ sudo dnf install fuse-libs
 **Solutions**:
 1. Update Guardian to latest version
 2. Check available models in provider console
-3. Select alternative model in **Settings > Providers**
+3. Select alternative model in **Settings > Provider**
 4. Verify API key has access to requested model
 
 ## Scanning Issues
@@ -108,7 +82,7 @@ sudo dnf install fuse-libs
 
 **Solutions**:
 1. Add Guardian to antivirus exclusions
-2. Check Windows Defender/Security notifications
+2. Check macOS Security & Privacy notifications
 3. Temporarily disable antivirus for testing
 4. Check macOS Security & Privacy settings
 
@@ -118,13 +92,13 @@ sudo dnf install fuse-libs
 
 | Cause | Solution |
 |-------|----------|
-| Large codebase | Add ignore patterns for `node_modules`, `dist`, `build` |
-| Too many files | Increase severity threshold to filter low-priority issues |
+| Large codebase | Narrow the workspace scope to key folders |
+| Too many files | Start with a smaller subset and expand gradually |
 | Insufficient memory | Close other applications, increase RAM |
 | Slow disk | Use SSD, exclude network drives |
 
 **To improve scan speed**:
-1. **Settings > Scanning > Ignore Patterns**:
+1. Use ignore patterns in your project (for example `.gitignore` or Guardian ignore markers):
    ```
    node_modules/
    dist/
@@ -136,15 +110,15 @@ sudo dnf install fuse-libs
    coverage/
    .next/
    ```
-2. **Settings > Scanning > Severity Threshold**: Set to "Medium+" or "High+"
-3. Disable unnecessary rules in **Settings > Scanning > Rules**
+2. Focus on higher-severity findings first to reduce noise
+3. Narrow the workspace scope to the most relevant folders
 
 ### Missing files in scan results
 
 **Cause**: Ignore patterns too broad
 
 **Solution**:
-1. Check **Settings > Scanning > Ignore Patterns**
+1. Check your ignore patterns for overly broad rules
 2. Remove overly broad patterns like `*.js` or `src/`
 3. Add specific exclusions instead:
    ```
@@ -159,16 +133,22 @@ sudo dnf install fuse-libs
 ### Scan crashes or freezes
 
 **Solutions**:
-1. Reduce file size limit in **Settings > Scanning > Advanced**
-2. Disable memory-intensive rules temporarily
+1. Reduce file size limit by narrowing your workspace scope
+2. Temporarily limit the workspace to the most relevant folders
 3. Scan smaller directories first
 4. Check system resources (CPU/RAM usage)
-5. Enable debug mode and export logs:
-   - **Settings > Advanced > Debug Mode** → On
-   - Reproduce issue
-   - **Settings > Advanced > Export Logs**
+5. Include the app version and any error messages in your report
 
 ## Update Issues
+
+### Monitor shows empty findings after restart (v1.2.0+)
+
+**Cause**: The app has not hydrated from the local snapshot yet.
+
+**Solutions**:
+1. Verify the workspace contains `.guardian/critiques.json`.
+2. Relaunch Guardian and wait for the monitor snapshot sync to complete.
+3. If the file is missing, run a new scan to regenerate findings.
 
 ### Version is missing in Updates tab
 
@@ -193,10 +173,7 @@ sudo dnf install fuse-libs
 **Solutions**:
 1. **Check disk space**: Ensure 500MB+ free space
 2. **Close Guardian**: Quit app completely before updating
-3. **Permissions**: 
-   - macOS: Ensure write access to /Applications
-   - Windows: Run as Administrator
-   - Linux: Check AppImage permissions
+3. **Permissions**: Ensure write access to /Applications
 4. **Manual update**: Download installer from website
 
 ### "Update verification failed"
@@ -214,8 +191,8 @@ sudo dnf install fuse-libs
 ### No response from Guru
 
 **Solutions**:
-1. Check API key in **Settings > Providers**
-2. Test connection with "Test Connection" button
+1. Check API key in **Settings > Provider**
+2. Start monitoring to validate the provider connection
 3. Verify internet connection
 4. Check provider status page
 5. Try switching to backup provider
@@ -225,13 +202,12 @@ sudo dnf install fuse-libs
 **Solutions**:
 1. Include more context in prompts
 2. Reference specific files or line numbers
-3. Enable **Settings > Guru > Include File Context**
-4. Increase **Max Context Size**
+3. Try a different model or provider for deeper analysis
 
 ### Slow Guru responses
 
 **Solutions**:
-1. Reduce context size in **Settings > Guru > Max Context Size**
+1. Reduce input size and focus on a smaller code snippet
 2. Switch to faster model (Haiku instead of Opus)
 3. Check internet connection speed
 4. Close other bandwidth-intensive applications
@@ -257,7 +233,7 @@ sudo dnf install fuse-libs
 ### High memory usage
 
 **Solutions**:
-1. Clear scan history: **View > Scan History > Clear**
+1. Restart Guardian to clear in-memory state
 2. Close unused projects
 3. Reduce max file size limit
 4. Restart Guardian periodically
@@ -266,9 +242,8 @@ sudo dnf install fuse-libs
 
 **Solutions**:
 1. Restart the application
-2. Clear cache: **Settings > Advanced > Clear Cache**
-3. Reduce number of open projects
-4. Disable animations in **Settings > General**
+2. Reduce number of open projects
+3. Reduce background tasks and close unused apps
 
 ## Network Issues
 
@@ -286,7 +261,7 @@ sudo dnf install fuse-libs
 export HTTPS_PROXY=http://proxy.company.com:8080
 ```
 
-Or configure in **Settings > Network > Proxy**
+Or configure your system proxy settings
 
 ### Certificate errors
 
@@ -302,10 +277,7 @@ Or configure in **Settings > Network > Proxy**
 ### Lost scan history
 
 **Recovery**:
-1. Check if data folder exists:
-   - macOS: `~/Library/Application Support/Guardian/`
-   - Windows: `%APPDATA%\Guardian\`
-   - Linux: `~/.config/guardian/`
+1. Check if data folder exists: `~/Library/Application Support/Guardian/`
 2. Restore from backup if available
 3. Re-scan projects to rebuild history
 
@@ -317,18 +289,17 @@ Or configure in **Settings > Network > Proxy**
 3. Disk space issues
 
 **Solutions**:
-1. Export settings regularly: **Settings > Advanced > Export**
-2. Import backup: **Settings > Advanced > Import**
-3. Reset to defaults if needed: **Settings > Advanced > Reset**
+1. Re-open Guardian and re-save your Provider settings if needed
+2. Restart the application to reload settings
 
 ## Getting Help
 
 If issues persist:
 
 1. **Check Documentation**: Review relevant guide sections
-2. **Export Logs**: **Settings > Advanced > Export Logs**
+2. **Support Details**: Include app version and any error messages
 3. **Community**: Community forum or internal support channel
-4. **Support Email**: support@guardian-app.com
+4. **Support Email**: contact@senoldogan.dev
 
 Include in support request:
 - Guardian version

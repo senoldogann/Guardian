@@ -138,7 +138,7 @@ if [[ ! -f "$LATEST_JSON" ]]; then
 fi
 
 echo "Validating latest.json metadata ..."
-if ! jq -e --arg version "${TAG#v}" '.version == $version' "$LATEST_JSON" >/dev/null; then
+if ! jq -e --arg version "${TAG#v}" '.version == $version or .version == ("v" + $version)' "$LATEST_JSON" >/dev/null; then
   echo "Error: latest.json version does not match release tag (${TAG#v})."
   exit 1
 fi

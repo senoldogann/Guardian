@@ -14,7 +14,7 @@ describe("AIContextPreview", () => {
     expect(screen.getByText("No Captured Context")).toBeInTheDocument();
   });
 
-  it("renders summary, warning, and file previews", () => {
+  it("renders summary, warning, and file preview", async () => {
     const context: AiContextSnapshot = {
       timestamp: "2026-02-09T00:00:00Z",
       root: "/tmp/workspace",
@@ -37,12 +37,11 @@ describe("AIContextPreview", () => {
     expect(screen.getByText(/AI Outbound Context/i)).toBeInTheDocument();
     expect(screen.getByText(/Provider:/)).toBeInTheDocument();
     expect(screen.getByText(/Sensitive content was redacted/i)).toBeInTheDocument();
-    expect(screen.getByText(context.files[0].file_path)).toBeInTheDocument();
+    expect(screen.getAllByText(context.files[0].file_path).length).toBeGreaterThan(0);
 
-    const summary = screen.getByText(context.files[0].file_path);
-    fireEvent.click(summary);
-
-    expect(screen.getByText(context.files[0].content)).toBeInTheDocument();
+    expect(await screen.findByText(context.files[0].content)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /copy file context/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /copy full payload/i })).toBeInTheDocument();
   });
 
   it("calls onRefresh when refresh button is clicked", () => {
@@ -61,4 +60,3 @@ describe("AIContextPreview", () => {
     expect(onRefresh).toHaveBeenCalledTimes(1);
   });
 });
-

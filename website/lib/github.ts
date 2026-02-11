@@ -266,7 +266,7 @@ export async function getReleases(limit = 20): Promise<GithubRelease[]> {
       const body = release.body?.trim() || "";
       if (!body) return true;
       if (body.startsWith("@/")) return false;
-      if (body.includes("/Users/") || body.includes("CHANGELOG.md")) return false;
+      if (body.includes("/Users/")) return false;
       return true;
     })
     .map(normalizeRelease);

@@ -893,7 +893,12 @@ export function useSettings(
   }, [isDesktop, checkForUpdates]);
 
   const providerLabel = providerDraft ? getProviderDefaults(providerDraft.provider_id).label : "provider";
-  const requiresApiKey = isDesktop && Boolean(providerDraft) && apiKeyStatus?.has_key === false;
+  const providerId = (providerDraft?.provider_id ?? "").toLowerCase();
+  const requiresApiKey =
+    isDesktop &&
+    Boolean(providerDraft) &&
+    providerId !== "ollama" &&
+    apiKeyStatus?.has_key === false;
   const webSearchReady = Boolean(tavilyKeyStatus?.has_key);
 
   return {

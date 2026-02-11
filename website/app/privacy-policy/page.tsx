@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage() {
 
                 <h2>1. Our Approach to Privacy</h2>
                 <p>
-                    We do not run analytics, marketing trackers, or advertising pixels. We do not store user profiles or log identifiable activity on our servers.
+                    We do not run marketing trackers or advertising pixels. We do not store user profiles or log identifiable activity on our servers.
                     Your visit to this website is anonymous and we do not collect any personally identifiable information.
                 </p>
 

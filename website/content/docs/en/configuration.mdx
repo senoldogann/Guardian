@@ -25,7 +25,7 @@ Choose your AI provider from the dropdown:
 | **OpenAI** | Yes | No |
 | **Anthropic (Claude)** | Yes | No |
 | **Google Gemini** | Yes | No |
-| **Hosted Models** | Yes | No |
+| **GitHub Models** | Yes | No |
 
 ### Model Selection
 
@@ -36,7 +36,7 @@ After selecting a provider, choose a model. Available models are fetched automat
 - **OpenAI**: gpt-4o, gpt-4o-mini
 - **Anthropic**: claude-sonnet-4-20250514, claude-haiku
 - **Gemini**: gemini-2.0-flash, gemini-2.5-pro
-- **Hosted Models**: Various managed models
+- **GitHub Models**: GitHub-hosted models
 
 ### API Key Management
 
@@ -68,12 +68,12 @@ Enable AI-powered web search for Guru:
 ### Check for Updates
 
 Guardian checks for updates automatically. You can also:
-- Click **Check for Updates** in Settings
+- Click **Check Now** in Settings
 - View current version information
 
 ### Update Feed URL
 
-Advanced users can configure a custom update feed URL for self-hosted update servers.
+Advanced users can configure a custom update feed URL for self-hosted update servers via the `GUARDIAN_UPDATE_FEED_URL` environment variable.
 
 ## Configuration Storage
 
@@ -82,21 +82,7 @@ Guardian stores configuration in platform-specific locations:
 | Platform | Location |
 |----------|----------|
 | **macOS** | `~/Library/Application Support/Guardian/` |
-| **Windows** | `%APPDATA%\Guardian\` |
-| **Linux** | `~/.config/guardian/` |
 
-## Exporting Settings
-
-You can export your current configuration:
-
-1. Open Settings
-2. Click **Export Settings**
-3. Choose a location to save the JSON file
-
-This exports:
-- Provider configuration (excluding API keys)
-- Theme preference
-- Other application settings
 
 ## Guardian Lock (v1.1.0+)
 
@@ -126,7 +112,7 @@ your-project/
   "schema_version": 1,
   "created_at": "2026-02-10T12:00:00Z",
   "updated_at": "2026-02-10T12:00:00Z",
-  "guardian_version": "1.1.0",
+  "guardian_version": "1.1.1",
   "workspace_id": "sha256-hash",
   "rules_hash": "abc123...",
   "rules_source": ".agent/rules"
@@ -167,11 +153,16 @@ Choose how code embeddings are generated:
 
 ```bash
 # Environment Variables
-GUARDIAN_EMBED_PROVIDER=openai      # or "ollama"
+GUARDIAN_EMBED_MODE=auto            # "auto", "openai", "ollama", "local"
 GUARDIAN_EMBED_MODEL=text-embedding-3-small
 GUARDIAN_EMBED_MODEL_OLLAMA=nomic-embed-text
 GUARDIAN_OFFLINE=1                  # Forces local hash mode
 ```
+
+**Auto mode behavior (v1.2.0)**
+
+- If a valid OpenAI key exists, auto mode prefers OpenAI.
+- If no OpenAI key exists, auto mode skips OpenAI entirely and starts with Ollama, then local hash fallback.
 
 | Mode | Quality | Latency | Offline |
 |------|---------|---------|---------|
@@ -181,16 +172,11 @@ GUARDIAN_OFFLINE=1                  # Forces local hash mode
 
 ### Similarity Thresholds
 
-Guardian uses two thresholds:
-
-- **0.55**: Minimum for general search results
-- **0.72**: Minimum for critical finding recall
-
-These are tuned for code similarity detection.
+Guardian filters semantic matches at a minimum similarity score of **0.72**.
 
 ## Best Practices
 
-1. **Backup Configuration**: Export settings before major changes
+1. **Backup Configuration**: Export a PDF snapshot before major changes
 2. **Secure API Keys**: Never share or commit API keys
 3. **Test After Changes**: Verify Guru works after changing providers
 4. **Keep Updated**: Enable automatic update checks

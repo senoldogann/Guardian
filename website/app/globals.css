@@ -178,6 +178,15 @@
     scroll-behavior: smooth;
     scroll-padding-top: 100px;
     /* Account for fixed header */
+    background-color: #0a0a0a;
+  }
+
+  html.light {
+    background-color: var(--color-bg);
+  }
+
+  html.dark {
+    background-color: #000000;
   }
 
   body {

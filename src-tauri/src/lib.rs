@@ -272,7 +272,8 @@ async fn start_monitoring(
 
     info!(target: "guardian", "Starting monitoring on: {}", path);
     let provider = provider::resolve_provider_config(&app).map_err(|e| e.to_string())?;
-    let api_key = config::api_key_for_provider(&provider.provider_id).map_err(|e| e.to_string())?;
+    let api_key =
+        config::api_key_for_provider_or_empty(&provider.provider_id).map_err(|e| e.to_string())?;
 
     watcher
         .start(
@@ -381,6 +382,23 @@ async fn get_baseline_status(root: String) -> Result<Option<baseline::BaselineSt
         .status(&baseline, &critiques)
         .map_err(|e| e.to_string())?;
     Ok(Some(status))
+}
+
+#[tauri::command]
+async fn get_monitor_critiques(root: String) -> Result<Vec<ai_client::Critique>, String> {
+    let root_path = std::path::Path::new(&root);
+    if !root_path.exists() || !root_path.is_dir() {
+        return Err(format!(
+            "Workspace root not accessible: {}. Select the correct folder in Scope.",
+            root
+        ));
+    }
+
+    let active = watcher::active_critiques_for_root(&root);
+    if !active.is_empty() {
+        return Ok(active);
+    }
+    Ok(watcher::critiques_from_snapshot_for_root(&root))
 }
 
 #[tauri::command]
@@ -854,7 +872,8 @@ async fn ask_guru(
 
     // 2. Init AI Client
     let provider = provider::resolve_provider_config(&app).map_err(|e| e.to_string())?;
-    let api_key = config::api_key_for_provider(&provider.provider_id).map_err(|e| e.to_string())?;
+    let api_key =
+        config::api_key_for_provider_or_empty(&provider.provider_id).map_err(|e| e.to_string())?;
     let client = ai_client::AiClient::new(
         provider.provider_id.clone(),
         provider.base_url,
@@ -1453,6 +1472,7 @@ pub fn run() -> AnyhowResult<()> {
             create_baseline,
             clear_baseline,
             get_baseline_status,
+            get_monitor_critiques,
             get_guardian_lock_status,
             ensure_guardian_lock,
             get_last_ai_context,

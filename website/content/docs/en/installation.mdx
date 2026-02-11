@@ -1,6 +1,6 @@
 ---
 title: "Installation"
-summary: "Install Guardian safely on macOS, Windows, and Linux using recommended packages."
+summary: "Install Guardian safely on macOS. Windows/Linux instructions will appear once those builds are published."
 section: "Operations"
 order: 2
 ---
@@ -14,8 +14,8 @@ Before installing Guardian, ensure your system meets these requirements:
 | Platform | Version | Notes |
 |----------|---------|-------|
 | **macOS** | 12.0+ (Monterey) | Apple Silicon and Intel supported |
-| **Windows** | 10+ (21H2) | 64-bit required |
-| **Linux** | Ubuntu 22.04+ | Or equivalent GLIBC 2.35+ |
+
+Windows and Linux installers will appear on the Download page once those builds are published.
 
 ### Additional Requirements
 
@@ -38,31 +38,6 @@ Before installing Guardian, ensure your system meets these requirements:
 > xattr -cr /Applications/Guardian.app
 > ```
 
-### Windows
-
-1. **Download**: Get the `.msi` installer from the Download page
-2. **Run**: Double-click the installer and follow the prompts
-3. **Complete**: Accept the default installation location (`C:\\Program Files\\Guardian`)
-4. **Launch**: Find Guardian in the Start Menu or Desktop shortcut
-
-> **Tip**: If Windows Defender blocks the installer, click "More info" then "Run anyway"
-
-### Linux
-
-1. **Download**: Get the `.AppImage` or `.deb` file from the Download page
-2. **Make Executable**: 
-   ```bash
-   chmod +x Guardian-*.AppImage
-   ```
-3. **Run**: 
-   ```bash
-   ./Guardian-*.AppImage
-   ```
-
-For Debian-based systems, you can also use the `.deb` package:
-```bash
-sudo dpkg -i guardian-*.deb
-```
 
 ## Post-Installation Setup
 
@@ -70,37 +45,19 @@ After installing Guardian, complete these steps:
 
 ### 1. Configure AI Provider
 
-Navigate to **Settings > Providers** and add your API credentials:
+Navigate to **Settings > Provider** and add your AI provider credentials.
 
-```
-Provider: Anthropic Claude
-API Key: sk-ant-api03-xxxxx
-Model: claude-4.5-sonnet
-```
+### 2. Verify Installation
 
-### 2. Set Up Project Defaults
-
-In **Settings > Projects**, configure:
-- **Default Scan Path**: Your typical projects directory
-- **Ignore Patterns**: Files/folders to exclude (e.g., `node_modules`, `.git`)
-- **Severity Threshold**: Minimum severity level to display
-
-### 3. Verify Installation
-
-Run the built-in health check:
-1. Go to **Settings > Updates**
-2. Click "Check for Updates"
-3. Verify that the current version is displayed correctly
+Open **Settings > Updates** and confirm the current version is displayed correctly.
 
 ## Updating Guardian
 
 Guardian supports automatic updates:
 
-1. **Auto-Check**: The app checks for updates on startup
+1. **Auto-Check**: The app checks for updates on startup, on focus, and while active
 2. **Notification**: A banner appears when updates are available
-3. **One-Click Install**: Click "Update Now" to download and install
-
-To manually check: **Settings > Updates > Check for Updates**
+3. **One-Click Install**: Click "Install Update" to download and install
 
 ## Uninstallation
 
@@ -110,14 +67,6 @@ rm -rf /Applications/Guardian.app
 rm -rf ~/Library/Application\ Support/Guardian
 ```
 
-### Windows
-Use "Add or Remove Programs" in Windows Settings
-
-### Linux
-```bash
-rm ~/Guardian-*.AppImage
-rm -rf ~/.config/guardian
-```
 
 ## Troubleshooting
 
@@ -125,7 +74,7 @@ rm -rf ~/.config/guardian
 |-------|----------|
 | App won't launch | Delete preferences and restart |
 | "Damaged app" on macOS | Run `xattr -cr` command above |
-| Blank screen | Check if antivirus is blocking |
+| Blank screen | Check if security software is blocking |
 | Can't connect to AI | Verify API key in Settings |
 
 For more issues, see [Troubleshooting](/docs/troubleshooting).

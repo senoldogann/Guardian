@@ -1,5 +1,5 @@
 import type { SiteDictionary } from "../../lib/i18n";
-import { pickInstallers, releaseTagToVersion } from "../../lib/github";
+import { getLatestRelease, pickInstallers, releaseTagToVersion } from "../../lib/github";
 import { fetchReleaseSnapshot } from "../../lib/releases-source";
 import { DownloadClient } from "../../app/download/download-client";
 
@@ -13,8 +13,14 @@ export async function DownloadPageView({ dict }: Props) {
   let fetchError: string | null = null;
 
   try {
-    const releases = await fetchReleaseSnapshot(1);
-    const latest = releases[0];
+    const latestFromApi = await getLatestRelease();
+    let latest = latestFromApi;
+
+    if (!latest) {
+      const releases = await fetchReleaseSnapshot(1);
+      latest = releases[0];
+    }
+
     if (latest) {
       latestTag = releaseTagToVersion(latest.tag_name);
       installers = pickInstallers(latest.assets);

@@ -20,11 +20,11 @@
     "sections": {
       "guru": {
         "title": "Guru: The AI Architect",
-        "description": "Analyzes your code on every push, explains errors with context, and suggests fixes."
+        "description": "Analyzes your code as you work, explains issues with context, and suggests fixes."
       },
       "auth": {
         "title": "Secure Identity Management",
-        "description": "Protect your project with professional authentication and authorization."
+        "description": "Sign in with GitHub device authorization to unlock monitoring and secure workflows."
       }
     }
   },

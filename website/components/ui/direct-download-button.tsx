@@ -69,7 +69,7 @@ export function DirectDownloadButton() {
     if (!mounted) {
         return (
             <Button
-                className="rounded-full bg-white hover:bg-zinc-200 text-black font-semibold shadow-lg shadow-white/10 px-6"
+                className="rounded-full bg-black text-white border border-white/20 hover:bg-neutral-900 font-semibold shadow-lg shadow-black/30 px-5"
                 disabled
                 aria-disabled
                 suppressHydrationWarning
@@ -82,7 +82,7 @@ export function DirectDownloadButton() {
 
     return (
         <Button
-            className="rounded-full bg-white hover:bg-zinc-200 text-black font-semibold shadow-lg shadow-white/10 px-6"
+            className="rounded-full bg-black text-white border border-white/20 hover:bg-neutral-900 font-semibold shadow-lg shadow-black/30 px-5"
             onClick={handleDownload}
             disabled={isLoading}
             aria-disabled={isLoading}

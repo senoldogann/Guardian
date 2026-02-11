@@ -20,8 +20,8 @@ Guardian implements a defense-in-depth security model with multiple layers of pr
 ┌──────────────────────────────────────────────┐
 │             🔐 Transport Layer               │
 │  • HTTPS/TLS for API communications           │
-│  • Update checks via configured updater feed  │
-│  • Authenticated update feed requests         │
+│  • Update checks via GitHub Releases          │
+│  • Optional custom feed via env override      │
 └──────────────────────────────────────────────┘
                        │
 ┌──────────────────────────────────────────────┐
@@ -59,8 +59,6 @@ Release hardening depends on your build and distribution setup. Guardian support
 | Platform | Method | Certificate |
 |----------|--------|-------------|
 | macOS | Code signing / notarization | Build dependent |
-| Windows | Code signing | Build dependent |
-| Linux | Signature verification | Build dependent |
 
 ### Update Verification
 
@@ -117,15 +115,14 @@ Guardian stores these data types locally:
 
 ## Content Security Policy
 
-Guardian enforces strict CSP rules:
+Guardian enforces strict CSP rules (illustrative):
 
 ```
 default-src 'self';
 script-src 'self';
 style-src 'self';
 img-src 'self' data: https:;
-connect-src 'self' https://api.openai.com https://api.anthropic.com https://updates.guardian.example.com;
-img-src 'self' data: https:;
+connect-src 'self' https://api.openai.com https://api.anthropic.com https://github.com;
 ```
 
 This prevents:

@@ -7,43 +7,42 @@ order: 3
 
 ## Update Overview
 
-Guardian uses an automatic update system to ensure you always have the latest features, security patches, and bug fixes. Updates are downloaded and installed seamlessly without disrupting your workflow.
+Guardian checks for updates on startup, on focus, and every 15 minutes while the app is open. When an update is available you can install it from the update banner or **Settings > Updates**.
+
+## v1.2.0 Stabilization Notes
+
+v1.2.0 is a stabilization release. Key fixes include:
+
+- Monitor hydration from `.guardian/critiques.json` on launch and after reconnects.
+- Baseline view defaults stay on **All** unless you explicitly choose **New** or **Resolved**.
+- Embedding auto mode skips OpenAI when no key exists and uses Ollama → local hash fallback.
+- Roadmap entries for the stabilization phases were recorded for traceability.
 
 ## Update Source
 
-Guardian reads updater metadata from the **public distribution repository**.
+Guardian reads updater metadata from the **public distribution repository** (GitHub Releases).
 
 ### Release Structure
 
 ```
 Distribution Repository
-├── latest.json          # Current version metadata
-├── Guardian-1.2.3.dmg   # macOS installer
-├── Guardian-1.2.3.msi   # Windows installer
-├── Guardian-1.2.3.AppImage  # Linux installer
-└── checksums.txt        # SHA-256 hashes
+├── latest.json              # Current version metadata
+├── Guardian_1.2.3_aarch64.app.tar.gz   # macOS updater artifact
+├── Guardian_1.2.3_aarch64.dmg          # macOS installer
+└── ...
 ```
 
 ### latest.json Format
 
 ```json
 {
-  "version": "1.2.3",
-  "releaseDate": "2026-02-07",
-  "minimumVersion": "1.0.0",
+  "version": "v1.2.3",
   "notes": "Bug fixes and performance improvements",
-  "downloads": {
-    "darwin": {
-      "url": "https://updates.guardian.example.com/Guardian-1.2.3.dmg",
-      "checksum": "sha256:abc123..."
-    },
-    "win32": {
-      "url": "https://updates.guardian.example.com/Guardian-1.2.3.msi",
-      "checksum": "sha256:def456..."
-    },
-    "linux": {
-      "url": "https://updates.guardian.example.com/Guardian-1.2.3.AppImage",
-      "checksum": "sha256:ghi789..."
+  "pub_date": "2026-02-07T12:00:00Z",
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "base64-signature",
+      "url": "https://github.com/<org>/<repo>/releases/download/v1.2.3/Guardian_1.2.3_aarch64.app.tar.gz"
     }
   }
 }
@@ -56,15 +55,14 @@ Distribution Repository
 Guardian checks for updates:
 
 1. **On Startup**: When you open the app
-2. **Manually**: Via **Settings > Updates > Check for Updates**
+2. **Manually**: Via **Settings > Updates > Check Now**
 
 ### Update Notification
 
 When an update is available:
 
 1. **Banner appears** at the top of the window
-2. **Badge** appears on Settings icon
-3. **Version info** shows in Settings > Updates
+2. **Version info** shows in Settings > Updates
 
 ### Update Installation Process
 
@@ -86,7 +84,7 @@ When an update is available:
 
 **Installation Steps**:
 
-1. **Approval**: Click "Update Now" in banner or Settings
+1. **Approval**: Click "Install Update" in the banner or Settings
 2. **Download**: Package downloads in background (progress shown)
 3. **Verification**: The updater validates the update (for example: signature checks depending on your configuration)
 4. **Installation**: The updater installs the new version
@@ -101,31 +99,18 @@ Before applying updates, Guardian verifies:
 |-------|---------|
 | **Updater Verification** | Authenticity and integrity checks (depends on updater configuration) |
 | **Version Format** | Prevents invalid updates |
-| **Minimum Version** | Ensures compatibility |
 
 If any check fails, the update is rejected and the user is notified.
 
 ## Update Settings
 
-### Auto-Update Modes
-
-Configure in **Settings > Updates**:
-
-| Mode | Behavior | Recommended For |
-|------|----------|-----------------|
-| **Automatic** | Download and install without prompting | Personal use, trusted environments |
-| **Notify Only** | Show notification, manual install | Corporate environments |
-| **Disabled** | No update checks | Air-gapped systems, development |
-
-### Channels and Schedule
-
-Update channels and scheduled intervals depend on your distribution setup. The current app experience focuses on startup checks and manual checks.
+The current app experience focuses on startup checks, focus checks, and manual checks in **Settings > Updates**.
 
 ## Manual Updates
 
 ### Checking Manually
 
-**Settings > Updates > Check for Updates**
+**Settings > Updates > Check Now**
 
 Forces immediate check regardless of schedule.
 
@@ -155,17 +140,6 @@ For air-gapped systems:
 # Or reinstall previous version from backup
 ```
 
-**Windows**:
-```powershell
-# Use System Restore
-# Or uninstall and reinstall previous version
-```
-
-**Linux**:
-```bash
-# Keep previous AppImage
-./Guardian-1.2.2.AppImage
-```
 
 ## Operational Notes
 
@@ -182,7 +156,7 @@ If release mirroring is manual, verify that:
 
 For enterprise environments:
 
-1. **Disable Auto-Update**: Use "Notify Only" or "Disabled"
+1. **Disable Auto-Update**: Use internal policy and avoid in-app updates
 2. **Internal Mirror**: Host `latest.json` on internal server
 3. **Staging**: Test updates in staging environment first
 4. **Scheduled Deployment**: Plan updates during maintenance windows
@@ -208,7 +182,7 @@ Point Guardian to your internal update feed by setting the `GUARDIAN_UPDATE_FEED
 Disable notifications temporarily:
 
 - **Do Not Disturb**: System setting
-- **Focus Mode**: macOS Focus or Windows Focus Assist
+- **Focus Mode**: macOS Focus
 
 ## Troubleshooting Updates
 

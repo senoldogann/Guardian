@@ -52,6 +52,53 @@ describe("useSettings", () => {
     expect(mockInvoke).toHaveBeenCalledWith("get_provider_config");
   });
 
+  it("should require API key for cloud providers but not for Ollama", async () => {
+    const openaiProvider = {
+      provider_id: "openai",
+      base_url: "https://api.openai.com/v1",
+      model: "gpt-4",
+    };
+    const ollamaProvider = {
+      provider_id: "ollama",
+      base_url: "http://127.0.0.1:11434",
+      model: "llama3",
+    };
+
+    mockInvoke.mockImplementation(async (command: string) => {
+      if (command === "get_provider_config") return openaiProvider;
+      if (command === "get_api_key_status") return { has_key: false, source: "missing" };
+      if (command === "get_tavily_key_status") return { has_key: false, source: "none" };
+      if (command === "check_app_update") return defaultUpdateResult;
+      return null;
+    });
+
+    const openaiHook = renderHook(() => useSettings(mockExportPdfFn, true));
+    await waitFor(() => {
+      expect(openaiHook.result.current.providerDraft).toEqual(openaiProvider);
+    });
+    await waitFor(() => {
+      expect(openaiHook.result.current.requiresApiKey).toBe(true);
+    });
+    openaiHook.unmount();
+
+    mockInvoke.mockImplementation(async (command: string) => {
+      if (command === "get_provider_config") return ollamaProvider;
+      if (command === "get_api_key_status") return { has_key: false, source: "missing" };
+      if (command === "get_tavily_key_status") return { has_key: false, source: "none" };
+      if (command === "check_app_update") return defaultUpdateResult;
+      return null;
+    });
+
+    const ollamaHook = renderHook(() => useSettings(mockExportPdfFn, true));
+    await waitFor(() => {
+      expect(ollamaHook.result.current.providerDraft).toEqual(ollamaProvider);
+    });
+    await waitFor(() => {
+      expect(ollamaHook.result.current.requiresApiKey).toBe(false);
+    });
+    ollamaHook.unmount();
+  });
+
   it("should validate API key", async () => {
     const mockProvider = {
       provider_id: "openai",

@@ -14,7 +14,7 @@ Guardian is a desktop governance application that evaluates codebases against ar
 - **Codebase Scanning**: Analyzes your project for architectural violations, security issues, and quality concerns.
 - **Guru AI Assistant**: An intelligent assistant that explains issues in context and provides actionable fix suggestions.
 - **Release Governance**: Manages the release process with built-in update checking and version management.
-- **In-App Updates**: Checks for updates via the configured update feed and guides you through installing new releases.
+- **In-App Updates**: Checks for updates via GitHub Releases and guides you through installing new releases.
 
 ## Who is it for?
 
@@ -47,14 +47,14 @@ Guardian follows a three-step governance cycle:
 Here's what you should do in your first session:
 
 ### 1. Install the Application
-Download the installer for your operating system from the Download page. Guardian supports macOS, Windows, and Linux.
+Download the installer from the Download page. macOS builds are available now; Windows and Linux appear when published.
 
 ### 2. Configure Provider Settings
 
-Navigate to **Settings > Providers** and configure your AI provider credentials. Guardian supports multiple AI providers including cloud-based and local options.
+Navigate to **Settings > Provider** and configure your AI provider credentials. Guardian supports multiple AI providers including cloud-based and local options.
 
 ### 3. Start Your First Scan
-Open a project folder using **File > Open Project** or drag and drop a folder onto the app window. Start monitoring when you're ready.
+Click the **Scope** field (or drag and drop a folder onto the app) to select your workspace, then choose **Launch Guardian** to start monitoring.
 
 ### 4. Review Findings
 Once the scan completes:
@@ -81,12 +81,11 @@ The Guardian interface consists of four main areas:
 - [Configuration](/docs/configuration) - Customize settings and guardian.lock
 - [Security](/docs/security) - Understand the security model
 
-## What's New in v1.1.0
+## What's New in v1.2.0
 
-Guardian v1.1.0 includes major improvements:
+v1.2.0 is a stabilization release focused on predictable monitoring and resilient embeddings.
 
-- **Semantic Search**: Find similar code patterns across your codebase
-- **Reviews Queue**: Structured workflow for AI-suggested fixes
-- **Diff-Focused Context**: 92% reduction in AI token usage
-- **Guardian Lock**: Ensure reproducible scans across teams
-- **Protocol Stabilization**: Faster, more reliable analysis
+- **Monitor hydration**: Existing findings are loaded from `.guardian/critiques.json` on launch and merged with live updates.
+- **Default filters stay All**: Baseline view no longer auto-switches to New; select New/Resolved manually when needed.
+- **Embedding auto routing**: Auto mode uses OpenAI only when a valid key exists; otherwise it goes directly to Ollama and falls back to local hash.
+- **Cleanup + verification**: Removed an unused fix-proposal helper and expanded tests in desktop + Tauri; full regression runs were recorded across desktop, Tauri, CLI, website, and the verify_all script.

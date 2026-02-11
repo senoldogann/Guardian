@@ -1,9 +1,5 @@
 use anyhow::Context;
-use rusqlite::{
-    params, params_from_iter,
-    types::Value,
-    Connection, OptionalExtension, Result,
-};
+use rusqlite::{params, params_from_iter, types::Value, Connection, OptionalExtension, Result};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::path::Path;
@@ -101,10 +97,14 @@ impl StorageManager {
             std::fs::create_dir_all(parent)?;
         }
 
+        // sqlite3_auto_extension only affects connections opened *after* registration.
+        // Register first so the current connection sees vec0 (when supported).
+        let sqlite_vec_register = register_sqlite_vec_auto_extension();
+
         let conn = Connection::open(&db_path).context("Failed to open SQLite connection")?;
         let mut semantic_ann_enabled = false;
 
-        match register_sqlite_vec_auto_extension() {
+        match sqlite_vec_register {
             Ok(()) => {
                 if let Err(err) = conn.execute(
                     &format!(
@@ -115,7 +115,7 @@ impl StorageManager {
                 ) {
                     warn!(
                         target: "guardian::semantic",
-                        "sqlite-vec ANN table init failed, falling back to cosine scan: {}",
+                        "sqlite-vec ANN table init failed, falling back to cosine scan. This is expected in dev builds without vec0 support: {}",
                         err
                     );
                 } else {
@@ -439,7 +439,8 @@ impl StorageManager {
                 "sqlite-vec ANN upsert failed, disabling ANN for this session: {}",
                 err
             );
-            self.semantic_ann_enabled.store(false, AtomicOrdering::Relaxed);
+            self.semantic_ann_enabled
+                .store(false, AtomicOrdering::Relaxed);
         }
     }
 
@@ -475,7 +476,8 @@ impl StorageManager {
                         "sqlite-vec ANN search failed, falling back to cosine scan: {}",
                         err
                     );
-                    self.semantic_ann_enabled.store(false, AtomicOrdering::Relaxed);
+                    self.semantic_ann_enabled
+                        .store(false, AtomicOrdering::Relaxed);
                 }
             }
         }
@@ -530,12 +532,18 @@ impl StorageManager {
             bind_values.push(Value::Text(severity.to_string()));
         }
         if let Some(exclude_hash) = exclude_content_hash {
-            sql.push_str(&format!(" AND sv.content_hash <> ?{}", bind_values.len() + 1));
+            sql.push_str(&format!(
+                " AND sv.content_hash <> ?{}",
+                bind_values.len() + 1
+            ));
             bind_values.push(Value::Text(exclude_hash.to_string()));
         }
         if let Some(exclude_id) = exclude_critique_id {
             if !exclude_id.is_empty() {
-                sql.push_str(&format!(" AND sv.critique_id <> ?{}", bind_values.len() + 1));
+                sql.push_str(&format!(
+                    " AND sv.critique_id <> ?{}",
+                    bind_values.len() + 1
+                ));
                 bind_values.push(Value::Text(exclude_id.to_string()));
             }
         }
@@ -576,7 +584,6 @@ impl StorageManager {
         exclude_content_hash: Option<&str>,
         exclude_critique_id: Option<&str>,
     ) -> Result<Vec<SemanticMatch>> {
-        
         let query = if let Some(severity) = severity_filter {
             let sql = format!(
                 "SELECT file_path, content_hash, critique_id, severity, embedding_json, source_mode, COALESCE(preview, '')
@@ -586,9 +593,7 @@ impl StorageManager {
                  LIMIT {}",
                 COSINE_SCAN_LIMIT
             );
-            let mut stmt = self.conn.prepare(
-                &sql,
-            )?;
+            let mut stmt = self.conn.prepare(&sql)?;
             let rows = stmt.query_map(params![workspace, severity], |row| {
                 Ok((
                     row.get::<_, String>(0)?,
@@ -610,9 +615,7 @@ impl StorageManager {
                  LIMIT {}",
                 COSINE_SCAN_LIMIT
             );
-            let mut stmt = self.conn.prepare(
-                &sql,
-            )?;
+            let mut stmt = self.conn.prepare(&sql)?;
             let rows = stmt.query_map(params![workspace], |row| {
                 Ok((
                     row.get::<_, String>(0)?,

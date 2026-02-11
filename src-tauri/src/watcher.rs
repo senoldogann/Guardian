@@ -7,11 +7,11 @@ use crate::storage::StorageManager;
 use chrono::Utc;
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use once_cell::sync::Lazy;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sha2::{Digest, Sha256};
 use similar::{ChangeTag, TextDiff};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::BufRead;
@@ -311,11 +311,51 @@ pub(crate) fn refresh_fix_proposals_for_root(root: &str) -> FixProposalsSnapshot
     snapshot
 }
 
-pub(crate) fn last_fix_proposals_for_root(root: &str) -> Option<FixProposalsSnapshot> {
-    let Ok(lock) = LAST_FIX_PROPOSALS.read() else {
-        return None;
+#[derive(Debug, Deserialize)]
+struct CritiquesSnapshotV1 {
+    protocol_version: u64,
+    #[serde(default)]
+    critiques: Vec<crate::ai_client::Critique>,
+}
+
+fn absolutize_snapshot_path(root_path: &Path, file_path: &str) -> String {
+    let trimmed = file_path.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+    let path = Path::new(trimmed);
+    if path.is_absolute() {
+        return trimmed.to_string();
+    }
+    root_path
+        .join(trimmed.trim_start_matches("./"))
+        .to_string_lossy()
+        .to_string()
+}
+
+pub(crate) fn critiques_from_snapshot_for_root(root: &str) -> Vec<crate::ai_client::Critique> {
+    let root_path = Path::new(root);
+    let snapshot_path = root_path.join(".guardian").join("critiques.json");
+    let raw = match fs::read_to_string(snapshot_path) {
+        Ok(raw) => raw,
+        Err(_) => return Vec::new(),
     };
-    lock.as_ref().filter(|snap| snap.root == root).cloned()
+
+    let mut parsed = match serde_json::from_str::<CritiquesSnapshotV1>(&raw) {
+        Ok(parsed) => parsed,
+        Err(_) => return Vec::new(),
+    };
+
+    if parsed.protocol_version != 1 {
+        return Vec::new();
+    }
+
+    parsed.critiques.retain(|critique| !critique.file_path.trim().is_empty());
+    for critique in &mut parsed.critiques {
+        critique.file_path = absolutize_snapshot_path(root_path, &critique.file_path);
+    }
+
+    parsed.critiques
 }
 
 fn load_fix_proposals_snapshot(root: &str) -> FixProposalsSnapshot {
@@ -859,6 +899,144 @@ struct BatchItem {
     hash: String,
 }
 
+struct BatchPathResolver {
+    root: PathBuf,
+    single_abs: Option<String>,
+    abs_set: HashSet<String>,
+    rel_to_abs: HashMap<String, String>,
+    basename_to_abs: HashMap<String, String>,
+    canonical_to_abs: HashMap<String, String>,
+}
+
+impl BatchPathResolver {
+    fn new(workspace_root: &Path, items: &[BatchItem]) -> Self {
+        let mut abs_set = HashSet::with_capacity(items.len());
+        let mut rel_to_abs = HashMap::with_capacity(items.len() * 2);
+        let mut canonical_to_abs = HashMap::with_capacity(items.len());
+        let mut basename_counts: HashMap<String, usize> = HashMap::new();
+        let mut single_abs: Option<String> = None;
+
+        for item in items {
+            let abs = item.path.to_string_lossy().to_string();
+            if single_abs.is_none() && items.len() == 1 {
+                single_abs = Some(abs.clone());
+            }
+            abs_set.insert(abs.clone());
+
+            let rel = normalize_rel_file_path(workspace_root, &abs);
+            rel_to_abs.insert(rel, abs.clone());
+
+            if let Some(name) = item
+                .path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .filter(|n| !n.is_empty())
+            {
+                *basename_counts.entry(name.to_string()).or_insert(0) += 1;
+            }
+
+            if let Ok(canonical) = dunce::canonicalize(&item.path) {
+                canonical_to_abs.insert(canonical.to_string_lossy().to_string(), abs);
+            }
+        }
+
+        let mut basename_to_abs = HashMap::new();
+        for item in items {
+            let Some(name) = item
+                .path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .filter(|n| !n.is_empty())
+            else {
+                continue;
+            };
+            if basename_counts.get(name).copied().unwrap_or(0) == 1 {
+                basename_to_abs.insert(name.to_string(), item.path.to_string_lossy().to_string());
+            }
+        }
+
+        Self {
+            root: workspace_root.to_path_buf(),
+            single_abs,
+            abs_set,
+            rel_to_abs,
+            basename_to_abs,
+            canonical_to_abs,
+        }
+    }
+
+    fn resolve(&self, raw: &str) -> Option<String> {
+        let trimmed = raw.trim();
+        if trimmed.is_empty() {
+            return self.single_abs.clone();
+        }
+        if self.abs_set.contains(trimmed) {
+            return Some(trimmed.to_string());
+        }
+
+        let cleaned = trimmed.replace('\\', "/");
+        let rel_key = normalize_rel_file_path(&self.root, &cleaned);
+        if let Some(abs) = self.rel_to_abs.get(&rel_key) {
+            return Some(abs.clone());
+        }
+
+        if let Some(name) = Path::new(&cleaned)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .filter(|n| !n.is_empty())
+        {
+            if let Some(abs) = self.basename_to_abs.get(name) {
+                return Some(abs.clone());
+            }
+        }
+
+        let candidate = if Path::new(&cleaned).is_absolute() {
+            PathBuf::from(&cleaned)
+        } else {
+            self.root.join(&cleaned)
+        };
+        let canonical = dunce::canonicalize(&candidate).unwrap_or(candidate);
+        if let Some(abs) = self.canonical_to_abs.get(canonical.to_string_lossy().as_ref()) {
+            return Some(abs.clone());
+        }
+
+        None
+    }
+}
+
+fn normalize_batch_critique_file_paths(
+    workspace_root: &Path,
+    items: &[BatchItem],
+    critiques: Vec<crate::ai_client::Critique>,
+) -> Vec<crate::ai_client::Critique> {
+    if critiques.is_empty() || items.is_empty() {
+        return critiques;
+    }
+
+    let resolver = BatchPathResolver::new(workspace_root, items);
+    critiques
+        .into_iter()
+        .filter_map(|mut critique| {
+            let resolved = resolver.resolve(&critique.file_path);
+            let Some(resolved) = resolved else {
+                let label = Path::new(critique.file_path.as_str())
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .filter(|n| !n.is_empty())
+                    .unwrap_or("<unknown>");
+                warn!(
+                    target: "guardian::watcher",
+                    "Dropping critique with unmapped file_path (file={})",
+                    label
+                );
+                return None;
+            };
+            critique.file_path = resolved;
+            Some(critique)
+        })
+        .collect()
+}
+
 async fn batch_processing_loop(
     mut rx: tokio::sync::mpsc::Receiver<BatchItem>,
     app: AppHandle,
@@ -947,6 +1125,7 @@ async fn process_batch(
         *last_request = Instant::now();
         match call {
             Ok(critiques) => {
+                let critiques = normalize_batch_critique_file_paths(Path::new(root), &items, critiques);
                 let critiques_for_semantic = critiques.clone();
                 handle_critiques(
                     app,
@@ -997,6 +1176,11 @@ async fn process_batch(
                         append_ai_request_history(root, client, single_tokens, &single_context);
                         match client.analyze_batch(single_prompt).await {
                             Ok(critiques) => {
+                                let critiques = normalize_batch_critique_file_paths(
+                                    Path::new(root),
+                                    &single_items,
+                                    critiques,
+                                );
                                 let critiques_for_semantic = critiques.clone();
                                 handle_critiques(
                                     app,
@@ -1121,6 +1305,9 @@ fn handle_critiques(
     let mut critical_info: Option<StallInfo> = None;
     // Process Results
     for mut critique in critiques {
+        if critique.file_path.trim().is_empty() && items.len() == 1 {
+            critique.file_path = items[0].path.to_string_lossy().to_string();
+        }
         critique.finding_id = Some(crate::baseline::manager::finding_id_for_critique(
             workspace_root,
             &critique,
@@ -2028,6 +2215,120 @@ mod tests_protocol {
         assert_eq!(parsed["protocol_version"], 1);
         assert_eq!(parsed["critiques"][0]["file_path"], "src/main.rs");
         assert_eq!(parsed["critiques"][0]["finding_id"], "finding-123");
+    }
+
+    #[test]
+    fn batch_critique_file_paths_are_normalized_to_analyzed_paths() {
+        let tmp = TempDir::new().expect("tempdir");
+        let root = tmp.path();
+
+        let abs_path = root.join("src").join("main.rs");
+        let abs_str = abs_path.to_string_lossy().to_string();
+
+        let item = BatchItem {
+            path: abs_path,
+            content: String::new(),
+            hash: String::new(),
+        };
+
+        let critique = crate::ai_client::Critique {
+            file_path: "src/main.rs".to_string(),
+            severity: "Warning".to_string(),
+            message: "Issue".to_string(),
+            suggestion: None,
+            chat_message: None,
+            suggested_diff: None,
+            finding_id: None,
+            why: None,
+        };
+
+        let out = normalize_batch_critique_file_paths(root, &[item], vec![critique]);
+        assert_eq!(out.len(), 1);
+        assert_eq!(out[0].file_path, abs_str);
+    }
+
+    #[test]
+    fn batch_critique_file_paths_drop_unmapped_paths_when_ambiguous() {
+        let tmp = TempDir::new().expect("tempdir");
+        let root = tmp.path();
+
+        let item_a = BatchItem {
+            path: root.join("a.rs"),
+            content: String::new(),
+            hash: String::new(),
+        };
+        let item_b = BatchItem {
+            path: root.join("b.rs"),
+            content: String::new(),
+            hash: String::new(),
+        };
+
+        let critique = crate::ai_client::Critique {
+            file_path: "c.rs".to_string(),
+            severity: "Warning".to_string(),
+            message: "Issue".to_string(),
+            suggestion: None,
+            chat_message: None,
+            suggested_diff: None,
+            finding_id: None,
+            why: None,
+        };
+
+        let out = normalize_batch_critique_file_paths(root, &[item_a, item_b], vec![critique]);
+        assert!(out.is_empty());
+    }
+
+    #[test]
+    fn critiques_from_snapshot_loads_protocol_v1_payload() {
+        let tmp = TempDir::new().expect("tempdir");
+        let root = tmp.path();
+        let guardian_dir = root.join(".guardian");
+        fs::create_dir_all(&guardian_dir).expect("guardian dir");
+
+        let payload = json!({
+            "protocol_version": 1,
+            "timestamp": "2026-02-10T00:00:00Z",
+            "workspace_id": "workspace",
+            "rules_hash": "hash",
+            "critiques": [
+                {
+                    "finding_id": "f-1",
+                    "file_path": "src/main.rs",
+                    "severity": "Critical",
+                    "message": "Legacy issue",
+                    "suggestion": null,
+                    "chat_message": null,
+                    "suggested_diff": null
+                }
+            ]
+        });
+        let snapshot_path = guardian_dir.join("critiques.json");
+        fs::write(&snapshot_path, serde_json::to_string_pretty(&payload).expect("serialize payload"))
+            .expect("write snapshot");
+
+        let critiques = critiques_from_snapshot_for_root(root.to_string_lossy().as_ref());
+        assert_eq!(critiques.len(), 1);
+        assert_eq!(critiques[0].finding_id.as_deref(), Some("f-1"));
+        assert!(critiques[0].file_path.ends_with("src/main.rs"));
+        assert_eq!(critiques[0].message, "Legacy issue");
+    }
+
+    #[test]
+    fn critiques_from_snapshot_returns_empty_on_invalid_payload() {
+        let tmp = TempDir::new().expect("tempdir");
+        let root = tmp.path();
+        let guardian_dir = root.join(".guardian");
+        fs::create_dir_all(&guardian_dir).expect("guardian dir");
+        let snapshot_path = guardian_dir.join("critiques.json");
+
+        fs::write(&snapshot_path, "{\"protocol_version\":2,\"critiques\":[]}")
+            .expect("write snapshot");
+        let invalid_protocol = critiques_from_snapshot_for_root(root.to_string_lossy().as_ref());
+        assert!(invalid_protocol.is_empty());
+
+        fs::write(&snapshot_path, "{invalid-json").expect("write malformed snapshot");
+        let malformed = critiques_from_snapshot_for_root(root.to_string_lossy().as_ref());
+        assert!(malformed.is_empty());
     }
 
     #[test]

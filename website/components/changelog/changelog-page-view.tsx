@@ -3,6 +3,7 @@ import type { ReleaseMonthGroup } from "../../lib/changelog";
 import { groupReleasesByMonth, toReleaseViewModel } from "../../lib/changelog";
 import { getDictionary } from "../../lib/i18n";
 import { ChangelogClient } from "./changelog-client";
+import { getLatestRelease } from "../../lib/github";
 
 export async function ChangelogPageView() {
   let fetchError: string | null = null;
@@ -10,7 +11,14 @@ export async function ChangelogPageView() {
   let groups: ReleaseMonthGroup[] = [];
 
   try {
-    const rawReleases = await fetchReleaseSnapshot(40);
+    const [snapshotReleases, latestRelease] = await Promise.all([
+      fetchReleaseSnapshot(40),
+      getLatestRelease().catch(() => null),
+    ]);
+    const rawReleases = [...snapshotReleases];
+    if (latestRelease && !rawReleases.some((release) => release.tag_name === latestRelease.tag_name)) {
+      rawReleases.unshift(latestRelease);
+    }
     const releaseViewModels = rawReleases.map(toReleaseViewModel);
     groups = groupReleasesByMonth(releaseViewModels, "en-US");
   } catch (error) {

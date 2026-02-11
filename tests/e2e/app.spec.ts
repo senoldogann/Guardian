@@ -93,7 +93,7 @@ test.describe("Theme", () => {
 test.describe("Navigation", () => {
   test("navigates to Guru view", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: /Guru/i }).click();
+    await page.getByRole("button", { name: /^Guru$/i }).click();
     await expect(page.getByRole("heading", { name: "Guru Architect" })).toBeVisible();
   });
 
@@ -191,7 +191,7 @@ test.describe("Filter Functionality", () => {
   test("filter input is accessible", async ({ page }) => {
     await page.goto("/");
     
-    const filterInput = page.getByPlaceholder("Search Issues...");
+    const filterInput = page.getByPlaceholder(/Search issues/i);
     await expect(filterInput).toBeVisible();
     await expect(filterInput).toBeEditable();
   });

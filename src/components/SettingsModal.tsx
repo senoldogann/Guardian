@@ -52,7 +52,7 @@ export interface UpdateCheckResult {
   last_checked_at?: string | null;
 }
 
-export const PROVIDER_OPTIONS = [
+const PROVIDER_OPTIONS = [
   { id: "ollama", label: "Ollama (Local/Hosted)", baseUrl: "http://127.0.0.1:11434" },
   { id: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1" },
   { id: "anthropic", label: "Anthropic (Claude)", baseUrl: "https://api.anthropic.com/v1" },
@@ -60,7 +60,7 @@ export const PROVIDER_OPTIONS = [
   { id: "github-models", label: "GitHub Models", baseUrl: "https://models.github.ai" },
 ] as const;
 
-export const getProviderDefaults = (providerId: string) => {
+const getProviderDefaults = (providerId: string) => {
   const match = PROVIDER_OPTIONS.find((p) => p.id === providerId);
   return match ?? PROVIDER_OPTIONS[0];
 };
@@ -531,11 +531,11 @@ export function SettingsModal({
               </div>
               <InfoPopover
                 title="Embedding Mode"
-                note="In auto mode, OpenAI -> Ollama -> Local hash is tried in order. Feature still works via local fallback even without a key."
+                note="In auto mode, Guardian tries OpenAI only when an OpenAI key exists; otherwise it goes directly to Ollama, then local hash fallback."
               />
             </div>
             <div className="text-[10px] text-text-muted">
-              Embedding settings are optional. If no key/model is available, Guardian falls back to local hash embeddings.
+              Embedding settings are optional. With no OpenAI key, auto mode skips OpenAI and uses Ollama/local fallback.
             </div>
             <div className="rounded-xl border border-border-main bg-background/40 p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -793,6 +793,33 @@ export function SettingsModal({
               )}
             </div>
             {updateError && <div className="text-[10px] text-rose-400">{updateError}</div>}
+
+            <div className="pt-4 border-t border-border-main space-y-2">
+              <div className="text-xs font-bold uppercase tracking-widest text-zinc-500">
+                About
+              </div>
+              <div className="text-[10px] text-text-muted bg-white/5 border border-border-main rounded-lg px-3 py-2">
+                Built by <span className="text-text-main font-semibold">Senol Dogan</span>.
+              </div>
+              <div className="flex flex-wrap gap-3 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => openExternal("https://www.guardianide.com/")}
+                  className="flex items-center gap-2 text-[10px] text-[var(--accent-500)] hover:text-[var(--accent-400)] transition-colors"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  <span className="underline">https://www.guardianide.com/</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openExternal("https://www.guardianide.com/contact")}
+                  className="flex items-center gap-2 text-[10px] text-[var(--accent-500)] hover:text-[var(--accent-400)] transition-colors"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  <span className="underline">Feedback / Suggestions / Bug Reports</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

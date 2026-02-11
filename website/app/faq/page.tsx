@@ -36,33 +36,37 @@ const faqCategories = [
       },
       {
         q: "What platforms does Guardian support?",
-        a: "Guardian is available for macOS (Intel & Apple Silicon), Windows (64-bit), and Linux (AppImage and deb packages). We automatically detect your operating system and provide the appropriate installer."
+        a: "Guardian ships macOS builds today (Apple Silicon and Intel). Windows and Linux installers will appear on the download page as they are published."
       }
     ]
   },
-  {
-    id: "getting-started",
-    title: "Getting Started",
-    icon: Download,
-    questions: [
+    {
+      id: "getting-started",
+      title: "Getting Started",
+      icon: Download,
+      questions: [
       {
         q: "How do I install Guardian?",
         a: "Simply visit our download page and click the download button. We automatically detect your operating system and provide the best installer for your platform. After downloading, run the installer and Guardian will guide you through the initial setup."
       },
       {
         q: "What are the system requirements?",
-        a: "Guardian is designed to be lightweight. Typical requirements: macOS 12+, Windows 10+, or a recent Linux distribution. At least 4GB RAM and ~500MB free disk space. Internet access is required if you enable cloud AI providers or in-app update checks."
+        a: "Guardian is designed to be lightweight. macOS 12+ is required for current builds; Windows and Linux requirements apply once those builds are published. At least 4GB RAM and ~500MB free disk space. Internet access is required if you enable cloud AI providers or in-app update checks."
       },
-      {
-        q: "How do I configure Guardian for my project?",
-        a: "After installation, select a local workspace folder. Configure your AI provider settings in Settings, then start monitoring to scan and review findings. Documentation covers the main workflows and configuration options."
-      },
-      {
-        q: "Can I use Guardian with multiple projects?",
-        a: "Guardian works with one active workspace at a time. You can switch between projects by selecting a different folder; Guardian will reset the monitoring state and load the new workspace context."
-      }
-    ]
-  },
+        {
+          q: "How do I configure Guardian for my project?",
+          a: "After installation, select a local workspace folder. Configure your AI provider settings in Settings, then launch monitoring to scan and review findings. Documentation covers the main workflows and configuration options."
+        },
+        {
+          q: "Why don't I see findings after restarting Guardian?",
+          a: "From v1.2.0 onward, the monitor view hydrates from .guardian/critiques.json and then merges live updates. If the list is empty, confirm the snapshot file exists and relaunch the app or run a new scan to regenerate findings."
+        },
+        {
+          q: "Can I use Guardian with multiple projects?",
+          a: "Guardian works with one active workspace at a time. You can switch between projects by selecting a different folder; Guardian will reset the monitoring state and load the new workspace context."
+        }
+      ]
+    },
   {
     id: "security",
     title: "Security & Privacy",
@@ -78,7 +82,7 @@ const faqCategories = [
       },
       {
         q: "What authentication providers are supported?",
-        a: "Guardian supports device authorization for identity verification. For AI analysis, it supports multiple providers including OpenAI, Anthropic, Google Gemini, hosted models, and local models via Ollama."
+        a: "Guardian uses GitHub device authorization for identity verification. For AI analysis, it supports multiple providers including OpenAI, Anthropic, Google Gemini, GitHub Models, and local models via Ollama."
       },
       {
         q: "Does Guardian comply with security standards?",

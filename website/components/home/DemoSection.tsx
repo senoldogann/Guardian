@@ -137,7 +137,7 @@ export function DemoSection({ dict }: DemoSectionProps) {
                                 {[
                                     "Platform-Native Secure Storage",
                                     "Multi-Provider Support",
-                                    "Enterprise SSO Integration"
+                                    "GitHub Device Authorization"
                                 ].map((item, idx) => (
                                     <motion.li
                                         key={idx}

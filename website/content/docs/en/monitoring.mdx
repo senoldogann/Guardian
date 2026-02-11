@@ -13,16 +13,16 @@ Guardian's Project Monitoring feature provides real-time oversight of your codeb
 
 ### Step 1: Select a Project
 
-1. Click **Browse** or drag a folder onto the app
+1. Click the **Scope** field or drag a folder onto the app
 2. Select your project's root directory
-3. The path will appear in the project selector
+3. The path will appear in the Scope selector
 
 ### Step 2: Launch Guardian
 
 Once you have:
 - Selected a valid project path
 - Configured your AI provider
-- Authenticated with your identity provider (if required)
+- Signed in with GitHub (device authorization, if required)
 
 Click **Launch Guardian** to start monitoring.
 
@@ -32,8 +32,12 @@ Guardian watches your project for file changes and analyzes code using your conf
 
 1. **File Detection**: Monitors for saved changes in your project
 2. **Batch Processing**: Groups changes for efficient analysis
-3. **AI Analysis**: Sends code to your AI provider for review
+3. **AI Analysis**: Sends code to your configured AI provider for review
 4. **Results Display**: Shows findings in the activity panel
+
+## Snapshot Hydration (v1.2.0)
+
+If Guardian restarts or reconnects, it now hydrates the monitor view from the local snapshot (`.guardian/critiques.json`) before merging live updates. This prevents empty dashboards when there are existing findings in the workspace.
 
 ## Understanding Findings
 

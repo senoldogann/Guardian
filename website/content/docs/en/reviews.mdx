@@ -7,7 +7,7 @@ order: 4
 
 ## Overview
 
-The **Reviews** feature (introduced in v1.1.0) provides a structured workflow for managing AI-suggested code fixes. Instead of immediately applying fixes, you can review, request changes, or reject suggestions with documented reasoning.
+The **Reviews** feature (introduced in v1.1.0) provides a structured workflow for managing AI-suggested code fixes. Instead of immediately applying fixes, you can review, request review, or reject suggestions with documented reasoning.
 
 ## How It Works
 
@@ -47,7 +47,7 @@ Pending ──► Review Requested ──► Applied
 | Status | Description |
 |--------|-------------|
 | **Pending** | New proposal, not yet reviewed |
-| **Review Requested** | You've asked for more context or alternatives |
+| **Review Requested** | Guardian applied the change and awaits your confirmation |
 | **Applied** | Fix has been applied to the codebase |
 | **Rejected** | Fix was dismissed with reason |
 
@@ -55,22 +55,22 @@ Pending ──► Review Requested ──► Applied
 
 ### Request Review
 
-When you need more information before deciding:
+When you want Guardian to apply the proposed content and queue it for confirmation:
 
 1. Select the proposal
 2. Click **Request Review**
-3. Add a note explaining what you'd like clarified
-4. Guru will provide additional context
+3. Guardian applies the change and moves it to "Review Requested"
+4. Confirm the outcome in the Guru chat
 
 ### Apply Fix
 
 When you're satisfied with the proposal:
 
-1. Review the **Proposed Changes** diff
-2. Click **Apply Fix** to implement
-3. The file is updated and the proposal status changes to "Applied"
+1. Review the **Proposed Changes** preview
+2. Click **Mark Applied** to confirm
+3. The proposal status changes to "Applied"
 
-> **Warning**: Always review the proposed diff before applying. Verify it addresses the issue without introducing new problems.
+> **Warning**: Always review the proposed content before applying. Verify it addresses the issue without introducing new problems.
 
 ### Reject Fix
 
@@ -93,10 +93,7 @@ Each proposal shows:
 
 ### Proposed Changes
 
-The diff view shows:
-- Original code (removed)
-- Proposed code (added)
-- Syntax highlighting for your language
+The proposed content view shows the full updated file content.
 
 > **Note**: Guardian only accepts **full file content**, not patch/diff format. The AI should provide the complete updated file.
 
@@ -134,11 +131,7 @@ Reject proposals when:
 
 ### When to Request Review
 
-Ask for more context when:
-- You're unsure about the impact
-- There might be edge cases
-- You want to see alternative approaches
-- The reasoning isn't clear
+Request additional context from Guru in the chat if you need more detail before applying a fix.
 
 ## Integration with Baseline
 
@@ -150,7 +143,7 @@ Reviewed and applied fixes:
 ## Privacy & Security
 
 - Proposals are stored **locally** in your workspace
-- No external calls when reviewing (unless you request AI review)
+- No external calls when reviewing (unless you ask Guru in chat)
 - You control what gets applied to your codebase
 - Rejection reasons are stored locally for your reference
 
@@ -165,7 +158,7 @@ Reviewed and applied fixes:
 
 ## CLI Support
 
-For CI/CD integration, use the CLI:
+For CI/CD integration, use the CLI (if installed in your environment):
 
 ```bash
 # Generate proposals during scan
@@ -178,5 +171,4 @@ guardian-cli scan --root . --out report.json
 ## Coming Soon
 
 - **Batch operations**: Apply/reject multiple proposals at once
-- **Review templates**: Save common rejection reasons
-- **Team annotations**: Share review notes with team members
+-- **Review templates**: Save common rejection reasons

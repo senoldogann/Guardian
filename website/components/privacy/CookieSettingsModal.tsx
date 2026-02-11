@@ -67,7 +67,7 @@ export function CookieSettingsModal() {
                         </div>
 
                         <p id="cookie-settings-description" className="text-zinc-600 dark:text-zinc-400 mb-8 leading-relaxed">
-                            We only store essential preferences on your device, such as your theme choice. We do not run analytics or marketing trackers.
+                            We only store essential preferences on your device, such as your theme choice. We do not run marketing trackers.
                         </p>
 
                         <div className="space-y-6">
