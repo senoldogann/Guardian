@@ -7,8 +7,8 @@ type ReleaseSnapshot = {
   releases?: GithubRelease[];
 };
 
-const SNAPSHOT_REVALIDATE_SECONDS = 60;
-const FALLBACK_TTL_MS = 5 * 60 * 1000;
+const SNAPSHOT_REVALIDATE_SECONDS = 30;
+const FALLBACK_TTL_MS = 60 * 1000;
 const SNAPSHOT_URL = "https://github.com/senoldogann/guardian-distribution/releases/latest/download/releases.json";
 const SNAPSHOT_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 let fallbackCache: { expiresAt: number; releases: GithubRelease[] } | null = null;

@@ -1548,6 +1548,32 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
   - `cd guardian && npm run verify` ✅ (unit 64/64, e2e 17/17, build PASS, rust 64/64)
   - `python3 .agent/scripts/verify_all.py` ✅
 
+### v1.2.1 Website Stabilization - Phase 13 (Release Freshness / Cache Revalidate Tuning) (2026-02-12)
+- Root cause:
+  - `guardian-distribution` tarafında yeni release (`v1.2.1`) yayınlandıktan sonra website katmanında çok katmanlı cache nedeniyle sürüm bilgisi gecikmeli görünüyordu.
+  - GitHub fetch revalidate, API route `Cache-Control` ve client-side memory cache TTL değerleri birlikte gecikmeyi artırıyordu.
+- Uygulanan değişiklikler:
+  - `website/lib/github.ts`
+    - `DEFAULT_REVALIDATE_SECONDS`: `900 -> 120`
+  - `website/lib/releases-source.ts`
+    - `SNAPSHOT_REVALIDATE_SECONDS`: `60 -> 30`
+    - `FALLBACK_TTL_MS`: `300000 -> 60000`
+  - `website/app/api/releases/latest/route.ts`
+    - `Cache-Control`: `s-maxage=30, stale-while-revalidate=120`
+  - `website/app/api/releases/route.ts`
+    - `Cache-Control`: `s-maxage=30, stale-while-revalidate=120`
+  - `website/lib/releases-client.ts`
+    - client cache TTL: `60000 -> 15000`
+- Etki:
+  - Release sonrası website güncelleme görünürlüğü belirgin şekilde hızlandı.
+  - Rate-limit güvenliği korunurken stale pencere daraltıldı.
+- Phase 13 testleri:
+  - `cd guardian && npm test` ✅ (64/64)
+  - `cd guardian/src-tauri && cargo test` ✅ (64/64)
+  - `cd guardian/guardian-cli && cargo test` ✅ (8/8)
+  - `cd guardian/website && npm run test:run` ✅ (107/107)
+  - `cd new-idee && python3 .agent/scripts/verify_all.py` ✅
+
 ---
 
 ## Kararlar ve Varsayımlar (Kilitleme)

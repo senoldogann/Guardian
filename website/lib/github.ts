@@ -28,7 +28,7 @@ export type AssetKind = "dmg" | "msi" | "exe" | "appimage" | "deb" | "rpm" | "ta
 const OWNER = process.env.GITHUB_RELEASE_OWNER ?? "senoldogann";
 const REPO = process.env.GITHUB_RELEASE_REPO ?? "guardian-distribution";
 const API_BASE = `https://api.github.com/repos/${OWNER}/${REPO}`;
-const DEFAULT_REVALIDATE_SECONDS = 900; // 15 minutes
+const DEFAULT_REVALIDATE_SECONDS = 120; // 2 minutes
 const INSTALLER_EXTENSIONS = [".dmg", ".msi", ".exe", ".appimage", ".deb", ".rpm", ".zip", ".tar.gz"] as const;
 
 // Import token security modules (will be available at runtime)

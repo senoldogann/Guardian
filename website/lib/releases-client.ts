@@ -15,7 +15,7 @@ export function releaseTagToVersionClient(tag: string): string {
   return tag.replace(/^v/i, "");
 }
 
-const CACHE_TTL_MS = 60_000;
+const CACHE_TTL_MS = 15_000;
 
 let cacheValue: LatestReleaseClientPayload | null = null;
 let cacheAt = 0;
