@@ -3,12 +3,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "../ui/button";
-import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { getLatestRelease, getDistributionRepoUrl, pickInstallers, releaseTagToVersion } from "../../lib/github";
-import { detectPlatform, pickBestAsset } from "../../lib/download";
 import type { SiteDictionary } from "../../lib/i18n";
+import { getLatestReleaseClient, releaseTagToVersionClient } from "../../lib/releases-client";
 
 interface HeroSectionProps {
     dict: SiteDictionary;
@@ -16,61 +14,24 @@ interface HeroSectionProps {
 
 export function HeroSection({ dict }: HeroSectionProps) {
     const [releaseInfo, setReleaseInfo] = useState({
-        tag: "—",
-        date: "—",
-        installers: [] as ReturnType<typeof pickInstallers>,
-        url: getDistributionRepoUrl(),
-        error: null as string | null
+        tag: "—"
     });
-    const [isDownloading, setIsDownloading] = useState(false);
 
     useEffect(() => {
-        getLatestRelease()
+        getLatestReleaseClient()
             .then(latest => {
                 if (latest) {
                     setReleaseInfo({
-                        tag: releaseTagToVersion(latest.tag_name),
-                        date: new Date(latest.published_at || "").toLocaleDateString(),
-                        installers: pickInstallers(latest.assets),
-                        url: latest.html_url,
-                        error: null
+                        tag: latest.version ?? releaseTagToVersionClient(latest.tag)
                     });
                 } else {
-                    setReleaseInfo(prev => ({
-                        ...prev,
-                        error: dict.common.releaseNotAvailable
-                    }));
+                    setReleaseInfo(prev => prev);
                 }
             })
-            .catch(error => {
-                setReleaseInfo(prev => ({
-                    ...prev,
-                    error: error instanceof Error ? error.message : dict.common.releaseNotAvailable
-                }));
+            .catch(() => {
+                setReleaseInfo(prev => prev);
             });
-    }, [dict.common.releaseNotAvailable]);
-
-    const handleDownload = async () => {
-        if (releaseInfo.installers.length === 0) return;
-
-        setIsDownloading(true);
-        try {
-            const platform = await detectPlatform();
-            const asset = pickBestAsset(releaseInfo.installers, platform);
-
-            if (asset) {
-                window.location.href = asset.browser_download_url;
-            } else {
-                window.location.href = releaseInfo.installers[0].browser_download_url;
-            }
-        } catch (error) {
-            if (process.env.NODE_ENV === "development") {
-                console.error("Download failed:", error);
-            }
-        } finally {
-            setIsDownloading(false);
-        }
-    };
+    }, []);
 
     return (
         <section className="relative overflow-x-hidden pt-24 pb-32 md:pt-32 md:pb-48 bg-white dark:bg-black transition-colors duration-300">
@@ -104,16 +65,14 @@ export function HeroSection({ dict }: HeroSectionProps) {
                     className="flex flex-col sm:flex-row gap-4 justify-center items-center"
                 >
                     <Button
+                        asChild
                         size="lg"
-                        className="rounded-lg px-8 h-12 text-base font-semibold gap-2 bg-black text-white dark:bg-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 shadow-md transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
-                        onClick={handleDownload}
-                        disabled={isDownloading || releaseInfo.installers.length === 0}
+                        className="rounded-lg px-8 h-12 text-base font-semibold gap-2 bg-black text-white dark:bg-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 shadow-md transition-all duration-200"
                     >
-                        {isDownloading && (
-                            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-                        )}
-                        <span>{isDownloading ? "Preparing..." : dict.home.ctaPrimary}</span>
-                        <span className="text-xs opacity-70 font-normal">v{releaseInfo.tag}</span>
+                        <Link href="/download">
+                            <span>{dict.home.ctaPrimary}</span>
+                            <span className="text-xs opacity-70 font-normal">v{releaseInfo.tag}</span>
+                        </Link>
                     </Button>
 
                     <Button

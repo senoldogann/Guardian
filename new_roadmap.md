@@ -1318,6 +1318,39 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
 
 ---
 
+## v1.2.0 Web Hotfix - Release API Rate Limit + Hero CTA (2026-02-11)
+
+### Root Cause
+- Website tarafında istemci komponentleri (`HeroSection`, `DirectDownloadButton`) GitHub `releases/latest` endpoint'ine doğrudan istek atıyordu.
+- Anonim rate limit dolunca (`403 Forbidden`) release bilgisi çekilemediği için UI tarafında CTA davranışı bozuluyordu.
+- Hero birincil CTA, release fetch durumuna bağlı kaldığı için bazı senaryolarda tıklanabilirlik kaybı oluşturuyordu.
+
+### Uygulanan Değişiklikler
+- `website/lib/releases-client.ts` eklendi:
+  - Internal API (`/api/releases/latest`) üzerinden release çekimi
+  - Kısa ömürlü in-memory cache
+  - Tag → version normalize helper
+- `website/app/api/releases/latest/route.ts` güncellendi:
+  - Response'a `version` alanı eklendi.
+- `website/components/ui/direct-download-button.tsx` güncellendi:
+  - Direct GitHub fetch kaldırıldı, internal API client kullanıldı.
+- `website/components/home/HeroSection.tsx` güncellendi:
+  - Hero primary CTA doğrudan `/download` linki olacak şekilde sabitlendi.
+  - Direct-download fetch bağımlılığı kaldırıldı.
+
+### Doğrulama (Test Sonuçları)
+- `cd guardian && npm test` ✅ (64/64)
+- `cd guardian/src-tauri && cargo test` ✅ (64/64)
+- `cd guardian/guardian-cli && cargo test` ✅ (7/7)
+- `cd guardian/website && npm run test:run` ✅ (107/107)
+- `cd /Users/dogan/Desktop/new-idee && python3 .agent/scripts/verify_all.py` ✅
+- `cd guardian && npm run verify` ✅ (unit 64/64, e2e 17/17, build PASS, rust 64/64)
+
+### Not
+- Browser console'daki `Could not establish connection. Receiving end does not exist.` mesajı tipik olarak browser extension kaynaklıdır; website uygulama kodundan gelmeyebilir.
+
+---
+
 ## v1.2.0 Release Automation - Auto Version Sync (2026-02-11)
 
 ### Kapsam

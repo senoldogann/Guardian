@@ -4,12 +4,12 @@ import * as React from "react";
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "./button";
 import { detectPlatform, pickBestAsset } from "@/lib/download";
-import { getLatestRelease, type GithubAsset, releaseTagToVersion } from "@/lib/github";
+import { getLatestReleaseClient, releaseTagToVersionClient, type LatestReleaseClientPayload } from "@/lib/releases-client";
 import { trackDownload } from "@/lib/analytics";
 import { useRouter } from "next/navigation";
 
 export function DirectDownloadButton() {
-    const [assets, setAssets] = React.useState<GithubAsset[]>([]);
+    const [assets, setAssets] = React.useState<LatestReleaseClientPayload["assets"]>([]);
     const [version, setVersion] = React.useState<string>("");
     const [isLoading, setIsLoading] = React.useState(false);
     const [mounted, setMounted] = React.useState(false);
@@ -18,11 +18,11 @@ export function DirectDownloadButton() {
     React.useEffect(() => {
         setMounted(true);
         // Pre-fetch assets to make the click response instant
-        getLatestRelease()
+        getLatestReleaseClient()
             .then(release => {
                 if (release) {
                     setAssets(release.assets);
-                    setVersion(releaseTagToVersion(release.tag_name));
+                    setVersion(release.version ?? releaseTagToVersionClient(release.tag));
                 }
             })
             .catch(err => {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { pickInstallers } from "../../../../lib/github";
+import { pickInstallers, releaseTagToVersion } from "../../../../lib/github";
 import { fetchReleaseSnapshot } from "../../../../lib/releases-source";
 
 export async function GET() {
@@ -15,6 +15,7 @@ export async function GET() {
     return NextResponse.json(
       {
         tag: latest.tag_name,
+        version: releaseTagToVersion(latest.tag_name),
         publishedAt: latest.published_at,
         notes: latest.body,
         htmlUrl: latest.html_url,
