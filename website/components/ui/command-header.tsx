@@ -84,20 +84,20 @@ export function CommandHeader() {
             <div
                 className={cn(
                     "relative flex items-center justify-between p-2 rounded-full transition-all duration-300 overflow-hidden",
-                    "bg-neutral-950/85 dark:bg-black/60 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/30",
-                    scrolled && "border-white/20"
+                    "bg-white/80 dark:bg-black/60 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-2xl shadow-black/5 dark:shadow-black/30",
+                    scrolled && "border-black/10 dark:border-white/20"
                 )}
             >
                 {/* Logo Area */}
                 <Link
                     href="/"
-                    className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+                    className="flex items-center gap-2 px-4 py-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 >
-                    <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-white/10 text-white">
+                    <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-black/5 dark:bg-white/10 text-black dark:text-white">
                         <ShieldCheck className="w-5 h-5" aria-hidden="true" />
-                        <div className="absolute inset-0 bg-white/10 blur-lg rounded-full" aria-hidden="true" />
+                        <div className="absolute inset-0 bg-black/5 dark:bg-white/10 blur-lg rounded-full" aria-hidden="true" />
                     </div>
-                    <span className="font-bold tracking-tight text-white block">
+                    <span className="font-bold tracking-tight text-black dark:text-white block">
                         Guardian
                     </span>
                 </Link>
@@ -113,8 +113,8 @@ export function CommandHeader() {
                                 className={cn(
                                     "relative px-3 py-2 rounded-full text-xs font-medium transition-all duration-300 group cursor-pointer whitespace-nowrap",
                                     active
-                                        ? "text-white bg-white/15"
-                                        : "text-zinc-300 hover:text-white hover:bg-white/10"
+                                        ? "text-black dark:text-white bg-black/5 dark:bg-white/15"
+                                        : "text-zinc-600 dark:text-zinc-300 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10"
                                 )}
                             >
                                 <span className="relative z-10">
@@ -142,7 +142,7 @@ export function CommandHeader() {
 
                     <Link
                         href="/download"
-                        className="sm:hidden inline-flex min-h-10 items-center rounded-full border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/20 transition-colors"
+                        className="sm:hidden inline-flex min-h-10 items-center rounded-full border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/10 px-4 py-2.5 text-sm font-semibold text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/20 transition-colors"
                     >
                         Download
                     </Link>
@@ -164,9 +164,9 @@ export function CommandHeader() {
                         aria-label={isOpen ? "Close menu" : "Open menu"}
                     >
                         {isOpen ? (
-                          <X className="w-5 h-5 text-white" aria-hidden="true" />
+                            <X className="w-5 h-5 text-black dark:text-white" aria-hidden="true" />
                         ) : (
-                          <Menu className="w-5 h-5 text-white" aria-hidden="true" />
+                            <Menu className="w-5 h-5 text-black dark:text-white" aria-hidden="true" />
                         )}
                     </Button>
                 </div>
@@ -185,7 +185,7 @@ export function CommandHeader() {
                         initial={{ opacity: 0, scale: 0.95, y: -20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -20 }}
-                        className="absolute top-full left-0 right-0 mt-4 p-4 rounded-3xl bg-neutral-950 dark:bg-black border border-white/15 shadow-2xl overflow-hidden lg:hidden"
+                        className="absolute top-full left-0 right-0 mt-4 p-4 rounded-3xl bg-white/95 dark:bg-neutral-950/95 border border-black/5 dark:border-white/15 shadow-2xl overflow-hidden lg:hidden"
                     >
                         <nav aria-label="Mobile navigation" className="flex flex-col gap-2">
                             {navItems.map((item) => (
@@ -193,9 +193,9 @@ export function CommandHeader() {
                                     key={item.href}
                                     href={item.href}
                                     onClick={() => setIsOpen(false)}
-                                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/10 text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                                    className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-zinc-600 dark:text-zinc-300 hover:text-black dark:hover:text-white transition-colors cursor-pointer"
                                 >
-                                    <item.icon className="w-5 h-5 text-zinc-300" aria-hidden="true" />
+                                    <item.icon className="w-5 h-5 text-zinc-500 dark:text-zinc-300" aria-hidden="true" />
                                     {item.label}
                                 </Link>
                             ))}

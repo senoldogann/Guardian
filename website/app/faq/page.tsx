@@ -40,11 +40,11 @@ const faqCategories = [
       }
     ]
   },
-    {
-      id: "getting-started",
-      title: "Getting Started",
-      icon: Download,
-      questions: [
+  {
+    id: "getting-started",
+    title: "Getting Started",
+    icon: Download,
+    questions: [
       {
         q: "How do I install Guardian?",
         a: "Simply visit our download page and click the download button. We automatically detect your operating system and provide the best installer for your platform. After downloading, run the installer and Guardian will guide you through the initial setup."
@@ -53,20 +53,20 @@ const faqCategories = [
         q: "What are the system requirements?",
         a: "Guardian is designed to be lightweight. macOS 12+ is required for current builds; Windows and Linux requirements apply once those builds are published. At least 4GB RAM and ~500MB free disk space. Internet access is required if you enable cloud AI providers or in-app update checks."
       },
-        {
-          q: "How do I configure Guardian for my project?",
-          a: "After installation, select a local workspace folder. Configure your AI provider settings in Settings, then launch monitoring to scan and review findings. Documentation covers the main workflows and configuration options."
-        },
-        {
-          q: "Why don't I see findings after restarting Guardian?",
-          a: "From v1.2.0 onward, the monitor view hydrates from .guardian/critiques.json and then merges live updates. If the list is empty, confirm the snapshot file exists and relaunch the app or run a new scan to regenerate findings."
-        },
-        {
-          q: "Can I use Guardian with multiple projects?",
-          a: "Guardian works with one active workspace at a time. You can switch between projects by selecting a different folder; Guardian will reset the monitoring state and load the new workspace context."
-        }
-      ]
-    },
+      {
+        q: "How do I configure Guardian for my project?",
+        a: "After installation, select a local workspace folder. Configure your AI provider settings in Settings, then launch monitoring to scan and review findings. Documentation covers the main workflows and configuration options."
+      },
+      {
+        q: "Why don't I see findings after restarting Guardian?",
+        a: "From v1.2.0 onward, the monitor view hydrates from .guardian/critiques.json and then merges live updates. If the list is empty, confirm the snapshot file exists and relaunch the app or run a new scan to regenerate findings."
+      },
+      {
+        q: "Can I use Guardian with multiple projects?",
+        a: "Guardian works with one active workspace at a time. You can switch between projects by selecting a different folder; Guardian will reset the monitoring state and load the new workspace context."
+      }
+    ]
+  },
   {
     id: "security",
     title: "Security & Privacy",
@@ -116,11 +116,11 @@ const faqCategories = [
     questions: [
       {
         q: "How can I get help with Guardian?",
-        a: "Start with the documentation on this website. For issues and feature requests, use the repository issue tracker for the build you are using."
+        a: "Start with the documentation on this website. For technical issues and feature requests, you can use the repository issue tracker. For other inquiries, please reach out via our [contact page](/contact)."
       },
       {
         q: "Where can I report bugs or request features?",
-        a: "Use the repository issue tracker for the build you are using, and include reproduction steps plus logs/screenshots where possible."
+        a: "You can report bugs or request features directly through our [contact page](/contact). Alternatively, if you prefer, you can use the repository issue tracker. Please include reproduction steps and logs where possible."
       },
       {
         q: "How often is Guardian updated?",

@@ -69,7 +69,7 @@ export function DirectDownloadButton() {
     if (!mounted) {
         return (
             <Button
-                className="rounded-full bg-black text-white border border-white/20 hover:bg-neutral-900 font-semibold shadow-lg shadow-black/30 px-5"
+                className="rounded-full bg-black text-white dark:bg-white dark:text-black border border-black/5 dark:border-white/20 hover:opacity-80 transition-opacity font-semibold shadow-lg shadow-black/20 dark:shadow-white/10 px-5"
                 disabled
                 aria-disabled
                 suppressHydrationWarning
@@ -82,17 +82,19 @@ export function DirectDownloadButton() {
 
     return (
         <Button
-            className="rounded-full bg-black text-white border border-white/20 hover:bg-neutral-900 font-semibold shadow-lg shadow-black/30 px-5"
+            className="rounded-full bg-black text-white dark:bg-white dark:text-black border border-black/5 dark:border-white/20 hover:opacity-80 transition-opacity font-semibold shadow-lg shadow-black/20 dark:shadow-white/10 px-5"
             onClick={handleDownload}
             disabled={isLoading}
             aria-disabled={isLoading}
         >
-            {isLoading ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
-            ) : (
-                <Download className="w-4 h-4 mr-2" aria-hidden="true" />
-            )}
+            {
+                isLoading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
+                ) : (
+                    <Download className="w-4 h-4 mr-2" aria-hidden="true" />
+                )
+            }
             Download
-        </Button>
+        </Button >
     );
 }

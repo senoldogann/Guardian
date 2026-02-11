@@ -94,21 +94,15 @@ export function HeroSection({ dict }: HeroSectionProps) {
                     className="mt-16 relative mx-auto max-w-5xl"
                 >
                     <div className="relative rounded-xl border border-neutral-200 dark:border-white/10 bg-white dark:bg-black shadow-2xl overflow-hidden">
-                        <picture>
-                            <source
-                                srcSet="/media/guardian-monitor.webp"
-                                type="image/webp"
-                            />
-                            <Image
-                                alt="Guardian application dashboard showing code monitoring interface"
-                                src="/media/guardian-monitor.png"
-                                width={1200}
-                                height={675}
-                                className="w-full h-auto"
-                                priority
-                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
-                            />
-                        </picture>
+                        <Image
+                            alt="Guardian application dashboard showing code monitoring interface"
+                            src="/media/hero-image.png"
+                            width={1200}
+                            height={675}
+                            className="w-full h-auto"
+                            priority
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+                        />
                     </div>
                 </motion.div>
             </div>

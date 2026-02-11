@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { Loader2 } from "lucide-react";
@@ -108,9 +109,13 @@ export function DemoSection({ dict }: DemoSectionProps) {
                         >
                             <div className="absolute -inset-8 bg-gradient-to-r from-black/10 to-zinc-400/10 dark:from-white/10 dark:to-zinc-500/10 rounded-full blur-3xl opacity-60 -z-10" />
                             <div className="rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 bg-white dark:bg-black shadow-2xl">
-                                <VideoWithLoading
-                                    src="/media/guardian-demo-guru.mp4"
-                                    poster="/media/guardian-demo-guru-poster.jpg"
+                                <Image
+                                    alt="Guardian Guru - AI Architect Interface"
+                                    src="/media/guru-image.png"
+                                    width={800}
+                                    height={450}
+                                    className="w-full h-auto"
+                                    layout="responsive"
                                 />
                             </div>
                         </motion.div>
@@ -167,8 +172,8 @@ export function DemoSection({ dict }: DemoSectionProps) {
                             <div className="absolute -inset-8 bg-gradient-to-r from-black/10 to-zinc-400/10 dark:from-white/10 dark:to-zinc-500/10 rounded-full blur-3xl opacity-60 -z-10" />
                             <div className="rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 bg-white dark:bg-black shadow-2xl">
                                 <VideoWithLoading
-                                    src="/media/guardian-demo-auth.mp4"
-                                    poster="/media/guardian-demo-auth-poster.jpg"
+                                    src="/media/secure-identity.mp4"
+                                    poster="/media/secure-identity-poster.jpg"
                                 />
                             </div>
                         </motion.div>
