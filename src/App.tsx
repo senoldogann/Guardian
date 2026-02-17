@@ -874,7 +874,6 @@ function App(): ReactElement {
           fixProposals={fixProposals}
           fixProposalsLoading={fixProposalsLoading}
           fixProposalsError={fixProposalsError}
-          onRefreshFixProposals={refreshFixProposals}
           onRequestReview={requestReviewForProposal}
           onSetProposalStatus={setProposalStatus}
           fixHistory={fixHistory}

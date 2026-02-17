@@ -4,6 +4,7 @@ import { Copy, EyeOff, FileText, RefreshCw, Search } from "lucide-react";
 import clsx from "clsx";
 import type { AiContextSnapshot } from "../types";
 import { basenameOf, copyToClipboard, formatTimestamp } from "../lib/uiFormat";
+import { useToast } from "../hooks/useToast";
 
 export interface AIContextPreviewProps {
   context: AiContextSnapshot | null;
@@ -20,28 +21,15 @@ export function AIContextPreview({
   error = null,
   onRefresh,
 }: AIContextPreviewProps): ReactElement {
-  if (!context && !loading && !error) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-4 py-12">
-        <div className="w-16 h-16 rounded-2xl border border-border-main bg-background/40 flex items-center justify-center">
-          <EyeOff className="w-7 h-7 text-text-muted/80" />
-        </div>
-        <div className="text-center space-y-1">
-          <h3 className="font-bold text-sm text-zinc-500">No Captured Context</h3>
-          <p className="text-[10px] text-zinc-500 font-mono italic">
-            Start monitoring and modify a file to capture the outbound AI payload.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+  const toast = useToast();
   const files = context?.files ?? [];
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<ContextFileFilter>("all");
+  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
+
   const redactedCount = useMemo(() => files.filter((f) => f.redacted).length, [files]);
   const truncatedCount = useMemo(() => files.filter((f) => f.truncated).length, [files]);
 
-  const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<ContextFileFilter>("all");
   const filteredFiles = useMemo(() => {
     const q = query.trim().toLowerCase();
     return files
@@ -57,7 +45,6 @@ export function AIContextPreview({
       .sort((a, b) => a.file_path.localeCompare(b.file_path));
   }, [files, query, filter]);
 
-  const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
   useEffect(() => {
     if (filteredFiles.length === 0) {
       setSelectedFilePath(null);
@@ -85,13 +72,49 @@ export function AIContextPreview({
 
   const onCopyFileContext = useCallback(async (): Promise<void> => {
     if (!selectedFile) return;
-    await copyToClipboard(selectedFile.content);
-  }, [selectedFile]);
+    try {
+      await copyToClipboard(selectedFile.content);
+      toast.showSuccess("Copied.", 2500);
+    } catch {
+      toast.showError("Copy failed.", 3000);
+    }
+  }, [selectedFile, toast]);
 
   const onCopyFullPayload = useCallback(async (): Promise<void> => {
     if (!fullPayload) return;
-    await copyToClipboard(fullPayload);
-  }, [fullPayload]);
+    try {
+      await copyToClipboard(fullPayload);
+      toast.showSuccess("Copied.", 2500);
+    } catch {
+      toast.showError("Copy failed.", 3000);
+    }
+  }, [fullPayload, toast]);
+
+  const onRefreshClick = useCallback(async (): Promise<void> => {
+    if (!onRefresh) return;
+    try {
+      await Promise.resolve(onRefresh());
+      toast.showSuccess("Refreshed.", 2500);
+    } catch {
+      toast.showError("Refresh failed.", 3000);
+    }
+  }, [onRefresh, toast]);
+
+  if (!context && !loading && !error) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-4 py-12">
+        <div className="w-16 h-16 rounded-2xl border border-border-main bg-background/40 flex items-center justify-center">
+          <EyeOff className="w-7 h-7 text-text-muted/80" />
+        </div>
+        <div className="text-center space-y-1">
+          <h3 className="font-bold text-sm text-zinc-500">No Captured Context</h3>
+          <p className="text-[10px] text-zinc-500 font-mono italic">
+            Start monitoring and modify a file to capture the outbound AI payload.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -125,7 +148,7 @@ export function AIContextPreview({
 
         {onRefresh && (
           <button
-            onClick={onRefresh}
+            onClick={() => void onRefreshClick()}
             disabled={loading}
             className={clsx(
               "px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer",
