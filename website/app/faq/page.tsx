@@ -63,7 +63,7 @@ const faqCategories = [
       },
       {
         q: "How do I use web search with Guru?",
-        a: "Add your Tavily key in Settings > Web Search, then toggle Web Search on. To force web search for a single message, prefix your question with /web or include @web. If your message includes a URL, Guardian prefers focused URL extraction; otherwise it uses web search. You can tune Search Depth (Basic/Advanced/Fast/Ultra-fast/Auto) in Settings."
+        a: "Add your Tavily key in Settings > Web Search, then toggle Web Search on (web search requires a Tavily key). To force web search for a single message, prefix your question with /web or include @web. If your message includes a URL, Guardian prefers focused URL extraction; otherwise it uses web search. You can tune Search Depth (Basic/Advanced/Fast/Ultra-fast/Auto) in Settings."
       },
       {
         q: "Why don't I see findings after restarting Guardian?",
