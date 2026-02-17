@@ -212,3 +212,23 @@ fn render_sarif(report: &ScanReport) -> Result<String> {
 
     Ok(serde_json::to_string_pretty(&sarif)?)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sarif_includes_run_level_properties() {
+        let mut report = ScanReport::new("root".to_string(), "ruleshash".to_string(), None);
+        report.scan_profile = Some("source".to_string());
+        report.manifest_hash = Some("manifesthash".to_string());
+
+        let payload = render_report(&report, ReportFormat::Sarif).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&payload).unwrap();
+        let props = &parsed["runs"][0]["properties"];
+
+        assert_eq!(props["guardian_manifest_hash"], "manifesthash");
+        assert_eq!(props["scan_profile"], "source");
+        assert_eq!(props["rules_hash"], "ruleshash");
+    }
+}

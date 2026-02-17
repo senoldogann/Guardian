@@ -2046,6 +2046,21 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
   - `cd guardian && npm run verify` ✅ (format check + lint + unit + e2e + build + rust)
   - `cd guardian/guardian-cli && cargo test` ✅ (12/12)
 
+### v1.2.2 Integrations - Phase 17 (SARIF Upload Template + Run Properties) (2026-02-17)
+- Amaç:
+  - Guardian bulgularını GitHub Security/Code Scanning altında görünür kılmak (SARIF upload).
+- Uygulanan değişiklikler:
+  - `.github/workflows/guardian-scan.yml`
+    - SARIF üretimi + upload adımı eklendi:
+      - `guardian-cli scan --format sarif --out $RUNNER_TEMP/guardian.sarif`
+      - `github/codeql-action/upload-sarif@v3`
+    - Debug için manifest + evidence + rapor dosyaları `.guardian/ci/` altında artifact olarak upload ediliyor.
+  - `guardian-cli/src/output.rs`
+    - SARIF run-level `properties` doğrulayan unit test eklendi (`guardian_manifest_hash`, `scan_profile`, `rules_hash`).
+- Phase 17 testleri:
+  - `cd guardian && npm run verify` ✅
+  - `cd guardian/guardian-cli && cargo test` ✅ (13/13)
+
 ## Kararlar ve Varsayımlar (Kilitleme)
 
 ### 1. CI'da Cloud AI Kullanımı

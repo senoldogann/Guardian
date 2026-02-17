@@ -8,10 +8,16 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  security-events: write
 
 jobs:
   guardian-scan:
     runs-on: ubuntu-latest
+    env:
+      GUARDIAN_REPORT_JSON: ${{ runner.temp }}/guardian-report.json
+      GUARDIAN_SARIF: ${{ runner.temp }}/guardian.sarif
+      GUARDIAN_MANIFEST: ${{ runner.temp }}/guardian-run-manifest.json
+      GUARDIAN_EVIDENCE: ${{ runner.temp }}/guardian-evidence.json
 
     steps:
       - name: "Checkout"
@@ -30,6 +36,23 @@ jobs:
           cd guardian-cli
           cargo build --release
 
+      - name: "Run guardian-cli scan (SARIF)"
+        if: github.event_name == 'pull_request'
+        run: |
+          guardian-cli/target/release/guardian-cli scan \
+            --root . \
+            --format sarif \
+            --out "$GUARDIAN_SARIF" \
+            --offline \
+            --scan-profile source \
+            --pr-gate off
+
+      - name: "Upload SARIF"
+        if: github.event_name == 'pull_request'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ env.GUARDIAN_SARIF }}
+
       - name: "Run guardian-cli scan (JSON)"
         id: scan
         run: |
@@ -37,7 +60,9 @@ jobs:
           guardian-cli/target/release/guardian-cli scan \
             --root . \
             --format json \
-            --out guardian-report.json \
+            --out "$GUARDIAN_REPORT_JSON" \
+            --emit-manifest "$GUARDIAN_MANIFEST" \
+            --emit-evidence "$GUARDIAN_EVIDENCE" \
             --offline \
             --scan-profile source \
             --pr-gate critical-only
@@ -46,7 +71,7 @@ jobs:
 
       - name: "Render PR comment"
         if: github.event_name == 'pull_request'
-        run: node scripts/ci/render_guardian_pr_comment.mjs guardian-report.json > guardian-pr-comment.md
+        run: node scripts/ci/render_guardian_pr_comment.mjs "$GUARDIAN_REPORT_JSON" > guardian-pr-comment.md
 
       - name: "Post PR comment"
         if: github.event_name == 'pull_request'
@@ -54,13 +79,25 @@ jobs:
         with:
           path: guardian-pr-comment.md
 
+      - name: "Collect artifacts"
+        if: always()
+        run: |
+          mkdir -p .guardian/ci
+          cp -f "$GUARDIAN_REPORT_JSON" .guardian/ci/guardian-report.json || true
+          cp -f "$GUARDIAN_SARIF" .guardian/ci/guardian.sarif || true
+          cp -f "$GUARDIAN_MANIFEST" .guardian/ci/guardian-run-manifest.json || true
+          cp -f "$GUARDIAN_EVIDENCE" .guardian/ci/guardian-evidence.json || true
+
       - name: "Upload scan artifacts"
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: guardian-scan
           path: |
-            guardian-report.json
+            .guardian/ci/guardian-report.json
+            .guardian/ci/guardian.sarif
+            .guardian/ci/guardian-run-manifest.json
+            .guardian/ci/guardian-evidence.json
             guardian-pr-comment.md
           retention-days: 7
 
