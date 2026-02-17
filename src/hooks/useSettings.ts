@@ -178,7 +178,12 @@ export interface UseSettingsReturn {
   onProviderChange: (nextId: string) => void;
   onBaseUrlChange: (value: string) => void;
   onModelChange: (value: string) => void;
-  refreshProviderModels: (force?: boolean, resetModel?: boolean, override?: ProviderConfig) => Promise<void>;
+  refreshProviderModels: (
+    force?: boolean,
+    resetModel?: boolean,
+    override?: ProviderConfig,
+    announce?: boolean
+  ) => Promise<void>;
   saveProviderSettings: () => Promise<void>;
   testProviderConnection: () => Promise<void>;
   onEmbeddingModeChange: (mode: EmbeddingMode) => void;
@@ -187,7 +192,7 @@ export interface UseSettingsReturn {
   onEmbeddingOpenAiModelChange: (value: string) => void;
   onEmbeddingOllamaModelChange: (value: string) => void;
   saveEmbeddingSettings: () => Promise<void>;
-  refreshEmbeddingSettings: () => Promise<void>;
+  refreshEmbeddingSettings: (announce?: boolean) => Promise<void>;
   onEmbeddingOpenAiKeyFocus: () => void;
   onEmbeddingOpenAiKeyChange: (value: string) => void;
   saveEmbeddingOpenAiKey: () => Promise<void>;
@@ -450,7 +455,7 @@ export function useSettings(
           setEmbeddingError(error instanceof Error ? error.message : String(error));
         }
       }
-      await refreshEmbeddingSettings();
+      await refreshEmbeddingSettings(false);
     };
     void syncEmbeddingConfig();
   }, [isDesktop]);
@@ -596,17 +601,23 @@ export function useSettings(
     localStorage.setItem(STORAGE_KEYS.EMBEDDING_OLLAMA_MODEL, (config.ollama_model || "").trim());
   }, []);
 
-  const refreshEmbeddingSettings = useCallback(async (): Promise<void> => {
+  const refreshEmbeddingSettings = useCallback(async (announce = false): Promise<void> => {
     if (!isDesktop) return;
     try {
       const runtime = await invoke<EmbeddingRuntimeConfig>("get_embedding_runtime_config");
       setEmbeddingDraft(normalizeEmbeddingConfig(runtime));
       setEmbeddingError(null);
+      if (announce) {
+        toast.showSuccess("Refreshed.", 2500);
+      }
     } catch (error) {
       setEmbeddingError(error instanceof Error ? error.message : String(error));
       setEmbeddingDraft((prev) => prev ?? normalizeEmbeddingConfig(DEFAULT_EMBEDDING_CONFIG));
+      if (announce) {
+        toast.showError("Refresh failed.", 3000);
+      }
     }
-  }, [isDesktop]);
+  }, [isDesktop, toast]);
 
   const isValidUrl = (value: string): boolean => {
     try {
@@ -737,7 +748,7 @@ export function useSettings(
       base_url: defaults.baseUrl,
       model: "",
     } : prev);
-    void refreshProviderModels(true, true, snapshot);
+    void refreshProviderModels(true, true, snapshot, false);
   }, []);
 
   const onBaseUrlChange = useCallback((value: string): void => {
@@ -755,7 +766,8 @@ export function useSettings(
   const refreshProviderModels = useCallback(async (
     force = false,
     resetModel = false,
-    override?: ProviderConfig
+    override?: ProviderConfig,
+    announce = false
   ): Promise<void> => {
     const snapshot = override ?? providerDraft;
     if (!isDesktop || !snapshot) return;
@@ -789,12 +801,18 @@ export function useSettings(
           setProviderDraft(prev => prev && prev.provider_id === snapshot.provider_id ? { ...prev, model: fallback } : prev);
         }
       }
+      if (announce) {
+        toast.showSuccess("Refreshed.", 2500);
+      }
     } catch (e: unknown) {
       setProviderModelError(e instanceof Error ? e.message : String(e));
+      if (announce) {
+        toast.showError("Refresh failed.", 3000);
+      }
     } finally {
       setProviderModelLoading(false);
     }
-  }, [isDesktop, providerDraft]);
+  }, [isDesktop, providerDraft, toast]);
 
   const saveProviderSettings = useCallback(async (): Promise<void> => {
     if (!isDesktop || !providerDraft) return;

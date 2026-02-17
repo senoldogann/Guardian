@@ -4,6 +4,7 @@ import { ClipboardList, Copy, FileText, RefreshCw, Search } from "lucide-react";
 import clsx from "clsx";
 import type { FixProposal, FixProposalsSnapshot } from "../types";
 import { basenameOf, copyToClipboard, formatTimestamp } from "../lib/uiFormat";
+import { useToast } from "../hooks/useToast";
 
 export interface FixProposalsViewProps {
   snapshot: FixProposalsSnapshot | null;
@@ -33,6 +34,20 @@ export function FixProposalsView({
   onRequestReview,
   onSetStatus,
 }: FixProposalsViewProps): ReactElement {
+  const toast = useToast();
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<ProposalFilter>("pending");
+
+  const onRefreshClick = useCallback(async (): Promise<void> => {
+    if (!onRefresh) return;
+    try {
+      await Promise.resolve(onRefresh());
+      toast.showSuccess("Refreshed.", 2500);
+    } catch {
+      toast.showError("Refresh failed.", 3000);
+    }
+  }, [onRefresh, toast]);
+
   const proposals = snapshot?.proposals ?? [];
   const pending = proposals.filter((p) => {
     const status = (p.status || "").toLowerCase();
@@ -45,8 +60,10 @@ export function FixProposalsView({
   const reviewRequested = proposals.filter((p) => (p.status || "").toLowerCase() === "review_requested");
 
   const isEmpty = proposals.length === 0;
+  const showEmpty =
+    (!snapshot && !loading && !error) || (snapshot && isEmpty && !loading && !error);
 
-  if ((!snapshot && !loading && !error) || (snapshot && isEmpty && !loading && !error)) {
+  if (showEmpty) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-text-muted gap-4 py-12 px-6">
         <div className="w-16 h-16 rounded-2xl border border-border-main bg-background/40 flex items-center justify-center">
@@ -65,7 +82,7 @@ export function FixProposalsView({
         </div>
         {onRefresh && (
           <button
-            onClick={onRefresh}
+            onClick={() => void onRefreshClick()}
             disabled={loading}
             className={clsx(
               "px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer",
@@ -81,9 +98,6 @@ export function FixProposalsView({
       </div>
     );
   }
-
-  const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<ProposalFilter>("pending");
 
   const filteredProposals = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -140,13 +154,23 @@ export function FixProposalsView({
 
   const onCopyProposedContent = useCallback(async (): Promise<void> => {
     if (!selectedProposal?.proposed_content) return;
-    await copyToClipboard(selectedProposal.proposed_content);
-  }, [selectedProposal]);
+    try {
+      await copyToClipboard(selectedProposal.proposed_content);
+      toast.showSuccess("Copied.", 2500);
+    } catch {
+      toast.showError("Copy failed.", 3000);
+    }
+  }, [selectedProposal, toast]);
 
   const onCopyProposalJson = useCallback(async (): Promise<void> => {
     if (!selectedProposal) return;
-    await copyToClipboard(JSON.stringify(selectedProposal, null, 2));
-  }, [selectedProposal]);
+    try {
+      await copyToClipboard(JSON.stringify(selectedProposal, null, 2));
+      toast.showSuccess("Copied.", 2500);
+    } catch {
+      toast.showError("Copy failed.", 3000);
+    }
+  }, [selectedProposal, toast]);
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -175,7 +199,7 @@ export function FixProposalsView({
 
         {onRefresh && (
           <button
-            onClick={onRefresh}
+            onClick={() => void onRefreshClick()}
             disabled={loading}
             className={clsx(
               "px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer",

@@ -18,6 +18,7 @@ import type {
 } from "../../types";
 import { critiqueStateKey } from "../../lib/critiqueStateKey";
 import { formatTimestamp } from "../../lib/uiFormat";
+import { useToast } from "../../hooks/useToast";
 
 export interface MainWorkspaceProps {
   view: "monitor" | "chat" | "diagram" | "ai-context" | "reviews";
@@ -112,6 +113,7 @@ export function MainWorkspace({
   context,
   scopeLabel,
 }: MainWorkspaceProps): ReactElement {
+  const toast = useToast();
   return (
     <main className="flex-1 flex overflow-hidden">
       <section
@@ -335,7 +337,14 @@ export function MainWorkspace({
                 </div>
 
                 <button
-                  onClick={() => void onRefreshFixHistory()}
+                  onClick={async () => {
+                    try {
+                      await onRefreshFixHistory();
+                      toast.showSuccess("Refreshed.", 2500);
+                    } catch {
+                      toast.showError("Refresh failed.", 3000);
+                    }
+                  }}
                   disabled={fixHistoryLoading}
                   className={clsx(
                     "px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer",
@@ -450,7 +459,14 @@ export function MainWorkspace({
               </span>
             )}
             <button
-              onClick={() => void onRefreshContext()}
+              onClick={async () => {
+                try {
+                  await onRefreshContext();
+                  toast.showSuccess("Refreshed.", 2500);
+                } catch {
+                  toast.showError("Refresh failed.", 3000);
+                }
+              }}
               disabled={!path || contextLoading}
               className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-text-main rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
