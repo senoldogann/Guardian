@@ -72,10 +72,16 @@ const INTERNAL_RELEASE_PATTERNS: RegExp[] = [
   /\bcoverage\b/i,
   /\bdependabot\b/i,
   /\bdeps\b/i
-];
+  ];
 
 function isInternalReleaseNote(value: string): boolean {
   return INTERNAL_RELEASE_PATTERNS.some((pattern) => pattern.test(value));
+}
+
+function normalizeInlineMarkdown(value: string): string {
+  // The changelog UI renders list items as plain text, so strip common inline
+  // markdown emphasis markers to avoid showing raw `**...**` in the UI.
+  return value.replace(/\*\*/g, "").trim();
 }
 
 function normalizeMarkdownLines(lines: string[]): string {
@@ -114,7 +120,7 @@ function parseReleaseNotes(body: string): { highlights: string[]; sections: Rele
 
     const headingMatch = /^###\s+(.*)$/.exec(line);
     if (headingMatch) {
-      const title = headingMatch[1].trim();
+      const title = normalizeInlineMarkdown(headingMatch[1].trim());
       const safeTitle = isInternalReleaseNote(title) ? "" : title;
       current = { title: safeTitle, items: [] };
       sections.push(current);
@@ -126,7 +132,7 @@ function parseReleaseNotes(body: string): { highlights: string[]; sections: Rele
 
     const bulletMatch = /^[-*+]\s+(.*)$/.exec(line);
     if (bulletMatch) {
-      const item = bulletMatch[1].trim();
+      const item = normalizeInlineMarkdown(bulletMatch[1].trim());
       if (!item) continue;
       if (!isInternalReleaseNote(item)) {
         if (current) {
@@ -144,9 +150,15 @@ function parseReleaseNotes(body: string): { highlights: string[]; sections: Rele
     }
   }
 
-  const sectionItems = sections.flatMap((section) => section.items);
-  const highlights = [...looseItems, ...sectionItems].slice(0, 3);
-  const filteredSections = sections.filter((section) => section.items.length > 0);
+  const highlightSection = sections.find((section) => section.title.trim().toLowerCase() === "highlights") ?? null;
+  const highlightItems = highlightSection?.items ?? [];
+  const otherSections = highlightSection ? sections.filter((section) => section !== highlightSection) : sections;
+
+  const sectionItems = otherSections.flatMap((section) => section.items);
+  const highlightsSource = highlightItems.length > 0 ? highlightItems : [...looseItems, ...sectionItems];
+  const highlights = Array.from(new Set(highlightsSource)).slice(0, 3);
+
+  const filteredSections = otherSections.filter((section) => section.items.length > 0);
   const sanitizedBody = normalizeMarkdownLines(sanitizedLines);
 
   return { highlights, sections: filteredSections, sanitizedBody };
