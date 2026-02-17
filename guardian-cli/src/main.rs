@@ -1,4 +1,5 @@
 mod baseline;
+mod evidence;
 mod guardian_lock;
 mod output;
 mod redaction;

@@ -2014,6 +2014,22 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
   - `cd guardian && npm run verify` ✅ (unit 64/64, coverage gate OK, e2e 17/17, build PASS, rust 70/70)
   - `cd guardian/guardian-cli && cargo test` ✅ (11/11)
 
+### v1.2.2 Trust - Phase 15 (Finding Evidence / Provenance Export) (2026-02-17)
+- Amaç:
+  - CI/PR entegrasyonu ve "neden çıktı?" debug akışları için her finding'e kanıt/provenance export etmek.
+- Uygulanan değişiklikler:
+  - `guardian-cli/src/evidence.rs`
+    - `EvidenceReport` + `EvidenceFinding` şeması eklendi.
+  - `guardian-cli/src/scan.rs`
+    - `--emit-evidence <path>` ile evidence JSON üretimi eklendi:
+      - `evidence_preview`: masked + `2KB` ile truncate
+      - `file_path_rel`: her zaman relative path (absolute path yok)
+      - `rule_id`: `guardian::<finding_id>` (fallback)
+    - JSON raporda `evidence_path` alanı dolduruluyor (markdown header'da da görünür).
+- Phase 15 testleri:
+  - `cd guardian && npm run verify` ✅ (unit 64/64, coverage gate OK, e2e 17/17, build PASS, rust 70/70)
+  - `cd guardian/guardian-cli && cargo test` ✅ (12/12)
+
 ## Kararlar ve Varsayımlar (Kilitleme)
 
 ### 1. CI'da Cloud AI Kullanımı

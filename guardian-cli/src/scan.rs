@@ -1,4 +1,5 @@
 use crate::baseline::{load_baseline, resolve_baseline_path, Baseline};
+use crate::evidence::{EvidenceFinding, EvidenceReport};
 use crate::guardian_lock::{self, LockMode};
 use crate::output::{render_report, write_report, Finding, ReportFormat, ScanReport};
 use crate::redaction::{is_sensitive_file, mask_inline_secrets};
@@ -184,6 +185,43 @@ pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
         .iter()
         .filter(|f| f.is_new && f.severity.eq_ignore_ascii_case("Critical"))
         .count();
+
+    if let Some(path) = cfg.emit_evidence_path.as_deref() {
+        let mut content_by_path: std::collections::HashMap<&str, &str> =
+            std::collections::HashMap::new();
+        for file in &collected.scanned {
+            content_by_path.insert(file.rel_path.as_str(), file.content.as_str());
+        }
+
+        let mut evidence_findings: Vec<EvidenceFinding> = Vec::new();
+        for finding in &report.findings {
+            let preview = content_by_path
+                .get(finding.file_path.as_str())
+                .map(|s| truncate_preview(s))
+                .unwrap_or_else(|| "".to_string());
+
+            evidence_findings.push(EvidenceFinding {
+                finding_id: finding.finding_id.clone(),
+                rule_id: format!("guardian::{}", finding.finding_id),
+                file_path_rel: finding.file_path.clone(),
+                location_fingerprint: "".to_string(),
+                severity: finding.severity.clone(),
+                explanation: finding.message.clone(),
+                suggestion: finding.suggestion.clone(),
+                evidence_preview: preview,
+            });
+        }
+
+        let evidence = EvidenceReport::new(
+            root.to_string_lossy().to_string(),
+            rules_hash.clone(),
+            scan_profile.as_str().to_string(),
+            report.manifest_hash.clone(),
+            evidence_findings,
+        );
+        write_json_pretty(path, &evidence)?;
+        report.evidence_path = Some(path.to_string_lossy().to_string());
+    }
 
     let payload = render_report(&report, cfg.format)?;
     write_report(&payload, cfg.out.as_deref())?;
@@ -484,6 +522,21 @@ fn truncate_content(content: &str) -> String {
         joined.push_str("\n... (truncated)");
     }
     joined
+}
+
+fn truncate_preview(content: &str) -> String {
+    const MAX_BYTES: usize = 2048;
+    let trimmed = content.trim();
+    if trimmed.len() <= MAX_BYTES {
+        return trimmed.to_string();
+    }
+    let mut end = MAX_BYTES;
+    while end > 0 && !trimmed.is_char_boundary(end) {
+        end -= 1;
+    }
+    let mut out = trimmed[..end].to_string();
+    out.push_str("\n... (truncated)");
+    out
 }
 
 fn offline_scan(
@@ -1033,6 +1086,58 @@ mod tests {
             collect_files(root, ScanProfile::Extended, 50, 50_000, &HashSet::new()).unwrap();
         let paths: Vec<String> = collected.scanned.into_iter().map(|f| f.rel_path).collect();
         assert!(paths.contains(&"Dockerfile".to_string()));
+    }
+
+    #[test]
+    fn emit_evidence_masks_secrets_and_uses_relative_paths() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        let openai_key = format!("sk-{}", "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234");
+        let content = format!(
+            "const email = \"test@example.com\";\nconst key = \"{}\";\nconst x = a.unwrap();\n",
+            openai_key
+        );
+        write_file(
+            root,
+            "src/a.ts",
+            content.as_str(),
+        );
+
+        let report_path = root.join("report.json");
+        let evidence_path = root.join("evidence.json");
+        run_scan(ScanConfig {
+            root: root.to_path_buf(),
+            format: ReportFormat::Json,
+            out: Some(report_path),
+            baseline_path: None,
+            max_files: 50,
+            max_file_bytes: 50_000,
+            scan_profile: None,
+            offline: true,
+            mock: false,
+            provider: None,
+            model: None,
+            base_url: None,
+            api_key: None,
+            lock_path: None,
+            lock_mode: LockMode::Warn,
+            emit_manifest_path: None,
+            emit_evidence_path: Some(evidence_path.clone()),
+            pr_gate: PrGateMode::Off,
+        })
+        .unwrap();
+
+        let raw = fs::read_to_string(&evidence_path).unwrap();
+        let evidence: EvidenceReport = serde_json::from_str(&raw).unwrap();
+        assert_eq!(evidence.scan_profile, "source");
+        assert!(!evidence.findings.is_empty());
+        let first = &evidence.findings[0];
+        assert_eq!(first.file_path_rel, "src/a.ts");
+        assert!(first.evidence_preview.contains("[REDACTED_EMAIL]"));
+        assert!(!first.evidence_preview.contains("test@example.com"));
+        assert!(first.evidence_preview.contains("[REDACTED_OPENAI_KEY]"));
+        assert!(!first.evidence_preview.contains(openai_key.as_str()));
+        assert!(!first.evidence_preview.contains(root.to_string_lossy().as_ref()));
     }
 
     #[test]
