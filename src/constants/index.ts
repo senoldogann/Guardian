@@ -31,7 +31,7 @@ export const MASK = "••••••";
 
 // Provider options
 export const PROVIDER_OPTIONS = [
-  { id: "ollama", label: "Ollama (Local)", baseUrl: "http://127.0.0.1:11434" },
+  { id: "ollama", label: "Ollama (Local)", baseUrl: "http://localhost:11434" },
   { id: "ollama-cloud", label: "Ollama (Cloud)", baseUrl: "https://ollama.com" },
   { id: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1" },
   { id: "anthropic", label: "Anthropic (Claude)", baseUrl: "https://api.anthropic.com/v1" },

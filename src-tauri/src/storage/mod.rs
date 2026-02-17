@@ -100,6 +100,34 @@ fn ann_candidate_count(limit: usize) -> usize {
         .clamp(SQLITE_VEC_KNN_MIN, SQLITE_VEC_KNN_MAX)
 }
 
+fn ensure_file_fingerprint_columns(conn: &Connection) -> Result<()> {
+    let mut stmt = conn.prepare("PRAGMA table_info(file_fingerprints)")?;
+    let rows = stmt.query_map([], |row| row.get::<_, String>(1))?;
+
+    let mut has_mtime = false;
+    let mut has_bytes = false;
+    for name in rows {
+        let name = name?;
+        if name == "mtime_ms" {
+            has_mtime = true;
+        } else if name == "bytes" {
+            has_bytes = true;
+        }
+    }
+
+    if !has_mtime {
+        conn.execute(
+            "ALTER TABLE file_fingerprints ADD COLUMN mtime_ms INTEGER",
+            [],
+        )?;
+    }
+    if !has_bytes {
+        conn.execute("ALTER TABLE file_fingerprints ADD COLUMN bytes INTEGER", [])?;
+    }
+
+    Ok(())
+}
+
 impl StorageManager {
     pub fn init(base_path: &str) -> anyhow::Result<Self> {
         let db_path = Path::new(base_path).join(".guardian/memory.db");
@@ -174,10 +202,16 @@ impl StorageManager {
                 path TEXT PRIMARY KEY,
                 sha256 TEXT NOT NULL,
                 last_audit_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-                risk_score INTEGER DEFAULT 0
+                risk_score INTEGER DEFAULT 0,
+                mtime_ms INTEGER,
+                bytes INTEGER
             )",
             [],
         )?;
+
+        // Incremental migration: older installs may not have the newer fingerprint columns.
+        // We keep this fully automatic and idempotent to avoid breaking existing workspaces.
+        ensure_file_fingerprint_columns(&conn)?;
 
         conn.execute(
             "CREATE TABLE IF NOT EXISTS telemetry_queue (
@@ -255,33 +289,52 @@ impl StorageManager {
         Ok(())
     }
 
-    pub fn check_file_hash(&self, path: &str, current_hash: &str) -> Result<bool> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT sha256 FROM file_fingerprints WHERE path = ?1")?;
+    pub fn check_file_fingerprint(&self, path: &str, mtime_ms: i64, bytes: i64) -> Result<bool> {
+        if mtime_ms < 0 || bytes < 0 {
+            return Ok(false);
+        }
 
-        let stored_hash: Option<String> =
-            stmt.query_row(params![path], |row| row.get(0)).optional()?;
+        let mut stmt = self.conn.prepare(
+            "SELECT mtime_ms, bytes FROM file_fingerprints WHERE path = ?1",
+        )?;
 
-        match stored_hash {
-            Some(hash) => Ok(hash == current_hash),
-            None => Ok(false), // New file -> audit needed
+        let stored: Option<(Option<i64>, Option<i64>)> = stmt
+            .query_row(params![path], |row| Ok((row.get(0)?, row.get(1)?)))
+            .optional()?;
+
+        match stored {
+            Some((Some(stored_mtime), Some(stored_bytes))) => {
+                Ok(stored_mtime == mtime_ms && stored_bytes == bytes)
+            }
+            _ => Ok(false),
         }
     }
 
-    pub fn update_file_hash(&self, path: &str, new_hash: &str) -> Result<()> {
+    pub fn upsert_file_fingerprint(
+        &self,
+        path: &str,
+        sha256: &str,
+        mtime_ms: i64,
+        bytes: i64,
+        risk_score: i64,
+    ) -> Result<()> {
         self.conn.execute(
-            "INSERT OR REPLACE INTO file_fingerprints (path, sha256, last_audit_time) VALUES (?1, ?2, CURRENT_TIMESTAMP)",
-            params![path, new_hash],
+            "INSERT INTO file_fingerprints (path, sha256, last_audit_time, risk_score, mtime_ms, bytes)
+             VALUES (?1, ?2, CURRENT_TIMESTAMP, ?3, ?4, ?5)
+             ON CONFLICT(path) DO UPDATE SET
+               sha256 = excluded.sha256,
+               last_audit_time = excluded.last_audit_time,
+               risk_score = excluded.risk_score,
+               mtime_ms = excluded.mtime_ms,
+               bytes = excluded.bytes",
+            params![path, sha256, risk_score, mtime_ms, bytes],
         )?;
         Ok(())
     }
 
-    pub fn remove_file_hash(&self, path: &str) -> Result<()> {
-        self.conn.execute(
-            "DELETE FROM file_fingerprints WHERE path = ?1",
-            params![path],
-        )?;
+    pub fn remove_file_fingerprint(&self, path: &str) -> Result<()> {
+        self.conn
+            .execute("DELETE FROM file_fingerprints WHERE path = ?1", params![path])?;
         Ok(())
     }
 
@@ -442,8 +495,14 @@ impl StorageManager {
         if embedding_dim != SQLITE_VEC_EMBED_DIM {
             return;
         }
+        // NOTE: `vec0` virtual tables can be picky about `OR REPLACE` semantics.
+        // We keep this robust by deleting the row first, then inserting.
+        let _ = self.conn.execute(
+            "DELETE FROM semantic_vectors_ann WHERE rowid = ?1",
+            params![row_id],
+        );
         if let Err(err) = self.conn.execute(
-            "INSERT OR REPLACE INTO semantic_vectors_ann (rowid, embedding) VALUES (?1, ?2)",
+            "INSERT INTO semantic_vectors_ann (rowid, embedding) VALUES (?1, ?2)",
             params![row_id, embedding_json],
         ) {
             warn!(
@@ -724,6 +783,26 @@ fn ann_distance_to_similarity(distance: f32) -> f32 {
 mod tests {
     use super::*;
     use tempfile::TempDir;
+
+    #[test]
+    fn file_fingerprint_matches_on_mtime_and_bytes() {
+        let temp = TempDir::new().unwrap();
+        let storage = StorageManager::init(temp.path().to_string_lossy().as_ref()).unwrap();
+
+        storage
+            .upsert_file_fingerprint("src/a.rs", "hash-a", 1234, 42, 0)
+            .unwrap();
+
+        assert!(storage
+            .check_file_fingerprint("src/a.rs", 1234, 42)
+            .unwrap());
+        assert!(!storage
+            .check_file_fingerprint("src/a.rs", 1234, 43)
+            .unwrap());
+        assert!(!storage
+            .check_file_fingerprint("src/missing.rs", 1234, 42)
+            .unwrap());
+    }
 
     #[test]
     fn semantic_vector_search_returns_similar_matches() {

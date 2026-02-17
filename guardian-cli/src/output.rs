@@ -43,6 +43,12 @@ pub struct ScanReport {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub scan_profile: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub manifest_hash: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub manifest_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evidence_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub baseline_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub guardian_lock: Option<GuardianLockSummary>,
@@ -58,6 +64,9 @@ impl ScanReport {
             root,
             rules_hash,
             scan_profile: None,
+            manifest_hash: None,
+            manifest_path: None,
+            evidence_path: None,
             baseline_path,
             guardian_lock: None,
             summary: ScanSummary {
@@ -112,6 +121,15 @@ fn render_markdown(report: &ScanReport) -> String {
     out.push_str(&format!("- Rules hash: `{}`\n", report.rules_hash));
     if let Some(profile) = &report.scan_profile {
         out.push_str(&format!("- Scan profile: `{}`\n", profile));
+    }
+    if let Some(hash) = &report.manifest_hash {
+        out.push_str(&format!("- Run manifest hash: `{}`\n", hash));
+    }
+    if let Some(path) = &report.manifest_path {
+        out.push_str(&format!("- Run manifest: `{}`\n", path));
+    }
+    if let Some(path) = &report.evidence_path {
+        out.push_str(&format!("- Evidence: `{}`\n", path));
     }
     if let Some(path) = &report.baseline_path {
         out.push_str(&format!("- Baseline: `{}`\n", path));
@@ -168,8 +186,7 @@ fn render_sarif(report: &ScanReport) -> Result<String> {
             "message": { "text": finding.message },
             "locations": [{
                 "physicalLocation": {
-                    "artifactLocation": { "uri": finding.file_path },
-                    "region": { "startLine": 1 }
+                    "artifactLocation": { "uri": finding.file_path }
                 }
             }],
             "properties": {
@@ -184,9 +201,34 @@ fn render_sarif(report: &ScanReport) -> Result<String> {
         "version": "2.1.0",
         "runs": [{
             "tool": { "driver": { "name": "Guardian", "version": env!("CARGO_PKG_VERSION") } },
+            "properties": {
+                "guardian_manifest_hash": report.manifest_hash.clone(),
+                "scan_profile": report.scan_profile.clone(),
+                "rules_hash": report.rules_hash.clone()
+            },
             "results": results
         }]
     });
 
     Ok(serde_json::to_string_pretty(&sarif)?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sarif_includes_run_level_properties() {
+        let mut report = ScanReport::new("root".to_string(), "ruleshash".to_string(), None);
+        report.scan_profile = Some("source".to_string());
+        report.manifest_hash = Some("manifesthash".to_string());
+
+        let payload = render_report(&report, ReportFormat::Sarif).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&payload).unwrap();
+        let props = &parsed["runs"][0]["properties"];
+
+        assert_eq!(props["guardian_manifest_hash"], "manifesthash");
+        assert_eq!(props["scan_profile"], "source");
+        assert_eq!(props["rules_hash"], "ruleshash");
+    }
 }

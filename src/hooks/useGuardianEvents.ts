@@ -1,13 +1,8 @@
 import { type Dispatch, type MutableRefObject, type SetStateAction, useEffect } from "react";
 import { invoke, listen, type UnlistenFn } from "../lib/tauri";
 import { handleError } from "../lib/error";
+import { critiqueStateKey } from "../lib/critiqueStateKey";
 import type { AiContextSnapshot, Critique, FixProposalsSnapshot } from "../types";
-
-function critiqueStateKey(critique: Critique): string {
-  const finding = critique.finding_id?.trim();
-  if (finding) return finding;
-  return critique.file_path;
-}
 
 interface UseGuardianEventsArgs {
   setLogs: Dispatch<SetStateAction<Record<string, Critique>>>;

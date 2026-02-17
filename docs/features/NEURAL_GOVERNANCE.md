@@ -29,7 +29,7 @@ ollama pull codellama
 ### 3. Start Ollama Server
 ```bash
 ollama serve
-# Runs on http://127.0.0.1:11434
+# Runs on http://localhost:11434
 ```
 
 ### 4. Select in Guardian

@@ -4,6 +4,7 @@ use crate::context::ProjectContext;
 use crate::executor;
 use crate::history_logger::{append_critique_event, append_history_event, HistoryEvent};
 use crate::storage::StorageManager;
+use crate::triage;
 use chrono::Utc;
 use guardian_scan_policy::{classify_path, is_infra_relevant_path, ScanProfile, SkipReason};
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
@@ -89,6 +90,17 @@ pub struct FixProposalsSnapshot {
 static LAST_FIX_PROPOSALS: Lazy<Arc<RwLock<Option<FixProposalsSnapshot>>>> =
     Lazy::new(|| Arc::new(RwLock::new(None)));
 
+#[derive(Debug, Clone)]
+struct AuditBackoffState {
+    consecutive_failures: u32,
+    cooldown_until: Instant,
+    last_error: String,
+    last_notice_at: Instant,
+}
+
+static AUDIT_BACKOFF_BY_ROOT: Lazy<Arc<RwLock<HashMap<String, AuditBackoffState>>>> =
+    Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
+
 const MAX_AGENT_QUEUE_BYTES: u64 = 1 * 1024 * 1024;
 const MAX_AGENT_QUEUE_ARCHIVES: usize = 5;
 const FIX_PROPOSALS_DIR: &str = ".guardian-proposals";
@@ -96,6 +108,88 @@ const FIX_PROPOSALS_FILE: &str = "fix_proposals.jsonl";
 const DIFF_MAX_HUNKS: usize = 6;
 
 // Note: Configuration constants moved to config.rs, accessed via config::*() functions
+
+fn is_send_failure_error(err: &str) -> bool {
+    // Most providers wrap reqwest::Error via `.context("Failed to send ... request")`.
+    // Treat these as "no call made" for cost metrics.
+    let e = err.to_lowercase();
+    e.contains("failed to send request")
+        || e.contains("failed to send openai request")
+        || e.contains("failed to send anthropic request")
+        || e.contains("failed to send gemini request")
+        || e.contains("failed to send github models request")
+}
+
+fn is_auth_error(err: &str) -> bool {
+    let e = err.to_lowercase();
+    e.contains("unauthorized")
+        || e.contains("forbidden")
+        || e.contains("api key")
+        || e.contains("missing or still a placeholder")
+        || e.contains("invalid api key")
+}
+
+fn compute_audit_backoff_secs(consecutive_failures: u32) -> u64 {
+    // Progressive cooldown to stop endless retries when a provider is down/misconfigured.
+    // Keep it human-friendly and cap at 10 minutes.
+    match consecutive_failures {
+        0 | 1 => 60,
+        2 => 120,
+        3 => 300,
+        _ => 600,
+    }
+}
+
+fn audit_backoff_remaining(root: &str) -> Option<Duration> {
+    let Ok(lock) = AUDIT_BACKOFF_BY_ROOT.read() else {
+        return None;
+    };
+    let state = lock.get(root)?;
+    let now = Instant::now();
+    if now >= state.cooldown_until {
+        return None;
+    }
+    Some(state.cooldown_until.duration_since(now))
+}
+
+fn reset_audit_backoff(root: &str) {
+    if let Ok(mut lock) = AUDIT_BACKOFF_BY_ROOT.write() {
+        lock.remove(root);
+    }
+}
+
+fn bump_audit_backoff(root: &str, err: &str) -> (Duration, bool) {
+    // Returns: (backoff_duration, should_emit_notice)
+    let now = Instant::now();
+    let mut should_emit = false;
+    let backoff_secs;
+
+    if let Ok(mut lock) = AUDIT_BACKOFF_BY_ROOT.write() {
+        let entry = lock.entry(root.to_string()).or_insert_with(|| AuditBackoffState {
+            consecutive_failures: 0,
+            cooldown_until: now,
+            last_error: String::new(),
+            last_notice_at: now - Duration::from_secs(3600),
+        });
+
+        entry.consecutive_failures = entry.consecutive_failures.saturating_add(1);
+        backoff_secs = compute_audit_backoff_secs(entry.consecutive_failures);
+        entry.cooldown_until = now + Duration::from_secs(backoff_secs);
+
+        let err_changed = entry.last_error != err;
+        entry.last_error = err.to_string();
+
+        if err_changed || now.duration_since(entry.last_notice_at) > Duration::from_secs(45) {
+            entry.last_notice_at = now;
+            should_emit = true;
+        }
+    } else {
+        backoff_secs = 300;
+        should_emit = true;
+    }
+
+    (Duration::from_secs(backoff_secs), should_emit)
+}
 
 fn is_significant_warning(critique: &crate::ai_client::Critique) -> bool {
     let msg = critique.message.to_lowercase();
@@ -232,6 +326,19 @@ fn should_surface_critique(
             false
         }
     }
+}
+
+fn fs_worker_count() -> usize {
+    std::env::var("GUARDIAN_FS_WORKERS")
+        .ok()
+        .and_then(|raw| raw.trim().parse::<usize>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or_else(|| {
+            let cpus = std::thread::available_parallelism()
+                .map(|n| n.get())
+                .unwrap_or(4);
+            (cpus.saturating_mul(2)).clamp(2, 8)
+        })
 }
 
 #[derive(Clone, Copy)]
@@ -612,8 +719,19 @@ pub async fn start_watching(
         Arc::new(Mutex::new(HashMap::new()));
     let semaphore = Arc::new(Semaphore::new(4));
 
-    let project_context = Arc::new(ProjectContext::index_path(&target_path));
-    info!(target: "guardian::watcher", "Cognitive indexing complete: {} files", project_context.total_files);
+    let project_context = Arc::new(ProjectContext::index_path_with_profile(
+        &target_path,
+        scan_profile,
+    ));
+    let intent_pack = project_context.to_intent_pack_string(&target_path, scan_profile);
+    crate::context::seed_intent_pack_cache(&target_path, scan_profile, intent_pack.clone());
+    let intent_pack = Arc::new(intent_pack);
+    info!(
+        target: "guardian::watcher",
+        "Cognitive indexing complete: {} files (profile={})",
+        project_context.total_files,
+        scan_profile.as_str()
+    );
 
     info!(target: "guardian::watcher", "Watcher started on: {}", target_path);
     info!(
@@ -696,6 +814,7 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
     let batch_app = app.clone();
     let batch_client = client.clone();
     let batch_ctx = project_context.clone();
+    let batch_intent = intent_pack.clone();
     let batch_root = target_path.clone();
     let batch_auto_verify_enabled = auto_verify_enabled;
     let batch_shutdown = shutdown.clone();
@@ -706,6 +825,7 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
             batch_app,
             batch_client,
             batch_ctx,
+            batch_intent,
             batch_root,
             batch_auto_verify_enabled,
             batch_shutdown,
@@ -722,6 +842,32 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
     let scan_shutdown = shutdown.clone();
     let scan_semaphore = semaphore.clone();
     let scan_profile_copy = scan_profile;
+    let scan_worker_count = fs_worker_count();
+    let (scan_path_tx, scan_path_rx) = tokio::sync::mpsc::channel::<PathBuf>(64);
+    let scan_path_rx = Arc::new(tokio::sync::Mutex::new(scan_path_rx));
+    for _ in 0..scan_worker_count {
+        let rx = scan_path_rx.clone();
+        let worker_app = scan_app.clone();
+        let worker_tx = scan_tx.clone();
+        let worker_sem = scan_semaphore.clone();
+        tokio::spawn(async move {
+            loop {
+                let next = { rx.lock().await.recv().await };
+                let Some(path) = next else {
+                    break;
+                };
+                audit_file_logic(
+                    path,
+                    worker_app.clone(),
+                    worker_tx.clone(),
+                    worker_sem.clone(),
+                    scan_profile_copy,
+                )
+                .await;
+            }
+        });
+    }
+
     tokio::task::spawn_blocking(move || {
         use std::collections::HashMap;
 
@@ -735,6 +881,19 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
         let walker = ignore::WalkBuilder::new(&scan_root)
             .hidden(false)
             .git_ignore(true)
+            // Prune ignored path segments early to avoid traversing huge folders (node_modules, target, etc.)
+            // This keeps the "skipped_by_reason" counts meaningful while dramatically improving initial scan speed.
+            .filter_entry(move |entry| {
+                let Some(ft) = entry.file_type() else {
+                    return true;
+                };
+                if !ft.is_dir() {
+                    return true;
+                }
+                let is_chat = is_guardian_chat(entry.path());
+                let decision = classify_path(entry.path(), is_chat, scan_profile_copy);
+                decision.reason != Some(SkipReason::IgnoredPathSegment)
+            })
             .build();
 
         let mut included_count = 0usize;
@@ -762,18 +921,12 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
                         continue;
                     }
 
-                    // Pre-process (Hash Check) -> Send to Batch
-                    let a_app = scan_app.clone();
-                    let a_tx = scan_tx.clone();
-                    let a_sem = scan_semaphore.clone();
-                    let a_path = path;
-
-                    tokio::spawn(async move {
-                        audit_file_logic(a_path, a_app, a_tx, a_sem).await;
-                    });
+                    if scan_path_tx.blocking_send(path).is_err() {
+                        // Receiver dropped (shutdown); stop early.
+                        break;
+                    }
 
                     included_count += 1;
-                    std::thread::sleep(Duration::from_millis(20));
                 }
             }
         }
@@ -903,7 +1056,7 @@ fn handle_event(
 
             let storage_state = app.state::<Arc<Mutex<StorageManager>>>();
             if let Ok(storage) = storage_state.lock() {
-                let _ = storage.remove_file_hash(&path_key);
+                let _ = storage.remove_file_fingerprint(&path_key);
             }
 
             let rel_path = normalize_rel_file_path(Path::new(&root), &path_key);
@@ -984,7 +1137,7 @@ fn handle_event(
         let a_tx = tx.clone();
         let a_sem = semaphore.clone();
         tokio::spawn(async move {
-            audit_file_logic(path, a_app, a_tx, a_sem).await;
+            audit_file_logic(path, a_app, a_tx, a_sem, scan_profile).await;
         });
     }
 }
@@ -994,6 +1147,11 @@ struct BatchItem {
     path: PathBuf,
     content: String,
     hash: String,
+    mtime_ms: i64,
+    bytes: i64,
+    triage_risk_score: i64,
+    triage_signals: Vec<&'static str>,
+    triage_kind: triage::FileKind,
 }
 
 struct BatchPathResolver {
@@ -1139,6 +1297,7 @@ async fn batch_processing_loop(
     app: AppHandle,
     client: Arc<AiClient>,
     _context: Arc<ProjectContext>,
+    intent_pack: Arc<String>,
     root: String,
     auto_verify_enabled: bool,
     shutdown: Arc<AtomicBool>,
@@ -1160,6 +1319,7 @@ async fn batch_processing_loop(
                         &mut batch,
                         &app,
                         &client,
+                        Some(intent_pack.as_str()),
                         &root,
                         auto_verify_enabled,
                         scan_profile,
@@ -1181,6 +1341,7 @@ async fn batch_processing_loop(
                         &mut batch,
                         &app,
                         &client,
+                        Some(intent_pack.as_str()),
                         &root,
                         auto_verify_enabled,
                         scan_profile,
@@ -1198,12 +1359,25 @@ async fn process_batch(
     batch: &mut Vec<BatchItem>,
     app: &AppHandle,
     client: &Arc<AiClient>,
+    project_intent_pack: Option<&str>,
     root: &str,
     auto_verify_enabled: bool,
     scan_profile: ScanProfile,
     last_request: &mut Instant,
 ) {
     if batch.is_empty() {
+        return;
+    }
+
+    if let Some(remaining) = audit_backoff_remaining(root) {
+        // Avoid hammering the provider when it's down/misconfigured; keep the batch in memory.
+        // We emit a single, low-noise hint via the backoff bump path (on the first failure).
+        debug!(
+            target: "guardian::watcher",
+            "Audit backoff active (remaining={}s, profile={})",
+            remaining.as_secs(),
+            scan_profile.as_str()
+        );
         return;
     }
 
@@ -1228,10 +1402,13 @@ async fn process_batch(
 
     let mut attempt = 0;
     loop {
-        let call = client.analyze_batch(prompt_data.clone()).await;
+        let call = client
+            .analyze_batch_with_intent(project_intent_pack, prompt_data.clone())
+            .await;
         *last_request = Instant::now();
         match call {
             Ok(result) => {
+                reset_audit_backoff(root);
                 let queue_wait_ms = result.queue_wait_ms;
                 let critiques =
                     normalize_batch_critique_file_paths(Path::new(root), &items, result.value);
@@ -1269,7 +1446,8 @@ async fn process_batch(
                 return;
             }
             Err(e) => {
-                let err = e.to_string();
+                // Use full anyhow chain for actionable root cause ("connection refused", "timed out", etc.).
+                let err = format!("{e:#}");
                 if is_rate_limit_error(&err) && attempt < config::rate_limit_retries() {
                     let backoff = Duration::from_secs(
                         config::rate_limit_backoff_secs().saturating_mul((attempt + 1) as u64),
@@ -1296,7 +1474,10 @@ async fn process_batch(
                             build_prompt_data(&single_items);
                         emit_ai_context(app, root, client, single_tokens, &single_context);
                         append_ai_request_history(root, client, single_tokens, &single_context);
-                        match client.analyze_batch(single_prompt).await {
+                        match client
+                            .analyze_batch_with_intent(project_intent_pack, single_prompt)
+                            .await
+                        {
                             Ok(result) => {
                                 let queue_wait_ms = result.queue_wait_ms;
                                 let critiques = normalize_batch_critique_file_paths(
@@ -1345,13 +1526,52 @@ async fn process_batch(
                     return;
                 }
 
-                error!(target: "guardian::watcher", "Batch audit failed: {}", err);
-                app.emit("guardian:warning", format!("Batch audit failed. {}", err))
+                let (cooldown, should_notice) = bump_audit_backoff(root, &err);
+                if should_notice {
+                    let provider = client.provider_id();
+                    let base_url = client.base_url();
+                    let lowered = err.to_lowercase();
+                    let hint = if provider == "ollama" && is_send_failure_error(&err) && lowered.contains("timed out") {
+                        "Ollama request timed out. Try a smaller model or increase the timeout (GUARDIAN_TIMEOUT_OLLAMA)."
+                    } else if provider == "ollama" && is_send_failure_error(&err) {
+                        "Ollama appears unreachable. Start Ollama (local server), verify the base URL, or switch provider in Settings."
+                    } else if is_auth_error(&err) {
+                        "Authentication looks invalid. Check your provider API key in Settings."
+                    } else if is_send_failure_error(&err) {
+                        "Provider endpoint appears unreachable. Check network/base URL and provider status."
+                    } else {
+                        "Provider request failed. Check provider status and configuration."
+                    };
+                    error!(
+                        target: "guardian::watcher",
+                        "Batch audit failed (provider={}, base_url={}): {}",
+                        provider,
+                        base_url,
+                        err
+                    );
+                    app.emit(
+                        "guardian:warning",
+                        format!(
+                            "Batch audit paused for {}s. {} (provider={}, base_url={})",
+                            cooldown.as_secs(),
+                            hint,
+                            provider,
+                            base_url
+                        ),
+                    )
                     .ok();
-                // Still count the usage because we made the call
+                } else {
+                    debug!(target: "guardian::watcher", "Batch audit failed (debounced): {}", err);
+                }
+
+                // Requeue the items so we can resume automatically after the backoff window.
+                *batch = items;
+
+                // Cost metrics: if we couldn't even send the HTTP request, count as 0 provider calls.
+                let calls = if is_send_failure_error(&err) { 0 } else { 1 };
                 app.emit(
                     "guardian:usage",
-                    json!({ "tokens": estimated_tokens, "calls": 1, "files": items.len(), "queue_wait_ms": 0 }),
+                    json!({ "tokens": if calls == 0 { 0 } else { estimated_tokens }, "calls": calls, "files": if calls == 0 { 0 } else { batch.len() }, "queue_wait_ms": 0 }),
                 )
                 .ok();
                 return;
@@ -1517,7 +1737,7 @@ fn handle_critiques(
                 }
                 let r_clone = root.to_string();
                 let a_clone = app.clone();
-                std::thread::spawn(move || {
+                tokio::task::spawn_blocking(move || {
                     a_clone
                         .emit(
                             "guardian:analyzing",
@@ -1569,13 +1789,19 @@ fn handle_critiques(
         );
     }
 
-    // Update hashes after successful audit
+    // Update fingerprints after successful audit (used to skip unchanged files without reading).
     if let Ok(storage) = storage_state.lock() {
         for item in items.iter() {
-            let _ = storage.update_file_hash(&item.path.to_string_lossy(), &item.hash);
+            let _ = storage.upsert_file_fingerprint(
+                &item.path.to_string_lossy(),
+                &item.hash,
+                item.mtime_ms,
+                item.bytes,
+                item.triage_risk_score,
+            );
             debug!(
                 target: "guardian::watcher",
-                "Memory Guard: hash updated (file={})",
+                "Memory Guard: fingerprint updated (file={})",
                 safe_path_label(&item.path)
             );
         }
@@ -1746,13 +1972,15 @@ async fn audit_file_logic(
     app: AppHandle,
     tx: tokio::sync::mpsc::Sender<BatchItem>,
     semaphore: Arc<Semaphore>,
+    scan_profile: ScanProfile,
 ) {
     let _permit = semaphore.acquire_owned().await;
 
     // Best-effort observability: why did we skip this file?
     // Note: profile-aware skipping is enforced earlier in the pipeline. This is just a guardrail
     // in case callers bypass should_skip_path_with_profile.
-    if skip_reason_label(&path, is_guardian_chat(&path), ScanProfile::Source).is_some() {
+    let is_chat = is_guardian_chat(&path);
+    if skip_reason_label(&path, is_chat, scan_profile).is_some() {
         // Keep this in debug to avoid spamming the UI.
         debug!(
             target: "guardian::watcher",
@@ -1780,28 +2008,8 @@ async fn audit_file_logic(
     }
 
     let max_file_bytes = config::max_file_bytes();
-    match tokio::fs::metadata(&path).await {
-        Ok(meta) => {
-            if meta.len() > max_file_bytes {
-                debug!(
-                    target: "guardian::watcher",
-                    "Skipping large file (file={}, size_bytes={}, max_bytes={})",
-                    safe_path_label(&path),
-                    meta.len(),
-                    max_file_bytes
-                );
-                app.emit(
-                    "guardian:info",
-                    format!(
-                        "Skipped (Large): {:?} ({} KB)",
-                        path.file_name().unwrap_or_default(),
-                        (meta.len() / 1024).max(1)
-                    ),
-                )
-                .ok();
-                return;
-            }
-        }
+    let meta = match tokio::fs::metadata(&path).await {
+        Ok(meta) => meta,
         Err(err) => {
             debug!(
                 target: "guardian::watcher",
@@ -1811,55 +2019,120 @@ async fn audit_file_logic(
             );
             return;
         }
+    };
+
+    if meta.len() > max_file_bytes {
+        debug!(
+            target: "guardian::watcher",
+            "Skipping large file (file={}, size_bytes={}, max_bytes={})",
+            safe_path_label(&path),
+            meta.len(),
+            max_file_bytes
+        );
+        app.emit(
+            "guardian:info",
+            format!(
+                "Skipped (Large): {:?} ({} KB)",
+                path.file_name().unwrap_or_default(),
+                (meta.len() / 1024).max(1)
+            ),
+        )
+        .ok();
+        return;
     }
 
-    let content_res = tokio::fs::read_to_string(&path).await;
-    if let Ok(content) = content_res {
-        // 1. Hash Check
-        let current_hash = calculate_hash(&content);
-        let storage_state = app.state::<Arc<Mutex<StorageManager>>>();
+    let bytes = meta.len() as i64;
+    let mtime_ms = meta
+        .modified()
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(-1);
 
-        let should_audit = {
-            if let Ok(storage) = storage_state.lock() {
-                // If check_file_hash returns Ok(true), it matches -> Skip
-                // If Ok(false) -> New/Changed -> Audit
-                if let Ok(true) = storage.check_file_hash(&path.to_string_lossy(), &current_hash) {
-                    debug!(
-                        target: "guardian::watcher",
-                        "Memory Guard: skipping unchanged file (file={})",
-                        safe_path_label(&path)
-                    );
-                    app.emit(
-                        "guardian:info",
-                        format!(
-                            "Skipped (Unchanged): {:?}",
-                            path.file_name().unwrap_or_default()
-                        ),
-                    )
-                    .ok();
-                    false
-                } else {
-                    true
-                }
-            } else {
-                true // Fail safe
-            }
+    let strict_hash = std::env::var("GUARDIAN_STRICT_HASH")
+        .ok()
+        .map(|v| v.trim() == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
+
+    if !strict_hash && mtime_ms >= 0 {
+        let storage_state = app.state::<Arc<Mutex<StorageManager>>>().inner().clone();
+        let unchanged = match storage_state.lock() {
+            Ok(storage) => storage
+                .check_file_fingerprint(&path.to_string_lossy(), mtime_ms, bytes)
+                .unwrap_or(false),
+            Err(_) => false,
         };
 
-        if should_audit {
+        if unchanged {
             debug!(
                 target: "guardian::watcher",
-                "Auditing change (file={})",
+                "Memory Guard: skipping unchanged file (file={})",
                 safe_path_label(&path)
             );
-            let item = BatchItem {
-                path,
-                content,
-                hash: current_hash,
-            };
-            let _ = tx.send(item).await;
+            app.emit(
+                "guardian:info",
+                format!("Skipped (Unchanged): {:?}", path.file_name().unwrap_or_default()),
+            )
+            .ok();
+            return;
         }
     }
+
+    let content = match tokio::fs::read_to_string(&path).await {
+        Ok(content) => content,
+        Err(_) => return,
+    };
+
+    let current_hash = calculate_hash(&content);
+    let triage_result = triage::triage(&path, &content);
+
+    // Mixed-gate triage: source-code is always audited; non-source surfaces are audited only
+    // when they show meaningful risk signals (profile-aware thresholds).
+    if !triage::should_audit(
+        scan_profile,
+        triage_result.file_kind,
+        triage_result.risk_score,
+    ) {
+        debug!(
+            target: "guardian::watcher",
+            "Mixed gate: skipping low-signal file (file={}, kind={}, risk_score={}, profile={})",
+            safe_path_label(&path),
+            triage_result.file_kind.as_str(),
+            triage_result.risk_score,
+            scan_profile.as_str()
+        );
+
+        // Still record the fingerprint so unchanged files can be skipped without reading next time.
+        let storage_state = app.state::<Arc<Mutex<StorageManager>>>().inner().clone();
+        if let Ok(storage) = storage_state.lock() {
+            let _ = storage.upsert_file_fingerprint(
+                &path.to_string_lossy(),
+                &current_hash,
+                mtime_ms,
+                bytes,
+                triage_result.risk_score,
+            );
+        }
+        return;
+    }
+
+    debug!(
+        target: "guardian::watcher",
+        "Auditing change (file={})",
+        safe_path_label(&path)
+    );
+
+    let item = BatchItem {
+        path,
+        content,
+        hash: current_hash,
+        mtime_ms,
+        bytes,
+        triage_risk_score: triage_result.risk_score,
+        triage_signals: triage_result.signals,
+        triage_kind: triage_result.file_kind,
+    };
+    let _ = tx.send(item).await;
 }
 
 fn sync_guardian_logs(
@@ -2152,6 +2425,27 @@ fn prepare_ai_context_file(item: &BatchItem) -> AiContextFile {
         max_content_chars,
     );
 
+    let mut joined = joined;
+    let mut truncated = truncated;
+    if item.triage_risk_score > 0 || !item.triage_signals.is_empty() {
+        let signals = if item.triage_signals.is_empty() {
+            "none".to_string()
+        } else {
+            item.triage_signals.join(", ")
+        };
+        let header = format!(
+            "Triage: kind={}, risk_score={}, signals=[{}]\n\n",
+            item.triage_kind.as_str(),
+            item.triage_risk_score,
+            signals
+        );
+        joined = format!("{header}{joined}");
+        // Header can push us over configured limits; re-apply truncation guardrails.
+        let re = truncate_context(joined, max_content_lines, max_content_chars, truncated);
+        joined = re.0;
+        truncated = re.1;
+    }
+
     let token_estimate = estimate_tokens(&joined);
 
     AiContextFile {
@@ -2382,6 +2676,11 @@ mod tests_protocol {
             path: abs_path,
             content: String::new(),
             hash: String::new(),
+            mtime_ms: 0,
+            bytes: 0,
+            triage_risk_score: 0,
+            triage_signals: Vec::new(),
+            triage_kind: triage::FileKind::Source,
         };
 
         let critique = crate::ai_client::Critique {
@@ -2409,11 +2708,21 @@ mod tests_protocol {
             path: root.join("a.rs"),
             content: String::new(),
             hash: String::new(),
+            mtime_ms: 0,
+            bytes: 0,
+            triage_risk_score: 0,
+            triage_signals: Vec::new(),
+            triage_kind: triage::FileKind::Source,
         };
         let item_b = BatchItem {
             path: root.join("b.rs"),
             content: String::new(),
             hash: String::new(),
+            mtime_ms: 0,
+            bytes: 0,
+            triage_risk_score: 0,
+            triage_signals: Vec::new(),
+            triage_kind: triage::FileKind::Source,
         };
 
         let critique = crate::ai_client::Critique {

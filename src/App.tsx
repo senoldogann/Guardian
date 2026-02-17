@@ -24,14 +24,10 @@ import type {
   AiContextSnapshot,
   FixProposalsSnapshot,
   FixProposal,
+  FixHistoryEntry,
 } from "./types";
 import { STORAGE_KEYS } from "./constants";
-
-function critiqueStateKey(critique: Critique): string {
-  const finding = critique.finding_id?.trim();
-  if (finding) return finding;
-  return critique.file_path;
-}
+import { critiqueStateKey } from "./lib/critiqueStateKey";
 
 function isSystemLogEntry(key: string, critique: Critique): boolean {
   return key.startsWith("System") || critique.file_path.startsWith("System");
@@ -91,6 +87,7 @@ function App(): ReactElement {
   const stallSignatureRef = useRef<string | null>(null);
   const stallSignature = stallSignatureRef.current ?? "";
   const [pendingGuruPrompt, setPendingGuruPrompt] = useState<AutoPrompt | null>(null);
+  const [guruUnreadCount, setGuruUnreadCount] = useState(0);
   const [usage, setUsage] = useState({ tokens: 0, calls: 0, files: 0, queueWaitMs: 0 });
   const [scanProfileLabel, setScanProfileLabel] = useState<string>("source");
   const [context, setContext] = useState<ProjectContext | null>(null);
@@ -102,7 +99,11 @@ function App(): ReactElement {
   const [fixProposals, setFixProposals] = useState<FixProposalsSnapshot | null>(null);
   const [fixProposalsLoading, setFixProposalsLoading] = useState(false);
   const [fixProposalsError, setFixProposalsError] = useState<string | null>(null);
+  const [fixHistory, setFixHistory] = useState<FixHistoryEntry[]>([]);
+  const [fixHistoryLoading, setFixHistoryLoading] = useState(false);
+  const [fixHistoryError, setFixHistoryError] = useState<string | null>(null);
   const [view, setView] = useState<"monitor" | "chat" | "diagram" | "ai-context" | "reviews">("monitor");
+  const viewRef = useRef(view);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Theme state
@@ -334,6 +335,27 @@ function App(): ReactElement {
     }
   }, [path]);
 
+  const refreshFixHistory = useCallback(async (): Promise<void> => {
+    if (!path) {
+      setFixHistory([]);
+      setFixHistoryError(null);
+      return;
+    }
+
+    setFixHistoryLoading(true);
+    setFixHistoryError(null);
+    try {
+      const value = await invoke<FixHistoryEntry[]>("get_fix_history", { root: path });
+      setFixHistory(Array.isArray(value) ? value : []);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      setFixHistory([]);
+      setFixHistoryError(message);
+    } finally {
+      setFixHistoryLoading(false);
+    }
+  }, [path]);
+
   useGuardianEvents({
     setLogs,
     setStatus,
@@ -368,7 +390,18 @@ function App(): ReactElement {
   useEffect(() => {
     if (view !== "reviews") return;
     void refreshFixProposals();
-  }, [view, refreshFixProposals]);
+    void refreshFixHistory();
+  }, [view, refreshFixProposals, refreshFixHistory]);
+
+  useEffect(() => {
+    if (view === "chat") {
+      setGuruUnreadCount(0);
+    }
+  }, [view]);
+
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
 
 
   const openGuruForStall = useCallback((): void => {
@@ -385,6 +418,12 @@ function App(): ReactElement {
     setPendingGuruPrompt({ id: `${Date.now()}-${Math.random()}`, prompt, useWebSearch });
     setView("chat");
   }, []);
+
+  const handleGuruReply = useCallback((): void => {
+    if (viewRef.current === "chat") return;
+    setGuruUnreadCount((prev) => Math.min(prev + 1, 99));
+    toast.showToast("Guru reply ready.", "info", 3500);
+  }, [toast]);
 
   const toAbsoluteWorkspacePath = useCallback((filePath: string): string => {
     const trimmed = (filePath ?? "").trim();
@@ -446,6 +485,20 @@ function App(): ReactElement {
       toast.showError(`Failed to update proposal: ${e instanceof Error ? e.message : String(e)}`);
     }
   }, [path, toast]);
+
+  const undoAppliedFix = useCallback(async (filePath: string): Promise<void> => {
+    if (!path) {
+      toast.showWarning("Select a workspace scope first.");
+      return;
+    }
+    try {
+      await invoke("undo_fix", { filePath, root: path });
+      toast.showSuccess("Undo complete.", 3000);
+      void refreshFixHistory();
+    } catch (e) {
+      toast.showError(`Failed to undo fix: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }, [path, refreshFixHistory, toast]);
 
   const visibleLogs = useMemo((): Critique[] => {
     const entries = Object.values(logs);
@@ -523,7 +576,7 @@ function App(): ReactElement {
     }).length;
   }, [fixProposals]);
   const hasAiContextData = Boolean(aiContext && aiContext.files.length > 0);
-  const hasReviewData = Boolean((fixProposals?.proposals?.length ?? 0) > 0);
+  const hasReviewData = Boolean((fixProposals?.proposals?.length ?? 0) > 0 || fixHistory.length > 0);
 
   const engineModel = settings.providerDraft?.model?.trim() || "Not set";
   const isDesktop = isTauriRuntime();
@@ -564,11 +617,15 @@ function App(): ReactElement {
           providerModels: settings.providerModels,
           providerModelLoading: settings.providerModelLoading,
           providerModelError: settings.providerModelError,
+          providerTestLoading: settings.providerTestLoading,
+          providerTestMessage: settings.providerTestMessage,
+          providerTestError: settings.providerTestError,
           onProviderChange: settings.onProviderChange,
           onBaseUrlChange: settings.onBaseUrlChange,
           onModelChange: settings.onModelChange,
           onRefreshModels: () => settings.refreshProviderModels(true),
           onSaveProvider: settings.saveProviderSettings,
+          onTestProviderConnection: settings.testProviderConnection,
           apiKeyStatus: settings.apiKeyStatus,
           apiKeyInput: settings.apiKeyInput,
           apiKeyError: settings.apiKeyError,
@@ -744,10 +801,11 @@ function App(): ReactElement {
         <ControlSidebar
           view={view}
           onViewChange={setView}
-          hasAiContextData={hasAiContextData}
-          hasReviewData={hasReviewData}
-          pendingFixProposalsCount={pendingFixProposalsCount}
-          totalFiles={context?.total_files || 0}
+	          hasAiContextData={hasAiContextData}
+	          hasReviewData={hasReviewData}
+	          pendingFixProposalsCount={pendingFixProposalsCount}
+	          guruUnreadCount={guruUnreadCount}
+	          totalFiles={context?.total_files || 0}
           totalIssues={stats.total}
           scopeLabel={scopeLabel}
           onSelectScope={selectScope}
@@ -804,19 +862,11 @@ function App(): ReactElement {
           expandedLogKey={expandedLogKey}
           onToggleLog={(key) => setExpandedLogKey((prev) => (prev === key ? null : key))}
           onAskGuruForLog={askGuruForLog}
-          onFixLog={(log) => {
-            const stateKey = critiqueStateKey(log);
-            setLogs((prev) => {
-              const next = { ...prev };
-              delete next[stateKey];
-              return next;
-            });
-            if (expandedLogKey === stateKey) setExpandedLogKey(null);
-          }}
           path={path}
           onSelectScope={selectScope}
           chatAutoPrompt={pendingGuruPrompt}
           onAutoPromptConsumed={() => setPendingGuruPrompt(null)}
+          onGuruReply={handleGuruReply}
           webSearchEnabled={settings.webSearchEnabled}
           webSearchDepth={settings.webSearchDepth}
           onWebSearchToggle={settings.onWebSearchToggle}
@@ -827,6 +877,11 @@ function App(): ReactElement {
           onRefreshFixProposals={refreshFixProposals}
           onRequestReview={requestReviewForProposal}
           onSetProposalStatus={setProposalStatus}
+          fixHistory={fixHistory}
+          fixHistoryLoading={fixHistoryLoading}
+          fixHistoryError={fixHistoryError}
+          onRefreshFixHistory={refreshFixHistory}
+          onUndoFix={undoAppliedFix}
           aiContext={aiContext}
           aiContextLoading={aiContextLoading}
           aiContextError={aiContextError}

@@ -1,4 +1,5 @@
 import type { ReactElement, ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import {
   Activity,
@@ -9,12 +10,18 @@ import {
   Files,
   Folder,
   MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
   Play,
   Share2,
   Eye,
   Square,
+  ChevronDown,
 } from "lucide-react";
 import type { BaselineStatusView } from "../../types";
+
+const SIDEBAR_COLLAPSED_KEY = "guardian_sidebar_collapsed";
+const SIDEBAR_DETAILS_OPEN_KEY = "guardian_sidebar_details_open_v3";
 
 export interface ControlSidebarProps {
   view: "monitor" | "chat" | "diagram" | "ai-context" | "reviews";
@@ -22,6 +29,7 @@ export interface ControlSidebarProps {
   hasAiContextData: boolean;
   hasReviewData: boolean;
   pendingFixProposalsCount: number;
+  guruUnreadCount: number;
   totalFiles: number;
   totalIssues: number;
   scopeLabel: string;
@@ -66,6 +74,7 @@ export function ControlSidebar({
   hasAiContextData,
   hasReviewData,
   pendingFixProposalsCount,
+  guruUnreadCount,
   totalFiles,
   totalIssues,
   scopeLabel,
@@ -103,325 +112,710 @@ export function ControlSidebar({
   onToggleMonitoring,
   launchBlockingReason,
 }: ControlSidebarProps): ReactElement {
-  return (
-    <aside className="w-72 xl:w-80 min-w-[17rem] bg-surface border-r border-border-main transition-colors duration-300 flex flex-col min-h-0">
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 custom-scrollbar">
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-border-main bg-background/45 p-2 space-y-1.5">
-            <button
-              onClick={() => onViewChange("monitor")}
-              className={clsx(
-                "w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all flex items-center gap-3 cursor-pointer",
-                view === "monitor" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-70 hover:opacity-100",
-              )}
-            >
-              <Activity className="w-4 h-4" /> Monitor
-            </button>
-            <button
-              onClick={() => onViewChange("chat")}
-              className={clsx(
-                "w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all flex items-center gap-3 cursor-pointer",
-                view === "chat" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-70 hover:opacity-100",
-              )}
-            >
-              <MessageSquare className="w-4 h-4" /> Guru
-            </button>
-            <button
-              onClick={() => onViewChange("diagram")}
-              className={clsx(
-                "w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all flex items-center gap-3 cursor-pointer",
-                view === "diagram" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-70 hover:opacity-100",
-              )}
-            >
-              <Share2 className="w-4 h-4" /> Project Map
-            </button>
-            <button
-              onClick={() => onViewChange("ai-context")}
-              className={clsx(
-                "w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all flex items-center justify-between gap-3 cursor-pointer",
-                view === "ai-context"
-                  ? "bg-surface shadow text-[var(--text-main)]"
-                  : "opacity-70 hover:opacity-100",
-              )}
-            >
-              <span className="flex items-center gap-3">
-                <Eye className="w-4 h-4" /> AI Context
-              </span>
-              <span
-                className={clsx(
-                  "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border",
-                  hasAiContextData
-                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                    : "bg-white/5 text-text-muted border-border-main",
-                )}
-              >
-                {hasAiContextData ? "READY" : "EMPTY"}
-              </span>
-            </button>
-            <button
-              onClick={() => onViewChange("reviews")}
-              className={clsx(
-                "w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all flex items-center justify-between gap-3 cursor-pointer",
-                view === "reviews" ? "bg-surface shadow text-[var(--text-main)]" : "opacity-70 hover:opacity-100",
-              )}
-            >
-              <span className="flex items-center gap-3">
-                <ClipboardCheck className="w-4 h-4" /> Reviews
-              </span>
-              {pendingFixProposalsCount > 0 ? (
-                <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-amber-500/10 text-amber-200 border-amber-500/20 tabular-nums">
-                  {pendingFixProposalsCount}
-                </span>
-              ) : (
-                <span
-                  className={clsx(
-                    "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border",
-                    hasReviewData
-                      ? "bg-white/10 text-text-main border-border-main"
-                      : "bg-white/5 text-text-muted border-border-main",
-                  )}
-                >
-                  {hasReviewData ? "LOG" : "EMPTY"}
-                </span>
-              )}
-            </button>
-          </div>
+  const [collapsed, setCollapsed] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(true);
 
-          <div className="rounded-xl border border-border-main bg-background/35 p-3 space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <StatMini
-                label="Files"
-                count={totalFiles}
-                icon={<Files className="w-3.5 h-3.5 text-zinc-400" />}
-                color="text-[var(--stat-strong)]"
-              />
-              <StatMini
-                label="Issues"
-                count={totalIssues}
-                icon={<AlertCircle className="w-3.5 h-3.5 text-amber-400" />}
-                color="text-[var(--stat-strong)]"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">
-                Scope
-              </label>
-              <div className="group relative">
-                <Folder className="absolute left-3 top-3 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors pointer-events-none" />
-                <input
-                  readOnly
+  const persistCollapsed = (next: boolean): void => {
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+    } catch {
+      // ignore
+    }
+  };
+
+  const persistDetailsOpen = (next: boolean): void => {
+    try {
+      localStorage.setItem(SIDEBAR_DETAILS_OPEN_KEY, String(next));
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    try {
+      const storedCollapsed = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+      if (storedCollapsed === "true" || storedCollapsed === "false") setCollapsed(storedCollapsed === "true");
+      const storedDetails = localStorage.getItem(SIDEBAR_DETAILS_OPEN_KEY);
+      if (storedDetails === "true" || storedDetails === "false") setDetailsOpen(storedDetails === "true");
+    } catch {
+      // ignore (private mode / disabled storage)
+    }
+  }, []);
+
+
+
+  const toggleCollapsed = (): void => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      persistCollapsed(next);
+      return next;
+    });
+  };
+
+  const toggleDetails = (): void => {
+    if (collapsed) {
+      // Expand the sidebar before showing details.
+      setCollapsed(false);
+      persistCollapsed(false);
+      setDetailsOpen(true);
+      persistDetailsOpen(true);
+      return;
+    }
+    setDetailsOpen((prev) => {
+      const next = !prev;
+      persistDetailsOpen(next);
+      return next;
+    });
+  };
+
+  const baselineLabel = useMemo(() => {
+    if (baselineLoading) return "Baseline: loading";
+    if (!baselineStatus) return "Baseline: none";
+    if (baselineStatus.valid) return "Baseline: valid";
+    return "Baseline: invalid";
+  }, [baselineLoading, baselineStatus]);
+
+  const costUnits = useMemo(() => (tokens / 1000).toFixed(2), [tokens]);
+
+  const detailsSummary = useMemo(() => {
+    const pieces = [`Cost ${costUnits}u`, baselineLabel];
+    pieces.push(`Embedding ${embeddingModeLabel}`);
+    return pieces.join(" • ");
+  }, [baselineLabel, costUnits, embeddingModeLabel]);
+
+  return (
+    <aside
+      className={clsx(
+        "bg-surface border-r border-border-main transition-colors duration-300 flex flex-col min-h-0",
+        collapsed ? "w-[4.5rem] min-w-[4.5rem]" : "w-72 xl:w-80 min-w-[17rem]",
+      )}
+    >
+      <div
+        className={clsx(
+          "shrink-0 px-3 py-3",
+          collapsed ? "flex justify-center" : "flex items-center justify-between",
+        )}
+      >
+        {!collapsed && <div className="text-[10px] font-bold uppercase tracking-widest text-text-muted select-none">Control Hub</div>}
+        <button
+          onClick={toggleCollapsed}
+          className={clsx(
+            "rounded-lg border border-border-main bg-background/40 hover:bg-background/60 transition-colors",
+            collapsed ? "p-2" : "px-2.5 py-2",
+          )}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+        </button>
+      </div>
+
+      <div className={clsx("flex-1 min-h-0 overflow-y-auto custom-scrollbar", collapsed ? "px-2 py-3" : "px-4 py-4")}>
+        <div className={clsx(collapsed ? "flex flex-col items-center gap-3" : "space-y-4")}>
+          {collapsed ? (
+            <>
+              <nav className="flex flex-col items-center gap-2 w-full">
+                <DockNavButton
+                  active={view === "monitor"}
+                  label="Monitor"
+                  onClick={() => onViewChange("monitor")}
+                  icon={<Activity className="w-5 h-5" />}
+                />
+                <DockNavButton
+                  active={view === "chat"}
+                  label="Guru"
+                  onClick={() => onViewChange("chat")}
+                  badge={guruUnreadCount > 0 ? guruUnreadCount : undefined}
+                  icon={<MessageSquare className="w-5 h-5" />}
+                />
+                <DockNavButton
+                  active={view === "diagram"}
+                  label="Project Map"
+                  onClick={() => onViewChange("diagram")}
+                  icon={<Share2 className="w-5 h-5" />}
+                />
+                <DockNavButton
+                  active={view === "ai-context"}
+                  label="AI Context"
+                  onClick={() => onViewChange("ai-context")}
+                  icon={<Eye className="w-5 h-5" />}
+                />
+                <DockNavButton
+                  active={view === "reviews"}
+                  label="Reviews"
+                  onClick={() => onViewChange("reviews")}
+                  icon={<ClipboardCheck className="w-5 h-5" />}
+                />
+              </nav>
+
+              <div className="flex flex-col items-center gap-2 w-full">
+                <DockActionButton
+                  label="Select workspace"
+                  title={scopeLabel || "Select workspace"}
                   onClick={() => void onSelectScope()}
-                  className="w-full bg-background border border-border-main rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none focus:border-opacity-100 transition-all placeholder:opacity-50 cursor-pointer hover:bg-border-main"
-                  value={scopeLabel}
-                  placeholder="Select workspace"
+                  icon={<Folder className="w-5 h-5" />}
+                />
+                <DockActionButton
+                  label="Show details"
+                  title={detailsSummary}
+                  onClick={toggleDetails}
+                  icon={<Box className="w-5 h-5" />}
                 />
               </div>
-            </div>
-          </div>
+            </>
+          ) : (
+            <>
+              <div className="rounded-2xl border border-border-main bg-background/45 p-2 space-y-1.5">
+                <NavRow
+                  active={view === "monitor"}
+                  label="Monitor"
+                  onClick={() => onViewChange("monitor")}
+                  icon={<Activity className="w-4 h-4" />}
+                />
+                <NavRow
+                  active={view === "chat"}
+                  label="Guru"
+                  onClick={() => onViewChange("chat")}
+                  icon={<MessageSquare className="w-4 h-4" />}
+                  right={
+                    guruUnreadCount > 0 ? (
+                      <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-rose-500/10 text-rose-400 border-rose-500/20 tabular-nums">
+                        {Math.min(99, guruUnreadCount)}
+                      </span>
+                    ) : undefined
+                  }
+                />
+                <NavRow
+                  active={view === "diagram"}
+                  label="Project Map"
+                  onClick={() => onViewChange("diagram")}
+                  icon={<Share2 className="w-4 h-4" />}
+                />
+                <NavRow
+                  active={view === "ai-context"}
+                  label="AI Context"
+                  onClick={() => onViewChange("ai-context")}
+                  icon={<Eye className="w-4 h-4" />}
+                  right={
+                    <span
+                      className={clsx(
+                        "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border",
+                        hasAiContextData
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : "bg-white/5 text-text-muted border-border-main",
+                      )}
+                    >
+                      {hasAiContextData ? "READY" : "EMPTY"}
+                    </span>
+                  }
+                />
+                <NavRow
+                  active={view === "reviews"}
+                  label="Reviews"
+                  onClick={() => onViewChange("reviews")}
+                  icon={<ClipboardCheck className="w-4 h-4" />}
+                  right={
+                    pendingFixProposalsCount > 0 ? (
+                      <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-amber-500/10 text-amber-200 border-amber-500/20 tabular-nums">
+                        {pendingFixProposalsCount}
+                      </span>
+                    ) : (
+                      <span
+                        className={clsx(
+                          "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border",
+                          hasReviewData
+                            ? "bg-white/10 text-text-main border-border-main"
+                            : "bg-white/5 text-text-muted border-border-main",
+                        )}
+                      >
+                        {hasReviewData ? "LOG" : "EMPTY"}
+                      </span>
+                    )
+                  }
+                />
+              </div>
 
-          <CostMetric
-            tokens={tokens}
-            calls={calls}
-            filesAnalyzed={filesAnalyzed}
-            queueWaitMs={queueWaitMs}
-            scanProfileLabel={scanProfileLabel}
-          />
-
-          <div className="p-3 rounded-xl bg-background/50 border border-border-main space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Baseline</span>
-              <span
-                className={clsx(
-                  "text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md border",
-                  baselineLoading
-                    ? "bg-white/5 text-text-muted border-border-main"
-                    : baselineStatus?.valid
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                      : baselineStatus
-                        ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                        : "bg-white/5 text-text-muted border-border-main",
-                )}
-              >
-                {baselineLoading
-                  ? "LOADING"
-                  : baselineStatus?.valid
-                    ? "VALID"
-                    : baselineStatus
-                      ? "INVALID"
-                      : "NONE"}
-              </span>
-            </div>
-
-            {baselineStatus ? (
-              <div className="text-[10px] font-mono text-text-muted space-y-1">
-                <div>Age: {baselineStatus.baseline_age_days}d</div>
-                <div>
-                  {baselineMetrics
-                    ? `${baselineMetrics.active} active • ${baselineMetrics.new} new • ${baselineMetrics.resolved} resolved`
-                    : "Baseline loaded"}
+              <div className="rounded-xl border border-border-main bg-background/35 p-3 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <StatMini
+                    label="Files"
+                    count={totalFiles}
+                    icon={<Files className="w-3.5 h-3.5 text-zinc-400" />}
+                    color="text-[var(--stat-strong)]"
+                  />
+                  <StatMini
+                    label="Issues"
+                    count={totalIssues}
+                    icon={<AlertCircle className="w-3.5 h-3.5 text-amber-400" />}
+                    color="text-[var(--stat-strong)]"
+                  />
                 </div>
-              </div>
-            ) : (
-              <div className="text-[10px] text-text-muted">No baseline set for this workspace.</div>
-            )}
 
-            {baselineStatus && !baselineValid && (
-              <div className="text-[10px] text-amber-400">
-                Baseline invalid (rules changed). Reset baseline to re-enable filtering.
-              </div>
-            )}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">Scope</label>
+                  <div className="group relative">
+                    <Folder className="absolute left-3 top-3 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors pointer-events-none" />
+                    <input
+                      readOnly
+                      onClick={() => void onSelectScope()}
+                      className="w-full bg-background border border-border-main rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none focus:border-opacity-100 transition-all placeholder:opacity-50 cursor-pointer hover:bg-border-main"
+                      value={scopeLabel}
+                      placeholder="Select workspace"
+                    />
+                  </div>
+                </div>
 
-            {baselineError && <div className="text-[10px] text-rose-400">{baselineError}</div>}
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => void onSetBaselineNow()}
-                disabled={!path || baselineLoading}
-                className="flex-1 px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-              >
-                Set Baseline
-              </button>
-              {baselineStatus && (
                 <button
-                  onClick={() => void onClearBaselineNow()}
-                  disabled={!path || baselineLoading}
-                  className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-text-main rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  onClick={toggleDetails}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-border-main bg-background/40 hover:bg-background/60 transition-colors"
+                  aria-label={detailsOpen ? "Hide details" : "Show details"}
                 >
-                  Reset
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Details</span>
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="text-[10px] font-mono text-text-muted truncate">{detailsSummary}</span>
+                    <ChevronDown className={clsx("w-4 h-4 opacity-70 transition-transform", detailsOpen && "rotate-180")} />
+                  </span>
                 </button>
-              )}
-            </div>
 
-            {baselineValid && (
-              <div className="grid grid-cols-3 gap-1">
-                <button
-                  onClick={() => onBaselineViewChange("all")}
-                  className={clsx(
-                    "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
-                    baselineView === "all"
-                      ? "bg-white/10 text-text-main border-border-main"
-                      : "bg-transparent text-text-muted border-border-main hover:bg-white/5",
-                  )}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => onBaselineViewChange("new")}
-                  className={clsx(
-                    "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
-                    baselineView === "new"
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                      : "bg-transparent text-text-muted border-border-main hover:bg-white/5",
-                  )}
-                >
-                  New
-                </button>
-                <button
-                  onClick={() => onBaselineViewChange("resolved")}
-                  className={clsx(
-                    "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
-                    baselineView === "resolved"
-                      ? "bg-white/10 text-text-main border-border-main"
-                      : "bg-transparent text-text-muted border-border-main hover:bg-white/5",
-                  )}
-                >
-                  Resolved
-                </button>
-              </div>
-            )}
-          </div>
+                {detailsOpen && (
+                  <div className="rounded-xl border border-border-main bg-background/30 overflow-hidden">
+                    <div className="p-3 space-y-2">
+                      <CostMetricSection
+                        tokens={tokens}
+                        calls={calls}
+                        filesAnalyzed={filesAnalyzed}
+                        queueWaitMs={queueWaitMs}
+                        scanProfileLabel={scanProfileLabel}
+                      />
+                    </div>
+                    <div className="h-px bg-border-main" />
+                    <div className="p-3 space-y-2">
+                      <BaselineSection
+                        baselineLoading={baselineLoading}
+                        baselineStatus={baselineStatus}
+                        baselineValid={baselineValid}
+                        baselineMetrics={baselineMetrics}
+                        baselineError={baselineError}
+                        baselineView={baselineView}
+                        path={path}
+                        onSetBaselineNow={onSetBaselineNow}
+                        onClearBaselineNow={onClearBaselineNow}
+                        onBaselineViewChange={onBaselineViewChange}
+                      />
+                    </div>
+                    <div className="h-px bg-border-main" />
+                    <div className="p-3 space-y-2">
+                      <EngineSection
+                        engineModel={engineModel}
+                        embeddingModeLabel={embeddingModeLabel}
+                        active={active}
+                        onOpenEmbeddingSettings={onOpenEmbeddingSettings}
+                      />
+                    </div>
 
-          <div className="p-3 rounded-xl bg-background/50 border border-border-main space-y-2">
-            <div className="flex items-center gap-2">
-              <Box className="w-3 h-3 opacity-50" />
-              <span className="text-[10px] font-bold opacity-60 uppercase">Engine Status</span>
-            </div>
-            <p className="text-[10px] text-text-muted leading-relaxed font-mono">Model: {engineModel}</p>
-            <div className="flex items-center justify-between rounded-lg border border-border-main bg-background/60 px-2.5 py-2">
-              <span className="text-[10px] text-text-muted flex items-center gap-1.5">
-                <DatabaseZap className="w-3.5 h-3.5" />
-                Embedding: <span className="text-[var(--text-main)]">{embeddingModeLabel}</span>
-              </span>
-              <button
-                onClick={onOpenEmbeddingSettings}
-                className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors cursor-pointer"
-              >
-                Setup
-              </button>
-            </div>
-            <div className="h-1 w-full bg-border-main rounded-full overflow-hidden">
-              <div
-                className={clsx(
-                  "h-full transition-all duration-1000",
-                  active ? "w-full bg-[var(--accent-500)]" : "w-0 bg-border-main",
+                    {(authBannerVisible && (authShowGate || authRequiresVerified) && !active) ||
+                      (settingsRequiresApiKey && !active) ? (
+                      <>
+                        <div className="h-px bg-border-main" />
+                        <div className="p-3 space-y-2">
+                          {authBannerVisible && (authShowGate || authRequiresVerified) && !active && (
+                            <div className="rounded-xl border border-amber-500/20 bg-white text-zinc-900 dark:bg-amber-500/10 dark:text-amber-200 px-3 py-2 text-[10px] space-y-2">
+                              <div>
+                                {authShowGate
+                                  ? "GitHub login is required before starting monitoring."
+                                  : "Cached session detected. Verify online to refresh GitHub access."}
+                              </div>
+                              <div className="flex gap-2">
+                                {!authShowGate && (
+                                  <button
+                                    onClick={() => void onVerifyAuth()}
+                                    disabled={authLoading}
+                                    className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    Verify Now
+                                  </button>
+                                )}
+                                {authError && <span className="text-[10px] text-rose-500">{authError}</span>}
+                                {!authError && authWarning && (
+                                  <span className="text-[10px] text-amber-500">{authWarning}</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {settingsRequiresApiKey && !active && (
+                            <div className="rounded-xl border border-rose-500/20 bg-white text-rose-600 dark:bg-rose-500/10 dark:text-rose-500 px-3 py-2 text-[10px] space-y-2">
+                              <div>Setup required: add your {providerLabel} API key.</div>
+                              <button
+                                onClick={onOpenSettings}
+                                className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-rose-500 text-white rounded-md hover:opacity-90 transition-colors"
+                              >
+                                Open Settings
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
                 )}
-              />
-            </div>
-          </div>
-
-          {authBannerVisible && (authShowGate || authRequiresVerified) && !active && (
-            <div className="rounded-xl border border-amber-500/20 bg-white text-zinc-900 dark:bg-amber-500/10 dark:text-amber-200 px-3 py-2 text-[10px] space-y-2">
-              <div>
-                {authShowGate
-                  ? "GitHub login is required before starting monitoring."
-                  : "Cached session detected. Verify online to refresh GitHub access."}
               </div>
-              <div className="flex gap-2">
-                {!authShowGate && (
-                  <button
-                    onClick={() => void onVerifyAuth()}
-                    disabled={authLoading}
-                    className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Verify Now
-                  </button>
-                )}
-                {authError && <span className="text-[10px] text-rose-500">{authError}</span>}
-                {!authError && authWarning && <span className="text-[10px] text-amber-500">{authWarning}</span>}
-              </div>
-            </div>
-          )}
-
-          {settingsRequiresApiKey && !active && (
-            <div className="rounded-xl border border-rose-500/20 bg-white text-rose-600 dark:bg-rose-500/10 dark:text-rose-500 px-3 py-2 text-[10px] space-y-2">
-              <div>Setup required: add your {providerLabel} API key.</div>
-              <button
-                onClick={onOpenSettings}
-                className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-rose-500 text-white rounded-md hover:opacity-90 transition-colors"
-              >
-                Open Settings
-              </button>
-            </div>
+            </>
           )}
         </div>
       </div>
 
-      <section className="shrink-0 border-t border-border-main bg-surface/95 px-4 py-3 space-y-2">
-        <button
-          onClick={canToggleMonitoring ? () => void onToggleMonitoring() : undefined}
-          disabled={!canToggleMonitoring}
-          className={clsx(
-            "w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
-            active
-              ? "bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20"
-              : "bg-[var(--accent-500)] text-background hover:opacity-90",
-          )}
-        >
-          {active ? (
-            <>
-              <Square className="w-3 h-3 fill-current" /> KILL GUARDIAN
-            </>
-          ) : (
-            <>
-              <Play className="w-3 h-3 fill-current" /> LAUNCH GUARDIAN
-            </>
-          )}
-        </button>
-        {!active && !canToggleMonitoring && launchBlockingReason && (
-          <p className="text-[10px] text-amber-400 px-1">{launchBlockingReason}</p>
+      <section className={clsx("shrink-0 border-t border-border-main bg-surface/95 py-3 space-y-2", collapsed ? "px-2" : "px-4")}>
+        {collapsed ? (
+          <div className="flex items-center justify-center">
+            <button
+              onClick={canToggleMonitoring ? () => void onToggleMonitoring() : undefined}
+              disabled={!canToggleMonitoring}
+              className={clsx(
+                "h-12 w-12 rounded-2xl font-bold flex items-center justify-center transition-all duration-300 transform active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border",
+                active
+                  ? "bg-rose-500/10 text-rose-500 border-rose-500/20 hover:bg-rose-500/20"
+                  : "bg-[var(--accent-500)] text-background border-border-main hover:opacity-90",
+              )}
+              title={
+                active
+                  ? "Kill Guardian"
+                  : canToggleMonitoring
+                    ? "Launch Guardian"
+                    : launchBlockingReason
+                      ? `Launch blocked: ${launchBlockingReason}`
+                      : "Launch Guardian"
+              }
+              aria-label={active ? "KILL GUARDIAN" : "LAUNCH GUARDIAN"}
+            >
+              {active ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+            </button>
+          </div>
+        ) : (
+          <>
+            <button
+              onClick={canToggleMonitoring ? () => void onToggleMonitoring() : undefined}
+              disabled={!canToggleMonitoring}
+              className={clsx(
+                "w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
+                active
+                  ? "bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20"
+                  : "bg-[var(--accent-500)] text-background hover:opacity-90",
+              )}
+              title={active ? "Kill Guardian" : "Launch Guardian"}
+              aria-label={active ? "KILL GUARDIAN" : "LAUNCH GUARDIAN"}
+            >
+              {active ? (
+                <>
+                  <Square className="w-3 h-3 fill-current" /> KILL GUARDIAN
+                </>
+              ) : (
+                <>
+                  <Play className="w-3 h-3 fill-current" /> LAUNCH GUARDIAN
+                </>
+              )}
+            </button>
+            {!active && !canToggleMonitoring && launchBlockingReason && (
+              <p className="text-[10px] text-amber-400 px-1">{launchBlockingReason}</p>
+            )}
+          </>
         )}
       </section>
     </aside>
+  );
+}
+
+function DockNavButton({
+  active,
+  label,
+  icon,
+  badge,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  icon: ReactNode;
+  badge?: number;
+  onClick: () => void;
+}): ReactElement {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={clsx(
+        "relative h-11 w-11 rounded-2xl flex items-center justify-center transition-all border cursor-pointer",
+        active
+          ? "bg-surface shadow text-[var(--text-main)] border-border-main"
+          : "bg-background/30 text-text-muted border-border-main hover:bg-background/55 hover:text-text-main",
+      )}
+    >
+      {icon}
+      {badge && badge > 0 && (
+        <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1.5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center leading-none tabular-nums shadow">
+          {Math.min(99, badge)}
+        </span>
+      )}
+      <span className="sr-only">{label}</span>
+    </button>
+  );
+}
+
+function DockActionButton({
+  label,
+  title,
+  icon,
+  onClick,
+}: {
+  label: string;
+  title: string;
+  icon: ReactNode;
+  onClick: () => void;
+}): ReactElement {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={title}
+      className="h-11 w-11 rounded-2xl flex items-center justify-center transition-colors border border-border-main bg-background/25 hover:bg-background/50 cursor-pointer"
+    >
+      {icon}
+      <span className="sr-only">{label}</span>
+    </button>
+  );
+}
+
+function NavRow({
+  active,
+  label,
+  icon,
+  right,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  icon: ReactNode;
+  right?: ReactNode;
+  onClick: () => void;
+}): ReactElement {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={clsx(
+        "w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all flex items-center justify-between gap-3 cursor-pointer",
+        active ? "bg-surface shadow text-[var(--text-main)]" : "opacity-70 hover:opacity-100",
+      )}
+    >
+      <span className="flex items-center gap-3">
+        {icon}
+        <span>{label}</span>
+      </span>
+      {right ?? null}
+    </button>
+  );
+}
+
+function CostMetricSection({
+  tokens,
+  calls,
+  filesAnalyzed,
+  queueWaitMs,
+  scanProfileLabel,
+}: {
+  tokens: number;
+  calls: number;
+  filesAnalyzed: number;
+  queueWaitMs: number;
+  scanProfileLabel: string;
+}): ReactElement {
+  const costUnits = (tokens / 1000).toFixed(2);
+  const queueLabel = queueWaitMs > 0 ? `${Math.round(queueWaitMs)}ms` : "0ms";
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Cost Metric</span>
+        <span className="text-[10px] font-mono opacity-40">est</span>
+      </div>
+      <div className="flex items-baseline gap-2">
+        <span className="text-lg font-black text-[var(--accent-500)] tabular-nums">{costUnits}</span>
+        <span className="text-[10px] uppercase tracking-widest text-zinc-500">units</span>
+      </div>
+      <div className="text-[10px] font-mono text-zinc-500">
+        Tokens: {tokens} • API calls: {calls} • Files: {filesAnalyzed}
+      </div>
+      <div className="text-[10px] font-mono text-zinc-500">
+        Queue wait: {queueLabel} • Scope: {scanProfileLabel}
+      </div>
+    </div>
+  );
+}
+
+function BaselineSection({
+  baselineLoading,
+  baselineStatus,
+  baselineValid,
+  baselineMetrics,
+  baselineError,
+  baselineView,
+  path,
+  onSetBaselineNow,
+  onClearBaselineNow,
+  onBaselineViewChange,
+}: {
+  baselineLoading: boolean;
+  baselineStatus: BaselineStatusView | null;
+  baselineValid: boolean;
+  baselineMetrics: { active: number; new: number; resolved: number } | null;
+  baselineError: string | null;
+  baselineView: "all" | "new" | "resolved";
+  path: string;
+  onSetBaselineNow: () => Promise<void> | void;
+  onClearBaselineNow: () => Promise<void> | void;
+  onBaselineViewChange: (view: "all" | "new" | "resolved") => void;
+}): ReactElement {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Baseline</span>
+        <span
+          className={clsx(
+            "text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md border",
+            baselineLoading
+              ? "bg-white/5 text-text-muted border-border-main"
+              : baselineStatus?.valid
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                : baselineStatus
+                  ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                  : "bg-white/5 text-text-muted border-border-main",
+          )}
+        >
+          {baselineLoading ? "LOADING" : baselineStatus?.valid ? "VALID" : baselineStatus ? "INVALID" : "NONE"}
+        </span>
+      </div>
+
+      {baselineStatus ? (
+        <div className="text-[10px] font-mono text-text-muted space-y-1">
+          <div>Age: {baselineStatus.baseline_age_days}d</div>
+          <div>
+            {baselineMetrics
+              ? `${baselineMetrics.active} active • ${baselineMetrics.new} new • ${baselineMetrics.resolved} resolved`
+              : "Baseline loaded"}
+          </div>
+        </div>
+      ) : (
+        <div className="text-[10px] text-text-muted">No baseline set for this workspace.</div>
+      )}
+
+      {baselineStatus && !baselineValid && (
+        <div className="text-[10px] text-amber-400">
+          Baseline invalid (rules changed). Reset baseline to re-enable filtering.
+        </div>
+      )}
+
+      {baselineError && <div className="text-[10px] text-rose-400">{baselineError}</div>}
+
+      <div className="flex gap-2">
+        <button
+          onClick={() => void onSetBaselineNow()}
+          disabled={!path || baselineLoading}
+          className="flex-1 px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+        >
+          Set Baseline
+        </button>
+        {baselineStatus && (
+          <button
+            onClick={() => void onClearBaselineNow()}
+            disabled={!path || baselineLoading}
+            className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-text-main rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            Reset
+          </button>
+        )}
+      </div>
+
+      {baselineValid && (
+        <div className="grid grid-cols-3 gap-1">
+          <button
+            onClick={() => onBaselineViewChange("all")}
+            className={clsx(
+              "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
+              baselineView === "all"
+                ? "bg-white/10 text-text-main border-border-main"
+                : "bg-transparent text-text-muted border-border-main hover:bg-white/5",
+            )}
+          >
+            All
+          </button>
+          <button
+            onClick={() => onBaselineViewChange("new")}
+            className={clsx(
+              "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
+              baselineView === "new"
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                : "bg-transparent text-text-muted border-border-main hover:bg-white/5",
+            )}
+          >
+            New
+          </button>
+          <button
+            onClick={() => onBaselineViewChange("resolved")}
+            className={clsx(
+              "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
+              baselineView === "resolved"
+                ? "bg-white/10 text-text-main border-border-main"
+                : "bg-transparent text-text-muted border-border-main hover:bg-white/5",
+            )}
+          >
+            Resolved
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EngineSection({
+  engineModel,
+  embeddingModeLabel,
+  active,
+  onOpenEmbeddingSettings,
+}: {
+  engineModel: string;
+  embeddingModeLabel: string;
+  active: boolean;
+  onOpenEmbeddingSettings: () => void;
+}): ReactElement {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <Box className="w-3.5 h-3.5 opacity-60" />
+        <span className="text-[10px] font-bold opacity-60 uppercase tracking-widest">Engine Status</span>
+      </div>
+      <p className="text-[10px] text-text-muted leading-relaxed font-mono">Model: {engineModel}</p>
+      <div className="flex items-center justify-between rounded-lg border border-border-main bg-background/60 px-2.5 py-2">
+        <span className="text-[10px] text-text-muted flex items-center gap-1.5">
+          <DatabaseZap className="w-3.5 h-3.5" />
+          Embedding: <span className="text-[var(--text-main)]">{embeddingModeLabel}</span>
+        </span>
+        <button
+          onClick={onOpenEmbeddingSettings}
+          className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors cursor-pointer"
+        >
+          Setup
+        </button>
+      </div>
+      <div className="h-1 w-full bg-border-main rounded-full overflow-hidden">
+        <div
+          className={clsx(
+            "h-full transition-all duration-1000",
+            active ? "w-full bg-[var(--accent-500)]" : "w-0 bg-border-main",
+          )}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -444,42 +838,6 @@ function StatMini({
         <span className="text-[8px] font-bold uppercase tracking-widest opacity-30 group-hover:opacity-60 transition-opacity">
           {label}
         </span>
-      </div>
-    </div>
-  );
-}
-
-function CostMetric({
-  tokens,
-  calls,
-  filesAnalyzed,
-  queueWaitMs,
-  scanProfileLabel,
-}: {
-  tokens: number;
-  calls: number;
-  filesAnalyzed: number;
-  queueWaitMs: number;
-  scanProfileLabel: string;
-}): ReactElement {
-  const costUnits = (tokens / 1000).toFixed(2);
-  const queueLabel = queueWaitMs > 0 ? `${Math.round(queueWaitMs)}ms` : "0ms";
-
-  return (
-    <div className="p-3 rounded-xl bg-background/50 border border-border-main space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Cost Metric</span>
-        <span className="text-[10px] font-mono opacity-40">est</span>
-      </div>
-      <div className="flex items-baseline gap-2">
-        <span className="text-lg font-black text-[var(--accent-500)] tabular-nums">{costUnits}</span>
-        <span className="text-[10px] uppercase tracking-widest text-zinc-500">units</span>
-      </div>
-      <div className="text-[10px] font-mono text-zinc-500">
-        Tokens: {tokens} • API calls: {calls} • Files: {filesAnalyzed}
-      </div>
-      <div className="text-[10px] font-mono text-zinc-500">
-        Queue wait: {queueLabel} • Scope: {scanProfileLabel}
       </div>
     </div>
   );

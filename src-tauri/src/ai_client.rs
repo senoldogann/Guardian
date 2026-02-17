@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
 use std::fs;
+use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
 use std::sync::Mutex;
 use std::sync::Arc;
 use std::time::Duration;
@@ -120,11 +121,12 @@ impl QueueManager {
 static AI_QUEUE_MANAGERS: Lazy<Mutex<HashMap<String, Arc<QueueManager>>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 
-fn provider_effective_concurrency(provider_id: &str, base_url: &str) -> usize {
-    let lowered = base_url.trim().to_lowercase();
+static INVALID_ESCAPES_REPAIR_WARNED: AtomicBool = AtomicBool::new(false);
+static INVALID_ESCAPES_REPAIR_BATCH_WARNED: AtomicBool = AtomicBool::new(false);
+
+fn provider_effective_concurrency(provider_id: &str, _base_url: &str) -> usize {
     let is_local = provider_id == "mock"
-        || (provider_id == "ollama"
-            && (lowered.contains("127.0.0.1") || lowered.contains("localhost")));
+        || provider_id == "ollama";
 
     if is_local {
         DEFAULT_AI_REQUEST_CONCURRENCY_LOCAL
@@ -141,11 +143,8 @@ fn configured_concurrency(provider_id: &str, base_url: &str) -> usize {
         .unwrap_or_else(|| provider_effective_concurrency(provider_id, base_url))
 }
 
-fn queue_key(provider_id: &str, base_url: &str) -> String {
-    let lowered = base_url.trim().to_lowercase();
-    let locality = if provider_id == "mock"
-        || (provider_id == "ollama" && (lowered.contains("127.0.0.1") || lowered.contains("localhost")))
-    {
+fn queue_key(provider_id: &str, _base_url: &str) -> String {
+    let locality = if provider_id == "mock" || provider_id == "ollama" {
         "local"
     } else {
         "cloud"
@@ -153,9 +152,30 @@ fn queue_key(provider_id: &str, base_url: &str) -> String {
     format!("{provider_id}::{locality}")
 }
 
+fn normalize_base_url(value: &str) -> String {
+    value.trim().trim_end_matches('/').to_string()
+}
+
+fn normalize_ollama_base_url(value: &str) -> String {
+    let base = normalize_base_url(value);
+    let Ok(mut url) = url::Url::parse(&base) else {
+        return base;
+    };
+    let port = url.port_or_known_default();
+    if url.scheme().starts_with("http") && url.host_str() == Some("127.0.0.1") && port == Some(11434) {
+        let _ = url.set_host(Some("localhost"));
+        return url.to_string().trim_end_matches('/').to_string();
+    }
+    base
+}
+
 impl AiClient {
     pub fn provider_id(&self) -> &str {
         &self.provider_id
+    }
+
+    pub fn base_url(&self) -> &str {
+        &self.base_url
     }
 
     pub fn model(&self) -> &str {
@@ -182,6 +202,12 @@ impl AiClient {
         }
 
         let client = builder.build().context("Failed to build HTTP client")?;
+
+        let base_url = if normalized == "ollama" {
+            normalize_ollama_base_url(&base_url)
+        } else {
+            normalize_base_url(&base_url)
+        };
 
         let key = queue_key(&normalized, &base_url);
         let concurrency = configured_concurrency(&normalized, &base_url);
@@ -382,25 +408,29 @@ impl AiClient {
                 if json_mode {
                     payload["format"] = json!("json");
                 }
+                let token = self.api_key.expose_secret().trim();
                 let url = format!("{}/api/chat", self.base_url.trim_end_matches('/'));
                 let mut request = self.client.post(&url);
-                let token = self.api_key.expose_secret().trim();
                 if !config::is_placeholder_key(token) {
                     request = request.bearer_auth(token);
                 }
+
                 let response = request
                     .json(&payload)
                     .send()
                     .await
-                    .context("Failed to send request to AI provider")?;
+                    .with_context(|| format!("Failed to send request to AI provider (url={})", url))?;
+
                 if !response.status().is_success() {
                     let error_text = response.text().await.unwrap_or_default();
                     anyhow::bail!("AI Request Failed: {}", error_text);
                 }
+
                 let response_json: serde_json::Value = response.json().await?;
                 let content_str = response_json["message"]["content"]
                     .as_str()
                     .context("Invalid response format from AI")?;
+
                 Ok(AiCall {
                     value: content_str.to_string(),
                     queue_wait_ms,
@@ -611,7 +641,17 @@ JSON MODE:
             if validation_errors.iter().any(|e| e.contains("Invalid JSON syntax")) {
                 if let Some(repaired) = Self::repair_invalid_json_escapes(clean_json) {
                     if crate::validation::validate_critique(&repaired).is_ok() {
-                        warn!(target: "guardian::ai", "AI JSON had invalid escapes; repaired for parsing.");
+                        if !INVALID_ESCAPES_REPAIR_WARNED.swap(true, AtomicOrdering::Relaxed) {
+                            warn!(
+                                target: "guardian::ai",
+                                "AI JSON had invalid escapes; repaired for parsing."
+                            );
+                        } else {
+                            debug!(
+                                target: "guardian::ai",
+                                "AI JSON had invalid escapes; repaired for parsing."
+                            );
+                        }
                         repaired_json = Some(repaired);
                     }
                 }
@@ -678,7 +718,19 @@ JSON MODE:
         })
     }
 
-    pub async fn analyze_batch(&self, batch: Vec<(String, String)>) -> Result<AiCall<Vec<Critique>>> {
+    #[allow(dead_code)]
+    pub async fn analyze_batch(
+        &self,
+        batch: Vec<(String, String)>,
+    ) -> Result<AiCall<Vec<Critique>>> {
+        self.analyze_batch_with_intent(None, batch).await
+    }
+
+    pub async fn analyze_batch_with_intent(
+        &self,
+        project_intent_pack: Option<&str>,
+        batch: Vec<(String, String)>,
+    ) -> Result<AiCall<Vec<Critique>>> {
         self.ensure_valid_api_key()?;
         let system_prompt = r#"You are 'Guardian', a high-authority Senior Software Architect.
 Your mission is to audit multiple files simultaneously for 'AI Smell', security risks, and architectural flaws.
@@ -687,8 +739,9 @@ GUIDELINES:
 1. ANALYZE each file in the batch individually but consider their inter-dependencies.
 2. INPUT IS DIFF-FOCUSED: `context` may contain compressed snapshot text or diff hunks.
 3. BE STRICT: Catch SPAP v2.2 violations.
-4. OUTPUT: A JSON Array of Critique objects. Each 'message' MUST include a WHY statement (risk/impact).
-5. If a file looks good, you CAN skip it in the output OR return a "LGTM" message.
+4. You MAY receive a `PROJECT INTENT PACK` section describing the workspace intent/architecture and constraints. Align findings and suggestions to it.
+5. OUTPUT: A JSON Array of Critique objects. Each 'message' MUST include a WHY statement (risk/impact).
+6. If a file looks good, you CAN skip it in the output OR return a "LGTM" message.
 
 JSON ARRAY MODE:
 [
@@ -703,6 +756,14 @@ JSON ARRAY MODE:
 ]"#;
 
         let mut user_prompt = String::from("Batch Analysis Request:\n\n");
+        if let Some(pack) = project_intent_pack {
+            let trimmed = pack.trim();
+            if !trimmed.is_empty() {
+                user_prompt.push_str("PROJECT INTENT PACK:\n");
+                user_prompt.push_str(trimmed);
+                user_prompt.push_str("\n\n");
+            }
+        }
         for (idx, (path, context)) in batch.iter().enumerate() {
             user_prompt.push_str(&format!(
                 "--- FILE {} ---\nPath: {}\nDiff-Focused Context:\n{}\n\n",
@@ -727,7 +788,17 @@ JSON ARRAY MODE:
             if validation_errors.iter().any(|e| e.contains("Invalid JSON syntax")) {
                 if let Some(repaired) = Self::repair_invalid_json_escapes(clean_json) {
                     if crate::validation::validate_batch_critiques(&repaired).is_ok() {
-                        warn!(target: "guardian::ai", "AI batch JSON had invalid escapes; repaired for parsing.");
+                        if !INVALID_ESCAPES_REPAIR_BATCH_WARNED.swap(true, AtomicOrdering::Relaxed) {
+                            warn!(
+                                target: "guardian::ai",
+                                "AI batch JSON had invalid escapes; repaired for parsing."
+                            );
+                        } else {
+                            debug!(
+                                target: "guardian::ai",
+                                "AI batch JSON had invalid escapes; repaired for parsing."
+                            );
+                        }
                         repaired_json = Some(repaired);
                     }
                 }

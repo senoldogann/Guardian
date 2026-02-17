@@ -12,6 +12,7 @@ mod executor;
 mod history_logger;
 mod kernel;
 mod patcher;
+mod undo;
 mod provider;
 mod rag_lite;
 mod redaction;
@@ -20,6 +21,7 @@ mod skills;
 mod storage;
 #[cfg(test)]
 mod tests_watcher;
+mod triage;
 mod updates;
 mod validation;
 
@@ -831,6 +833,93 @@ async fn apply_fix(
     Ok("Governance Review Initiated...".to_string())
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct ApplyFixNowResult {
+    message: String,
+    undo_available: bool,
+}
+
+#[tauri::command]
+async fn apply_fix_now(
+    file_path: String,
+    new_content: String,
+    root: String,
+) -> Result<ApplyFixNowResult, String> {
+    info!(target: "guardian::autopilot", "Applying fix now: {}", file_path);
+
+    undo::apply_fix_now(&root, &file_path, &new_content).map_err(|e| e.to_string())?;
+
+    let rel_path = std::path::Path::new(&file_path)
+        .strip_prefix(std::path::Path::new(&root))
+        .map(|p| p.to_string_lossy().replace('\\', "/"))
+        .unwrap_or_else(|_| file_path.clone());
+
+    history_logger::append_history_event(
+        &root,
+        history_logger::HistoryEvent {
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            event: "fix_applied".to_string(),
+            finding_id: None,
+            file_path: Some(rel_path),
+            model: None,
+            provider: None,
+            redacted: None,
+            tokens_in: None,
+            tokens_out: None,
+            details: Some(serde_json::json!({
+                "bytes": new_content.len(),
+                "undo": true,
+            })),
+        },
+    );
+
+    Ok(ApplyFixNowResult {
+        message: "Patch applied successfully.".to_string(),
+        undo_available: true,
+    })
+}
+
+#[tauri::command]
+async fn undo_fix(file_path: String, root: String) -> Result<String, String> {
+    info!(target: "guardian::autopilot", "Undoing fix for: {}", file_path);
+    undo::undo_fix(&root, &file_path).map_err(|e| e.to_string())?;
+
+    let rel_path = std::path::Path::new(&file_path)
+        .strip_prefix(std::path::Path::new(&root))
+        .map(|p| p.to_string_lossy().replace('\\', "/"))
+        .unwrap_or_else(|_| file_path.clone());
+
+    history_logger::append_history_event(
+        &root,
+        history_logger::HistoryEvent {
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            event: "fix_undone".to_string(),
+            finding_id: None,
+            file_path: Some(rel_path),
+            model: None,
+            provider: None,
+            redacted: None,
+            tokens_in: None,
+            tokens_out: None,
+            details: None,
+        },
+    );
+
+    Ok("Undo complete.".to_string())
+}
+
+#[tauri::command]
+async fn get_fix_history(root: String) -> Result<Vec<undo::FixHistoryEntry>, String> {
+    let root_path = std::path::Path::new(&root);
+    if !root_path.exists() || !root_path.is_dir() {
+        return Err(format!(
+            "Workspace root not accessible: {}. Select the correct folder in Scope.",
+            root
+        ));
+    }
+    undo::list_fix_history(&root).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 async fn confirm_fix(
     file_path: String,
@@ -883,9 +972,21 @@ async fn ask_guru(
         ));
     }
     // 1. Get Context via RagLite
+    let scan_profile = load_scan_profile_config(&app)
+        .ok()
+        .and_then(|cfg| normalize_scan_profile(&cfg.profile).ok())
+        .unwrap_or(ScanProfile::Source);
+
     let (clean_query, force_web) = normalize_web_query(&query);
-    let mut context = rag_lite::search_context(&path, &clean_query);
-    append_issue_file_context(&mut context, &path, &storage);
+    let mut guru_context = String::new();
+    let intent_pack = context::cached_intent_pack(&path, scan_profile);
+    if !intent_pack.trim().is_empty() {
+        guru_context.push_str(&intent_pack);
+        guru_context.push_str("\n\n---\n\n");
+    }
+
+    guru_context.push_str(&rag_lite::search_context(&path, &clean_query));
+    append_issue_file_context(&mut guru_context, &path, &storage);
     if semantic_index::should_use_semantic_search(&clean_query) {
         match semantic_index::search_similar_for_query(
             storage.inner().clone(),
@@ -896,8 +997,8 @@ async fn ask_guru(
         .await
         {
             Ok(matches) if !matches.is_empty() => {
-                context.push_str("\n\n");
-                context.push_str(&semantic_index::render_semantic_matches(&matches));
+                guru_context.push_str("\n\n");
+                guru_context.push_str(&semantic_index::render_semantic_matches(&matches));
             }
             Ok(_) => {}
             Err(err) => {
@@ -924,8 +1025,8 @@ async fn ask_guru(
             .search_with_options(&clean_query, skills::web_search::WebSearchOptions { depth })
             .await
             .map_err(|e| format!("Web search failed: {}", e))?;
-        context.push_str("\n\n### Web Search (Tavily)\n");
-        context.push_str(&results);
+        guru_context.push_str("\n\n### Web Search (Tavily)\n");
+        guru_context.push_str(&results);
     }
 
 
@@ -944,11 +1045,12 @@ async fn ask_guru(
 
     // 3. Ask
     let result = client
-        .ask_question(&context, &clean_query)
+        .ask_question(&guru_context, &clean_query)
         .await
         .map_err(|e| e.to_string())?;
 
-    let estimated_tokens = (((context.len() + clean_query.len()) as f64) / 4.0).ceil() as u64;
+    let estimated_tokens =
+        (((guru_context.len() + clean_query.len()) as f64) / 4.0).ceil() as u64;
     app.emit(
         "guardian:usage",
         serde_json::json!({
@@ -1098,8 +1200,16 @@ async fn ping() -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn get_project_context(path: String) -> Result<context::ProjectContext, String> {
-    Ok(context::ProjectContext::index_path(&path))
+async fn get_project_context(
+    app: AppHandle,
+    path: String,
+) -> Result<context::ProjectContext, String> {
+    let scan_profile_cfg = load_scan_profile_config(&app)?;
+    let scan_profile = normalize_scan_profile(&scan_profile_cfg.profile)?;
+    Ok(context::ProjectContext::index_path_with_profile(
+        &path,
+        scan_profile,
+    ))
 }
 
 #[tauri::command]
@@ -1113,6 +1223,81 @@ async fn set_provider_config(
     config: provider::ProviderConfig,
 ) -> Result<provider::ProviderConfig, String> {
     provider::save_provider_config(&app, config)
+}
+
+#[derive(Serialize)]
+struct ProviderConnectionTestResult {
+    ok: bool,
+    provider_id: String,
+    base_url: String,
+    model: String,
+    message: String,
+}
+
+fn normalize_provider_model_id(value: &str) -> String {
+    value
+        .trim()
+        .to_lowercase()
+        .trim_start_matches("models/")
+        .to_string()
+}
+
+#[tauri::command]
+async fn test_provider_connection(
+    app: AppHandle,
+    config: Option<provider::ProviderConfig>,
+) -> Result<ProviderConnectionTestResult, String> {
+    let config = match config {
+        Some(cfg) => provider::apply_defaults(cfg),
+        None => provider::load_provider_config(&app)?,
+    };
+
+    let provider_id = config.provider_id.clone();
+    let base_url = config.base_url.clone();
+    let model = config.model.clone();
+
+    let api_key = config::user_api_key_for_provider(&provider_id)
+        .map(|opt| opt.map(|s| s.expose_secret().to_string()))
+        .map_err(|e| e.to_string())?;
+
+    let models = provider::list_provider_models(&config, api_key).await?;
+    if models.is_empty() {
+        return Ok(ProviderConnectionTestResult {
+            ok: true,
+            provider_id,
+            base_url,
+            model,
+            message: "Connected, but the provider returned an empty model list.".to_string(),
+        });
+    }
+
+    let expected = normalize_provider_model_id(&model);
+    let found = models
+        .iter()
+        .any(|m| normalize_provider_model_id(m) == expected);
+
+    if !found {
+        let hint = match provider_id.as_str() {
+            "ollama" | "ollama-cloud" => format!(
+                "Connected, but model '{model}' was not found. Click Refresh to pick an installed model, or run `ollama pull {model}` on the host."
+            ),
+            _ => format!(
+                "Connected, but model '{model}' was not found in the provider catalog. Click Refresh and choose an available model."
+            ),
+        };
+        return Err(hint);
+    }
+
+    Ok(ProviderConnectionTestResult {
+        ok: true,
+        provider_id: provider_id.clone(),
+        base_url,
+        model: model.clone(),
+        message: format!(
+            "Connection OK. Selected model '{model}' is available ({}) models listed.",
+            models.len()
+        ),
+    })
 }
 
 fn read_optional_env(key: &str) -> Option<String> {
@@ -1507,6 +1692,9 @@ pub fn run() -> AnyhowResult<()> {
             get_auth_session,
             refresh_auth_session,
             apply_fix,
+            apply_fix_now,
+            undo_fix,
+            get_fix_history,
             ask_guru,
             search_web,
             confirm_fix,
@@ -1514,6 +1702,7 @@ pub fn run() -> AnyhowResult<()> {
             get_project_context,
             get_provider_config,
             set_provider_config,
+            test_provider_connection,
             get_embedding_runtime_config,
             set_embedding_runtime_config,
             list_provider_models,

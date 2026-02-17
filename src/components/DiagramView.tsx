@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useEffect, type ReactElement } from 'react';
+import { useCallback, useMemo, useEffect, useRef, type ReactElement } from 'react';
 import {
     ReactFlow,
     useNodesState,
@@ -192,6 +192,7 @@ const DiagramContent = ({
     autoExpandAll?: boolean;
 }): ReactElement => {
     const { fitView } = useReactFlow();
+    const fitTimerRef = useRef<number | null>(null);
 
     const paths = useMemo(() => {
         const rawPaths = (filePaths && filePaths.length > 0) ? filePaths : [
@@ -245,6 +246,14 @@ const DiagramContent = ({
             fitView({ duration: 600, padding: 0.2 });
         });
     }, [initialNodes, initialEdges, setNodes, setEdges, fitView]);
+
+    useEffect(() => {
+        return () => {
+            if (fitTimerRef.current !== null) {
+                window.clearTimeout(fitTimerRef.current);
+            }
+        };
+    }, []);
 
     // Re-layout when hidden states change? No, we handle that in toggle
 
@@ -322,7 +331,10 @@ const DiagramContent = ({
     const onToggleWrapper = useCallback((nodeId: string) => {
         handleToggle(nodeId);
         // Force re-layout and fit view after a short delay to allow render
-        setTimeout(() => {
+        if (fitTimerRef.current !== null) {
+            window.clearTimeout(fitTimerRef.current);
+        }
+        fitTimerRef.current = window.setTimeout(() => {
             window.requestAnimationFrame(() => {
                 fitView({ duration: 800, padding: 0.2 });
             });

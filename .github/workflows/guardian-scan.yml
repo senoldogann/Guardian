@@ -1,31 +1,106 @@
-name: Guardian Scan
+name: "Guardian Scan (PR Summary)"
 
 on:
   pull_request:
-  push:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: write
   security-events: write
 
 jobs:
-  guardian:
+  guardian-scan:
     runs-on: ubuntu-latest
+    env:
+      GUARDIAN_REPORT_JSON: ${{ runner.temp }}/guardian-report.json
+      GUARDIAN_SARIF: ${{ runner.temp }}/guardian.sarif
+      GUARDIAN_MANIFEST: ${{ runner.temp }}/guardian-run-manifest.json
+      GUARDIAN_EVIDENCE: ${{ runner.temp }}/guardian-evidence.json
+
     steps:
-      - uses: actions/checkout@v4
+      - name: "Checkout"
+        uses: actions/checkout@v4
 
-      - name: Run Guardian (offline)
-        uses: ./.github/actions/guardian
+      - name: "Setup Rust"
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: "Setup Node"
+        uses: actions/setup-node@v4
         with:
-          root: "."
-          format: "sarif"
-          out: "guardian-report.sarif"
-          offline: "true"
+          node-version: "22.x"
 
-      - name: Upload SARIF
-        if: always()
+      - name: "Build guardian-cli"
+        run: |
+          cd guardian-cli
+          cargo build --release
+
+      - name: "Run guardian-cli scan (SARIF)"
+        if: github.event_name == 'pull_request'
+        run: |
+          guardian-cli/target/release/guardian-cli scan \
+            --root . \
+            --format sarif \
+            --out "$GUARDIAN_SARIF" \
+            --offline \
+            --scan-profile source \
+            --pr-gate off
+
+      - name: "Upload SARIF"
+        if: github.event_name == 'pull_request'
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: guardian-report.sarif
+          sarif_file: ${{ env.GUARDIAN_SARIF }}
+
+      - name: "Run guardian-cli scan (JSON)"
+        id: scan
+        run: |
+          set +e
+          guardian-cli/target/release/guardian-cli scan \
+            --root . \
+            --format json \
+            --out "$GUARDIAN_REPORT_JSON" \
+            --emit-manifest "$GUARDIAN_MANIFEST" \
+            --emit-evidence "$GUARDIAN_EVIDENCE" \
+            --offline \
+            --scan-profile source \
+            --pr-gate critical-only
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - name: "Render PR comment"
+        if: github.event_name == 'pull_request'
+        run: node scripts/ci/render_guardian_pr_comment.mjs "$GUARDIAN_REPORT_JSON" > guardian-pr-comment.md
+
+      - name: "Post PR comment"
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: guardian-pr-comment.md
+
+      - name: "Collect artifacts"
+        if: always()
+        run: |
+          mkdir -p .guardian/ci
+          cp -f "$GUARDIAN_REPORT_JSON" .guardian/ci/guardian-report.json || true
+          cp -f "$GUARDIAN_SARIF" .guardian/ci/guardian.sarif || true
+          cp -f "$GUARDIAN_MANIFEST" .guardian/ci/guardian-run-manifest.json || true
+          cp -f "$GUARDIAN_EVIDENCE" .guardian/ci/guardian-evidence.json || true
+
+      - name: "Upload scan artifacts"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guardian-scan
+          path: |
+            .guardian/ci/guardian-report.json
+            .guardian/ci/guardian.sarif
+            .guardian/ci/guardian-run-manifest.json
+            .guardian/ci/guardian-evidence.json
+            guardian-pr-comment.md
+          retention-days: 7
+
+      - name: "PR gate (fail on new critical)"
+        if: steps.scan.outputs.exit_code != '0'
+        run: exit 1

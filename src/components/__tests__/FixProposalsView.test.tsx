@@ -11,7 +11,7 @@ describe("FixProposalsView", () => {
 
   it("shows empty state when no snapshot is available", () => {
     render(<FixProposalsView snapshot={null} />);
-    expect(screen.getByText("No Fix Proposals")).toBeInTheDocument();
+    expect(screen.getByText(/Fix Proposal Inbox/i)).toBeInTheDocument();
   });
 
   it("renders proposals and allows requesting review", async () => {

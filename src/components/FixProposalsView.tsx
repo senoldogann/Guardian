@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ClipboardList, Copy, FileText, RefreshCw, Search } from "lucide-react";
 import clsx from "clsx";
 import type { FixProposal, FixProposalsSnapshot } from "../types";
+import { basenameOf, copyToClipboard, formatTimestamp } from "../lib/uiFormat";
 
 export interface FixProposalsViewProps {
   snapshot: FixProposalsSnapshot | null;
@@ -14,47 +15,6 @@ export interface FixProposalsViewProps {
 }
 
 type ProposalFilter = "pending" | "review_requested" | "done" | "all";
-
-const basenameOf = (path: string): string => {
-  const normalized = path.replace(/\\\\/g, "/");
-  const parts = normalized.split("/");
-  return parts[parts.length - 1] || path;
-};
-
-const formatTimestamp = (value?: string): string => {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(undefined, {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-};
-
-const copyToClipboard = async (text: string): Promise<void> => {
-  if (typeof window === "undefined") return;
-
-  const navClipboard = window.navigator?.clipboard?.writeText;
-  if (typeof navClipboard === "function") {
-    await navClipboard.call(window.navigator.clipboard, text);
-    return;
-  }
-
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  textarea.setAttribute("readonly", "true");
-  textarea.style.position = "fixed";
-  textarea.style.left = "-9999px";
-  textarea.style.top = "0";
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand("copy");
-  document.body.removeChild(textarea);
-};
 
 const statusBadgeClass = (status: string): string => {
   const s = (status || "pending").toLowerCase();
@@ -84,19 +44,40 @@ export function FixProposalsView({
   });
   const reviewRequested = proposals.filter((p) => (p.status || "").toLowerCase() === "review_requested");
 
-  if (!snapshot && !loading && !error) {
+  const isEmpty = proposals.length === 0;
+
+  if ((!snapshot && !loading && !error) || (snapshot && isEmpty && !loading && !error)) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-4 py-12">
+      <div className="h-full flex flex-col items-center justify-center text-text-muted gap-4 py-12 px-6">
         <div className="w-16 h-16 rounded-2xl border border-border-main bg-background/40 flex items-center justify-center">
           <ClipboardList className="w-7 h-7 text-text-muted/80" />
         </div>
         <div className="text-center space-y-1">
-          <h3 className="font-bold text-sm text-zinc-500">No Fix Proposals</h3>
-          <p className="text-[10px] text-zinc-500 font-mono italic max-w-md">
-            Append JSONL proposals to <span className="text-[var(--text-main)]">.guardian-proposals/fix_proposals.jsonl</span>{" "}
-            to request review. Guardian will never auto-apply fixes without confirmation.
+          <h3 className="font-bold text-sm text-text-main">Reviews Is Your Fix Proposal Inbox</h3>
+          <p className="text-[10px] leading-relaxed max-w-md">
+            Guardian can apply fixes instantly from <span className="font-bold">Monitor</span> and <span className="font-bold">Guru</span>.
+            Fix Proposals are optional: use them when you want a review queue or CI-driven workflows.
+          </p>
+          <p className="text-[10px] leading-relaxed max-w-md">
+            Advanced workflow: append JSONL proposals to{" "}
+            <span className="font-mono text-[var(--text-main)]">.guardian-proposals/fix_proposals.jsonl</span>.
           </p>
         </div>
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            disabled={loading}
+            className={clsx(
+              "px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer",
+              "bg-background/60 text-text-muted border-border-main hover:bg-border-main",
+              loading && "opacity-50 cursor-not-allowed"
+            )}
+            title="Refresh from backend"
+          >
+            <RefreshCw className={clsx("w-3 h-3", loading && "animate-spin")} />
+            Refresh
+          </button>
+        )}
       </div>
     );
   }
