@@ -2,6 +2,7 @@ mod baseline;
 mod guardian_lock;
 mod output;
 mod redaction;
+mod run_manifest;
 mod rules_hash;
 mod scan;
 
@@ -85,6 +86,18 @@ struct ScanArgs {
     /// guardian.lock enforcement mode.
     #[arg(long, value_enum, default_value_t = LockModeArg::Warn)]
     lock_mode: LockModeArg,
+
+    /// Emit a reproducible run manifest (JSON) for this scan.
+    #[arg(long)]
+    emit_manifest: Option<PathBuf>,
+
+    /// Emit finding evidence/provenance (JSON) for this scan.
+    #[arg(long)]
+    emit_evidence: Option<PathBuf>,
+
+    /// PR/CI gate mode. Default: fail only on new Critical findings.
+    #[arg(long, value_enum, default_value_t = PrGateArg::CriticalOnly)]
+    pr_gate: PrGateArg,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
@@ -118,6 +131,13 @@ enum LockModeArg {
     Strict,
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
+enum PrGateArg {
+    CriticalOnly,
+    NewOnly,
+    Off,
+}
+
 fn main() {
     let cli = Cli::parse();
 
@@ -145,6 +165,13 @@ fn main() {
                 LockModeArg::Off => guardian_lock::LockMode::Off,
                 LockModeArg::Warn => guardian_lock::LockMode::Warn,
                 LockModeArg::Strict => guardian_lock::LockMode::Strict,
+            },
+            emit_manifest_path: args.emit_manifest,
+            emit_evidence_path: args.emit_evidence,
+            pr_gate: match args.pr_gate {
+                PrGateArg::CriticalOnly => scan::PrGateMode::CriticalOnly,
+                PrGateArg::NewOnly => scan::PrGateMode::NewOnly,
+                PrGateArg::Off => scan::PrGateMode::Off,
             },
         }) {
             Ok(exit_code) => exit_code,

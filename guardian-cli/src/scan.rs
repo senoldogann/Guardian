@@ -2,6 +2,7 @@ use crate::baseline::{load_baseline, resolve_baseline_path, Baseline};
 use crate::guardian_lock::{self, LockMode};
 use crate::output::{render_report, write_report, Finding, ReportFormat, ScanReport};
 use crate::redaction::{is_sensitive_file, mask_inline_secrets};
+use crate::run_manifest::{FileInventoryEntry, ManifestLimits, RunManifest};
 use crate::rules_hash::get_rules_fingerprint;
 use anyhow::{Context, Result};
 use guardian_scan_policy::ScanProfile;
@@ -29,12 +30,28 @@ pub struct ScanConfig {
     pub api_key: Option<String>,
     pub lock_path: Option<PathBuf>,
     pub lock_mode: LockMode,
+    pub emit_manifest_path: Option<PathBuf>,
+    pub emit_evidence_path: Option<PathBuf>,
+    pub pr_gate: PrGateMode,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum PrGateMode {
+    CriticalOnly,
+    NewOnly,
+    Off,
 }
 
 #[derive(Debug, Clone)]
 struct ScannedFile {
     rel_path: String,
     content: String,
+}
+
+#[derive(Debug, Clone)]
+struct CollectedFiles {
+    scanned: Vec<ScannedFile>,
+    inventory: Vec<FileInventoryEntry>,
 }
 
 #[derive(Debug, Clone)]
@@ -99,14 +116,64 @@ pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
     }
     report.guardian_lock = Some(lock_summary);
 
-    let files = collect_files(&root, scan_profile, cfg.max_files, cfg.max_file_bytes)?;
-    report.summary.files_scanned = files.len();
+    let mut exclude_rel_paths: HashSet<String> = HashSet::new();
+    if let Some(out) = cfg.out.as_deref() {
+        if let Some(rel) = rel_path_under_root(&root, out) {
+            exclude_rel_paths.insert(rel);
+        }
+    }
+    if let Some(out) = cfg.emit_manifest_path.as_deref() {
+        if let Some(rel) = rel_path_under_root(&root, out) {
+            exclude_rel_paths.insert(rel);
+        }
+    }
+    if let Some(out) = cfg.emit_evidence_path.as_deref() {
+        if let Some(rel) = rel_path_under_root(&root, out) {
+            exclude_rel_paths.insert(rel);
+        }
+    }
+
+    let collected = collect_files(
+        &root,
+        scan_profile,
+        cfg.max_files,
+        cfg.max_file_bytes,
+        &exclude_rel_paths,
+    )?;
+    report.summary.files_scanned = collected.scanned.len();
+
+    let manifest = RunManifest::new(
+        root.to_string_lossy().to_string(),
+        compute_workspace_id(&root),
+        rules_hash.clone(),
+        scan_profile.as_str().to_string(),
+        ManifestLimits {
+            max_files: cfg.max_files,
+            max_file_bytes: cfg.max_file_bytes,
+            max_batch_size: scan_profile.max_batch_size(),
+        },
+        collected.inventory.clone(),
+    );
+    let manifest_hash = manifest.stable_hash_hex();
+    report.manifest_hash = Some(manifest_hash);
+
+    if let Some(path) = cfg.emit_manifest_path.as_deref() {
+        write_json_pretty(path, &manifest)?;
+        report.manifest_path = Some(path.to_string_lossy().to_string());
+    }
 
     let findings = if cfg.offline || cfg.mock || env_flag("GUARDIAN_MOCK") {
-        offline_scan(&rules_hash, &baseline_set, &files)
+        offline_scan(&rules_hash, &baseline_set, &collected.scanned)
     } else {
         let provider = resolve_provider(&cfg)?;
-        ai_scan(&root, &rules_hash, &baseline_set, &files, &provider)?
+        ai_scan(
+            &root,
+            &rules_hash,
+            &baseline_set,
+            &collected.scanned,
+            &provider,
+            scan_profile,
+        )?
     };
 
     report.findings = findings;
@@ -121,11 +188,25 @@ pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
     let payload = render_report(&report, cfg.format)?;
     write_report(&payload, cfg.out.as_deref())?;
 
-    Ok(if report.summary.new_critical > 0 {
-        1
-    } else {
-        0
-    })
+    let exit_code = match cfg.pr_gate {
+        PrGateMode::CriticalOnly => {
+            if report.summary.new_critical > 0 {
+                1
+            } else {
+                0
+            }
+        }
+        PrGateMode::NewOnly => {
+            if report.summary.new_findings > 0 {
+                1
+            } else {
+                0
+            }
+        }
+        PrGateMode::Off => 0,
+    };
+
+    Ok(exit_code)
 }
 
 fn load_and_validate_baseline(path: &Path, rules_hash: &str) -> Result<Baseline> {
@@ -225,62 +306,168 @@ fn collect_files(
     profile: ScanProfile,
     max_files: usize,
     max_file_bytes: u64,
-) -> Result<Vec<ScannedFile>> {
+    exclude_rel_paths: &HashSet<String>,
+) -> Result<CollectedFiles> {
     let walker = ignore::WalkBuilder::new(root)
         .hidden(false)
         .git_ignore(true)
         .build();
 
-    let mut out: Vec<ScannedFile> = Vec::new();
+    let mut scanned: Vec<ScannedFile> = Vec::new();
+    let mut inventory: Vec<FileInventoryEntry> = Vec::new();
+    // Keep manifest output bounded even on huge workspaces.
+    let max_inventory = std::cmp::min(max_files.saturating_mul(5).max(200), 2_000);
 
     for result in walker {
         let entry = match result {
             Ok(entry) => entry,
             Err(_) => continue,
         };
-        if out.len() >= max_files {
-            break;
-        }
         if !entry.file_type().is_some_and(|t| t.is_file()) {
             continue;
         }
 
         let abs_path = entry.into_path();
-        if is_sensitive_file(&abs_path) {
-            continue;
-        }
-
         let rel_path = match abs_path.strip_prefix(root) {
             Ok(rel) => rel.to_string_lossy().replace('\\', "/"),
             Err(_) => abs_path.to_string_lossy().replace('\\', "/"),
         };
 
-        let decision = guardian_scan_policy::classify_path(&abs_path, false, profile);
-        if !decision.include {
+        if exclude_rel_paths.contains(&rel_path) {
             continue;
         }
 
-        let meta = match fs::metadata(&abs_path) {
-            Ok(meta) => meta,
-            Err(_) => continue,
-        };
-        if meta.len() > max_file_bytes {
+        // Avoid self-referential drift: guardian.lock is a tool-generated artifact that can change
+        // between runs and should not affect reproducibility signals.
+        if rel_path.eq_ignore_ascii_case("guardian.lock") {
+            continue;
+        }
+
+        let meta_len = fs::metadata(&abs_path).map(|m| m.len()).unwrap_or(0);
+
+        // Keep collecting skip reasons (up to max_inventory), but stop scanning file contents once
+        // the scanned file limit is reached.
+        if scanned.len() >= max_files {
+            if inventory.len() < max_inventory {
+                inventory.push(FileInventoryEntry {
+                    path_rel: rel_path.clone(),
+                    reason: "max_files_limit".to_string(),
+                    bytes: meta_len,
+                    sha256: None,
+                });
+            }
+            if inventory.len() >= max_inventory {
+                break;
+            }
+            continue;
+        }
+
+        if is_sensitive_file(&abs_path) {
+            if inventory.len() < max_inventory {
+                inventory.push(FileInventoryEntry {
+                    path_rel: rel_path.clone(),
+                    reason: "sensitive".to_string(),
+                    bytes: meta_len,
+                    sha256: None,
+                });
+            }
+            continue;
+        }
+
+        let decision = guardian_scan_policy::classify_path(&abs_path, false, profile);
+        if !decision.include {
+            if inventory.len() < max_inventory {
+                inventory.push(FileInventoryEntry {
+                    path_rel: rel_path.clone(),
+                    reason: decision
+                        .reason
+                        .map(|r| r.as_str().to_string())
+                        .unwrap_or_else(|| "profile_skip".to_string()),
+                    bytes: meta_len,
+                    sha256: None,
+                });
+            }
+            continue;
+        }
+
+        if meta_len > max_file_bytes {
+            if inventory.len() < max_inventory {
+                inventory.push(FileInventoryEntry {
+                    path_rel: rel_path.clone(),
+                    reason: "max_file_bytes".to_string(),
+                    bytes: meta_len,
+                    sha256: None,
+                });
+            }
             continue;
         }
 
         let Ok(content) = fs::read_to_string(&abs_path) else {
+            if inventory.len() < max_inventory {
+                inventory.push(FileInventoryEntry {
+                    path_rel: rel_path.clone(),
+                    reason: "read_error".to_string(),
+                    bytes: meta_len,
+                    sha256: None,
+                });
+            }
             continue;
         };
+
+        let sha256 = sha256_hex(content.as_bytes());
+        if inventory.len() < max_inventory {
+            inventory.push(FileInventoryEntry {
+                path_rel: rel_path.clone(),
+                reason: "included".to_string(),
+                bytes: meta_len,
+                sha256: Some(sha256.clone()),
+            });
+        }
+
         let masked = mask_inline_secrets(&content);
         let truncated = truncate_content(&masked);
 
-        out.push(ScannedFile {
+        scanned.push(ScannedFile {
             rel_path,
             content: truncated,
         });
     }
 
-    Ok(out)
+    Ok(CollectedFiles { scanned, inventory })
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    hex::encode(hasher.finalize())
+}
+
+fn write_json_pretty<T: serde::Serialize>(path: &Path, value: &T) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        if !parent.as_os_str().is_empty() {
+            fs::create_dir_all(parent)
+                .with_context(|| format!("Failed to create output directory: {}", parent.display()))?;
+        }
+    }
+    let payload = serde_json::to_string_pretty(value).context("JSON encode failed")?;
+    fs::write(path, payload).with_context(|| format!("Failed to write file: {}", path.display()))?;
+    Ok(())
+}
+
+fn compute_workspace_id(root: &Path) -> String {
+    let normalized = dunce::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
+    sha256_hex(normalized.to_string_lossy().as_bytes())
+}
+
+fn rel_path_under_root(root: &Path, path: &Path) -> Option<String> {
+    let abs = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        root.join(path)
+    };
+    abs.strip_prefix(root)
+        .ok()
+        .map(|p| p.to_string_lossy().replace('\\', "/"))
 }
 
 fn truncate_content(content: &str) -> String {
@@ -420,13 +607,14 @@ fn ai_scan(
     baseline_set: &HashSet<&str>,
     files: &[ScannedFile],
     provider: &ProviderConfig,
+    profile: ScanProfile,
 ) -> Result<Vec<Finding>> {
     let client = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(60))
         .build()
         .context("Failed to build HTTP client")?;
 
-    let batch_size = 4usize;
+    let batch_size = profile.max_batch_size().max(1);
     let mut out: Vec<Finding> = Vec::new();
 
     for chunk in files.chunks(batch_size) {
@@ -761,11 +949,90 @@ mod tests {
         write_file(root, "Dockerfile", "FROM node:20\n");
         write_file(root, "policy-engine.Dockerfile", "FROM rust:1.80\n");
 
-        let files = collect_files(root, ScanProfile::Source, 100, 50_000).unwrap();
-        let mut paths: Vec<String> = files.into_iter().map(|f| f.rel_path).collect();
+        let collected =
+            collect_files(root, ScanProfile::Source, 100, 50_000, &HashSet::new()).unwrap();
+        let mut paths: Vec<String> = collected.scanned.into_iter().map(|f| f.rel_path).collect();
         paths.sort();
 
         assert_eq!(paths, vec!["main.py".to_string(), "src/main.ts".to_string()]);
+    }
+
+    #[test]
+    fn manifest_hash_is_deterministic_ignoring_timestamps() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        write_file(root, "src/a.ts", "export const a = 1;\n");
+        write_file(root, "Dockerfile", "FROM node:20\n");
+        write_file(root, ".env", "OPENAI_KEY=sk-123\n");
+
+        let collected_1 =
+            collect_files(root, ScanProfile::Source, 50, 50_000, &HashSet::new()).unwrap();
+        let hash_1 = RunManifest::new(
+            root.to_string_lossy().to_string(),
+            compute_workspace_id(root),
+            "".to_string(),
+            ScanProfile::Source.as_str().to_string(),
+            ManifestLimits {
+                max_files: 50,
+                max_file_bytes: 50_000,
+                max_batch_size: ScanProfile::Source.max_batch_size(),
+            },
+            collected_1.inventory,
+        )
+        .stable_hash_hex();
+
+        let collected_2 =
+            collect_files(root, ScanProfile::Source, 50, 50_000, &HashSet::new()).unwrap();
+        let hash_2 = RunManifest::new(
+            root.to_string_lossy().to_string(),
+            compute_workspace_id(root),
+            "".to_string(),
+            ScanProfile::Source.as_str().to_string(),
+            ManifestLimits {
+                max_files: 50,
+                max_file_bytes: 50_000,
+                max_batch_size: ScanProfile::Source.max_batch_size(),
+            },
+            collected_2.inventory,
+        )
+        .stable_hash_hex();
+
+        assert_eq!(hash_1, hash_2);
+    }
+
+    #[test]
+    fn manifest_inventory_records_sensitive_and_profile_skips() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        write_file(root, "src/a.ts", "export const a = 1;\n");
+        write_file(root, ".env", "OPENAI_KEY=sk-123\n");
+        write_file(root, "Dockerfile", "FROM node:20\n");
+
+        let collected =
+            collect_files(root, ScanProfile::Source, 50, 50_000, &HashSet::new()).unwrap();
+        let mut by_path: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+        for entry in collected.inventory {
+            by_path.insert(entry.path_rel, entry.reason);
+        }
+
+        assert_eq!(by_path.get(".env").map(|s| s.as_str()), Some("sensitive"));
+        assert_eq!(
+            by_path.get("Dockerfile").map(|s| s.as_str()),
+            Some("ignored_file_name")
+        );
+    }
+
+    #[test]
+    fn extended_profile_includes_dockerfile_in_scan() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        write_file(root, "src/a.ts", "export const a = 1;\n");
+        write_file(root, "Dockerfile", "FROM node:20\n");
+
+        let collected =
+            collect_files(root, ScanProfile::Extended, 50, 50_000, &HashSet::new()).unwrap();
+        let paths: Vec<String> = collected.scanned.into_iter().map(|f| f.rel_path).collect();
+        assert!(paths.contains(&"Dockerfile".to_string()));
     }
 
     #[test]
@@ -791,6 +1058,9 @@ mod tests {
             api_key: None,
             lock_path: None,
             lock_mode: LockMode::Warn,
+            emit_manifest_path: None,
+            emit_evidence_path: None,
+            pr_gate: PrGateMode::CriticalOnly,
         })
         .unwrap();
 
@@ -820,6 +1090,9 @@ mod tests {
             api_key: None,
             lock_path: None,
             lock_mode: LockMode::Warn,
+            emit_manifest_path: None,
+            emit_evidence_path: None,
+            pr_gate: PrGateMode::CriticalOnly,
         })
         .unwrap();
 
@@ -849,6 +1122,9 @@ mod tests {
             api_key: None,
             lock_path: None,
             lock_mode: LockMode::Warn,
+            emit_manifest_path: None,
+            emit_evidence_path: None,
+            pr_gate: PrGateMode::CriticalOnly,
         })
         .unwrap();
 
@@ -889,6 +1165,9 @@ mod tests {
             api_key: None,
             lock_path: None,
             lock_mode: LockMode::Warn,
+            emit_manifest_path: None,
+            emit_evidence_path: None,
+            pr_gate: PrGateMode::CriticalOnly,
         })
         .unwrap();
 
@@ -918,6 +1197,9 @@ mod tests {
             api_key: None,
             lock_path: None,
             lock_mode: LockMode::Warn,
+            emit_manifest_path: None,
+            emit_evidence_path: None,
+            pr_gate: PrGateMode::CriticalOnly,
         })
         .unwrap();
 
@@ -948,6 +1230,9 @@ mod tests {
             api_key: None,
             lock_path: None,
             lock_mode: LockMode::Strict,
+            emit_manifest_path: None,
+            emit_evidence_path: None,
+            pr_gate: PrGateMode::CriticalOnly,
         });
 
         assert!(result.is_err());

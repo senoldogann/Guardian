@@ -1989,6 +1989,31 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
   - `cd guardian/website && npm run test:run` ✅ (107/107)
   - `cd guardian/website && npm run build` ✅
 
+### v1.2.2 Trust - Phase 14 (Reproducible Run Manifest + CI Gate Hooks) (2026-02-17)
+- Amaç:
+  - CLI taramalarını tekrar üretilebilir hale getirmek ve CI/PR entegrasyonu için gerekli metadata'yı üretmek.
+- Uygulanan değişiklikler:
+  - `guardian-cli/src/run_manifest.rs`
+    - `RunManifest` + `file_inventory` şeması eklendi.
+    - `stable_hash_hex()` ile deterministik manifest hash (yalnız `generated_at` hariç).
+  - `guardian-cli/src/main.rs`
+    - Yeni flag'ler eklendi:
+      - `--emit-manifest <path>` (run manifest JSON)
+      - `--pr-gate <critical-only|new-only|off>` (default: `critical-only`)
+      - `--emit-evidence <path>` flag'i Phase 15 için hazırlandı (evidence üretimi sonraki faz).
+  - `guardian-cli/src/scan.rs`
+    - Scan sırasında bounded `file_inventory` toplanıyor (cap: `max_files*5`, max `2000`).
+    - Sensitive file skip artık manifestte görünür (`reason=sensitive`).
+    - Scan profile skip reason'ları `guardian-scan-policy` `SkipReason` ile yazılıyor.
+    - `AI scan` batch size artık profile ile uyumlu (`ScanProfile::max_batch_size()`).
+  - `guardian-cli/src/output.rs`
+    - SARIF run-level `properties` eklendi:
+      - `guardian_manifest_hash`, `scan_profile`, `rules_hash`
+    - Markdown rapora manifest hash/path satırları eklendi (varsa).
+- Phase 14 testleri:
+  - `cd guardian && npm run verify` ✅ (unit 64/64, coverage gate OK, e2e 17/17, build PASS, rust 70/70)
+  - `cd guardian/guardian-cli && cargo test` ✅ (11/11)
+
 ## Kararlar ve Varsayımlar (Kilitleme)
 
 ### 1. CI'da Cloud AI Kullanımı
