@@ -63,7 +63,7 @@ const faqCategories = [
       },
       {
         q: "Why don't I see findings after restarting Guardian?",
-        a: "From v1.2.0 onward, the monitor view hydrates from .guardian/critiques.json and then merges live updates. If the list is empty, confirm the snapshot file exists and relaunch the app or run a new scan to regenerate findings."
+        a: "On launch, the monitor view hydrates from .guardian/critiques.json and then merges live updates. If the list is empty, confirm the snapshot file exists and relaunch the app or run a new scan to regenerate findings."
       },
       {
         q: "Can I use Guardian with multiple projects?",

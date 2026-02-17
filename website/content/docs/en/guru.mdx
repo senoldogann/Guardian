@@ -46,11 +46,10 @@ Enable web search by toggling it on in Settings (requires a Tavily key). You can
 
 ## Applying Fixes
 
-When Guru suggests a fix:
+When Guru suggests a fix, prefer receiving the **FULL updated file content** (no diff markers and no markdown). Then:
 
-1. **Review**: Read the suggested code changes
-2. **Apply**: Click **Apply Fix** to implement
-3. **Reject**: Click **Reject** to dismiss the suggestion
+- Use the **FIX** action in the Monitor view when a proposed fix is available.
+- Or write the proposal to `.guardian-proposals/fix_proposals.jsonl` and use **Reviews** to apply and track it.
 
 > **Tip**: Always review fixes before applying. Guru is helpful but suggestions should be verified.
 
@@ -134,7 +133,7 @@ Guru explanations are educational:
 - Understand the principles behind suggestions
 - Apply learnings to new code proactively
 
-## Semantic Search (v1.1.0+)
+## Semantic Search
 
 Guardian includes **semantic search** to find similar code patterns across your codebase:
 

@@ -9,15 +9,6 @@ order: 3
 
 Guardian checks for updates on startup, on focus, and every 15 minutes while the app is open. When an update is available you can install it from the update banner or **Settings > Updates**.
 
-## v1.2.0 Stabilization Notes
-
-v1.2.0 is a stabilization release. Key fixes include:
-
-- Monitor hydration from `.guardian/critiques.json` on launch and after reconnects.
-- Baseline view defaults stay on **All** unless you explicitly choose **New** or **Resolved**.
-- Embedding auto mode skips OpenAI when no key exists and uses Ollama → local hash fallback.
-- Roadmap entries for the stabilization phases were recorded for traceability.
-
 ## Update Source
 
 Guardian reads updater metadata from the **public distribution repository** (GitHub Releases).
@@ -27,8 +18,8 @@ Guardian reads updater metadata from the **public distribution repository** (Git
 ```
 Distribution Repository
 ├── latest.json              # Current version metadata
-├── Guardian_1.2.2_aarch64.app.tar.gz   # macOS updater artifact
-├── Guardian_1.2.2_aarch64.dmg          # macOS installer
+├── Guardian_X.Y.Z_aarch64.app.tar.gz   # macOS updater artifact
+├── Guardian_X.Y.Z_aarch64.dmg          # macOS installer
 └── ...
 ```
 
@@ -36,13 +27,13 @@ Distribution Repository
 
 ```json
 {
-  "version": "v1.2.2",
+  "version": "vX.Y.Z",
   "notes": "Bug fixes and performance improvements",
   "pub_date": "2026-02-07T12:00:00Z",
   "platforms": {
     "darwin-aarch64": {
       "signature": "base64-signature",
-      "url": "https://github.com/<org>/<repo>/releases/download/v1.2.2/Guardian_1.2.2_aarch64.app.tar.gz"
+      "url": "https://github.com/<org>/<repo>/releases/download/vX.Y.Z/Guardian_X.Y.Z_aarch64.app.tar.gz"
     }
   }
 }
@@ -166,10 +157,10 @@ For enterprise environments:
 
 ```json
 {
-  "version": "1.2.2",
+  "version": "X.Y.Z",
   "downloads": {
     "darwin": {
-      "url": "https://internal.company.com/guardian/Guardian-1.2.2.dmg"
+      "url": "https://internal.company.com/guardian/Guardian-X.Y.Z.dmg"
     }
   }
 }

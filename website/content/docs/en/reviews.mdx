@@ -7,36 +7,28 @@ order: 4
 
 ## Overview
 
-The **Reviews** feature (introduced in v1.1.0) provides a structured workflow for managing AI-suggested code fixes. Instead of immediately applying fixes, you can review, request review, or reject suggestions with documented reasoning.
+Reviews & Fix Proposals provide a lightweight queue for previewing and applying fixes in a controlled way. Guardian reads proposals from your workspace at:
+
+```
+.guardian-proposals/fix_proposals.jsonl
+```
+
+A proposal is a JSONL record that contains the **FULL updated file content** (not a patch/diff). You can generate proposals from your own tooling, or copy/paste Guru output into a proposal entry.
 
 ## How It Works
 
-When Guardian detects issues and Guru suggests fixes:
-
-1. **Detection**: AI identifies an issue
-2. **Proposal**: A fix is generated and added to the queue
-3. **Review**: You review the proposal in the Reviews panel
-4. **Decision**: Apply, reject, or request review
+1. Append proposal records to `.guardian-proposals/fix_proposals.jsonl`
+2. Open **Reviews** to browse and preview proposals
+3. Click **Request Review** to write the proposed content to disk and verify it in Guru
+4. Mark the outcome as **Applied** or **Rejected**
 
 ## Accessing Reviews
 
 Click the **Reviews** tab in the left sidebar to open the review queue.
 
-## Review Queue Interface
-
-The Reviews panel shows:
-
-| Section | Description |
-|---------|-------------|
-| **Pending** | Proposals awaiting your review |
-| **Done** | Previously reviewed proposals (applied/rejected) |
-| **Details** | Full context and suggested changes |
-
 ## Proposal Lifecycle
 
 ### Status States
-
-A proposal can be in one of these states:
 
 ```
 Pending ──► Review Requested ──► Applied
@@ -47,55 +39,65 @@ Pending ──► Review Requested ──► Applied
 | Status | Description |
 |--------|-------------|
 | **Pending** | New proposal, not yet reviewed |
-| **Review Requested** | Guardian applied the change and awaits your confirmation |
-| **Applied** | Fix has been applied to the codebase |
-| **Rejected** | Fix was dismissed with reason |
+| **Review Requested** | Proposed content was written to disk and awaits confirmation |
+| **Applied** | Marked as applied |
+| **Rejected** | Marked as rejected |
 
 ## Taking Action
 
 ### Request Review
 
-When you want Guardian to apply the proposed content and queue it for confirmation:
+When you want Guardian to apply the proposal and then verify it in chat:
 
 1. Select the proposal
 2. Click **Request Review**
-3. Guardian applies the change and moves it to "Review Requested"
-4. Confirm the outcome in the Guru chat
+3. Guardian writes the proposal's `proposed_content` to the target file
+4. The proposal moves to **Review Requested** and Guru opens for verification
 
-### Apply Fix
+### Mark Applied
 
-When you're satisfied with the proposal:
+When you're satisfied with the result:
 
-1. Review the **Proposed Changes** preview
-2. Click **Mark Applied** to confirm
-3. The proposal status changes to "Applied"
+1. Confirm the file looks correct
+2. Click **Mark Applied** to finalize the status
 
-> **Warning**: Always review the proposed content before applying. Verify it addresses the issue without introducing new problems.
-
-### Reject Fix
+### Reject
 
 When the proposal isn't appropriate:
 
 1. Click **Reject**
-2. Optionally add a reason for rejection
-3. The proposal moves to "Done" with "Rejected" status
+2. The proposal moves to **Done** with **Rejected** status
 
-## Understanding Proposals
+## Proposal Format
 
-Each proposal shows:
+### Required Fields
 
-### Metadata
+Each JSONL proposal must include:
 
-- **File**: Path to the affected file
-- **Severity**: Critical, Warning, or Info
-- **Confidence**: AI's confidence score (0.0 - 1.0)
-- **Reasoning**: Why this fix is suggested
+- `proposal_id`
+- `timestamp`
+- `file_path`
+- `proposed_content` (FULL updated file content)
 
-### Proposed Changes
+Optional fields supported by the UI:
 
-The proposed content view shows the full updated file content.
+- `finding_id`
+- `suggestion`
+- `reasoning`
+- `confidence`
+- `proposed_by`
+- `original_content_hash`
 
-> **Note**: Guardian only accepts **full file content**, not patch/diff format. The AI should provide the complete updated file.
+### Minimal Example
+
+```json
+{
+  "proposal_id": "p-1700000000-1",
+  "timestamp": "2026-02-17T12:00:00Z",
+  "file_path": "src/example.ts",
+  "proposed_content": "/* FULL UPDATED FILE CONTENT HERE */\n"
+}
+```
 
 ## Storage
 
@@ -113,62 +115,22 @@ Fix proposals are stored in your workspace:
 
 ## Best Practices
 
-### Review Workflow
-
-1. **Start with high severity**: Review Critical proposals first
-2. **Check confidence**: High confidence (>0.8) proposals are usually safe
-3. **Read reasoning**: Understand *why* the fix is suggested
-4. **Test after applying**: Run tests to ensure the fix works
-5. **Document rejections**: Note why you rejected for future reference
-
-### When to Reject
-
-Reject proposals when:
-- The fix doesn't address the root cause
-- It would break existing functionality
-- The code style doesn't match your project
-- You have a better alternative in mind
-
-### When to Request Review
-
-Request additional context from Guru in the chat if you need more detail before applying a fix.
-
-## Integration with Baseline
-
-Reviewed and applied fixes:
-- Are tracked in your baseline
-- Won't be flagged as "new" in future scans
-- Can be marked as "resolved" in the baseline panel
-
-## Privacy & Security
-
-- Proposals are stored **locally** in your workspace
-- No external calls when reviewing (unless you ask Guru in chat)
-- You control what gets applied to your codebase
-- Rejection reasons are stored locally for your reference
+1. Start with the highest-impact files first (auth, payments, build/deploy surfaces)
+2. Always request full-file output from Guru (no diff markers, no markdown)
+3. Run tests after applying changes
+4. Reject and regenerate proposals when the underlying file changed significantly
 
 ## Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| No proposals showing | Run a scan first to generate proposals |
-| Can't apply fix | Check file permissions and ensure file hasn't changed |
-| Proposal outdated | Reject and re-scan to get fresh proposals |
-| UI not updating | Restart the app (proposals are preserved) |
-
-## CLI Support
-
-For CI/CD integration, use the CLI (if installed in your environment):
-
-```bash
-# Generate proposals during scan
-guardian-cli scan --root . --out report.json
-
-# Review mode is desktop-only
-# Use the desktop app for interactive review
-```
+| No proposals showing | Confirm `.guardian-proposals/fix_proposals.jsonl` exists and contains valid JSONL records |
+| Proposal missing `proposed_content` | Ensure `proposed_content` contains the full updated file, not a diff |
+| Can't request review | Check file permissions and confirm the target file path is correct |
+| UI not updating | Click **Refresh** or restart the app (proposals are preserved) |
 
 ## Coming Soon
 
-- **Batch operations**: Apply/reject multiple proposals at once
--- **Review templates**: Save common rejection reasons
+- Batch operations: apply/reject multiple proposals at once
+- Review templates: save common rejection reasons
+

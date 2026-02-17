@@ -55,7 +55,7 @@ test.describe("Download Page", () => {
     // Wait for content to load
     await page.waitForLoadState("networkidle");
     
-    // Look for version pattern (v1.2.3 or 1.2.3)
+    // Look for version pattern (vX.Y.Z or X.Y.Z)
     const versionRegex = /v?\d+\.\d+\.\d+/;
     const versionText = page.getByText(versionRegex);
     

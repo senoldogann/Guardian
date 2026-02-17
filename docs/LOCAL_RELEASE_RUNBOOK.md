@@ -20,7 +20,7 @@ Manuel bump gerekirse:
 
 ```bash
 cd /Users/dogan/Desktop/new-idee/guardian
-scripts/bump_version.sh patch   # veya minor/major/1.2.3
+scripts/bump_version.sh patch   # veya minor/major/X.Y.Z
 ```
 
 Ardindan temel dogrulama:
@@ -156,7 +156,7 @@ Alternatif:
 
 ```bash
 scripts/release_all_local.sh --bump minor
-scripts/release_all_local.sh v1.2.3
+scripts/release_all_local.sh vX.Y.Z
 ```
 
 Not: Script sifreleri dosyaya yazmaz; terminalden prompt eder.

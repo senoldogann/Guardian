@@ -26,7 +26,7 @@ Optional:
 ```bash
 scripts/release_all_local.sh --bump minor
 scripts/release_all_local.sh --bump major
-scripts/release_all_local.sh v1.2.3   # explicit tag/version
+scripts/release_all_local.sh vX.Y.Z   # explicit tag/version
 ```
 
 ## Terminology

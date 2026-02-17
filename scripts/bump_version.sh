@@ -10,7 +10,7 @@ Examples:
   scripts/bump_version.sh            # defaults to patch
   scripts/bump_version.sh patch
   scripts/bump_version.sh minor
-  scripts/bump_version.sh 1.2.3
+  scripts/bump_version.sh 1.2.2
 
 What it does:
   - Updates guardian/package.json version (and package-lock.json)
