@@ -73,7 +73,7 @@ export function Header({
         )}>
           <Shield className={clsx("w-5 h-5", active ? "text-zinc-900" : "opacity-30")} />
         </div>
-        <span className="text-base font-bold tracking-tight uppercase opacity-50">Guardian V4 Control Hub</span>
+        <span className="text-base font-bold tracking-tight uppercase opacity-50">GUARDIAN</span>
       </div>
 
       <div className="flex items-center gap-6">
@@ -88,7 +88,7 @@ export function Header({
         <div className="flex gap-4 border-r border-border-main pr-6 hide-mobile">
           <StatMini icon={criticalIcon} count={stats.critical} label="Critical" color="text-rose-400" />
           <StatMini icon={warningIcon} count={stats.warning} label="Warning" color="text-amber-400" />
-          <StatMini icon={cpuIcon} count={usage.calls} label="AI Calls" color="text-[var(--accent-500)]" />
+          <StatMini icon={cpuIcon} count={usage.calls} label="AI Requests" color="text-[var(--accent-500)]" />
         </div>
         <div className="flex items-center gap-2 ml-auto">
           {authSession && (

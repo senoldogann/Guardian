@@ -58,6 +58,10 @@ const faqCategories = [
         a: "After installation, select a local workspace folder. Configure your AI provider settings in Settings, then launch monitoring to scan and review findings. Documentation covers the main workflows and configuration options."
       },
       {
+        q: "How do I control what files Guardian scans?",
+        a: "Use Settings > General > Scan Scope. Source (default) focuses on code and skips docs/tests/scripts/lockfiles. Extended adds infra and security surfaces (Docker/CI/locks/config). Full scans most text files for deep one-off audits."
+      },
+      {
         q: "Why don't I see findings after restarting Guardian?",
         a: "From v1.2.0 onward, the monitor view hydrates from .guardian/critiques.json and then merges live updates. If the list is empty, confirm the snapshot file exists and relaunch the app or run a new scan to regenerate findings."
       },

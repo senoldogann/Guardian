@@ -12,6 +12,10 @@
     "dialog:default",
     "updater:default",
     "fs:default",
+    "fs:allow-write-file",
+    "fs:allow-download-write",
+    "fs:allow-download-write-recursive",
+    "fs:allow-download-read",
     {
       "identifier": "fs:allow-read",
       "allow": [
@@ -28,6 +32,9 @@
       "allow": [
         {
           "path": "$APP_DATA/**"
+        },
+        {
+          "path": "$DOWNLOAD/**"
         }
       ]
     },

@@ -39,6 +39,20 @@ Guardian watches your project for file changes and analyzes code using your conf
 
 If Guardian restarts or reconnects, it now hydrates the monitor view from the local snapshot (`.guardian/critiques.json`) before merging live updates. This prevents empty dashboards when there are existing findings in the workspace.
 
+## Scan Scope Profiles (v1.2.2)
+
+Guardian includes three scan profiles so you can balance **cost vs coverage**.
+
+You can change this in **Settings > General > Scan Scope**. Profile changes apply the next time you start monitoring.
+
+| Profile | What it focuses on | Typical use |
+|---------|---------------------|-------------|
+| **Source** (default) | Source code only. Skips low-signal files like docs/tests/scripts/lockfiles by default. | Day-to-day development monitoring with minimal noise and cost. |
+| **Extended** | Source code plus infra/security surfaces (Docker/CI/workflows/shell/config/lockfiles). Still skips docs/tests by default. | Security-aware teams that want coverage on deploy/runtime surfaces. |
+| **Full** | Most text files (including docs/tests/scripts/workflows). More findings, higher cost. | Deep one-off audits when you want maximum coverage. |
+
+> Tip: If you feel Guardian is "wasting tokens" on the wrong file types, keep the profile on **Source** and only use **Extended/Full** when you explicitly need them.
+
 ## Understanding Findings
 
 ### Severity Levels

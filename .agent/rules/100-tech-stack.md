@@ -1,28 +1,17 @@
-# 100-TECH-STACK RULES
+# 🎯 TECH STACK RULES: Antigravity Workspace
 
-## 1. COMMON RULES
-*   **Package Manager:** `npm`
-*   **Formatting:** Prettier (implicit).
-*   **Linting:** ESLint (Flat Config).
+> **CONTEXT:** Bu dosya proje başlangıcında SPAP v2.2 uyarınca oluşturulmuştur.
 
-## 2. FRONTEND (DESKTOP & WEB)
-*   **Frameworks:** React 18.3
-*   **Styling:** Tailwind CSS v4.
-    *   Use `@theme` block in CSS for custom tokens.
-    *   Use `clsx` and `tailwind-merge` for class manipulation.
-*   **Icons:** `lucide-react`.
-*   **Animation:** `framer-motion`.
+## 1. MANDATORY CONSTRAINTS (KATI KURALLAR)
+* **Language:** TypeScript (Strict Mode: ON)
+* **Architecture:** Layered Architecture (Controller -> Service -> Repository)
+* **Testing:** Min %80 Coverage.
 
-## 3. TAURI (DESKTOP SPECIFIC)
-*   **Inter-Process Communication (IPC):** Use strict typing for Tauri commands.
-*   **Security:** Explicitly define permissions in `capabilities/`.
-*   **Windowing:** Use `react-window` for large lists to ensure performance.
+## 2. FORBIDDEN PATTERNS (YASAKLAR)
+* **No `any`:** `any` kullanımı kesinlikle yasaktır, her şey tiplenmelidir.
+* **No Inline Styles:** Tüm stiller CSS Modules veya Tailwind ile yönetilmeli.
+* **No Magic Strings:** Sabitler `constants/` altında tutulmalı.
 
-## 4. NEXT.JS (WEB SPECIFIC)
-*   **Router:** App Router (`/app` directory).
-*   **Components:** Server Components by default. Use `"use client"` only when necessary (state, effects, interactivity).
-*   **Optimization:** Use `next/image` and `next/font`.
-
-## 5. TESTING STRATEGY
-*   **Unit:** Vitest. Co-locate tests with components (`Component.test.tsx`).
-*   **E2E:** Playwright. Store in `/tests` for cross-app testing or project-specific folders.
+## 3. PERFORMANCE & SCALE
+* **N+1 Avoidance:** Tüm DB sorguları batching/loading ile optimize edilmeli.
+* **Async Correctness:** Hiçbir async işlem `await` edilmeden havada bırakılmamalı.

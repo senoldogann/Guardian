@@ -27,8 +27,8 @@ Guardian reads updater metadata from the **public distribution repository** (Git
 ```
 Distribution Repository
 ├── latest.json              # Current version metadata
-├── Guardian_1.2.3_aarch64.app.tar.gz   # macOS updater artifact
-├── Guardian_1.2.3_aarch64.dmg          # macOS installer
+├── Guardian_1.2.2_aarch64.app.tar.gz   # macOS updater artifact
+├── Guardian_1.2.2_aarch64.dmg          # macOS installer
 └── ...
 ```
 
@@ -36,13 +36,13 @@ Distribution Repository
 
 ```json
 {
-  "version": "v1.2.3",
+  "version": "v1.2.2",
   "notes": "Bug fixes and performance improvements",
   "pub_date": "2026-02-07T12:00:00Z",
   "platforms": {
     "darwin-aarch64": {
       "signature": "base64-signature",
-      "url": "https://github.com/<org>/<repo>/releases/download/v1.2.3/Guardian_1.2.3_aarch64.app.tar.gz"
+      "url": "https://github.com/<org>/<repo>/releases/download/v1.2.2/Guardian_1.2.2_aarch64.app.tar.gz"
     }
   }
 }
@@ -166,10 +166,10 @@ For enterprise environments:
 
 ```json
 {
-  "version": "1.2.3",
+  "version": "1.2.2",
   "downloads": {
     "darwin": {
-      "url": "https://internal.company.com/guardian/Guardian-1.2.3.dmg"
+      "url": "https://internal.company.com/guardian/Guardian-1.2.2.dmg"
     }
   }
 }

@@ -1,11 +1,17 @@
 use crate::config;
 use anyhow::{Context, Result};
+use once_cell::sync::Lazy;
 use reqwest::{Certificate, Client};
 use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::collections::HashMap;
 use std::fs;
+use std::sync::Mutex;
+use std::sync::Arc;
 use std::time::Duration;
+use std::time::Instant;
+use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 use tracing::{debug, error, warn};
 
 #[derive(Debug, Clone)]
@@ -15,6 +21,19 @@ pub struct AiClient {
     base_url: String,
     model: String,
     api_key: SecretString,
+    queue: Arc<QueueManager>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AiRequestClass {
+    Audit,
+    Guru,
+}
+
+#[derive(Debug, Clone)]
+pub struct AiCall<T> {
+    pub value: T,
+    pub queue_wait_ms: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -29,6 +48,109 @@ pub struct Critique {
     pub finding_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub why: Option<String>,
+}
+
+const DEFAULT_AI_REQUEST_CONCURRENCY_CLOUD: usize = 1;
+const DEFAULT_AI_REQUEST_CONCURRENCY_LOCAL: usize = 2;
+const AI_QUEUE_WAIT_TIMEOUT_AUDIT_SECS: u64 = 120;
+const AI_QUEUE_WAIT_TIMEOUT_GURU_SECS: u64 = 300;
+
+#[derive(Debug)]
+struct QueueManager {
+    global: Arc<Semaphore>,
+    audit_lane: Arc<Semaphore>,
+}
+
+#[derive(Debug)]
+struct RequestSlot {
+    _global: OwnedSemaphorePermit,
+    _audit: Option<OwnedSemaphorePermit>,
+    queue_wait_ms: u64,
+}
+
+impl QueueManager {
+    fn new(global_concurrency: usize) -> Self {
+        Self {
+            global: Arc::new(Semaphore::new(global_concurrency.max(1))),
+            audit_lane: Arc::new(Semaphore::new(1)),
+        }
+    }
+
+    async fn acquire(&self, class: AiRequestClass) -> Result<RequestSlot> {
+        let start = Instant::now();
+
+        let audit_permit = if class == AiRequestClass::Audit {
+                    Some(
+                        tokio::time::timeout(
+                            Duration::from_secs(AI_QUEUE_WAIT_TIMEOUT_AUDIT_SECS),
+                            self.audit_lane.clone().acquire_owned(),
+                        )
+                        .await
+                        .context("AI audit lane queue timeout. Another audit is still in progress.")?
+                        .context("AI audit lane queue is closed")?,
+                    )
+        } else {
+            None
+        };
+
+        let global_timeout = if class == AiRequestClass::Guru {
+            AI_QUEUE_WAIT_TIMEOUT_GURU_SECS
+        } else {
+            AI_QUEUE_WAIT_TIMEOUT_AUDIT_SECS
+        };
+
+        let global_permit = tokio::time::timeout(
+            Duration::from_secs(global_timeout),
+            self.global.clone().acquire_owned(),
+        )
+        .await
+        .context("AI request queue timeout. Another request is still in progress.")?
+        .context("AI request queue is closed")?;
+
+        let queue_wait_ms = start.elapsed().as_millis() as u64;
+
+        Ok(RequestSlot {
+            _global: global_permit,
+            _audit: audit_permit,
+            queue_wait_ms,
+        })
+    }
+}
+
+static AI_QUEUE_MANAGERS: Lazy<Mutex<HashMap<String, Arc<QueueManager>>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+
+fn provider_effective_concurrency(provider_id: &str, base_url: &str) -> usize {
+    let lowered = base_url.trim().to_lowercase();
+    let is_local = provider_id == "mock"
+        || (provider_id == "ollama"
+            && (lowered.contains("127.0.0.1") || lowered.contains("localhost")));
+
+    if is_local {
+        DEFAULT_AI_REQUEST_CONCURRENCY_LOCAL
+    } else {
+        DEFAULT_AI_REQUEST_CONCURRENCY_CLOUD
+    }
+}
+
+fn configured_concurrency(provider_id: &str, base_url: &str) -> usize {
+    std::env::var("GUARDIAN_AI_REQUEST_CONCURRENCY")
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|value| *value > 0)
+        .unwrap_or_else(|| provider_effective_concurrency(provider_id, base_url))
+}
+
+fn queue_key(provider_id: &str, base_url: &str) -> String {
+    let lowered = base_url.trim().to_lowercase();
+    let locality = if provider_id == "mock"
+        || (provider_id == "ollama" && (lowered.contains("127.0.0.1") || lowered.contains("localhost")))
+    {
+        "local"
+    } else {
+        "cloud"
+    };
+    format!("{provider_id}::{locality}")
 }
 
 impl AiClient {
@@ -61,12 +183,25 @@ impl AiClient {
 
         let client = builder.build().context("Failed to build HTTP client")?;
 
+        let key = queue_key(&normalized, &base_url);
+        let concurrency = configured_concurrency(&normalized, &base_url);
+        let queue = {
+            let mut guard = AI_QUEUE_MANAGERS
+                .lock()
+                .map_err(|_| anyhow::anyhow!("AI queue manager lock poisoned"))?;
+            guard
+                .entry(key)
+                .or_insert_with(|| Arc::new(QueueManager::new(concurrency)))
+                .clone()
+        };
+
         Ok(Self {
             provider_id: normalized,
             client,
             base_url,
             model,
             api_key,
+            queue,
         })
     }
 
@@ -78,6 +213,19 @@ impl AiClient {
             anyhow::bail!("GUARDIAN_API_KEY is missing or still a placeholder");
         }
         Ok(())
+    }
+
+    async fn acquire_request_slot(&self, class: AiRequestClass) -> Result<RequestSlot> {
+        if self.queue.global.available_permits() == 0 {
+            debug!(
+                target: "guardian::ai",
+                "AI request queued (provider={}, model={}, class={:?})",
+                self.provider_id,
+                self.model,
+                class
+            );
+        }
+        self.queue.acquire(class).await
     }
 
     // Helper to strip Markdown code blocks
@@ -193,7 +341,10 @@ impl AiClient {
         system_prompt: &str,
         user_prompt: &str,
         json_mode: bool,
-    ) -> Result<String> {
+        class: AiRequestClass,
+    ) -> Result<AiCall<String>> {
+        let request_slot = self.acquire_request_slot(class).await?;
+        let queue_wait_ms = request_slot.queue_wait_ms;
         let safe_user_prompt = crate::redaction::gate::mask_inline_secrets(user_prompt);
         let provider = self.provider_id.as_str();
         match provider {
@@ -202,15 +353,22 @@ impl AiClient {
                     let is_batch = system_prompt.contains("JSON ARRAY MODE")
                         || safe_user_prompt.starts_with("Batch Analysis Request");
                     if is_batch {
-                        return Ok("[]".to_string());
+                        return Ok(AiCall {
+                            value: "[]".to_string(),
+                            queue_wait_ms,
+                        });
                     }
-                    return Ok(
-                        r#"{"file_path":"src/mock.ts","severity":"Info","message":"LGTM","suggestion":null,"chat_message":null,"suggested_diff":null}"#
+                    return Ok(AiCall {
+                        value: r#"{"file_path":"src/mock.ts","severity":"Info","message":"LGTM","suggestion":null,"chat_message":null,"suggested_diff":null}"#
                             .to_string(),
-                    );
+                        queue_wait_ms,
+                    });
                 }
 
-                Ok("MOCK: OK".to_string())
+                Ok(AiCall {
+                    value: "MOCK: OK".to_string(),
+                    queue_wait_ms,
+                })
             }
             "ollama" => {
                 let mut payload = json!({
@@ -243,7 +401,10 @@ impl AiClient {
                 let content_str = response_json["message"]["content"]
                     .as_str()
                     .context("Invalid response format from AI")?;
-                Ok(content_str.to_string())
+                Ok(AiCall {
+                    value: content_str.to_string(),
+                    queue_wait_ms,
+                })
             }
             "openai" => {
                 let mut payload = json!({
@@ -274,7 +435,10 @@ impl AiClient {
                 let content_str = response_json["choices"][0]["message"]["content"]
                     .as_str()
                     .context("Invalid OpenAI response format")?;
-                Ok(content_str.to_string())
+                Ok(AiCall {
+                    value: content_str.to_string(),
+                    queue_wait_ms,
+                })
             }
             "anthropic" => {
                 let payload = json!({
@@ -309,7 +473,10 @@ impl AiClient {
                         collected.push_str(text);
                     }
                 }
-                Ok(collected)
+                Ok(AiCall {
+                    value: collected,
+                    queue_wait_ms,
+                })
             }
             "gemini" => {
                 let model_path = if self.model.starts_with("models/") {
@@ -356,7 +523,10 @@ impl AiClient {
                         }
                     }
                 }
-                Ok(collected)
+                Ok(AiCall {
+                    value: collected,
+                    queue_wait_ms,
+                })
             }
             "github-models" => {
                 let mut payload = json!({
@@ -391,13 +561,16 @@ impl AiClient {
                 let content_str = response_json["choices"][0]["message"]["content"]
                     .as_str()
                     .context("Invalid GitHub Models response format")?;
-                Ok(content_str.to_string())
+                Ok(AiCall {
+                    value: content_str.to_string(),
+                    queue_wait_ms,
+                })
             }
             other => anyhow::bail!("Provider '{}' is not supported.", other),
         }
     }
 
-    pub async fn analyze_diff(&self, file_path: &str, diff: &str) -> Result<Critique> {
+    pub async fn analyze_diff(&self, file_path: &str, diff: &str) -> Result<AiCall<Critique>> {
         self.ensure_valid_api_key()?;
         let system_prompt = r#"You are 'Guardian', a high-authority Senior Software Architect & Security Auditor.
 Your mission is to find 'AI Smell' and critical architectural flaws in real-time.
@@ -422,7 +595,11 @@ JSON MODE:
 
         let user_prompt = format!("File: {}\n\nDiff:\n{}\n\nNOTE: If you detect a logical violation of the current task/plan, call it out in 'message' and explain why in 'chat_message'.", file_path, diff);
 
-        let content_str = self.send_chat(system_prompt, &user_prompt, true).await?;
+        let response = self
+            .send_chat(system_prompt, &user_prompt, true, AiRequestClass::Audit)
+            .await?;
+        let queue_wait_ms = response.queue_wait_ms;
+        let content_str = response.value;
 
         // SANITIZATION: Remove markdown code blocks and any leading/trailing garbage
         let clean_json = Self::sanitize_json_response(&content_str);
@@ -495,10 +672,13 @@ JSON MODE:
         // This prevents the AI from potentially returning a different path (path traversal attack)
         critique.file_path = file_path.to_string();
 
-        Ok(critique)
+        Ok(AiCall {
+            value: critique,
+            queue_wait_ms,
+        })
     }
 
-    pub async fn analyze_batch(&self, batch: Vec<(String, String)>) -> Result<Vec<Critique>> {
+    pub async fn analyze_batch(&self, batch: Vec<(String, String)>) -> Result<AiCall<Vec<Critique>>> {
         self.ensure_valid_api_key()?;
         let system_prompt = r#"You are 'Guardian', a high-authority Senior Software Architect.
 Your mission is to audit multiple files simultaneously for 'AI Smell', security risks, and architectural flaws.
@@ -532,7 +712,11 @@ JSON ARRAY MODE:
             ));
         }
 
-        let content_str = self.send_chat(system_prompt, &user_prompt, true).await?;
+        let response = self
+            .send_chat(system_prompt, &user_prompt, true, AiRequestClass::Audit)
+            .await?;
+        let queue_wait_ms = response.queue_wait_ms;
+        let content_str = response.value;
 
         let clean_json = Self::sanitize_json_response(&content_str);
         debug!(target: "guardian::ai", "AI batch response received (len={})", clean_json.len());
@@ -599,10 +783,13 @@ JSON ARRAY MODE:
             })
             .collect();
 
-        Ok(sanitized_critiques)
+        Ok(AiCall {
+            value: sanitized_critiques,
+            queue_wait_ms,
+        })
     }
 
-    pub async fn ask_question(&self, context: &str, query: &str) -> Result<String> {
+    pub async fn ask_question(&self, context: &str, query: &str) -> Result<AiCall<String>> {
         self.ensure_valid_api_key()?;
         let system_prompt = "You are 'Guardian Guru', the Senior Software Architect for the Guardian desktop agent + cloud control panel.\n\
     Your goal is to deliver high-leverage, actionable guidance using ONLY the provided project context.\n\
@@ -624,8 +811,8 @@ JSON ARRAY MODE:
 
         let user_prompt = format!("Context:\n{}\n\nQuestion: {}", context, query);
 
-        let content = self.send_chat(system_prompt, &user_prompt, false).await?;
-        Ok(content)
+        self.send_chat(system_prompt, &user_prompt, false, AiRequestClass::Guru)
+            .await
     }
 }
 
@@ -718,6 +905,8 @@ fn extract_json_window(content: &str, open: char, close: char) -> Option<&str> {
 #[cfg(test)]
 mod tests {
     use super::AiClient;
+    use super::{AiRequestClass, QueueManager};
+    use std::time::Duration;
 
     #[test]
     fn test_repair_invalid_escape_sequence() {
@@ -741,5 +930,46 @@ mod tests {
         let parsed = serde_json::from_str::<serde_json::Value>(&repaired)
             .expect("Repaired JSON should parse");
         assert_eq!(parsed["message"].as_str(), Some("line1\nline2"));
+    }
+
+    #[tokio::test]
+    async fn audit_lane_serializes_audits_and_allows_guru_parallel_on_local_concurrency() {
+        let queue = QueueManager::new(2);
+        let slot1 = queue.acquire(AiRequestClass::Audit).await.unwrap();
+
+        // Guru can still proceed because global has a second permit and Guru does not use the audit lane.
+        let guru = tokio::time::timeout(Duration::from_millis(200), queue.acquire(AiRequestClass::Guru)).await;
+        assert!(guru.is_ok(), "Guru should not be blocked by an audit on local concurrency=2");
+
+        // A second audit should be blocked by the audit lane.
+        let audit2 =
+            tokio::time::timeout(Duration::from_millis(200), queue.acquire(AiRequestClass::Audit)).await;
+        assert!(audit2.is_err(), "Second audit must wait for audit lane permit");
+
+        drop(slot1);
+        let audit2 =
+            tokio::time::timeout(Duration::from_millis(200), queue.acquire(AiRequestClass::Audit)).await;
+        assert!(audit2.is_ok(), "Audit should proceed after first audit slot is released");
+    }
+
+    #[tokio::test]
+    async fn cloud_concurrency_one_blocks_guru_until_audit_releases() {
+        let queue = QueueManager::new(1);
+        let slot1 = queue.acquire(AiRequestClass::Audit).await.unwrap();
+
+        let guru =
+            tokio::time::timeout(Duration::from_millis(200), queue.acquire(AiRequestClass::Guru)).await;
+        assert!(
+            guru.is_err(),
+            "Guru must wait when global concurrency=1 and an audit is in flight"
+        );
+
+        drop(slot1);
+        let guru =
+            tokio::time::timeout(Duration::from_millis(200), queue.acquire(AiRequestClass::Guru)).await;
+        assert!(
+            guru.is_ok(),
+            "Guru should proceed once the audit releases the global permit"
+        );
     }
 }

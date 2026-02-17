@@ -32,9 +32,10 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::RwLock;
 use tracing::{error, info, warn};
+use guardian_scan_policy::ScanProfile;
 
 struct WatcherSupervisor {
     shutdown: Arc<AtomicBool>,
@@ -116,11 +117,60 @@ struct ApiKeyStatus {
 
 #[derive(Serialize, Deserialize, Clone)]
 struct EmbeddingRuntimeConfig {
-    mode: String,
-    openai_base_url: Option<String>,
-    ollama_base_url: Option<String>,
-    openai_model: Option<String>,
-    ollama_model: Option<String>,
+  mode: String,
+  openai_base_url: Option<String>,
+  ollama_base_url: Option<String>,
+  openai_model: Option<String>,
+  ollama_model: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+struct ScanProfileConfig {
+    profile: String,
+}
+
+fn scan_profile_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let base = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    Ok(base.join("scan_profile.json"))
+}
+
+fn normalize_scan_profile(value: &str) -> Result<ScanProfile, String> {
+    value.parse::<ScanProfile>().map_err(|e| e.to_string())
+}
+
+fn load_scan_profile_config(app: &AppHandle) -> Result<ScanProfileConfig, String> {
+    let path = scan_profile_path(app)?;
+    if !path.exists() {
+        return Ok(ScanProfileConfig {
+            profile: ScanProfile::Source.as_str().to_string(),
+        });
+    }
+    let raw = fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let parsed: ScanProfileConfig = serde_json::from_str(&raw).map_err(|e| e.to_string())?;
+    let profile = normalize_scan_profile(&parsed.profile)?.as_str().to_string();
+    Ok(ScanProfileConfig { profile })
+}
+
+fn save_scan_profile_config(app: &AppHandle, cfg: &ScanProfileConfig) -> Result<ScanProfileConfig, String> {
+    let profile = normalize_scan_profile(&cfg.profile)?.as_str().to_string();
+    let normalized = ScanProfileConfig { profile };
+    let path = scan_profile_path(app)?;
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    let payload = serde_json::to_string(&normalized).map_err(|e| e.to_string())?;
+    fs::write(&path, payload).map_err(|e| e.to_string())?;
+    Ok(normalized)
+}
+
+#[tauri::command]
+async fn get_scan_profile_config(app: AppHandle) -> Result<ScanProfileConfig, String> {
+    load_scan_profile_config(&app)
+}
+
+#[tauri::command]
+async fn set_scan_profile_config(app: AppHandle, config: ScanProfileConfig) -> Result<ScanProfileConfig, String> {
+    save_scan_profile_config(&app, &config)
 }
 
 #[derive(Serialize, Deserialize)]
@@ -274,6 +324,8 @@ async fn start_monitoring(
     let provider = provider::resolve_provider_config(&app).map_err(|e| e.to_string())?;
     let api_key =
         config::api_key_for_provider_or_empty(&provider.provider_id).map_err(|e| e.to_string())?;
+    let scan_profile_cfg = load_scan_profile_config(&app)?;
+    let scan_profile = normalize_scan_profile(&scan_profile_cfg.profile)?;
 
     watcher
         .start(
@@ -285,6 +337,7 @@ async fn start_monitoring(
                 host: provider.base_url,
                 provider_id: provider.provider_id,
                 auto_verify_enabled: auto_verify_enabled.unwrap_or(false),
+                scan_profile,
             },
         )
         .await;
@@ -819,6 +872,7 @@ async fn ask_guru(
     path: String,
     query: String,
     web_search: Option<bool>,
+    web_search_depth: Option<String>,
     storage: tauri::State<'_, Arc<Mutex<storage::StorageManager>>>,
 ) -> Result<String, String> {
     let root_path = std::path::Path::new(&path);
@@ -857,18 +911,24 @@ async fn ask_guru(
     }
 
     // 1.5 Optional Web Search (Tavily)
-    if web_search.unwrap_or(false) {
-        let should_use = force_web || should_use_web_search(&clean_query);
-        if should_use {
-            let searcher = skills::web_search::WebSearch::new()?;
-            let results = searcher
-                .search(&clean_query)
-                .await
-                .map_err(|e| format!("Web search failed: {}", e))?;
-            context.push_str("\n\n### Web Search (Tavily)\n");
-            context.push_str(&results);
-        }
+    // 1.5 Optional Web Search (Tavily)
+    // If frontend explicitly requests web_search (via toggle) OR uses a slash command (/web), we force search.
+    // We REMOVE the heuristic check to make this behavior 100% deterministic and controllable.
+    let ui_enabled = web_search.unwrap_or(false);
+    let slash_command = force_web;
+    
+    if ui_enabled || slash_command {
+        let searcher = skills::web_search::WebSearch::new()?;
+        let depth = skills::web_search::SearchDepth::from_user_value(web_search_depth.as_deref());
+        let results = searcher
+            .search_with_options(&clean_query, skills::web_search::WebSearchOptions { depth })
+            .await
+            .map_err(|e| format!("Web search failed: {}", e))?;
+        context.push_str("\n\n### Web Search (Tavily)\n");
+        context.push_str(&results);
     }
+
+
 
     // 2. Init AI Client
     let provider = provider::resolve_provider_config(&app).map_err(|e| e.to_string())?;
@@ -883,10 +943,24 @@ async fn ask_guru(
     .map_err(|e| e.to_string())?;
 
     // 3. Ask
-    client
+    let result = client
         .ask_question(&context, &clean_query)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    let estimated_tokens = (((context.len() + clean_query.len()) as f64) / 4.0).ceil() as u64;
+    app.emit(
+        "guardian:usage",
+        serde_json::json!({
+            "tokens": estimated_tokens.max(1),
+            "calls": 1,
+            "files": 0,
+            "queue_wait_ms": result.queue_wait_ms,
+        }),
+    )
+    .ok();
+
+    Ok(result.value)
 }
 
 fn normalize_web_query(query: &str) -> (String, bool) {
@@ -908,37 +982,6 @@ fn normalize_web_query(query: &str) -> (String, bool) {
     }
 
     (trimmed.to_string(), false)
-}
-
-fn should_use_web_search(query: &str) -> bool {
-    let q = query.to_lowercase();
-    if q.contains("http://") || q.contains("https://") {
-        return true;
-    }
-    let triggers = [
-        "latest",
-        "current",
-        "today",
-        "news",
-        "release",
-        "version",
-        "changelog",
-        "docs",
-        "documentation",
-        "pricing",
-        "policy",
-        "terms",
-        "github",
-        "repo",
-        "website",
-        "link",
-        "compare",
-        "benchmark",
-        "cve",
-        "security advisory",
-        "vulnerability",
-    ];
-    triggers.iter().any(|t| q.contains(t))
 }
 
 fn append_issue_file_context(
@@ -1263,11 +1306,6 @@ async fn clear_user_api_key(provider_id: Option<String>, app: AppHandle) -> Resu
 }
 
 #[tauri::command]
-async fn check_for_updates(app: AppHandle) -> Result<updates::UpdateCheckResult, String> {
-    updates::check_for_updates(&app).await
-}
-
-#[tauri::command]
 async fn check_app_update(app: AppHandle) -> Result<updates::UpdateCheckResult, String> {
     updates::check_app_update(&app).await
 }
@@ -1275,21 +1313,6 @@ async fn check_app_update(app: AppHandle) -> Result<updates::UpdateCheckResult, 
 #[tauri::command]
 async fn install_app_update(app: AppHandle) -> Result<(), String> {
     updates::install_app_update(&app).await
-}
-
-#[tauri::command]
-async fn set_update_feed_url(app: AppHandle, url: String) -> Result<(), String> {
-    updates::set_update_feed_url(&app, &url)
-}
-
-#[tauri::command]
-async fn download_update(app: AppHandle, url: String) -> Result<String, String> {
-    updates::download_update(&app, &url).await
-}
-
-#[tauri::command]
-async fn get_update_feed_url(app: AppHandle) -> Result<Option<String>, String> {
-    updates::get_update_feed_url(&app)
 }
 
 #[tauri::command]
@@ -1497,11 +1520,7 @@ pub fn run() -> AnyhowResult<()> {
             get_api_key_status,
             set_user_api_key,
             clear_user_api_key,
-            check_for_updates,
             check_app_update,
-            set_update_feed_url,
-            download_update,
-            get_update_feed_url,
             get_app_version,
             install_app_update,
             get_chat_history,
@@ -1509,7 +1528,9 @@ pub fn run() -> AnyhowResult<()> {
             clear_chat_history,
             get_tavily_key_status,
             set_tavily_key,
-            clear_tavily_key
+            clear_tavily_key,
+            get_scan_profile_config,
+            set_scan_profile_config
         ])
         .run(tauri::generate_context!())
         .context("error while running tauri application")?;

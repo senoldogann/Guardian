@@ -159,6 +159,15 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ l
                         <div className="relative group/suggest">
                             <div className="absolute inset-0 bg-black/5 blur-xl rounded-2xl" />
                             <div className="relative bg-background border border-border-main p-5 rounded-2xl">
+                                <div className="mb-4 rounded-xl border border-border-main bg-surface/70 px-4 py-3">
+                                    <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">
+                                        File Path
+                                    </div>
+                                    <div className="font-mono text-xs break-all opacity-90">
+                                        {log.file_path}
+                                    </div>
+                                </div>
+
                                 <div className="flex items-start gap-4 mb-4">
                                     <div className={clsx(
                                         "p-2 rounded-lg",

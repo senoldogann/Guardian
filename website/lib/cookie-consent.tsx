@@ -72,8 +72,9 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
         saveToStorage({ necessary: true });
     };
 
-    const savePreferences = (_prefs: CookiePreferences) => {
-        saveToStorage({ necessary: true });
+    const savePreferences = (prefs: CookiePreferences) => {
+        // Today we only support "necessary" cookies; keep the shape for future expansion.
+        saveToStorage({ ...prefs, necessary: true });
     };
 
     const resetConsent = () => {

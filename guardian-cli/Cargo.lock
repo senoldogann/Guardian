@@ -474,6 +474,7 @@ dependencies = [
  "chrono",
  "clap",
  "dunce",
+ "guardian-scan-policy",
  "hex",
  "ignore",
  "once_cell",
@@ -484,6 +485,13 @@ dependencies = [
  "serde_json",
  "sha2",
  "tempfile",
+]
+
+[[package]]
+name = "guardian-scan-policy"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

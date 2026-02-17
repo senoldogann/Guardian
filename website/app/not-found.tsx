@@ -1,18 +1,19 @@
-"use client";
-
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { FileQuestion, Home, Search, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import type { Metadata } from "next";
+import { ArrowLeft, FileQuestion, Home, Search } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Page not found",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default function NotFoundPage() {
   return (
     <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-lg w-full text-center"
-      >
+      <div className="max-w-lg w-full text-center animate-in fade-in-0">
         <div className="mb-8">
           <div className="relative inline-block">
             <div className="text-9xl font-black text-black/5 dark:text-white/5 select-none">
@@ -34,25 +35,20 @@ export default function NotFoundPage() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button
-            asChild
-            className="rounded-full px-6 h-12 gap-2 bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded-full px-6 h-12 gap-2 bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 transition-colors"
           >
-            <Link href="/">
-              <Home className="w-4 h-4" />
-              Go home
-            </Link>
-          </Button>
-          <Button
-            variant="outline"
-            asChild
-            className="rounded-full px-6 h-12 gap-2 border-black/20 dark:border-white/20 text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10"
+            <Home className="w-4 h-4" />
+            Go home
+          </Link>
+          <Link
+            href="/docs"
+            className="inline-flex items-center justify-center rounded-full px-6 h-12 gap-2 border border-black/20 dark:border-white/20 text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
           >
-            <Link href="/docs">
-              <Search className="w-4 h-4" />
-              Browse docs
-            </Link>
-          </Button>
+            <Search className="w-4 h-4" />
+            Browse docs
+          </Link>
         </div>
 
         <div className="mt-12 pt-8 border-t border-black/10 dark:border-white/10">
@@ -83,7 +79,7 @@ export default function NotFoundPage() {
             </Link>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

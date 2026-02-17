@@ -12,13 +12,15 @@ export default defineConfig({
     exclude: ["tests/e2e/**", "**/node_modules/**", "website/**"],
     coverage: {
       provider: "v8",
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["src/test/**", "src/**/*.test.{ts,tsx}", "src/**/__tests__/**", "src/main.tsx"],
       thresholds: {
-        lines: 10,
-        functions: 10,
-        branches: 10,
-        statements: 10
+        lines: 35,
+        functions: 35,
+        branches: 25,
+        statements: 35,
       },
-      reporter: ["text", "html", "lcov"]
-    }
+      reporter: ["text", "html", "lcov", "json-summary"],
+    },
   },
 });

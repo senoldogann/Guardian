@@ -4,6 +4,10 @@ import type { Critique } from "../../components/CritiqueAccordionRow";
 
 let lastDoc: any;
 
+vi.mock("../tauri", () => ({
+  isTauriRuntime: () => false,
+}));
+
 vi.mock("jspdf", () => {
   class JsPdfMock {
     text = vi.fn();
@@ -29,7 +33,7 @@ describe("exportAuditToPdf", () => {
   });
 
   it("exports a PDF when there are no issues", async () => {
-    await exportAuditToPdf({ logs: {}, path: "/tmp" });
+    const result = await exportAuditToPdf({ logs: {}, path: "/tmp" });
 
     expect(lastDoc).toBeDefined();
     expect(lastDoc.save).toHaveBeenCalledTimes(1);
@@ -38,7 +42,11 @@ describe("exportAuditToPdf", () => {
       20,
       expect.any(Number)
     );
-    expect(window.alert).toHaveBeenCalledWith("PDF exported successfully.");
+    expect(result).toEqual({
+      mode: "browser",
+      savedPath: null,
+      folderOpened: false,
+    });
   });
 
   it("exports issue details with suggestions", async () => {

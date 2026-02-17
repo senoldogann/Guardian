@@ -24,6 +24,7 @@ describe("ChatView", () => {
       <ChatView
         path="/tmp/project"
         webSearchEnabled={false}
+        webSearchDepth="basic"
         webSearchReady={false}
         onWebSearchToggle={() => {}}
       />
@@ -37,6 +38,7 @@ describe("ChatView", () => {
       path: "/tmp/project",
       query: "Hello Guardian",
       webSearch: false,
+      webSearchDepth: "basic",
     });
 
     expect(await screen.findByText("Short answer from Guru")).toBeInTheDocument();
@@ -58,6 +60,7 @@ describe("ChatView", () => {
           path="/tmp/project"
           autoPrompt={{ id: "stall-1", prompt: "Resolve the stall", useWebSearch: false }}
           webSearchEnabled={false}
+          webSearchDepth="basic"
           webSearchReady={false}
           onWebSearchToggle={() => {}}
         />
@@ -67,6 +70,7 @@ describe("ChatView", () => {
       path: "/tmp/project",
       query: "Resolve the stall",
       webSearch: false,
+      webSearchDepth: "basic",
     });
 
     expect(await screen.findByText("Auto response from Guru")).toBeInTheDocument();

@@ -285,4 +285,34 @@ else
   gh release edit "$TAG" -R "$DIST_REPO" --title "$TITLE" --notes-file "$NOTES_FILE" >/dev/null
 fi
 
+echo "Regenerating releases.json snapshot (post-notes) ..."
+GENERATED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+gh api "repos/${DIST_REPO}/releases?per_page=60" > "$ARTIFACTS_DIR/dist-releases.raw.json"
+jq --arg generated_at "$GENERATED_AT" --arg repo "$DIST_REPO" '{
+  generated_at: $generated_at,
+  repo: $repo,
+  releases: (map({
+    id,
+    tag_name,
+    name,
+    body,
+    html_url,
+    published_at,
+    prerelease,
+    draft,
+    assets: ((.assets // []) | map({
+      id,
+      name,
+      browser_download_url,
+      size,
+      updated_at,
+      download_count,
+      content_type
+    }))
+  }) // [])
+}' "$ARTIFACTS_DIR/dist-releases.raw.json" > "$ARTIFACTS_DIR/releases.json"
+
+gh release upload "$TAG" "$ARTIFACTS_DIR/releases.json" -R "$DIST_REPO" --clobber >/dev/null
+echo "Updated releases.json snapshot."
+
 echo "Done."

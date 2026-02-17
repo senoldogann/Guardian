@@ -2,6 +2,7 @@ use anyhow::Context;
 use rusqlite::{params, params_from_iter, types::Value, Connection, OptionalExtension, Result};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
+use std::ffi::{c_char, c_int};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
 use std::sync::{Once, OnceLock};
@@ -20,6 +21,12 @@ const COSINE_SCAN_LIMIT: usize = 500;
 
 static SQLITE_VEC_REGISTER: Once = Once::new();
 static SQLITE_VEC_REGISTER_RESULT: OnceLock<std::result::Result<(), String>> = OnceLock::new();
+
+type SqliteVecEntryPoint = unsafe extern "C" fn(
+    db: *mut rusqlite::ffi::sqlite3,
+    pz_err_msg: *mut *mut c_char,
+    p_thunk: *const rusqlite::ffi::sqlite3_api_routines,
+) -> c_int;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatAction {
@@ -62,7 +69,12 @@ pub struct SemanticMatch {
 fn register_sqlite_vec_auto_extension() -> std::result::Result<(), String> {
     SQLITE_VEC_REGISTER.call_once(|| {
         let result = unsafe {
-            let entry = std::mem::transmute(sqlite_vec::sqlite3_vec_init as *const ());
+            // SAFETY: sqlite-vec exposes sqlite3_vec_init as a raw symbol (`extern "C" fn()`).
+            // SQLite expects a concrete extension entry-point signature for sqlite3_auto_extension.
+            // sqlite_vec crate itself registers this symbol via the same cast; we mirror it with an
+            // explicit function pointer type to keep the contract visible and auditable.
+            let raw_entry = sqlite_vec::sqlite3_vec_init as *const ();
+            let entry = std::mem::transmute::<*const (), SqliteVecEntryPoint>(raw_entry);
             let rc = rusqlite::ffi::sqlite3_auto_extension(Some(entry));
             if rc == rusqlite::ffi::SQLITE_OK {
                 Ok(())

@@ -7,17 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.2.1] - 2026-02-12
+## [1.2.2] - Balanced Performance + Smart Scope
+
+Published: Feb 17, 2026
 
 ### Highlights
-- Source-focused scan policy now skips low-signal files by default (`docs`, `tests`, `scripts`, lockfiles, Dockerfiles, rule files), reducing token waste.
+- **Scan scope profiles**: `Source` (default), `Extended`, `Full` to balance cost vs coverage.
+- **Desktop + CLI alignment**: shared scan policy core to avoid drift in what gets scanned and skipped.
+- **Guru stays responsive while monitoring**: adaptive AI queue with fairness between audit traffic and chat.
+- **Web search upgrades (Tavily)**: URL-aware extract when a link is present, plus configurable search depth.
+
+### Fixed
+- **Full vs Extended visibility**: `Full` now surfaces generic infra warnings (and significant infos) as expected; `Extended` remains security-focused.
+- **Website rate limiting**: release pages prefer the `releases.json` snapshot to avoid GitHub API 403/rate-limit spam.
+
+### Changed
+- **Settings**: added Scan Scope and Web Search depth controls; copy clarified around search vs extract behavior.
+- **Release hardening**: stricter CSP allowlist and secret-scan gate integrated into `npm run verify`.
+
+## [1.2.1] - Token Efficiency Defaults
+
+Published: Feb 12, 2026
+
+### Highlights
+- Source-focused scan policy skips low-signal files by default (`docs`, `tests`, `scripts`, lockfiles, Dockerfiles, rule files), reducing token waste.
 - Batch processor default flush threshold increased from `2` to `3` files (`GUARDIAN_MAX_BATCH_SIZE` default).
 
 ### Changed
-- Desktop watcher and `guardian-cli` file filtering are now aligned to the same code-first scan policy.
+- Desktop watcher and `guardian-cli` file filtering are aligned to the same code-first scan policy.
 - Version sync updated across app, Tauri, and website to `1.2.1`.
 
-## [1.2.0] - 2026-02-10
+## [1.2.0] - Stabilization: Monitoring + Embeddings
+
+Published: Feb 10, 2026
 
 ### Highlights
 - Ollama launch no longer requires an API key; requests skip `Authorization` when key is missing.
@@ -26,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Playwright release-gate regressions: strict-mode Guru selector ambiguity and filter visibility expectation mismatch.
-- Local distribution scripts now accept `latest.json.version` in both `1.2.0` and `v1.2.0` formats.
+- Local distribution scripts accept `latest.json.version` in both `1.2.0` and `v1.2.0` formats.
 
 ### Changed
 - Added one-command local release flow: `scripts/release_all_local.sh` (verify, build, artifact collect, distribution publish, changelog sync).

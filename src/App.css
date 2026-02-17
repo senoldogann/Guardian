@@ -433,12 +433,12 @@ button:disabled,
 
 @keyframes guru-placeholder {
   0% {
-    opacity: 0.35;
+    opacity: 0.7;
   }
   50% {
-    opacity: 0.6;
+    opacity: 1;
   }
   100% {
-    opacity: 0.35;
+    opacity: 0.7;
   }
 }

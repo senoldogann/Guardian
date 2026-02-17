@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 test.describe("App Load", () => {
   test("loads monitor view", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("Guardian V4 Control Hub")).toBeVisible();
+    await expect(page.getByTitle("Setup & Settings")).toBeVisible();
     await expect(page.getByRole("button", { name: /Monitor/i })).toBeVisible();
   });
 });
@@ -157,7 +157,7 @@ test.describe("Stats Display", () => {
     // Check if critical/warning stats are visible in header using specific selectors
     await expect(page.locator("header").getByText("Critical").first()).toBeVisible();
     await expect(page.locator("header").getByText("Warning").first()).toBeVisible();
-    await expect(page.locator("header").getByText("AI Calls").first()).toBeVisible();
+    await expect(page.locator("header").getByText("AI Requests").first()).toBeVisible();
   });
 
   test("sidebar stats are displayed", async ({ page }) => {
@@ -203,13 +203,15 @@ test.describe("Responsive", () => {
     await page.goto("/");
     
     // App should still load
-    await expect(page.getByText("Guardian V4 Control Hub")).toBeVisible();
+    await expect(page.getByTitle("Setup & Settings")).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Monitor$/i })).toBeVisible();
   });
 
   test("app is responsive on tablet viewport", async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.goto("/");
     
-    await expect(page.getByText("Guardian V4 Control Hub")).toBeVisible();
+    await expect(page.getByTitle("Setup & Settings")).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Monitor$/i })).toBeVisible();
   });
 });

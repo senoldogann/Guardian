@@ -1,11 +1,21 @@
 import type { Critique } from "../components/CritiqueAccordionRow";
+import { isTauriRuntime } from "./tauri";
 
 type ExportAuditPdfOptions = {
   logs: Record<string, Critique>;
   path: string;
 };
 
-export const exportAuditToPdf = async ({ logs, path }: ExportAuditPdfOptions): Promise<void> => {
+export type ExportAuditPdfResult = {
+  mode: "tauri" | "browser";
+  savedPath: string | null;
+  folderOpened: boolean;
+};
+
+export const exportAuditToPdf = async ({
+  logs,
+  path,
+}: ExportAuditPdfOptions): Promise<ExportAuditPdfResult> => {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF();
 
@@ -54,8 +64,51 @@ export const exportAuditToPdf = async ({ logs, path }: ExportAuditPdfOptions): P
     });
   }
 
-  doc.save(`Guardian_Audit_${Date.now()}.pdf`);
-  if (typeof window !== "undefined" && typeof window.alert === "function") {
-    window.alert("PDF exported successfully.");
+  const fileName = `Guardian_Audit_${Date.now()}.pdf`;
+
+  if (isTauriRuntime()) {
+    const [{ downloadDir, join, BaseDirectory }, { writeFile }, { revealItemInDir, openPath }] =
+      await Promise.all([
+      import("@tauri-apps/api/path"),
+      import("@tauri-apps/plugin-fs"),
+      import("@tauri-apps/plugin-opener"),
+    ]);
+
+    const downloadsPath = await downloadDir();
+    const filePath = await join(downloadsPath, fileName);
+    const pdfData = new Uint8Array(doc.output("arraybuffer"));
+
+    try {
+      await writeFile(fileName, pdfData, { baseDir: BaseDirectory.Download });
+    } catch {
+      // Fallback for environments that still rely on absolute-path writes.
+      await writeFile(filePath, pdfData);
+    }
+
+    let folderOpened = false;
+    try {
+      await revealItemInDir(filePath);
+      folderOpened = true;
+    } catch {
+      try {
+        await openPath(downloadsPath);
+        folderOpened = true;
+      } catch {
+        folderOpened = false;
+      }
+    }
+
+    return {
+      mode: "tauri",
+      savedPath: filePath,
+      folderOpened,
+    };
   }
+
+  doc.save(fileName);
+  return {
+    mode: "browser",
+    savedPath: null,
+    folderOpened: false,
+  };
 };

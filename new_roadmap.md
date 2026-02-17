@@ -1388,7 +1388,7 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
 ### Kullanım Özeti
 - Patch release: `scripts/release_all_local.sh`
 - Minor release: `scripts/release_all_local.sh --bump minor`
-- Explicit version: `scripts/release_all_local.sh v1.2.3`
+- Explicit version: `scripts/release_all_local.sh v1.2.2`
 
 ---
 
@@ -1574,7 +1574,379 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
   - `cd guardian/website && npm run test:run` ✅ (107/107)
   - `cd new-idee && python3 .agent/scripts/verify_all.py` ✅
 
+### v1.2.2 Security + Stability - Phase 0 (Incident Containment / Secret Hygiene) (2026-02-17)
+- Root cause:
+  - Token sızıntısı riski taşıyan örnek değerler rapor dokümanında düz metin olarak yer alıyordu.
+  - Root doğrulama akışında tracked dosyalar için otomatik secret pattern taraması yoktu.
+- Uygulanan değişiklikler:
+  - `REVIEW-RAPOR.md` içindeki gerçek görünen PAT değerleri `ghp_<REDACTED_TOKEN>` formatına redakte edildi.
+  - `scripts/secret_scan.sh` eklendi:
+    - tracked dosyalar üzerinde GitHub/OpenAI/AWS/Google API key pattern taraması
+    - allowlist ile placeholder/test metinleri hariç tutuldu
+    - bulguda `exit 1` ile pipeline fail
+  - `scripts/verify.sh` güncellendi:
+    - testlerden önce zorunlu `secret_scan.sh` adımı eklendi
+  - `.github/workflows/ci-cd-v1.yml` güncellendi:
+    - `test-and-build` job başına `Secret Pattern Scan` adımı eklendi
+- Etki:
+  - Secret leak tespiti yerel verify ve CI pipeline seviyesinde otomatikleşti.
+  - Güvenlik hijyen adımı release gate'in parçası haline geldi.
+- Phase 0 testleri:
+  - `cd guardian && bash scripts/secret_scan.sh` ✅
+  - `cd guardian && npm test` ✅ (64/64)
+
+### v1.2.2 Security + Stability - Phase 1 (Runtime Security Hardening) (2026-02-17)
+- Root cause:
+  - Launch akışında provider bağımsız API key bloklaması Ollama local kullanımını engelliyordu.
+  - CSP `localhost:*` ve `ws://localhost:*` wildcard'ları gereksiz geniş attack surface oluşturuyordu.
+  - sqlite-vec auto extension kaydı implicit transmute içeriyordu; safety contract görünür değildi.
+  - Kullanılmayan custom update komutları (`check_for_updates`, feed override, raw download) Tauri command surface'ini gereksiz büyütüyordu.
+- Uygulanan değişiklikler:
+  - `src/App.tsx`
+    - `provider_id === "ollama"` için API key zorunluluğu start bloklayıcı olmaktan çıkarıldı.
+  - `src-tauri/tauri.conf.json`
+    - `connect-src` wildcard host/portlar kaldırıldı.
+    - Üretim için yalnız gerekli endpoint/port allowlist tutuldu (Ollama 11434 + provider domainleri).
+    - `devCsp` yalnız Vite dev host/port + gerekli endpointlerle sınırlandı.
+  - `src-tauri/src/storage/mod.rs`
+    - sqlite-vec extension register için explicit function pointer alias eklendi.
+    - `transmute` bloğuna kapsamlı `SAFETY` sözleşmesi eklendi.
+  - `src-tauri/src/updates.rs`, `src-tauri/src/lib.rs`
+    - Aktif update akışı `check_app_update` + `install_app_update` ile sınırlandı.
+    - Kullanılmayan custom feed/download komutları kaldırıldı.
+- Etki:
+  - Ollama offline/local akışı API key olmadan çalışır hale geldi.
+  - Desktop CSP attack surface daraltıldı.
+  - Update command surface sadeleşti ve bakım riski azaldı.
+- Phase 1 testleri:
+  - `cd guardian && npm test` ✅ (64/64)
+  - `cd guardian/src-tauri && cargo test` ✅ (64/64)
+
+### v1.2.2 Security + Stability - Phase 2 (Quality Gates / Progressive Ramp) (2026-02-17)
+- Root cause:
+  - Root projede lint/format gate yoktu.
+  - Coverage eşikleri düşük olduğu için kalite regresyonları yakalanamıyordu.
+  - Repo içinde tracked kalan `.bak` dosyası temiz değildi.
+- Uygulanan değişiklikler:
+  - `vitest.config.ts`
+    - coverage thresholds `35/35/25/35` olarak yükseltildi.
+    - `json-summary` reporter eklendi.
+    - coverage kapsamı `src/**/*.{ts,tsx}` ile sınırlandı.
+  - `scripts/coverage_gate.mjs` eklendi:
+    - threshold kontrolü + opsiyonel baseline karşılaştırması
+  - Root quality toolchain eklendi:
+    - `eslint.config.mjs`
+    - `.prettierrc.json`
+    - `.prettierignore`
+    - `package.json` scriptleri: `lint`, `lint:fix`, `format`, `format:check`, `coverage:gate`
+    - `package.json` devDependencies: eslint/prettier/typescript-eslint/react-hooks plugin seti
+  - Pipeline entegrasyonu:
+    - `scripts/verify.sh` içine format/lint/coverage-gate adımları eklendi
+    - `.github/workflows/ci-cd-v1.yml` içine format/lint/coverage-gate adımları eklendi
+  - Repo hygiene:
+    - `src/hooks/__tests__/useAuth.test.ts.bak` silindi
+    - `.gitignore` içine `*.bak` eklendi
+- Etki:
+  - Yerel verify ve CI daha sıkı kalite kapılarıyla çalışır hale geldi.
+  - Coverage tabanı kademeli olarak yükseltildi ve regresyon için otomatik gate eklendi.
+- Phase 2 testleri:
+  - `cd guardian && npm run format:check` ✅
+  - `cd guardian && npm run lint` ✅
+  - `cd guardian && npm run test:coverage && npm run coverage:gate` ✅
+
+### v1.2.2 Security + Stability - Phase 3 (App.tsx Senior Refactor) (2026-02-17)
+- Root cause:
+  - `App.tsx` içinde launch gate, event yönetimi, baseline state ve ana layout aynı dosyada birleşmişti.
+  - `SettingsModal` tekil prop sayısı yüksek olduğu için bakım maliyeti artıyordu.
+- Uygulanan değişiklikler:
+  - Yeni hooklar:
+    - `src/hooks/useMonitoringController.ts`
+    - `src/hooks/useGuardianEvents.ts`
+    - `src/hooks/useBaselineController.ts`
+  - Yeni layout componentleri:
+    - `src/components/layout/ControlSidebar.tsx`
+    - `src/components/layout/MainWorkspace.tsx`
+  - `src/App.tsx`
+    - launch/baseline/event akışları hooklara taşındı
+    - ana workspace render yapısı layout componentlerine ayrıldı
+    - artık kullanılmayan legacy yardımcı component/import kalıntıları temizlendi
+  - `src/components/SettingsModal.tsx`
+    - props arayüzü domain-group modeline taşındı:
+      - `providerProps`
+      - `webProps`
+      - `embeddingProps`
+      - `updateProps`
+  - `src/App.tsx`
+    - `SettingsModal` çağrısı grouped props modeliyle güncellendi.
+- Etki:
+  - App orchestration katmanı daha net ayrıldı; monitor/baseline/events sorumlulukları izole oldu.
+  - Settings modal arayüzü okunabilirliği ve bakım kolaylığı arttı.
+- Phase 3 testleri:
+  - `cd guardian && npm run lint` ✅
+  - `cd guardian && npm run build` ✅
+  - `cd guardian && npm test` ✅ (64/64)
+
+### v1.2.2 Security + Stability - Phase 4 (Integrated Verification + Release Gate) (2026-02-17)
+- Uygulanan değişiklikler:
+  - Version sync:
+    - `package.json` → `1.2.2`
+    - `website/package.json` → `1.2.2`
+    - `src-tauri/Cargo.toml` → `1.2.2`
+    - `src-tauri/tauri.conf.json` → `1.2.2`
+  - `scripts/secret_scan.sh`
+    - silinmiş dosya referanslarında gereksiz stderr gürültüsünü önlemek için `rg --no-messages` eklendi.
+  - `src/hooks/useSettings.ts`
+    - artık gereksiz olan `eslint-disable` satırları temizlendi (lint temiz çıktı).
+  - `AGENTS.md`
+    - `.agent/scripts/verify_all.py` checklist gereksinimini karşılamak için workspace root giriş dosyası eklendi.
+- Full doğrulama çıktıları:
+  - `cd guardian && npm run verify` ✅ (`Guardian@1.2.2`)
+    - secret scan ✅
+    - format/lint ✅
+    - unit + coverage gate ✅
+    - e2e ✅ (17/17)
+    - build ✅
+    - rust check/test ✅
+  - `cd guardian/src-tauri && cargo test` ✅ (64/64, `Guardian v1.2.2`)
+  - `cd guardian/guardian-cli && cargo test` ✅ (8/8)
+  - `cd guardian/website && npm run test:run` ✅ (107/107, `guardian-website@1.2.2`)
+  - `cd guardian && python3 .agent/scripts/verify_all.py` ✅
+- Not:
+  - `website` test çıktısındaki `Error: Test error` logları `ErrorBoundary` senaryolarında beklenen davranıştır; test suite pass durumundadır.
+
 ---
+
+### v1.2.2 Security + Stability - Phase 5 (Post-Review Stabilization) (2026-02-17)
+- Root cause:
+  - `check_app_update` sonucu UI'ya `download_url` taşımıyordu; updater CTA akışında eksik metadata oluşuyordu.
+  - `App.tsx` içinde localStorage odaklı ilk state okuma SSR/hydration açısından kırılgan kalmıştı.
+  - Onboarding visibility, hydration öncesi render yüzünden E2E navigasyon click'lerini bloklayabiliyordu.
+- Uygulanan değişiklikler:
+  - `src-tauri/src/updates.rs`
+    - `status=available` durumunda `download_url` artık `Some(update.download_url.to_string())` olarak döndürülüyor.
+  - `src/hooks/useLocalStorage.ts`
+    - Hook hydration-safe modele taşındı (`storedValue` default ile başlar, `useEffect` ile hydrate edilir).
+    - React uyumlu setter eklendi (`Dispatch<SetStateAction<T>>`).
+    - Opsiyonel `serialize` / `deserialize` fonksiyonlarıyla key bazlı parse kontrolü eklendi.
+    - Hook dönüşü `[value, setValue, hydrated]` formatına genişletildi.
+  - `src/App.tsx`
+    - `onboarding/path/theme` state'leri localStorage-initializer `useState` yerine `useLocalStorage` ile yönetiliyor.
+    - `showOnboarding` hesaplaması `onboardingHydrated && !onboardingCompleted` olarak güncellendi.
+    - `parseBooleanStorage`, `parseStringStorage`, `parseThemeStorage` helper'ları eklendi.
+- Etki:
+  - Update metadata akışı düzeldi, UI download linki kaybetmiyor.
+  - localStorage kaynaklı SSR/hydration riski düşürüldü.
+  - Onboarding overlay kaynaklı E2E click interception regresyonu kapatıldı.
+- Phase 5 testleri:
+  - `cd guardian && npm run verify` ✅
+  - `cd guardian/src-tauri && cargo test` ✅ (64/64)
+  - `cd guardian/guardian-cli && cargo test` ✅ (8/8)
+  - `cd guardian/website && npm run test:run` ✅ (107/107)
+  - `cd /Users/dogan/Desktop/new-idee && python3 .agent/scripts/verify_all.py` ❌ (`No such file or directory`)
+
+### v1.2.2 Security + Stability - Phase 6 (Guru Queue + UX Responsiveness + Export Flow) (2026-02-17)
+- Root cause:
+  - Monitor audit ve Guru soru-cevap akışları aynı anda AI provider'a gittiğinde istek çakışması/rate-limit kaynaklı hata olasılığı vardı.
+  - Guru bekleme durumunda sabit `Thinking...` metni kullanıcıya süreç hissi vermiyordu.
+  - Export sekmesi browser `alert` ile kalıyordu; desktop akışında dosya konumu görünürlüğü zayıftı.
+- Uygulanan değişiklikler:
+  - `src-tauri/src/ai_client.rs`
+    - Global AI istek kuyruğu eklendi (`tokio::Semaphore`, default eşzamanlılık `1`).
+    - `GUARDIAN_AI_REQUEST_CONCURRENCY` env ile kuyruk genişliği ayarlanabilir hale getirildi.
+    - `send_chat` çağrıları queue permit alarak yürütülüyor; istekler çakışmak yerine sıraya giriyor.
+  - `src/components/ChatView.tsx`
+    - Loading sırasında döngüsel, animasyonlu durum metinleri eklendi (context analyze / architecture check / response build).
+  - `src/lib/exportAuditPdf.ts`
+    - Desktop (Tauri) için PDF artık `Downloads` klasörüne yazılıyor.
+    - Export sonrası `revealItemInDir` (fallback: `openPath`) ile dosya konumu otomatik açılıyor.
+    - Web fallback davranışı korunuyor (`doc.save`).
+  - `src/hooks/useSettings.ts`
+    - Export için in-progress/success/error state eklendi.
+    - Export sonucu (kaydedilen path ve klasör açılma durumu) UI mesajına taşındı.
+  - `src/components/SettingsModal.tsx`
+    - Export tabında işlem animasyonu + dönen durum mesajı + sonuç/hata geri bildirimi eklendi.
+  - `src-tauri/capabilities/default.json`
+    - PDF export write izni `Downloads` için genişletildi (`$DOWNLOAD/**`).
+  - Test uyum güncellemeleri:
+    - `src/test/setup.ts`
+    - `src/lib/__tests__/exportAuditPdf.test.ts`
+    - `src/hooks/__tests__/useSettings.test.ts`
+- Etki:
+  - Guru/Monitor eşzamanlı AI kullanımında stabilite arttı, ani provider hata oranı düşürüldü.
+  - Guru bekleme UX'i daha anlaşılır hale geldi.
+  - Export PDF akışı desktop kullanıcıları için "kaydet + konumu aç" davranışıyla tamamlandı.
+- Phase 6 testleri:
+  - `cd guardian && npm test` ✅ (64/64)
+  - `cd guardian/src-tauri && cargo test` ✅ (64/64)
+  - `cd guardian/guardian-cli && cargo test` ✅ (8/8)
+  - `cd guardian/website && npm run test:run` ✅ (107/107)
+  - `cd guardian && npm run verify` ✅
+
+### v1.2.2 Security + Stability - Phase 7 (Cost Metric Accuracy + Monitor Path Visibility + Export Permission Hardening) (2026-02-17)
+- Root cause:
+  - Cost metric tarafında `guardian:usage.calls` dosya sayısı gibi hesaplandığı için gerçek API request adedi olduğundan yüksek görünüyordu.
+  - Monitor listesinde uzun path'ler satırda truncate olduğu için expanded görünümde tam path net gösterilmiyordu.
+  - PDF export bazı ortamlarda `fs.write_file not allowed` hatasına düşebiliyordu (path/scope kombinasyonu).
+- Uygulanan değişiklikler:
+  - `src-tauri/src/watcher.rs`
+    - `handle_critiques` çağrı sözleşmesi genişletildi (`api_calls`, `files_analyzed`).
+    - Usage event payload'ı ayrıştırıldı:
+      - `calls` = API request sayısı
+      - `files` = analiz edilen dosya sayısı
+    - Batch fail/single fail event'lerinde de bu model korunacak şekilde emit güncellendi.
+  - `src/hooks/useGuardianEvents.ts`
+    - `guardian:usage` payload'ından opsiyonel `files` toplanacak şekilde state merge güncellendi.
+  - `src/App.tsx`
+    - usage state yapısı `{ tokens, calls, files }` formatına taşındı.
+  - `src/components/Header.tsx`
+    - Header label `AI Calls` → `AI Requests` olarak güncellendi.
+  - `src/components/layout/ControlSidebar.tsx`
+    - Cost metric metni `Tokens • API calls • Files` olacak şekilde genişletildi.
+  - `src/components/CritiqueAccordionRow.tsx`
+    - Expanded kritik detay paneline tam `File Path` bloğu eklendi.
+  - `src/lib/exportAuditPdf.ts`
+    - PDF write akışı önce `BaseDirectory.Download` ile deneniyor.
+    - Geriye dönük uyumluluk için absolute path fallback korundu.
+  - `src-tauri/capabilities/default.json`
+    - Download write/read için gerekli fs izinleri eklendi (`fs:allow-write-file`, `fs:allow-download-*`).
+  - `tests/e2e/app.spec.ts`
+    - Header metin beklentisi `AI Requests` ile hizalandı.
+- Etki:
+  - Cost kartı artık "gerçek request yükü" ve "analiz edilen dosya yükü"nü ayrı gösteriyor.
+  - Monitor’da kritik satıra tıklanınca tam dosya yolu görünür hale geldi.
+  - PDF export akışı Download scope ile daha stabil.
+- Phase 7 testleri:
+
+### v1.2.2 Performance + Quality - Phase 8 (Scan Profiles + Shared Policy Core) (2026-02-17)
+- Root cause:
+  - Varsayılan source-focused davranış doğru, ancak kullanıcıların infra/lock/script gibi dosyaları da (isteğe bağlı) taratabileceği kontrollü bir kapsam profili yoktu.
+  - Desktop watcher ve CLI arasında politika drift riski vardı (aynı repo, iki farklı filtre implementasyonu).
+- Uygulanan değişiklikler:
+  - Yeni ortak Rust crate: `guardian/guardian-scan-policy`
+    - `ScanProfile`: `source | extended | full`
+    - Tek karar noktası: `classify_path(path, is_chat, profile)` + limitler (`initial_scan_limit`, `max_batch_size`)
+  - Desktop (Tauri) entegrasyonu:
+    - `src-tauri/src/lib.rs`
+      - Yeni komutlar: `get_scan_profile_config`, `set_scan_profile_config`
+      - Persist: app_data altında `scan_profile.json`
+      - `start_monitoring` watcher config’e `scan_profile` geçiriyor
+    - `src-tauri/src/watcher.rs`
+      - Initial scan limiti profile’a bağlandı (`source=200, extended=300, full=500`)
+      - Batch flush eşiği profile’a bağlandı (`source/extended=3, full=2`)
+      - Critique surfacing profile-aware hale getirildi (source’da gürültü düşük, extended/full’da infra dosyalarında güvenlik keyword’leri korunuyor)
+  - Desktop UI entegrasyonu:
+    - `src/hooks/useSettings.ts`: scan profile load/save (Tauri invoke)
+    - `src/components/SettingsModal.tsx`: Provider -> Safety altında “Scan Scope” seçimi + açıklama
+    - `src/components/layout/ControlSidebar.tsx`: Cost Metric altında `Scope` + `Queue wait` satırı (queue metric Phase 9 ile dolacak)
+  - CLI entegrasyonu:
+    - `guardian-cli`: `--scan-profile` argümanı + `GUARDIAN_SCAN_PROFILE` env fallback
+    - Rapor çıktısına `scan_profile` alanı eklendi (JSON + Markdown)
+- Phase 8 testleri:
+  - `cd guardian && npm test` ✅ (64/64)
+  - `cd guardian/src-tauri && cargo test` ✅ (64/64)
+  - `cd guardian/guardian-cli && cargo test` ✅ (8/8)
+  - `cd guardian && npm run verify` ✅ (unit 64/64, coverage gate OK, e2e 17/17, build PASS, rust 64/64)
+
+### v1.2.2 Performance + Quality - Phase 9 (Adaptive AI Queue + Queue Wait + Scan Skip Summary) (2026-02-17)
+- Root cause:
+  - Monitor (audit) ile Guru (chat) istekleri aynı anda geldiğinde request çakışmaları, timeouts ve "Batch audit failed" hataları görülebiliyordu.
+  - UI'da gecikmenin "model yavaşlığı" mı yoksa "kuyruk beklemesi" mi olduğu anlaşılmıyordu.
+  - Initial scan sırasında hangi dosyaların hangi nedenle skip edildiğine dair görünür bir özet yoktu (kullanıcılar "boşa tarıyor mu?" sorusunu cevaplamak zordu).
+- Uygulanan değişiklikler:
+  - `src-tauri/src/ai_client.rs`
+    - Lane tabanlı kuyruklama: `Audit` ve `Guru` request class'ları.
+    - Provider-aware concurrency default:
+      - Local (Ollama/Mock): 2
+      - Cloud: 1
+      - Env override: `GUARDIAN_AI_REQUEST_CONCURRENCY`
+    - Audit lane her zaman 1 (audit burst'ünün Guru'yu starve etmesini engeller).
+    - `AiCall<T>` wrapper ile `queue_wait_ms` ölçümü eklendi.
+    - Fairness testleri eklendi.
+  - `src-tauri/src/lib.rs`
+    - Guru çağrıları için usage event emit genişletildi (`queue_wait_ms`).
+  - `src-tauri/src/watcher.rs`
+    - Batch audit sonrası `guardian:usage` event payload'ına `queue_wait_ms` eklendi.
+    - Initial scan sonunda tek seferlik skip özeti loglandı:
+      - `profile`, `included`, `skipped`, `limit_reached`, `skipped_by_reason`.
+  - Desktop UI:
+    - `src/hooks/useGuardianEvents.ts`: `queue_wait_ms` opsiyonel alanı state'e alındı.
+    - `src/components/layout/ControlSidebar.tsx`: Cost Metric altında `Queue wait` satırı aktif hale geldi.
+- Etki:
+  - Cloud provider'larda efektif concurrency=1 ile çakışma/limit riski azaldı.
+  - Local provider'larda Guru, audit çalışırken de paralel slot bulabiliyor (audit lane 1 + global 2).
+  - UI artık gecikmeyi `queue_wait_ms` ile görünür kılıyor; initial scan skip görünürlüğü log ile iyileşti.
+- Phase 9 testleri:
+  - `cd guardian/src-tauri && cargo test` ✅ (66/66)
+  - `cd guardian/guardian-cli && cargo test` ✅ (8/8)
+  - `cd guardian && npm test` ✅ (64/64)
+  - `cd guardian && npm run verify` ✅ (unit 64/64, coverage gate OK, e2e 17/17, build PASS, rust 66/66)
+
+### v1.2.2 Quality - Phase 10 (Tavily Web Search Best Practices Alignment) (2026-02-17)
+- Root cause:
+  - Tavily request auth ve rate-limit akışı dokümantasyondaki güncel önerilerle tam hizalı değildi.
+  - Rate limiter implementasyonu zaman hesaplaması nedeniyle efektif çalışmıyordu (eşzamanlı isteklerde 429 riski).
+  - Uzun/dağınık sorgular Tavily tarafında ilgililik ve maliyeti düşürebiliyordu.
+- Uygulanan değişiklikler:
+  - `src-tauri/src/skills/web_search.rs`
+    - Rate limiter düzeltildi: gerçek zaman ölçümü + concurrency-safe `Mutex` (tek instance içinde seri limit).
+    - Auth güncellendi: API key request body yerine `Authorization: Bearer ...` header ile gönderiliyor.
+    - Query normalize + 400 char truncation eklendi (whitespace compact, newline temizleme).
+    - URL / `site:` geçen sorgularda otomatik `include_domains` uygulanıyor (relevance artırır).
+    - Answer varsa bile top sources listesi ekleniyor (LLM context için doğrulanabilirlik).
+    - Score-based filtering ile düşük relevans sonuçlar (score < 0.35) fallback listede eleniyor.
+  - `src-tauri/src/config.rs`
+    - Env fallback eklendi: `TAVILY_API_KEYS|TAVILY_API_KEY` (+ `GUARDIAN_*` variantları) ile dev/CI benzeri kullanım.
+- Etki:
+  - Web search daha stabil (429 ve concurrency burst riski azalır) ve daha odaklı (domain filter + query normalization).
+  - LLM’e daha doğrulanabilir web context gider (sources listesi).
+- Phase 10 testleri:
+  - `cd guardian/src-tauri && cargo test` ✅ (66/66)
+  - `cd guardian && npm run verify` ✅ (unit 64/64, coverage gate OK, e2e 17/17, build PASS, rust 66/66)
+
+### v1.2.2 Quality - Phase 11 (Tavily URL Extract + Search Depth Control) (2026-02-17)
+- Root cause:
+  - Guru web context akışında URL içeren sorularda search yerine extract kullanmak daha doğru/odaklı sonuç veriyor (tek sayfa doğrulaması).
+  - Search depth sabitti (`basic`); power-user için cost/latency/relevance tradeoff seçimi yoktu.
+- Uygulanan değişiklikler:
+  - Desktop UI:
+    - `src/constants/index.ts`: `WEB_SEARCH_DEPTH` storage key eklendi.
+    - `src/hooks/useSettings.ts`: `webSearchDepth` persist + `onWebSearchDepthChange`.
+    - `src/components/SettingsModal.tsx`: Web Search tab’ına “Search depth” dropdown eklendi.
+    - `src/components/layout/MainWorkspace.tsx`: `webSearchDepth` ChatView’a taşındı.
+    - `src/components/ChatView.tsx`: `ask_guru` invoke payload’ına `webSearchDepth` eklendi.
+    - `src/App.tsx`: settings → SettingsModal/MainWorkspace wiring güncellendi.
+  - Backend:
+    - `src-tauri/src/lib.rs`: `ask_guru` komutu `web_search_depth` opsiyonel argümanını kabul ediyor; Tavily çağrısına depth geçiriyor.
+    - `src-tauri/src/skills/web_search.rs`:
+      - `search_with_options` eklendi (`SearchDepth` + `WebSearchOptions`).
+      - Global Tavily rate limiter eklendi (overlapping Guru çağrılarında 429 burst riskini azaltır).
+      - URL tespit edilirse otomatik `/extract` akışı (query + chunks_per_source=3).
+      - `/search` akışında `search_depth` seçimi (basic/fast/ultra-fast/advanced/auto) + advanced için `chunks_per_source=3`.
+      - Saf helper unit testleri eklendi (query normalize, URL detect/strip, depth parse).
+- Etki:
+  - URL içeren sorularda daha doğru ve daha az gürültülü web context (extract).
+  - Kullanıcı “Basic vs Advanced vs Fast” seçimiyle maliyet/latency kontrolü yapabilir.
+- Phase 11 testleri:
+  - `cd guardian/src-tauri && cargo test` ✅ (70/70)
+  - `cd guardian && npm run verify` ✅ (unit 64/64, coverage gate OK, e2e 17/17, build PASS, rust 70/70)
+
+### v1.2.2 Quality - Phase 12 (Scan Profile Surfacing: Full != Extended) (2026-02-17)
+- Root cause:
+  - `should_surface_critique` içinde `profile != Source` koşulu nedeniyle `extended` ve `full` aynı warning filtre yolunu izliyordu.
+  - `Info` severity hiçbir profilde surfaced edilmiyordu (Full modda bile).
+- Uygulanan değişiklikler:
+  - `src-tauri/src/watcher.rs`
+    - `should_surface_critique` profile-aware hale getirildi:
+      - `source`: yalnızca `critical` + significant `warning`
+      - `extended`: `critical` + significant `warning` + infra dosyalarında security-keyword `warning`
+      - `full`: tüm `warning` + significant `info` (critical her zaman)
+- Etki:
+  - Full mod artık Extended’dan belirgin şekilde farklı: generic infra warning’ler ve yüksek-sinyal info’lar görünür.
+  - Source/Extended gürültü kontrolü korunur.
+- Phase 12 testleri:
+  - `cd guardian/src-tauri && cargo test` ✅ (70/70)
+  - `cd guardian/guardian-cli && cargo test` ✅ (8/8)
+  - `cd guardian && npm run verify` ✅
 
 ## Kararlar ve Varsayımlar (Kilitleme)
 

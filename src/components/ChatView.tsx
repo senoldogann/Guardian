@@ -17,7 +17,9 @@ import {
     Copy,
     LucideIcon,
     Trash2,
-    Globe
+    Globe,
+    Plus,
+    Check
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
@@ -55,15 +57,24 @@ interface ChatViewProps {
     autoPrompt?: AutoPrompt | null;
     onAutoPromptConsumed?: () => void;
     webSearchEnabled: boolean;
+    webSearchDepth: "basic" | "advanced" | "fast" | "ultra-fast" | "auto";
     onWebSearchToggle: () => void;
     webSearchReady: boolean;
 }
+
+const THINKING_MESSAGES = [
+    "Analyzing project context",
+    "Cross-checking architecture patterns",
+    "Comparing with active monitor findings",
+    "Building an actionable answer",
+];
 
 export function ChatView({
     path,
     autoPrompt,
     onAutoPromptConsumed,
     webSearchEnabled,
+    webSearchDepth,
     onWebSearchToggle,
     webSearchReady,
 }: ChatViewProps): ReactElement {
@@ -82,6 +93,20 @@ export function ChatView({
     const forceScrollRef = useRef(false);
     const isDesktop = isTauriRuntime();
     const [copiedSnippet, setCopiedSnippet] = useState<string | null>(null);
+    const [thinkingMessageIndex, setThinkingMessageIndex] = useState(0);
+    const [plusMenuOpen, setPlusMenuOpen] = useState(false);
+    const plusMenuRef = useRef<HTMLDivElement>(null);
+
+    // Close plus menu on outside click
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (plusMenuRef.current && !plusMenuRef.current.contains(event.target as Node)) {
+                setPlusMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     const storageKey = path ? `guardian_chat_${path}` : null;
 
@@ -301,7 +326,12 @@ export function ChatView({
             const useWebSearch = typeof forceWebSearch === "boolean"
                 ? forceWebSearch
                 : webSearchEnabled && webSearchReady;
-            const answer = await invoke<string>("ask_guru", { path, query: prompt, webSearch: useWebSearch });
+            const answer = await invoke<string>("ask_guru", {
+                path,
+                query: prompt,
+                webSearch: useWebSearch,
+                webSearchDepth,
+            });
             if (ignoreResponseRef.current) return;
             appendMessage({ role: "guru", content: answer, timestamp: nowIso() });
         } catch (err: unknown) {
@@ -410,6 +440,17 @@ export function ChatView({
     );
 
     useEffect(() => {
+        if (!chatLoading) {
+            setThinkingMessageIndex(0);
+            return;
+        }
+        const interval = window.setInterval(() => {
+            setThinkingMessageIndex((prev) => (prev + 1) % THINKING_MESSAGES.length);
+        }, 1400);
+        return () => window.clearInterval(interval);
+    }, [chatLoading]);
+
+    useEffect(() => {
         if (!chatHistory.length && !chatLoading) {
             if (scrollAreaRef.current) {
                 scrollAreaRef.current.scrollTop = 0;
@@ -434,16 +475,18 @@ export function ChatView({
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setGuideOpen(true)}
-                        className="flex items-center gap-2 text-xs font-bold text-text-main transition-all bg-[var(--surface)] px-3 py-1.5 rounded-lg border border-border-main hover:bg-border-main cursor-pointer shadow-sm"
+                        className="p-2 rounded-lg transition-all active:scale-95 cursor-pointer hover:bg-white/5 group"
+                        title="Open Guide"
                     >
-                        <HelpCircle className="w-4 h-4" /> GUIDE
+                        <HelpCircle className="w-4 h-4 text-[var(--accent-500)] group-hover:scale-110 transition-transform" />
                     </button>
                     <button
                         onClick={() => setClearConfirmOpen(true)}
-                        className="flex items-center gap-2 text-xs font-bold text-text-main transition-all bg-[var(--surface)] px-3 py-1.5 rounded-lg border border-border-main hover:bg-border-main cursor-pointer shadow-sm"
+                        className="p-2 rounded-lg transition-all active:scale-95 cursor-pointer hover:bg-white/5 group disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
                         disabled={chatHistory.length === 0}
+                        title="Clear History"
                     >
-                        <Trash2 className="w-4 h-4" /> CLEAR
+                        <Trash2 className="w-4 h-4 text-rose-500 group-hover:scale-110 transition-transform" />
                     </button>
                 </div>
             </div>
@@ -486,18 +529,18 @@ export function ChatView({
                     </div>
                 )}
                 {chatHistory.length === 0 && (
-                    <div className="h-full flex flex-col items-center justify-center opacity-30 gap-6">
-                        <Bot className="w-16 h-16" />
+                    <div className="h-full flex flex-col items-center justify-center gap-6 animate-in fade-in zoom-in duration-700">
+                        <Bot className="w-16 h-16 text-zinc-600 dark:text-text-muted dark:opacity-20" />
                         <div className="text-center space-y-2">
-                            <p className="text-sm font-bold uppercase tracking-tighter text-text-muted">Guru Architect Engine</p>
-                            <p className="text-xs font-mono max-w-xs leading-relaxed">
+                            <p className="text-sm font-bold uppercase tracking-tighter text-zinc-900 dark:text-text-muted">Guru Architect Engine</p>
+                            <p className="text-xs font-mono max-w-xs leading-relaxed text-zinc-600 dark:text-text-muted/60">
                                 I am the Guardian Guru. Accessing project context via RAG-Lite.<br />Ask me anything about your codebase.
                             </p>
                         </div>
-                        <div className="guru-placeholder" aria-hidden="true">
-                            <div className="guru-placeholder-bar" />
-                            <div className="guru-placeholder-bar medium" />
-                            <div className="guru-placeholder-bar short" />
+                        <div className="guru-placeholder opacity-100 dark:opacity-20" aria-hidden="true">
+                            <div className="guru-placeholder-bar bg-zinc-600 dark:bg-current" />
+                            <div className="guru-placeholder-bar medium bg-zinc-600 dark:bg-current" />
+                            <div className="guru-placeholder-bar short bg-zinc-600 dark:bg-current" />
                         </div>
                     </div>
                 )}
@@ -530,8 +573,18 @@ export function ChatView({
                         <div className="w-8 h-8 rounded-lg bg-white dark:bg-[var(--accent-200)] text-[var(--accent-500)] flex items-center justify-center shrink-0 animate-pulse shadow-sm">
                             <Bot className="w-4 h-4" />
                         </div>
-                        <div className="p-4 rounded-2xl bg-white dark:bg-[var(--accent-200)] text-xs font-mono text-[var(--accent-500)] flex items-center gap-2 shadow-sm">
-                            <Activity className="w-3 h-3 animate-spin" /> Thinking...
+                        <div className="p-4 rounded-2xl !bg-white dark:!bg-white/5 border border-zinc-200 dark:border-white/5 text-xs font-mono text-zinc-600 dark:text-zinc-400 flex items-center gap-2 shadow-sm min-w-[280px]">
+                            <Activity className="w-3 h-3 animate-spin shrink-0 text-zinc-400 dark:text-zinc-500" />
+                            <span className="inline-flex items-center gap-0.5">
+                                <span className="transition-opacity duration-300">
+                                    {THINKING_MESSAGES[thinkingMessageIndex]}
+                                </span>
+                                <span className="inline-flex gap-0.5 pt-1" aria-hidden="true">
+                                    <span className="h-0.5 w-0.5 rounded-full bg-current animate-pulse" />
+                                    <span className="h-0.5 w-0.5 rounded-full bg-current animate-pulse [animation-delay:120ms]" />
+                                    <span className="h-0.5 w-0.5 rounded-full bg-current animate-pulse [animation-delay:240ms]" />
+                                </span>
+                            </span>
                         </div>
                     </div>
                 )}
@@ -610,20 +663,20 @@ export function ChatView({
                                 </div>
 
                                 {/* Steps / Usage */}
-                                <div className="bg-background p-6 rounded-2xl border border-border-main space-y-4">
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">Operational Steps</h4>
+                                <div className="bg-zinc-50 dark:bg-white/5 p-6 rounded-2xl border border-black/5 dark:border-white/5 space-y-4">
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">Operational Steps</h4>
                                     <div className="grid grid-cols-1 gap-3">
                                         <div className="flex items-start gap-4 text-xs">
                                             <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[9px] font-black shrink-0 shadow-lg shadow-black/20">1</div>
-                                            <p className="font-medium text-text-muted">Guardian locks the system when a critical violation is detected in the workspace.</p>
+                                            <p className="font-medium text-zinc-600 dark:text-zinc-400">Guardian locks the system when a critical violation is detected in the workspace.</p>
                                         </div>
                                         <div className="flex items-start gap-4 text-xs">
                                             <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[9px] font-black shrink-0 shadow-lg shadow-black/20">2</div>
-                                            <p className="font-medium text-text-muted">Request analysis and a patch (fix) from the Guru Architect to resolve the issue.</p>
+                                            <p className="font-medium text-zinc-600 dark:text-zinc-400">Request analysis and a patch (fix) from the Guru Architect to resolve the issue.</p>
                                         </div>
                                         <div className="flex items-start gap-4 text-xs">
                                             <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[9px] font-black shrink-0 shadow-lg shadow-black/20">3</div>
-                                            <p className="font-medium text-text-muted">On your confirmation, Antigravity applies the fix while respecting project architecture.</p>
+                                            <p className="font-medium text-zinc-600 dark:text-zinc-400">On your confirmation, Antigravity applies the fix while respecting project architecture.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -643,31 +696,60 @@ export function ChatView({
             {/* Input Area */}
             <div className="p-6 border-t border-border-main bg-background space-y-2">
                 <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10" ref={plusMenuRef}>
+                        <button
+                            onClick={() => setPlusMenuOpen(!plusMenuOpen)}
+                            className={clsx(
+                                "p-2 rounded-lg transition-all active:scale-95 cursor-pointer",
+                                plusMenuOpen
+                                    ? "bg-white/10 text-text-main"
+                                    : "text-text-muted hover:text-text-main hover:bg-white/5"
+                            )}
+                            title="Add actions"
+                        >
+                            <Plus className={clsx("w-5 h-5 transition-transform", plusMenuOpen && "rotate-45")} />
+                        </button>
+                        <AnimatePresence>
+                            {plusMenuOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    className="absolute bottom-full left-0 mb-2 w-48 bg-surface border border-border-main rounded-xl shadow-2xl overflow-hidden py-1 z-50"
+                                >
+                                    <button
+                                        onClick={() => {
+                                            if (webSearchReady) {
+                                                onWebSearchToggle();
+                                                setPlusMenuOpen(false);
+                                            }
+                                        }}
+                                        disabled={!webSearchReady}
+                                        className={clsx(
+                                            "w-full px-4 py-2.5 flex items-center gap-3 text-sm transition-colors hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed",
+                                            webSearchEnabled ? "text-[var(--accent-500)]" : "text-text-main"
+                                        )}
+                                    >
+                                        <Globe className="w-4 h-4" />
+                                        <span className="flex-1 text-left">Web Search</span>
+                                        {webSearchEnabled && <Check className="w-4 h-4" />}
+                                    </button>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
                     <input
                         value={chatInput}
                         onChange={(e) => setChatInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && askGuru()}
                         placeholder="Ask the Guru about logical flows, architecture, or resolving STALLs..."
-                        className="w-full bg-background border border-border-main rounded-2xl py-5 pl-6 pr-28 text-sm font-sans outline-none focus:border-[var(--focus-border)] transition-all placeholder:opacity-30 shadow-inner"
+                        className="w-full bg-background border border-border-main rounded-2xl py-5 pl-14 pr-16 text-sm font-sans outline-none focus:border-[var(--focus-border)] transition-all placeholder:opacity-30 shadow-inner"
                     />
-                    <div className="absolute right-3 top-3 flex items-center gap-2">
-                        <button
-                            onClick={onWebSearchToggle}
-                            disabled={!webSearchReady}
-                            title={webSearchReady ? "Toggle web search" : "Add Tavily key in Settings to enable web search"}
-                            className={clsx(
-                                "p-3 rounded-xl transition-colors shadow-lg shadow-black/20",
-                                webSearchEnabled
-                                    ? "bg-[var(--accent-500)] text-background"
-                                    : "bg-[var(--surface)] text-text-main border border-border-main",
-                                !webSearchReady && "opacity-40 cursor-not-allowed"
-                            )}
-                        >
-                            <Globe className="w-5 h-5" />
-                        </button>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                         <button
                             onClick={chatLoading ? cancelPending : askGuru}
-                            className="p-3 bg-[var(--accent-500)] hover:opacity-90 text-background rounded-xl transition-colors shadow-lg shadow-black/30 cursor-pointer"
+                            className="p-2 bg-[var(--accent-500)] hover:opacity-90 text-background rounded-xl transition-colors shadow-lg shadow-black/30 cursor-pointer icon-button"
                             disabled={!chatInput.trim() && !chatLoading}
                             aria-label={chatLoading ? "Cancel" : "Send"}
                         >
@@ -745,7 +827,7 @@ function ChatMessageRow({
     return (
         <div className={clsx("flex w-full", msg.role === "user" ? "justify-end" : "justify-start")}>
             <div className={clsx("flex gap-4 max-w-[90%] md:max-w-[80%]", msg.role === "user" ? "flex-row-reverse" : "")}>
-                <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm", msg.role === "user" ? "bg-zinc-100 dark:bg-white/10 text-zinc-600 dark:text-white/80" : "bg-white dark:bg-[var(--accent-200)] text-[var(--accent-500)]")}>
+                <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-black/5 dark:border-white/5", msg.role === "user" ? "bg-zinc-100 dark:bg-white/10 text-zinc-600 dark:text-white/80" : "bg-white dark:bg-[var(--accent-200)] text-[var(--accent-500)]")}>
                     {msg.role === "user" ? <UserIcon className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
                 </div>
                 <div className="flex flex-col gap-3 min-w-0">

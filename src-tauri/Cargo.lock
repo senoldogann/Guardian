@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "Guardian"
-version = "1.2.1"
+version = "1.2.2"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -15,6 +15,7 @@ dependencies = [
  "dunce",
  "ed25519-dalek",
  "futures-util",
+ "guardian-scan-policy",
  "hex",
  "ignore",
  "image",
@@ -2019,6 +2020,13 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.114",
+]
+
+[[package]]
+name = "guardian-scan-policy"
+version = "0.1.0"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

@@ -41,6 +41,8 @@ pub struct ScanReport {
     pub root: String,
     pub rules_hash: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub scan_profile: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub baseline_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub guardian_lock: Option<GuardianLockSummary>,
@@ -55,6 +57,7 @@ impl ScanReport {
             scanned_at: Utc::now().to_rfc3339(),
             root,
             rules_hash,
+            scan_profile: None,
             baseline_path,
             guardian_lock: None,
             summary: ScanSummary {
@@ -107,6 +110,9 @@ fn render_markdown(report: &ScanReport) -> String {
     out.push_str(&format!("- Scanned at: {}\n", report.scanned_at));
     out.push_str(&format!("- Root: `{}`\n", report.root));
     out.push_str(&format!("- Rules hash: `{}`\n", report.rules_hash));
+    if let Some(profile) = &report.scan_profile {
+        out.push_str(&format!("- Scan profile: `{}`\n", profile));
+    }
     if let Some(path) = &report.baseline_path {
         out.push_str(&format!("- Baseline: `{}`\n", path));
     }

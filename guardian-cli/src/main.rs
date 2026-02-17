@@ -6,6 +6,7 @@ mod rules_hash;
 mod scan;
 
 use clap::{Parser, Subcommand, ValueEnum};
+use guardian_scan_policy::ScanProfile;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -49,6 +50,10 @@ struct ScanArgs {
     #[arg(long, default_value_t = 100_000)]
     max_file_bytes: u64,
 
+    /// Scan profile (source|extended|full). Env: GUARDIAN_SCAN_PROFILE
+    #[arg(long, value_enum)]
+    scan_profile: Option<ScanProfileArg>,
+
     /// Offline scan (no network, no AI). Useful for CI smoke checks.
     #[arg(long)]
     offline: bool,
@@ -90,6 +95,23 @@ enum OutputFormat {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
+enum ScanProfileArg {
+    Source,
+    Extended,
+    Full,
+}
+
+impl ScanProfileArg {
+    fn to_profile(self) -> ScanProfile {
+        match self {
+            Self::Source => ScanProfile::Source,
+            Self::Extended => ScanProfile::Extended,
+            Self::Full => ScanProfile::Full,
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
 enum LockModeArg {
     Off,
     Warn,
@@ -111,6 +133,7 @@ fn main() {
             baseline_path: args.baseline,
             max_files: args.max_files,
             max_file_bytes: args.max_file_bytes,
+            scan_profile: args.scan_profile.map(|p| p.to_profile()),
             offline: args.offline,
             mock: args.mock,
             provider: args.provider,

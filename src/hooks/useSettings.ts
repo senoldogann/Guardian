@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke, isTauriRuntime } from "../lib/tauri";
 import type { Critique } from "../components/CritiqueAccordionRow";
 import { STORAGE_KEYS } from "../constants";
+import type { ExportAuditPdfResult } from "../lib/exportAuditPdf";
 
 export type ProviderConfig = {
   provider_id: string;
@@ -30,7 +31,15 @@ export type EmbeddingRuntimeConfig = {
   ollama_model?: string | null;
 };
 
-export type SettingsTab = "provider" | "embedding" | "web" | "updates" | "export";
+export type SettingsTab = "general" | "provider" | "embedding" | "web" | "updates" | "export";
+
+export type ScanProfile = "source" | "extended" | "full";
+
+export type WebSearchDepth = "basic" | "advanced" | "fast" | "ultra-fast" | "auto";
+
+export type ScanProfileConfig = {
+  profile: ScanProfile;
+};
 
 export type UpdateCheckResult = {
   status: string;
@@ -133,9 +142,13 @@ export interface UseSettingsReturn {
 
   // Web Search
   webSearchEnabled: boolean;
+  webSearchDepth: WebSearchDepth;
 
   // Safety
   autoVerifyEnabled: boolean;
+  scanProfile: ScanProfile;
+  scanProfileSaving: boolean;
+  scanProfileError: string | null;
 
   // Updates
   updateInfo: UpdateCheckResult | null;
@@ -176,8 +189,12 @@ export interface UseSettingsReturn {
   clearTavilyKey: () => Promise<void>;
   setWebSearchEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   onWebSearchToggle: () => void;
+  setWebSearchDepth: React.Dispatch<React.SetStateAction<WebSearchDepth>>;
+  onWebSearchDepthChange: (value: WebSearchDepth) => void;
   setAutoVerifyEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   onAutoVerifyToggle: () => void;
+  setScanProfile: React.Dispatch<React.SetStateAction<ScanProfile>>;
+  saveScanProfile: () => Promise<void>;
   onExportPDF: (logs: Record<string, Critique>, path: string) => void;
   setUpdateDismissed: React.Dispatch<React.SetStateAction<boolean>>;
   checkForUpdates: () => Promise<void>;
@@ -187,10 +204,13 @@ export interface UseSettingsReturn {
   providerLabel: string;
   requiresApiKey: boolean;
   webSearchReady: boolean;
+  exportPdfInProgress: boolean;
+  exportPdfMessage: string | null;
+  exportPdfError: string | null;
 }
 
 export function useSettings(
-  exportPdfFn: (args: { logs: Record<string, Critique>; path: string }) => void,
+  exportPdfFn: (args: { logs: Record<string, Critique>; path: string }) => Promise<ExportAuditPdfResult>,
   settingsOpen = false
 ): UseSettingsReturn {
   const isDesktop = isTauriRuntime();
@@ -237,6 +257,21 @@ export function useSettings(
     return false;
   });
 
+  const normalizeWebSearchDepth = useCallback((value: string | null): WebSearchDepth => {
+    const raw = (value ?? "").trim().toLowerCase();
+    if (raw === "advanced" || raw === "fast" || raw === "ultra-fast" || raw === "auto") {
+      return raw as WebSearchDepth;
+    }
+    return "basic";
+  }, []);
+
+  const [webSearchDepth, setWebSearchDepth] = useState<WebSearchDepth>(() => {
+    if (typeof window !== "undefined") {
+      return normalizeWebSearchDepth(localStorage.getItem(STORAGE_KEYS.WEB_SEARCH_DEPTH));
+    }
+    return "basic";
+  });
+
   // Safety state
   const [autoVerifyEnabled, setAutoVerifyEnabled] = useState(() => {
     if (typeof window !== "undefined") {
@@ -245,6 +280,11 @@ export function useSettings(
     return false;
   });
 
+  // Scan profile state (desktop persisted)
+  const [scanProfile, setScanProfile] = useState<ScanProfile>("source");
+  const [scanProfileSaving, setScanProfileSaving] = useState(false);
+  const [scanProfileError, setScanProfileError] = useState<string | null>(null);
+
   // Update state
   const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
@@ -252,6 +292,21 @@ export function useSettings(
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [updateChecking, setUpdateChecking] = useState(false);
   const [appVersion, setAppVersion] = useState<string | null>(null);
+  const [exportPdfInProgress, setExportPdfInProgress] = useState(false);
+  const [exportPdfMessage, setExportPdfMessage] = useState<string | null>(null);
+  const [exportPdfError, setExportPdfError] = useState<string | null>(null);
+
+  // Timer ref for auto-dismiss
+  const exportStatusTimerRef = useRef<number | null>(null);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (exportStatusTimerRef.current) {
+        window.clearTimeout(exportStatusTimerRef.current);
+      }
+    };
+  }, []);
 
   // Tab state
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("provider");
@@ -262,11 +317,55 @@ export function useSettings(
     localStorage.setItem(STORAGE_KEYS.WEB_SEARCH, String(webSearchEnabled));
   }, [webSearchEnabled]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEYS.WEB_SEARCH_DEPTH, webSearchDepth);
+  }, [webSearchDepth]);
+
   // Persist auto verification setting
   useEffect(() => {
     if (typeof window === "undefined") return;
     localStorage.setItem(STORAGE_KEYS.AUTO_VERIFY_ENABLED, String(autoVerifyEnabled));
   }, [autoVerifyEnabled]);
+
+  // Load scan profile config when settings opens
+  useEffect(() => {
+    if (!isDesktop || !settingsOpen) return;
+    const loadScanProfile = async (): Promise<void> => {
+      try {
+        const res = await invoke<ScanProfileConfig>("get_scan_profile_config");
+        const raw = (res?.profile ?? "source").toString().toLowerCase();
+        const normalized: ScanProfile = raw === "extended" || raw === "full" ? raw : "source";
+        setScanProfile(normalized);
+        setScanProfileError(null);
+      } catch (e: unknown) {
+        setScanProfileError(e instanceof Error ? e.message : String(e));
+      }
+    };
+    void loadScanProfile();
+  }, [isDesktop, settingsOpen]);
+
+  const saveScanProfile = useCallback(async (): Promise<void> => {
+    if (!isDesktop) return;
+    setScanProfileSaving(true);
+    setScanProfileError(null);
+    try {
+      const res = await invoke<ScanProfileConfig>("set_scan_profile_config", {
+        config: { profile: scanProfile },
+      });
+      const raw = (res?.profile ?? scanProfile).toString().toLowerCase();
+      const normalized: ScanProfile = raw === "extended" || raw === "full" ? raw : "source";
+      setScanProfile(normalized);
+    } catch (e: unknown) {
+      setScanProfileError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setScanProfileSaving(false);
+    }
+  }, [isDesktop, scanProfile]);
+
+  const onWebSearchDepthChange = useCallback((value: WebSearchDepth): void => {
+    setWebSearchDepth(normalizeWebSearchDepth(value));
+  }, [normalizeWebSearchDepth]);
 
   // Load initial provider config
   useEffect(() => {
@@ -335,7 +434,6 @@ export function useSettings(
       await refreshEmbeddingSettings();
     };
     void syncEmbeddingConfig();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDesktop]);
 
   useEffect(() => {
@@ -349,7 +447,6 @@ export function useSettings(
       }
     };
     void loadEmbeddingOpenAiKeyStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDesktop, settingsOpen]);
 
   // Check for updates on mount
@@ -373,7 +470,6 @@ export function useSettings(
   useEffect(() => {
     if (!isDesktop) return;
     void checkForUpdates();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDesktop]);
 
   // Provider identity tracking for model refresh
@@ -819,8 +915,46 @@ export function useSettings(
   }, [autoVerifyEnabled]);
 
   const onExportPDF = useCallback((logs: Record<string, Critique>, path: string): void => {
-    void exportPdfFn({ logs, path });
-  }, [exportPdfFn]);
+    if (exportPdfInProgress) return;
+
+    // Clear any existing timer
+    if (exportStatusTimerRef.current) {
+      window.clearTimeout(exportStatusTimerRef.current);
+      exportStatusTimerRef.current = null;
+    }
+
+    void (async () => {
+      setExportPdfInProgress(true);
+      setExportPdfError(null);
+      setExportPdfMessage(null);
+      try {
+        const result = await exportPdfFn({ logs, path });
+        if (result.mode === "tauri") {
+          const pathText = result.savedPath ? `Saved to ${result.savedPath}` : "PDF exported.";
+          const openedText = result.folderOpened ? " Folder opened automatically." : "";
+          setExportPdfMessage(`${pathText}${openedText}`.trim());
+        } else {
+          setExportPdfMessage("PDF export started in browser download flow.");
+        }
+
+        // Auto-dismiss success message after 5 seconds
+        exportStatusTimerRef.current = window.setTimeout(() => {
+          setExportPdfMessage(null);
+          exportStatusTimerRef.current = null;
+        }, 5000);
+      } catch (e: unknown) {
+        setExportPdfError(e instanceof Error ? e.message : String(e));
+
+        // Auto-dismiss error message after 5 seconds
+        exportStatusTimerRef.current = window.setTimeout(() => {
+          setExportPdfError(null);
+          exportStatusTimerRef.current = null;
+        }, 5000);
+      } finally {
+        setExportPdfInProgress(false);
+      }
+    })();
+  }, [exportPdfFn, exportPdfInProgress]);
 
   const checkForUpdates = useCallback(async (): Promise<void> => {
     if (!isDesktop) return;
@@ -927,7 +1061,11 @@ export function useSettings(
     tavilyKeyError,
     tavilyKeySaving,
     webSearchEnabled,
+    webSearchDepth,
     autoVerifyEnabled,
+    scanProfile,
+    scanProfileSaving,
+    scanProfileError,
     updateInfo,
     updateDismissed,
     updateInstalling,
@@ -962,8 +1100,12 @@ export function useSettings(
     clearTavilyKey,
     setWebSearchEnabled,
     onWebSearchToggle,
+    setWebSearchDepth,
+    onWebSearchDepthChange,
     setAutoVerifyEnabled,
     onAutoVerifyToggle,
+    setScanProfile,
+    saveScanProfile,
     onExportPDF,
     setUpdateDismissed,
     checkForUpdates,
@@ -971,6 +1113,9 @@ export function useSettings(
     providerLabel,
     requiresApiKey,
     webSearchReady,
+    exportPdfInProgress,
+    exportPdfMessage,
+    exportPdfError,
   };
 }
 

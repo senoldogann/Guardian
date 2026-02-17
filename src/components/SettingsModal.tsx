@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import clsx from "clsx";
 import {
   Moon,
@@ -12,11 +12,12 @@ import {
   Database,
   CircleHelp,
   ExternalLink,
+  ChevronDown,
 } from "lucide-react";
 import { openExternal } from "../lib/tauri";
 
 export type EmbeddingMode = "auto" | "openai" | "ollama" | "local";
-export type SettingsTab = "provider" | "embedding" | "web" | "updates" | "export";
+export type SettingsTab = "general" | "provider" | "embedding" | "web" | "updates" | "export";
 
 export interface ProviderConfig {
   provider_id: string;
@@ -65,6 +66,13 @@ const getProviderDefaults = (providerId: string) => {
   return match ?? PROVIDER_OPTIONS[0];
 };
 
+const EXPORT_STATUS_MESSAGES = [
+  "Preparing report blocks...",
+  "Rendering PDF pages...",
+  "Finalizing and saving file...",
+  "Opening export location...",
+];
+
 interface InfoPopoverProps {
   title: string;
   note: string;
@@ -84,14 +92,28 @@ function InfoPopover({ title, note }: InfoPopoverProps): ReactElement {
   );
 }
 
-export interface SettingsModalProps {
-  open: boolean;
-  onClose: () => void;
-  theme: "dark" | "light";
-  onThemeToggle: () => void;
-  isDesktop: boolean;
+interface StyledSelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  children: React.ReactNode;
+}
 
-  // Provider
+function StyledSelect({ children, className, ...props }: StyledSelectProps) {
+  return (
+    <div className="relative group">
+      <select
+        className={clsx(
+          "appearance-none w-full bg-background border border-border-main rounded-lg py-2 pl-3 pr-8 text-xs text-text-main outline-none focus:border-[var(--focus-border)] cursor-pointer transition-colors group-hover:border-[var(--accent-500)]",
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </select>
+      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-muted pointer-events-none group-hover:text-text-main transition-colors" />
+    </div>
+  );
+}
+
+export interface ProviderSettingsProps {
   providerDraft: ProviderConfig | null;
   providerError: string | null;
   providerSaving: boolean;
@@ -103,8 +125,6 @@ export interface SettingsModalProps {
   onModelChange: (value: string) => void;
   onRefreshModels: () => void;
   onSaveProvider: () => void;
-
-  // API Key
   apiKeyStatus: ApiKeyStatus | null;
   apiKeyInput: string;
   apiKeyError: string | null;
@@ -113,24 +133,33 @@ export interface SettingsModalProps {
   onApiKeyChange: (value: string) => void;
   onSaveApiKey: () => void;
   onClearApiKey: () => void;
+}
 
-  // Tavily
+export interface WebSettingsProps {
   tavilyKeyStatus: TavilyKeyStatus | null;
   tavilyKeyInput: string;
   tavilyKeyMasked: boolean;
   tavilyKeyError: string | null;
   tavilyKeySaving: boolean;
   webSearchEnabled: boolean;
+  webSearchDepth: "basic" | "advanced" | "fast" | "ultra-fast" | "auto";
   webSearchReady: boolean;
   onWebSearchToggle: () => void;
+  onWebSearchDepthChange: (value: "basic" | "advanced" | "fast" | "ultra-fast" | "auto") => void;
   autoVerifyEnabled: boolean;
   onAutoVerifyToggle: () => void;
+  scanProfile: "source" | "extended" | "full";
+  scanProfileSaving: boolean;
+  scanProfileError: string | null;
+  onScanProfileChange: (value: "source" | "extended" | "full") => void;
+  onSaveScanProfile: () => void;
   onTavilyKeyFocus: () => void;
   onTavilyKeyChange: (value: string) => void;
   onSaveTavilyKey: () => void;
   onClearTavilyKey: () => void;
+}
 
-  // Embeddings
+export interface EmbeddingSettingsProps {
   embeddingDraft: EmbeddingRuntimeConfig | null;
   embeddingError: string | null;
   embeddingSaving: boolean;
@@ -150,19 +179,31 @@ export interface SettingsModalProps {
   onEmbeddingOpenAiKeyChange: (value: string) => void;
   onSaveEmbeddingOpenAiKey: () => void;
   onClearEmbeddingOpenAiKey: () => void;
+}
 
-  // Updates
+export interface UpdateSettingsProps {
   updateInfo: UpdateCheckResult | null;
   updateChecking: boolean;
   updateInstalling: boolean;
   updateError: string | null;
   onCheckUpdates: () => void;
   onInstallUpdate: () => void;
+}
 
-  // Export
+export interface SettingsModalProps {
+  open: boolean;
+  onClose: () => void;
+  theme: "dark" | "light";
+  onThemeToggle: () => void;
+  isDesktop: boolean;
+  providerProps: ProviderSettingsProps;
+  webProps: WebSettingsProps;
+  embeddingProps: EmbeddingSettingsProps;
+  updateProps: UpdateSettingsProps;
   onExportPDF: () => void;
-
-  // Tab
+  exportPdfInProgress: boolean;
+  exportPdfMessage: string | null;
+  exportPdfError: string | null;
   settingsTab: SettingsTab;
   onSettingsTabChange: (tab: SettingsTab) => void;
 }
@@ -173,69 +214,95 @@ export function SettingsModal({
   theme,
   onThemeToggle,
   isDesktop,
-  providerDraft,
-  providerError,
-  providerSaving,
-  providerModels,
-  providerModelLoading,
-  providerModelError,
-  onProviderChange,
-  onBaseUrlChange,
-  onModelChange,
-  onRefreshModels,
-  onSaveProvider,
-  apiKeyStatus,
-  apiKeyInput,
-  apiKeyError,
-  apiKeySaving,
-  onApiKeyFocus,
-  onApiKeyChange,
-  onSaveApiKey,
-  onClearApiKey,
-  tavilyKeyStatus,
-  tavilyKeyInput,
-  tavilyKeyMasked,
-  tavilyKeyError,
-  tavilyKeySaving,
-  webSearchEnabled,
-  webSearchReady,
-  onWebSearchToggle,
-  autoVerifyEnabled,
-  onAutoVerifyToggle,
-  onTavilyKeyFocus,
-  onTavilyKeyChange,
-  onSaveTavilyKey,
-  onClearTavilyKey,
-  embeddingDraft,
-  embeddingError,
-  embeddingSaving,
-  embeddingOpenAiKeyStatus,
-  embeddingOpenAiKeyInput,
-  embeddingOpenAiKeyMasked,
-  embeddingOpenAiKeyError,
-  embeddingOpenAiKeySaving,
-  onEmbeddingModeChange,
-  onEmbeddingOpenAiBaseUrlChange,
-  onEmbeddingOllamaBaseUrlChange,
-  onEmbeddingOpenAiModelChange,
-  onEmbeddingOllamaModelChange,
-  onSaveEmbeddingSettings,
-  onRefreshEmbeddingSettings,
-  onEmbeddingOpenAiKeyFocus,
-  onEmbeddingOpenAiKeyChange,
-  onSaveEmbeddingOpenAiKey,
-  onClearEmbeddingOpenAiKey,
-  updateInfo,
-  updateChecking,
-  updateInstalling,
-  updateError,
-  onCheckUpdates,
-  onInstallUpdate,
+  providerProps,
+  webProps,
+  embeddingProps,
+  updateProps,
   onExportPDF,
+  exportPdfInProgress,
+  exportPdfMessage,
+  exportPdfError,
   settingsTab,
   onSettingsTabChange,
 }: SettingsModalProps): ReactElement | null {
   if (!open) return null;
+
+  const {
+    providerDraft,
+    providerError,
+    providerSaving,
+    providerModels,
+    providerModelLoading,
+    providerModelError,
+    onProviderChange,
+    onBaseUrlChange,
+    onModelChange,
+    onRefreshModels,
+    onSaveProvider,
+    apiKeyStatus,
+    apiKeyInput,
+    apiKeyError,
+    apiKeySaving,
+    onApiKeyFocus,
+    onApiKeyChange,
+    onSaveApiKey,
+    onClearApiKey,
+  } = providerProps;
+
+  const {
+    tavilyKeyStatus,
+    tavilyKeyInput,
+    tavilyKeyMasked,
+    tavilyKeyError,
+    tavilyKeySaving,
+    webSearchEnabled,
+    webSearchDepth,
+    webSearchReady,
+    onWebSearchToggle,
+    onWebSearchDepthChange,
+    autoVerifyEnabled,
+    onAutoVerifyToggle,
+    scanProfile,
+    scanProfileSaving,
+    scanProfileError,
+    onScanProfileChange,
+    onSaveScanProfile,
+    onTavilyKeyFocus,
+    onTavilyKeyChange,
+    onSaveTavilyKey,
+    onClearTavilyKey,
+  } = webProps;
+
+  const {
+    embeddingDraft,
+    embeddingError,
+    embeddingSaving,
+    embeddingOpenAiKeyStatus,
+    embeddingOpenAiKeyInput,
+    embeddingOpenAiKeyMasked,
+    embeddingOpenAiKeyError,
+    embeddingOpenAiKeySaving,
+    onEmbeddingModeChange,
+    onEmbeddingOpenAiBaseUrlChange,
+    onEmbeddingOllamaBaseUrlChange,
+    onEmbeddingOpenAiModelChange,
+    onEmbeddingOllamaModelChange,
+    onSaveEmbeddingSettings,
+    onRefreshEmbeddingSettings,
+    onEmbeddingOpenAiKeyFocus,
+    onEmbeddingOpenAiKeyChange,
+    onSaveEmbeddingOpenAiKey,
+    onClearEmbeddingOpenAiKey,
+  } = embeddingProps;
+
+  const {
+    updateInfo,
+    updateChecking,
+    updateInstalling,
+    updateError,
+    onCheckUpdates,
+    onInstallUpdate,
+  } = updateProps;
 
   const API_KEY_MASK = "••••••";
   const providerLabel = providerDraft ? getProviderDefaults(providerDraft.provider_id).label : "provider";
@@ -261,6 +328,19 @@ export function SettingsModal({
         ? "bg-[var(--accent-500)] text-background"
         : "bg-white/10 text-text-main hover:bg-white/20"
     );
+
+  const [exportStatusMessageIndex, setExportStatusMessageIndex] = useState(0);
+
+  useEffect(() => {
+    if (!exportPdfInProgress) {
+      setExportStatusMessageIndex(0);
+      return;
+    }
+    const interval = window.setInterval(() => {
+      setExportStatusMessageIndex((prev) => (prev + 1) % EXPORT_STATUS_MESSAGES.length);
+    }, 1200);
+    return () => window.clearInterval(interval);
+  }, [exportPdfInProgress]);
 
   const openGithubModelsTokenPage = (): void => {
     if (!isDesktop) return;
@@ -299,12 +379,84 @@ export function SettingsModal({
         )}
 
         <div className="flex flex-wrap gap-2 border-b border-border-main pb-4">
+          <button onClick={() => onSettingsTabChange("general")} className={settingsTabClass("general")}>General</button>
           <button onClick={() => onSettingsTabChange("provider")} className={settingsTabClass("provider")}>Provider</button>
           <button onClick={() => onSettingsTabChange("embedding")} className={settingsTabClass("embedding")}>Embedding</button>
           <button onClick={() => onSettingsTabChange("web")} className={settingsTabClass("web")}>Web Search</button>
           <button onClick={() => onSettingsTabChange("updates")} className={settingsTabClass("updates")}>Updates</button>
           <button onClick={() => onSettingsTabChange("export")} className={settingsTabClass("export")}>Export</button>
         </div>
+
+        {settingsTab === "general" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                <ShieldAlert className="w-4 h-4 text-[var(--accent-500)]" />
+                Safety
+              </div>
+              <InfoPopover
+                title="Automatic Verification"
+                note="When enabled, Guardian can run project commands (npm/cargo, etc.). Keep it on only for trusted repositories."
+              />
+            </div>
+            <div className="text-[10px] text-text-muted">
+              Automatic Verification can run project commands (npm/cargo/etc) in your monitored workspace. Keep it off unless you fully trust the repo.
+            </div>
+            <div className="flex items-center justify-between bg-background border border-border-main rounded-lg px-3 py-2">
+              <div className="text-[10px] text-text-muted">
+                Automatic Verification: {autoVerifyEnabled ? "Enabled" : "Disabled"}
+              </div>
+              <button
+                onClick={onAutoVerifyToggle}
+                disabled={!isDesktop}
+                className={clsx(
+                  "px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md transition-colors",
+                  autoVerifyEnabled ? "bg-[var(--accent-500)] text-background" : "bg-white/10 text-text-main",
+                  !isDesktop && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                {autoVerifyEnabled ? "On" : "Off"}
+              </button>
+            </div>
+
+            <div className="pt-4 border-t border-border-main space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                  <ShieldAlert className="w-4 h-4 text-[var(--accent-500)]" />
+                  Scan Scope
+                </div>
+                <InfoPopover
+                  title="Scan Scope"
+                  note="Source is fast and focused. Extended adds infra/security surfaces (Docker/CI/locks/scripts). Full scans most text files (higher cost). Changes apply on next monitoring start."
+                />
+              </div>
+              <div className="text-[10px] text-text-muted">
+                Current scope: <span className="font-mono text-[var(--text-main)]">{scanProfile}</span>. Restart monitoring to apply changes.
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                <StyledSelect
+                  disabled={!isDesktop || scanProfileSaving}
+                  value={scanProfile}
+                  onChange={(e) => onScanProfileChange(e.target.value as "source" | "extended" | "full")}
+                >
+                  <option value="source">Source (Fast, code-focused)</option>
+                  <option value="extended">Extended (Infra + security files)</option>
+                  <option value="full">Full (Most text files)</option>
+                </StyledSelect>
+                {scanProfileError && (
+                  <div className="text-[10px] text-rose-400">{scanProfileError}</div>
+                )}
+                <button
+                  onClick={onSaveScanProfile}
+                  disabled={!isDesktop || scanProfileSaving}
+                  className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
+                >
+                  {scanProfileSaving ? "Saving..." : "Save Scan Scope"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {settingsTab === "provider" && (
           <div className="space-y-6">
@@ -334,27 +486,25 @@ export function SettingsModal({
               ) : (
                 <>
                   <label className="text-[10px] uppercase tracking-widest text-zinc-500">Provider</label>
-                  <select
+                  <StyledSelect
                     disabled={!isDesktop}
-                    className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main"
                     value={providerDraft.provider_id}
                     onChange={(e) => onProviderChange(e.target.value)}
                   >
                     {PROVIDER_OPTIONS.map((option) => (
                       <option key={option.id} value={option.id}>{option.label}</option>
                     ))}
-                  </select>
+                  </StyledSelect>
                   <label className="text-[10px] uppercase tracking-widest text-zinc-500">Base URL</label>
                   {providerDraft.provider_id === "ollama" ? (
-                    <select
+                    <StyledSelect
                       disabled={!isDesktop}
                       value={providerDraft.base_url}
                       onChange={(e) => onBaseUrlChange(e.target.value)}
-                      className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
                     >
                       <option value="http://127.0.0.1:11434">Local (http://127.0.0.1:11434)</option>
                       <option value="https://ollama.com">Cloud (https://ollama.com)</option>
-                    </select>
+                    </StyledSelect>
                   ) : (
                     <input
                       disabled={!isDesktop}
@@ -377,16 +527,15 @@ export function SettingsModal({
                   {providerModelLoading ? (
                     <div className="h-9 w-full bg-border-main rounded animate-pulse" />
                   ) : providerModels.length > 0 ? (
-                    <select
+                    <StyledSelect
                       disabled={!isDesktop}
                       value={providerDraft.model}
                       onChange={(e) => onModelChange(e.target.value)}
-                      className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
                     >
                       {providerModels.map((model) => (
                         <option key={model} value={model}>{model}</option>
                       ))}
-                    </select>
+                    </StyledSelect>
                   ) : (
                     <input
                       disabled={!isDesktop}
@@ -487,38 +636,6 @@ export function SettingsModal({
                 </button>
               </div>
             </div>
-
-            <div className="pt-4 border-t border-border-main space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
-                  <ShieldAlert className="w-4 h-4 text-[var(--accent-500)]" />
-                  Safety
-                </div>
-                <InfoPopover
-                  title="Automatic Verification"
-                  note="When enabled, Guardian can run project commands (npm/cargo, etc.). Keep it on only for trusted repositories."
-                />
-              </div>
-              <div className="text-[10px] text-text-muted">
-                Automatic Verification can run project commands (npm/cargo/etc) in your monitored workspace. Keep it off unless you fully trust the repo.
-              </div>
-              <div className="flex items-center justify-between bg-background border border-border-main rounded-lg px-3 py-2">
-                <div className="text-[10px] text-text-muted">
-                  Automatic Verification: {autoVerifyEnabled ? "Enabled" : "Disabled"}
-                </div>
-                <button
-                  onClick={onAutoVerifyToggle}
-                  disabled={!isDesktop}
-                  className={clsx(
-                    "px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md transition-colors",
-                    autoVerifyEnabled ? "bg-[var(--accent-500)] text-background" : "bg-white/10 text-text-main",
-                    !isDesktop && "opacity-50 cursor-not-allowed"
-                  )}
-                >
-                  {autoVerifyEnabled ? "On" : "Off"}
-                </button>
-              </div>
-            </div>
           </div>
         )}
 
@@ -547,17 +664,16 @@ export function SettingsModal({
                   Refresh Runtime
                 </button>
               </div>
-              <select
+              <StyledSelect
                 disabled={!isDesktop || !embeddingDraft}
                 value={embeddingDraft?.mode ?? "auto"}
                 onChange={(e) => onEmbeddingModeChange(e.target.value as EmbeddingMode)}
-                className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main"
               >
                 <option value="auto">Auto (OpenAI -&gt; Ollama -&gt; Local)</option>
                 <option value="openai">OpenAI Embeddings</option>
                 <option value="ollama">Ollama Local Embeddings</option>
                 <option value="local">Local Hash Only (No Network)</option>
-              </select>
+              </StyledSelect>
 
               <div className="grid grid-cols-1 gap-3">
                 <div className="space-y-1">
@@ -684,7 +800,7 @@ export function SettingsModal({
               </div>
               <InfoPopover
                 title="Web Search"
-                note="Tavily key is required for Guru to fetch internet context. Without it, web search stays off and local context is used."
+                note="Optional internet context via Tavily. Basic depth is recommended for cost control. If your prompt includes a URL, Guru will extract that page directly for higher accuracy."
               />
             </div>
             <div className="text-[10px] text-text-muted">
@@ -705,6 +821,22 @@ export function SettingsModal({
               >
                 {webSearchEnabled ? "On" : "Off"}
               </button>
+            </div>
+            <div className="flex items-center justify-between bg-background border border-border-main rounded-lg px-3 py-2">
+              <div className="text-[10px] text-text-muted">
+                Search depth: <span className="text-text-main font-semibold">{webSearchDepth}</span>
+              </div>
+              <StyledSelect
+                value={webSearchDepth}
+                onChange={(e) => onWebSearchDepthChange(e.target.value as typeof webSearchDepth)}
+                aria-label="Web Search Depth"
+              >
+                <option value="basic">Basic (Default)</option>
+                <option value="advanced">Advanced</option>
+                <option value="fast">Fast</option>
+                <option value="ultra-fast">Ultra-fast</option>
+                <option value="auto">Auto</option>
+              </StyledSelect>
             </div>
             {!webSearchReady && (
               <div className="text-[10px] text-amber-400">
@@ -834,14 +966,33 @@ export function SettingsModal({
             </div>
             <button
               onClick={onExportPDF}
-              className="w-full px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer"
+              disabled={exportPdfInProgress}
+              className="w-full px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:opacity-60"
             >
-              Export PDF
+              {exportPdfInProgress ? "Exporting..." : "Export PDF"}
             </button>
+            {exportPdfInProgress && (
+              <div className="rounded-lg border border-border-main bg-white/5 px-3 py-2 text-[10px] text-text-muted flex items-center gap-2">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent-500)] shrink-0" />
+                <span className="transition-opacity duration-300">
+                  {EXPORT_STATUS_MESSAGES[exportStatusMessageIndex]}
+                </span>
+              </div>
+            )}
+            {exportPdfMessage && !exportPdfInProgress && (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-100 dark:border-emerald-500/20 dark:bg-emerald-500/10 px-3 py-2 text-[10px] text-emerald-900 dark:text-emerald-300 font-bold">
+                {exportPdfMessage}
+              </div>
+            )}
+            {exportPdfError && !exportPdfInProgress && (
+              <div className="rounded-lg border border-rose-200 bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 px-3 py-2 text-[10px] text-rose-900 dark:text-rose-300 font-bold">
+                {exportPdfError}
+              </div>
+            )}
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }
 

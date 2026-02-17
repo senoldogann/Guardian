@@ -1,0 +1,9 @@
+dist
+coverage
+node_modules
+website
+src-tauri
+guardian-cli
+playwright-report
+test-results
+.agent

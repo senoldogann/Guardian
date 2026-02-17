@@ -271,6 +271,38 @@ pub fn tavily_keys() -> Result<Vec<SecretString>> {
         }
     }
 
+    // Optional env var fallback (useful for development / CI-like environments)
+    // Supports comma or whitespace separated lists.
+    for env_key in [
+        "TAVILY_API_KEYS",
+        "GUARDIAN_TAVILY_API_KEYS",
+        "TAVILY_API_KEY",
+        "GUARDIAN_TAVILY_API_KEY",
+    ] {
+        let raw = env::var(env_key).unwrap_or_default();
+        let trimmed = raw.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+
+        for part in trimmed.split(|c: char| c == ',' || c.is_whitespace()) {
+            let candidate = part.trim();
+            if candidate.is_empty() {
+                continue;
+            }
+            if is_placeholder_key(candidate) {
+                continue;
+            }
+
+            let already = keys
+                .iter()
+                .any(|k| k.expose_secret().trim() == candidate);
+            if !already {
+                keys.push(SecretString::new(candidate.to_string().into()));
+            }
+        }
+    }
+
     if keys.is_empty() {
         bail!("Tavily API key is missing. Add your key in Settings to enable web search.");
     }

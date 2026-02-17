@@ -1,6 +1,6 @@
 [package]
 name = "Guardian"
-version = "1.2.1"
+version = "1.2.2"
 description = "Guardian is a desktop application that monitors your file system and detects changes in your projects. It uses AI to analyze the changes and provides you with insights about your projects."
 authors = ["Senol Dogan"]
 edition = "2021"
@@ -64,3 +64,4 @@ lazy_static = "1.4"
 dunce = "1"
 similar = "2.6"
 sqlite-vec = "0.1.7-alpha.2"
+guardian-scan-policy = { path = "../guardian-scan-policy" }

@@ -15,7 +15,11 @@ import { invoke } from "../../lib/tauri";
 const mockInvoke = invoke as unknown as ReturnType<typeof vi.fn>;
 
 describe("useSettings", () => {
-  const mockExportPdfFn = vi.fn();
+  const mockExportPdfFn = vi.fn(async () => ({
+    mode: "browser" as const,
+    savedPath: null,
+    folderOpened: false,
+  }));
   const defaultUpdateResult = {
     status: "up_to_date",
     current_version: "0.2.4",
@@ -219,11 +223,14 @@ describe("useSettings", () => {
       expect(result.current.providerDraft).toBeTruthy();
     });
 
-    act(() => {
+    await act(async () => {
       result.current.onExportPDF({}, "/test/path");
     });
 
-    expect(mockExportPdfFn).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockExportPdfFn).toHaveBeenCalled();
+      expect(result.current.exportPdfMessage).toContain("browser download flow");
+    });
   });
 
   it("should handle model change", async () => {

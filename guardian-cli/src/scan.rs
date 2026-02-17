@@ -4,6 +4,7 @@ use crate::output::{render_report, write_report, Finding, ReportFormat, ScanRepo
 use crate::redaction::{is_sensitive_file, mask_inline_secrets};
 use crate::rules_hash::get_rules_fingerprint;
 use anyhow::{Context, Result};
+use guardian_scan_policy::ScanProfile;
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -19,6 +20,7 @@ pub struct ScanConfig {
     pub baseline_path: Option<PathBuf>,
     pub max_files: usize,
     pub max_file_bytes: u64,
+    pub scan_profile: Option<ScanProfile>,
     pub offline: bool,
     pub mock: bool,
     pub provider: Option<String>,
@@ -85,6 +87,10 @@ pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
             .as_ref()
             .map(|p| p.to_string_lossy().to_string()),
     );
+
+    let scan_profile = resolve_scan_profile(&cfg)?;
+    report.scan_profile = Some(scan_profile.as_str().to_string());
+
     let resolved_lock_path = guardian_lock::resolve_lock_path(&root, cfg.lock_path.clone());
     let lock_summary =
         guardian_lock::sync_guardian_lock(&root, &rules_hash, &resolved_lock_path, cfg.lock_mode)?;
@@ -93,7 +99,7 @@ pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
     }
     report.guardian_lock = Some(lock_summary);
 
-    let files = collect_files(&root, cfg.max_files, cfg.max_file_bytes)?;
+    let files = collect_files(&root, scan_profile, cfg.max_files, cfg.max_file_bytes)?;
     report.summary.files_scanned = files.len();
 
     let findings = if cfg.offline || cfg.mock || env_flag("GUARDIAN_MOCK") {
@@ -202,7 +208,24 @@ fn default_base_url(provider_id: &str) -> &'static str {
     }
 }
 
-fn collect_files(root: &Path, max_files: usize, max_file_bytes: u64) -> Result<Vec<ScannedFile>> {
+fn resolve_scan_profile(cfg: &ScanConfig) -> Result<ScanProfile> {
+    if let Some(profile) = cfg.scan_profile {
+        return Ok(profile);
+    }
+    if let Ok(value) = std::env::var("GUARDIAN_SCAN_PROFILE") {
+        if !value.trim().is_empty() {
+            return value.parse::<ScanProfile>().map_err(anyhow::Error::msg);
+        }
+    }
+    Ok(ScanProfile::Source)
+}
+
+fn collect_files(
+    root: &Path,
+    profile: ScanProfile,
+    max_files: usize,
+    max_file_bytes: u64,
+) -> Result<Vec<ScannedFile>> {
     let walker = ignore::WalkBuilder::new(root)
         .hidden(false)
         .git_ignore(true)
@@ -232,10 +255,8 @@ fn collect_files(root: &Path, max_files: usize, max_file_bytes: u64) -> Result<V
             Err(_) => abs_path.to_string_lossy().replace('\\', "/"),
         };
 
-        if should_skip_rel_path(&rel_path) {
-            continue;
-        }
-        if !should_scan_extension(&abs_path) {
+        let decision = guardian_scan_policy::classify_path(&abs_path, false, profile);
+        if !decision.include {
             continue;
         }
 
@@ -260,95 +281,6 @@ fn collect_files(root: &Path, max_files: usize, max_file_bytes: u64) -> Result<V
     }
 
     Ok(out)
-}
-
-fn should_scan_extension(path: &Path) -> bool {
-    const EXTENSIONS: &[&str] = &[
-        "rs", "ts", "tsx", "js", "jsx", "mjs", "cjs", "py", "go", "java", "kt", "swift", "cs",
-        "rb", "php", "c", "cc", "cpp", "h", "hpp", "sql", "vue", "svelte",
-    ];
-
-    let file_name = path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or_default()
-        .to_lowercase();
-    if file_name.contains(".test.")
-        || file_name.contains(".spec.")
-        || file_name.ends_with("_test.rs")
-        || file_name.ends_with("_test.go")
-        || file_name.ends_with("_spec.rb")
-    {
-        return false;
-    }
-
-    path.extension()
-        .and_then(|e| e.to_str())
-        .map(|ext| {
-            EXTENSIONS
-                .iter()
-                .any(|allowed| ext.eq_ignore_ascii_case(allowed))
-        })
-        .unwrap_or(false)
-}
-
-fn should_skip_rel_path(rel: &str) -> bool {
-    const IGNORED_DIRS: &[&str] = &[
-        ".git",
-        "node_modules",
-        "target",
-        ".next",
-        "dist",
-        "build",
-        "coverage",
-        ".guardian",
-        ".agent",
-        "docs",
-        "doc",
-        "test",
-        "tests",
-        "__tests__",
-        "__mocks__",
-        "mocks",
-        "fixtures",
-        "scripts",
-        ".github",
-        ".idea",
-        ".opencode",
-        ".loki",
-        "tmp",
-        "temp",
-        "vendor",
-        "third_party",
-        "storybook-static",
-    ];
-
-    let lowered = rel.to_lowercase();
-    if lowered
-        .split('/')
-        .any(|segment| IGNORED_DIRS.iter().any(|d| segment == *d))
-    {
-        return true;
-    }
-
-    let file_name = lowered.rsplit('/').next().unwrap_or_default();
-    matches!(
-        file_name,
-        "dockerfile"
-            | "docker-compose.yml"
-            | "docker-compose.yaml"
-            | "makefile"
-            | "justfile"
-            | "pnpm-lock.yaml"
-            | "package-lock.json"
-            | "yarn.lock"
-            | "bun.lockb"
-            | "cargo.lock"
-            | "readme.md"
-            | "changelog.md"
-            | "license"
-            | "default.rules"
-    )
 }
 
 fn truncate_content(content: &str) -> String {
@@ -829,7 +761,7 @@ mod tests {
         write_file(root, "Dockerfile", "FROM node:20\n");
         write_file(root, "policy-engine.Dockerfile", "FROM rust:1.80\n");
 
-        let files = collect_files(root, 100, 50_000).unwrap();
+        let files = collect_files(root, ScanProfile::Source, 100, 50_000).unwrap();
         let mut paths: Vec<String> = files.into_iter().map(|f| f.rel_path).collect();
         paths.sort();
 
@@ -850,6 +782,7 @@ mod tests {
             baseline_path: None,
             max_files: 50,
             max_file_bytes: 50_000,
+            scan_profile: None,
             offline: true,
             mock: false,
             provider: None,
@@ -878,6 +811,7 @@ mod tests {
             baseline_path: None,
             max_files: 50,
             max_file_bytes: 50_000,
+            scan_profile: None,
             offline: true,
             mock: false,
             provider: None,
@@ -906,6 +840,7 @@ mod tests {
             baseline_path: None,
             max_files: 50,
             max_file_bytes: 50_000,
+            scan_profile: None,
             offline: true,
             mock: false,
             provider: None,
@@ -945,6 +880,7 @@ mod tests {
             baseline_path: Some(baseline_path),
             max_files: 50,
             max_file_bytes: 50_000,
+            scan_profile: None,
             offline: true,
             mock: false,
             provider: None,
@@ -973,6 +909,7 @@ mod tests {
             baseline_path: None,
             max_files: 50,
             max_file_bytes: 50_000,
+            scan_profile: None,
             offline: true,
             mock: false,
             provider: None,
@@ -1002,6 +939,7 @@ mod tests {
             baseline_path: None,
             max_files: 50,
             max_file_bytes: 50_000,
+            scan_profile: None,
             offline: true,
             mock: false,
             provider: None,

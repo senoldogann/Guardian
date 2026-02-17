@@ -5,6 +5,7 @@ export const STORAGE_KEYS = {
   LAST_PATH: "guardian_last_path",
   THEME: "guardian_theme",
   WEB_SEARCH: "guardian_web_search_enabled",
+  WEB_SEARCH_DEPTH: "guardian_web_search_depth",
   CHAT_PREFIX: "guardian_chat_",
   ONBOARDING_COMPLETED: "guardian_onboarding_completed",
   AUTO_VERIFY_ENABLED: "guardian_auto_verify_enabled",

@@ -5,6 +5,7 @@ use crate::executor;
 use crate::history_logger::{append_critique_event, append_history_event, HistoryEvent};
 use crate::storage::StorageManager;
 use chrono::Utc;
+use guardian_scan_policy::{classify_path, is_infra_relevant_path, ScanProfile, SkipReason};
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -88,62 +89,6 @@ pub struct FixProposalsSnapshot {
 static LAST_FIX_PROPOSALS: Lazy<Arc<RwLock<Option<FixProposalsSnapshot>>>> =
     Lazy::new(|| Arc::new(RwLock::new(None)));
 
-const LOGIC_EXTENSIONS: &[&str] = &[
-    "rs", "ts", "tsx", "js", "jsx", "mjs", "cjs", "py", "go", "java", "kt", "swift", "cs", "rb",
-    "php", "c", "cc", "cpp", "h", "hpp", "sql", "vue", "svelte",
-];
-
-const IGNORED_PATH_SEGMENTS: &[&str] = &[
-    ".git",
-    "target",
-    "node_modules",
-    "_library",
-    ".agent",
-    ".shared",
-    "build",
-    "dist",
-    ".vscode",
-    "benchmarks",
-    ".next",
-    "coverage",
-    ".guardian",
-    "docs",
-    "doc",
-    "test",
-    "tests",
-    "__tests__",
-    "__mocks__",
-    "mocks",
-    "fixtures",
-    "scripts",
-    ".github",
-    ".idea",
-    ".opencode",
-    ".loki",
-    "tmp",
-    "temp",
-    "vendor",
-    "third_party",
-    "storybook-static",
-];
-
-const IGNORED_FILE_NAMES: &[&str] = &[
-    "dockerfile",
-    "docker-compose.yml",
-    "docker-compose.yaml",
-    "makefile",
-    "justfile",
-    "pnpm-lock.yaml",
-    "package-lock.json",
-    "yarn.lock",
-    "bun.lockb",
-    "cargo.lock",
-    "readme.md",
-    "changelog.md",
-    "license",
-    "default.rules",
-];
-
 const MAX_AGENT_QUEUE_BYTES: u64 = 1 * 1024 * 1024;
 const MAX_AGENT_QUEUE_ARCHIVES: usize = 5;
 const FIX_PROPOSALS_DIR: &str = ".guardian-proposals";
@@ -197,15 +142,96 @@ fn is_significant_warning(critique: &crate::ai_client::Critique) -> bool {
     keywords.iter().any(|k| combined.contains(k))
 }
 
-fn should_surface_critique(critique: &crate::ai_client::Critique) -> bool {
+fn should_surface_critique(
+    critique: &crate::ai_client::Critique,
+    profile: ScanProfile,
+) -> bool {
     let severity = critique.severity.trim().to_lowercase();
+    // Critical is always shown.
     if severity == "critical" {
         return true;
     }
-    if severity == "warning" {
-        return is_significant_warning(critique);
+
+    let msg = critique.message.to_lowercase();
+    let suggestion = critique
+        .suggestion
+        .as_ref()
+        .map(|s| s.to_lowercase())
+        .unwrap_or_default();
+    let combined = format!("{} {}", msg, suggestion);
+
+    let has_infra_security_keywords = || {
+        let infra_security_keywords = [
+            "security",
+            "vulnerability",
+            "injection",
+            "secret",
+            "credential",
+            "token",
+            "password",
+            "root user",
+            "privilege",
+            "permission",
+            "sandbox",
+            "exposed",
+            "leak",
+        ];
+        infra_security_keywords
+            .iter()
+            .any(|keyword| combined.contains(keyword))
+    };
+
+    let is_significant_info = || {
+        // Full mode can be noisy; keep Info gated to high-signal topics.
+        let keywords = [
+            "breaking",
+            "deprecated",
+            "deprecation",
+            "removed",
+            "migration",
+            "security",
+            "vulnerability",
+            "cve",
+            "performance",
+            "slow",
+            "latency",
+            "memory",
+            "leak",
+            "outdated",
+            "dependency",
+            "version",
+            "upgrade",
+            "update",
+        ];
+        keywords.iter().any(|k| combined.contains(k))
+    };
+
+    match profile {
+        ScanProfile::Source => {
+            // Source: keep noise low.
+            severity == "warning" && is_significant_warning(critique)
+        }
+        ScanProfile::Extended => {
+            // Extended: allow significant warnings everywhere, and infra/security warnings only for infra-like files.
+            if severity == "warning" && is_significant_warning(critique) {
+                return true;
+            }
+            if severity == "warning" && is_infra_relevant_path(Path::new(&critique.file_path)) {
+                return has_infra_security_keywords();
+            }
+            false
+        }
+        ScanProfile::Full => {
+            // Full: show all warnings. Info stays gated to significant markers.
+            if severity == "warning" {
+                return true;
+            }
+            if severity == "info" {
+                return is_significant_info();
+            }
+            false
+        }
     }
-    false
 }
 
 #[derive(Clone, Copy)]
@@ -241,44 +267,6 @@ fn is_fix_proposals_file(path: &Path) -> bool {
         return false;
     };
     parent == FIX_PROPOSALS_DIR || parent == ".guardian"
-}
-
-fn has_ignored_marker(path: &str) -> bool {
-    let lowered = path.replace('\\', "/").to_lowercase();
-    if lowered
-        .split('/')
-        .any(|segment| IGNORED_PATH_SEGMENTS.contains(&segment))
-    {
-        return true;
-    }
-
-    let file_name = lowered.rsplit('/').next().unwrap_or_default();
-    IGNORED_FILE_NAMES.contains(&file_name)
-}
-
-fn is_test_like_file_name(file_name: &str) -> bool {
-    let name = file_name.to_lowercase();
-    name.contains(".test.")
-        || name.contains(".spec.")
-        || name.ends_with("_test.rs")
-        || name.ends_with("_test.go")
-        || name.ends_with("_spec.rb")
-}
-
-fn is_non_logic_extension(path: &Path) -> bool {
-    let file_name = path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or_default();
-    if is_test_like_file_name(file_name) {
-        return true;
-    }
-
-    let Some(ext) = path.extension().and_then(|ext| ext.to_str()) else {
-        return true;
-    };
-    let lowered = ext.to_lowercase();
-    !LOGIC_EXTENSIONS.contains(&lowered.as_str())
 }
 
 fn safe_path_label(path: &Path) -> String {
@@ -562,16 +550,20 @@ fn load_fix_proposals_snapshot(root: &str) -> FixProposalsSnapshot {
 }
 
 pub(crate) fn should_skip_path(path: &Path, is_chat: bool) -> bool {
-    if is_chat {
-        return false;
-    }
+    should_skip_path_with_profile(path, is_chat, ScanProfile::Source)
+}
 
-    let path_str = path.to_string_lossy();
-    if has_ignored_marker(&path_str) {
-        return true;
-    }
+pub(crate) fn should_skip_path_with_profile(path: &Path, is_chat: bool, profile: ScanProfile) -> bool {
+    // Centralized policy: used by watcher and (now) shared with CLI.
+    !classify_path(path, is_chat, profile).include
+}
 
-    is_non_logic_extension(path)
+fn skip_reason_label(path: &Path, is_chat: bool, profile: ScanProfile) -> Option<&'static str> {
+    let decision = classify_path(path, is_chat, profile);
+    if decision.include {
+        return None;
+    }
+    Some(decision.reason.unwrap_or(SkipReason::IgnoredPathSegment).as_str())
 }
 
 #[allow(dead_code)]
@@ -587,6 +579,7 @@ pub struct WatcherRuntimeConfig {
     pub host: String,
     pub provider_id: String,
     pub auto_verify_enabled: bool,
+    pub scan_profile: ScanProfile,
 }
 
 pub async fn start_watching(
@@ -601,6 +594,7 @@ pub async fn start_watching(
         host,
         provider_id,
         auto_verify_enabled,
+        scan_profile,
     } = config;
 
     let (batch_tx, batch_rx) = tokio::sync::mpsc::channel(100);
@@ -622,6 +616,11 @@ pub async fn start_watching(
     info!(target: "guardian::watcher", "Cognitive indexing complete: {} files", project_context.total_files);
 
     info!(target: "guardian::watcher", "Watcher started on: {}", target_path);
+    info!(
+        target: "guardian::watcher",
+        "Scan profile active: {}",
+        scan_profile.as_str()
+    );
 
     // Scope is single-root; avoid leaking stale critiques across roots.
     if let Ok(mut lock) = ACTIVE_CRITIQUES.write() {
@@ -700,6 +699,7 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
     let batch_root = target_path.clone();
     let batch_auto_verify_enabled = auto_verify_enabled;
     let batch_shutdown = shutdown.clone();
+    let batch_profile = scan_profile;
     tokio::spawn(async move {
         batch_processing_loop(
             batch_rx,
@@ -709,6 +709,7 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
             batch_root,
             batch_auto_verify_enabled,
             batch_shutdown,
+            batch_profile,
         )
         .await;
     });
@@ -720,26 +721,44 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
 
     let scan_shutdown = shutdown.clone();
     let scan_semaphore = semaphore.clone();
+    let scan_profile_copy = scan_profile;
     tokio::task::spawn_blocking(move || {
-        info!(target: "guardian::watcher", "Performing initial scan");
+        use std::collections::HashMap;
+
+        let scan_limit = scan_profile_copy.initial_scan_limit();
+        info!(
+            target: "guardian::watcher",
+            "Performing initial scan (profile={}, limit={})",
+            scan_profile_copy.as_str(),
+            scan_limit
+        );
         let walker = ignore::WalkBuilder::new(&scan_root)
             .hidden(false)
             .git_ignore(true)
             .build();
 
-        let mut count = 0;
+        let mut included_count = 0usize;
+        let mut skipped_count = 0usize;
+        let mut limit_reached = false;
+        let mut skipped_by_reason: HashMap<&'static str, usize> = HashMap::new();
+
         for result in walker {
             if scan_shutdown.load(Ordering::Relaxed) {
                 break;
             }
-            if count > 200 {
+            if included_count >= scan_limit {
+                limit_reached = true;
                 break;
             }
             if let Ok(entry) = result {
                 if entry.file_type().map(|ft| ft.is_file()).unwrap_or(false) {
                     let path = entry.path().to_path_buf();
                     let is_chat = is_guardian_chat(&path);
-                    if should_skip_path(&path, is_chat) {
+                    if should_skip_path_with_profile(&path, is_chat, scan_profile_copy) {
+                        skipped_count += 1;
+                        if let Some(label) = skip_reason_label(&path, is_chat, scan_profile_copy) {
+                            *skipped_by_reason.entry(label).or_insert(0) += 1;
+                        }
                         continue;
                     }
 
@@ -753,11 +772,30 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
                         audit_file_logic(a_path, a_app, a_tx, a_sem).await;
                     });
 
-                    count += 1;
+                    included_count += 1;
                     std::thread::sleep(Duration::from_millis(20));
                 }
             }
         }
+
+        let mut reasons: Vec<(&'static str, usize)> = skipped_by_reason.into_iter().collect();
+        reasons.sort_by(|a, b| b.1.cmp(&a.1));
+        let reasons_preview = reasons
+            .into_iter()
+            .take(6)
+            .map(|(k, v)| format!("{k}={v}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+
+        info!(
+            target: "guardian::watcher",
+            "Initial scan summary (profile={}, included={}, skipped={}, limit_reached={}, skipped_by_reason=[{}])",
+            scan_profile_copy.as_str(),
+            included_count,
+            skipped_count,
+            limit_reached,
+            reasons_preview
+        );
     });
 
     // Notify Watcher Setup
@@ -791,6 +829,7 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
     let watch_debouncer = debouncer.clone();
     let watch_semaphore = semaphore.clone();
     let watch_shutdown = shutdown.clone();
+    let watch_profile = scan_profile;
 
     tokio::task::spawn_blocking(move || {
         use std::sync::mpsc::RecvTimeoutError;
@@ -809,6 +848,7 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
                             watch_debouncer.clone(),
                             watch_tx.clone(),
                             watch_semaphore.clone(),
+                            watch_profile,
                         );
                     }
                     Err(e) => warn!(target: "guardian::watcher", "Watch error: {:?}", e),
@@ -831,6 +871,7 @@ fn handle_event(
     debouncer: Arc<Mutex<HashMap<PathBuf, DebounceState>>>,
     tx: tokio::sync::mpsc::Sender<BatchItem>,
     semaphore: Arc<Semaphore>,
+    scan_profile: ScanProfile,
 ) {
     let should_audit = event.kind.is_modify() || event.kind.is_create();
     let should_clear = event.kind.is_remove();
@@ -880,7 +921,7 @@ fn handle_event(
             continue;
         }
 
-        if should_skip_path(&path, is_chat) {
+        if should_skip_path_with_profile(&path, is_chat, scan_profile) {
             continue;
         }
 
@@ -1101,6 +1142,7 @@ async fn batch_processing_loop(
     root: String,
     auto_verify_enabled: bool,
     shutdown: Arc<AtomicBool>,
+    scan_profile: ScanProfile,
 ) {
     let mut batch: Vec<BatchItem> = Vec::new();
     let flush_interval = Duration::from_secs(5); // 5s timeout
@@ -1120,6 +1162,7 @@ async fn batch_processing_loop(
                         &client,
                         &root,
                         auto_verify_enabled,
+                        scan_profile,
                         &mut last_request,
                     )
                     .await;
@@ -1131,7 +1174,8 @@ async fn batch_processing_loop(
                      batch.push(item);
                 }
 
-                if batch.len() >= config::max_batch_size() {
+                let effective_batch_size = std::cmp::min(config::max_batch_size(), scan_profile.max_batch_size());
+                if batch.len() >= effective_batch_size {
                     // FLUSH
                     process_batch(
                         &mut batch,
@@ -1139,6 +1183,7 @@ async fn batch_processing_loop(
                         &client,
                         &root,
                         auto_verify_enabled,
+                        scan_profile,
                         &mut last_request,
                     )
                     .await;
@@ -1155,6 +1200,7 @@ async fn process_batch(
     client: &Arc<AiClient>,
     root: &str,
     auto_verify_enabled: bool,
+    scan_profile: ScanProfile,
     last_request: &mut Instant,
 ) {
     if batch.is_empty() {
@@ -1168,7 +1214,12 @@ async fn process_batch(
     }
 
     let items = std::mem::take(batch);
-    info!(target: "guardian::watcher", "Batch processor flushing {} files", items.len());
+    info!(
+        target: "guardian::watcher",
+        "Batch processor flushing {} files (profile={})",
+        items.len(),
+        scan_profile.as_str()
+    );
 
     // Prepare Prompt Data
     let (prompt_data, estimated_tokens, hash_by_path, context_files) = build_prompt_data(&items);
@@ -1180,8 +1231,10 @@ async fn process_batch(
         let call = client.analyze_batch(prompt_data.clone()).await;
         *last_request = Instant::now();
         match call {
-            Ok(critiques) => {
-                let critiques = normalize_batch_critique_file_paths(Path::new(root), &items, critiques);
+            Ok(result) => {
+                let queue_wait_ms = result.queue_wait_ms;
+                let critiques =
+                    normalize_batch_critique_file_paths(Path::new(root), &items, result.value);
                 let critiques_for_semantic = critiques.clone();
                 handle_critiques(
                     app,
@@ -1190,8 +1243,21 @@ async fn process_batch(
                     &hash_by_path,
                     critiques,
                     estimated_tokens,
+                    1,
+                    items.len(),
                     auto_verify_enabled,
+                    scan_profile,
+                    queue_wait_ms,
                 );
+                app.emit(
+                    "guardian:info",
+                    format!(
+                        "Scan scope: {} (batch={})",
+                        scan_profile.as_str(),
+                        items.len()
+                    ),
+                )
+                .ok();
                 schedule_semantic_indexing(
                     app.clone(),
                     root.to_string(),
@@ -1231,11 +1297,12 @@ async fn process_batch(
                         emit_ai_context(app, root, client, single_tokens, &single_context);
                         append_ai_request_history(root, client, single_tokens, &single_context);
                         match client.analyze_batch(single_prompt).await {
-                            Ok(critiques) => {
+                            Ok(result) => {
+                                let queue_wait_ms = result.queue_wait_ms;
                                 let critiques = normalize_batch_critique_file_paths(
                                     Path::new(root),
                                     &single_items,
-                                    critiques,
+                                    result.value,
                                 );
                                 let critiques_for_semantic = critiques.clone();
                                 handle_critiques(
@@ -1245,7 +1312,11 @@ async fn process_batch(
                                     &single_hash,
                                     critiques,
                                     single_tokens,
+                                    1,
+                                    single_items.len(),
                                     auto_verify_enabled,
+                                    scan_profile,
+                                    queue_wait_ms,
                                 );
                                 schedule_semantic_indexing(
                                     app.clone(),
@@ -1262,6 +1333,11 @@ async fn process_batch(
                                     format!("Single-file audit failed. {}", err),
                                 )
                                 .ok();
+                                app.emit(
+                                    "guardian:usage",
+                                    json!({ "tokens": single_tokens, "calls": 1, "files": 1, "queue_wait_ms": 0 }),
+                                )
+                                .ok();
                             }
                         }
                         *last_request = Instant::now();
@@ -1275,7 +1351,7 @@ async fn process_batch(
                 // Still count the usage because we made the call
                 app.emit(
                     "guardian:usage",
-                    json!({ "tokens": estimated_tokens, "calls": items.len() }),
+                    json!({ "tokens": estimated_tokens, "calls": 1, "files": items.len(), "queue_wait_ms": 0 }),
                 )
                 .ok();
                 return;
@@ -1344,7 +1420,11 @@ fn handle_critiques(
     hash_by_path: &HashMap<String, String>,
     critiques: Vec<crate::ai_client::Critique>,
     estimated_tokens: u64,
+    api_calls: u64,
+    files_analyzed: usize,
     auto_verify_enabled: bool,
+    scan_profile: ScanProfile,
+    queue_wait_ms: u64,
 ) {
     let rules_hash = crate::skills::hasher::get_rules_fingerprint(root);
     let workspace_root = Path::new(root);
@@ -1385,7 +1465,7 @@ fn handle_critiques(
                     "reason": "lgtm"
                 }),
             );
-        } else if !should_surface_critique(&critique) {
+        } else if !should_surface_critique(&critique, scan_profile) {
             if active_lock.remove(&path_key).is_some() {
                 app.emit("guardian:clear", path_key.clone()).ok();
                 let rel_path = normalize_rel_file_path(workspace_root, &path_key);
@@ -1514,7 +1594,12 @@ fn handle_critiques(
 
     app.emit(
         "guardian:usage",
-        json!({ "tokens": estimated_tokens, "calls": items.len() }),
+        json!({
+            "tokens": estimated_tokens,
+            "calls": api_calls,
+            "files": files_analyzed,
+            "queue_wait_ms": queue_wait_ms
+        }),
     )
     .ok();
 }
@@ -1553,7 +1638,7 @@ fn schedule_semantic_indexing(
     let mut entries: Vec<crate::semantic_index::SemanticIndexInput> = Vec::new();
     for critique in critiques {
         if critique.message.trim().eq_ignore_ascii_case("lgtm")
-            || !should_surface_critique(&critique)
+            || !should_surface_critique(&critique, ScanProfile::Source)
         {
             continue;
         }
@@ -1663,6 +1748,18 @@ async fn audit_file_logic(
     semaphore: Arc<Semaphore>,
 ) {
     let _permit = semaphore.acquire_owned().await;
+
+    // Best-effort observability: why did we skip this file?
+    // Note: profile-aware skipping is enforced earlier in the pipeline. This is just a guardrail
+    // in case callers bypass should_skip_path_with_profile.
+    if skip_reason_label(&path, is_guardian_chat(&path), ScanProfile::Source).is_some() {
+        // Keep this in debug to avoid spamming the UI.
+        debug!(
+            target: "guardian::watcher",
+            "audit_file_logic called for skipped path: {}",
+            safe_path_label(&path)
+        );
+    }
 
     // PII Filter: Skip sensitive files
     if should_exclude_file(&path) {

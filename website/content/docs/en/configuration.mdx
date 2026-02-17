@@ -55,6 +55,20 @@ Toggle between **Light** and **Dark** themes:
 - Click the theme toggle in the Settings modal
 - Or use the theme toggle in the header
 
+## Scan Scope (v1.2.2)
+
+Scan Scope controls **which files** Guardian includes during monitoring (cost vs coverage).
+
+Open **Settings > General > Scan Scope** and choose:
+
+| Profile | What you get |
+|---------|--------------|
+| **Source** (default) | Code-focused monitoring. Skips docs/tests/scripts/lockfiles by default. |
+| **Extended** | Adds infra and security surfaces (Docker/CI/workflows/config/shell/locks). Still skips docs/tests by default. |
+| **Full** | Most text files (including docs/tests/scripts/workflows). Highest coverage and highest cost. |
+
+> Changes apply the next time monitoring starts (restart monitoring to apply).
+
 ## Web Search (Tavily)
 
 Enable AI-powered web search for Guru:
@@ -62,6 +76,19 @@ Enable AI-powered web search for Guru:
 1. Get an API key from [tavily.com](https://tavily.com)
 2. Enter the key in "Web Search API Key"
 3. Guru can now search the web for context
+
+### Search Depth
+
+In **Settings > Web Search**, you can control how deep the search should go:
+
+- **Auto**: Picks a sensible depth based on the query.
+- **Basic**: Good default for most questions.
+- **Advanced**: Higher recall (slower, more expensive).
+- **Fast / Ultra-fast**: Faster, smaller result sets.
+
+### URL Extract
+
+If your question includes a URL, Guru will prefer **URL extraction** to pull the most relevant chunks from that page (instead of doing a broad search first).
 
 ## Updates
 
@@ -112,7 +139,7 @@ your-project/
   "schema_version": 1,
   "created_at": "2026-02-10T12:00:00Z",
   "updated_at": "2026-02-10T12:00:00Z",
-  "guardian_version": "1.1.1",
+  "guardian_version": "1.2.2",
   "workspace_id": "sha256-hash",
   "rules_hash": "abc123...",
   "rules_source": ".agent/rules"

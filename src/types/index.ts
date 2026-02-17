@@ -205,6 +205,8 @@ export interface Stats {
 export interface UsageStats {
   tokens: number;
   calls: number;
+  files?: number;
+  queue_wait_ms?: number;
 }
 
 // Tauri abstraction

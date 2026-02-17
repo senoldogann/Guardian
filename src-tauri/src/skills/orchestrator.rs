@@ -96,6 +96,7 @@ impl AgentOrchestrator {
 
         match self.ai.ask_question(&prompt, "Review this fix").await {
             Ok(verdict) => {
+                let verdict = verdict.value;
                 if verdict.contains("LGTM") {
                     info!(target: "guardian::orchestrator", "Fix approved for: {}", path);
 
@@ -144,7 +145,8 @@ impl AgentOrchestrator {
             );
 
             match self.ai.analyze_diff(&path, &diff_sim).await {
-                Ok(critique) => {
+                Ok(result) => {
+                    let critique = result.value;
                     info!(target: "guardian::orchestrator", "Analysis complete for: {}", path);
 
                     // 1. Persist to Memory (DB)

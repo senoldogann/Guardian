@@ -169,6 +169,13 @@
     background-attachment: fixed;
   }
 
+  html.dark body {
+    background-color: #000000;
+    color: #ffffff;
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.08) 1px, transparent 0);
+  }
+
   ::selection {
     @apply bg-neutral-200 text-black dark:bg-neutral-700 dark:text-white;
   }

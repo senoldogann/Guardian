@@ -160,7 +160,11 @@ else
   echo "Release $TAG already exists in $DIST_REPO; assets will be replaced."
 fi
 
-echo "Generating releases.json snapshot ..."
+echo "Uploading assets to $DIST_REPO:$TAG ..."
+rm -f "$WORK_DIR/assets/releases.json" || true
+gh release upload "$TAG" "$WORK_DIR"/assets/* -R "$DIST_REPO" --clobber
+
+echo "Generating releases.json snapshot (post-upload) ..."
 GENERATED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 gh api "repos/${DIST_REPO}/releases?per_page=60" > "$WORK_DIR/dist-releases.raw.json"
 jq --arg generated_at "$GENERATED_AT" --arg repo "$DIST_REPO" '{
@@ -187,8 +191,8 @@ jq --arg generated_at "$GENERATED_AT" --arg repo "$DIST_REPO" '{
   }) // [])
 }' "$WORK_DIR/dist-releases.raw.json" > "$WORK_DIR/assets/releases.json"
 
-echo "Uploading assets to $DIST_REPO:$TAG ..."
-gh release upload "$TAG" "$WORK_DIR"/assets/* -R "$DIST_REPO" --clobber
+echo "Uploading releases.json snapshot ..."
+gh release upload "$TAG" "$WORK_DIR/assets/releases.json" -R "$DIST_REPO" --clobber >/dev/null
 
 if gh release download "$TAG" -R "$DIST_REPO" -p latest.json -D "$WORK_DIR" >/dev/null 2>&1; then
   if grep -q "https://github.com/${SOURCE_REPO}/releases/download/${TAG}/" "$WORK_DIR/latest.json"; then

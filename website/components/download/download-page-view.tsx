@@ -13,12 +13,12 @@ export async function DownloadPageView({ dict }: Props) {
   let fetchError: string | null = null;
 
   try {
-    const latestFromApi = await getLatestRelease();
-    let latest = latestFromApi;
+    const releases = await fetchReleaseSnapshot(1);
+    let latest = releases.at(0) ?? null;
 
+    // Fallback only if the snapshot is unavailable for any reason.
     if (!latest) {
-      const releases = await fetchReleaseSnapshot(1);
-      latest = releases[0];
+      latest = await getLatestRelease();
     }
 
     if (latest) {

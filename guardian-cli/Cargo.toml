@@ -17,6 +17,7 @@ secrecy = "0.10"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
+guardian-scan-policy = { path = "../guardian-scan-policy" }
 
 [dev-dependencies]
 tempfile = "3"
