@@ -1,31 +1,69 @@
-name: Guardian Scan
+name: "Guardian Scan (PR Summary)"
 
 on:
   pull_request:
-  push:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
-  security-events: write
+  pull-requests: write
 
 jobs:
-  guardian:
+  guardian-scan:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: "Checkout"
+        uses: actions/checkout@v4
 
-      - name: Run Guardian (offline)
-        uses: ./.github/actions/guardian
+      - name: "Setup Rust"
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: "Setup Node"
+        uses: actions/setup-node@v4
         with:
-          root: "."
-          format: "sarif"
-          out: "guardian-report.sarif"
-          offline: "true"
+          node-version: "22.x"
 
-      - name: Upload SARIF
+      - name: "Build guardian-cli"
+        run: |
+          cd guardian-cli
+          cargo build --release
+
+      - name: "Run guardian-cli scan (JSON)"
+        id: scan
+        run: |
+          set +e
+          guardian-cli/target/release/guardian-cli scan \
+            --root . \
+            --format json \
+            --out guardian-report.json \
+            --offline \
+            --scan-profile source \
+            --pr-gate critical-only
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+          set -e
+
+      - name: "Render PR comment"
+        if: github.event_name == 'pull_request'
+        run: node scripts/ci/render_guardian_pr_comment.mjs guardian-report.json > guardian-pr-comment.md
+
+      - name: "Post PR comment"
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: guardian-pr-comment.md
+
+      - name: "Upload scan artifacts"
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: actions/upload-artifact@v4
         with:
-          sarif_file: guardian-report.sarif
+          name: guardian-scan
+          path: |
+            guardian-report.json
+            guardian-pr-comment.md
+          retention-days: 7
+
+      - name: "PR gate (fail on new critical)"
+        if: steps.scan.outputs.exit_code != '0'
+        run: exit 1

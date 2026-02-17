@@ -2030,6 +2030,22 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
   - `cd guardian && npm run verify` ✅ (unit 64/64, coverage gate OK, e2e 17/17, build PASS, rust 70/70)
   - `cd guardian/guardian-cli && cargo test` ✅ (12/12)
 
+### v1.2.2 Integrations - Phase 16 (GitHub PR Summary Template: guardian-cli) (2026-02-17)
+- Amaç:
+  - CI/PR akışında Guardian bulgularını PR üzerinde okunur bir özet olarak göstermek ve yeni critical varsa gate etmek.
+- Uygulanan değişiklikler:
+  - `.github/workflows/guardian-scan.yml`
+    - `guardian-cli` build + offline scan + PR comment şablonu eklendi:
+      - JSON rapor: `guardian-report.json`
+      - Sticky PR comment: `guardian-pr-comment.md`
+      - Gate: `--pr-gate critical-only` (new critical -> job fail)
+      - Artifacts upload (debug için)
+  - `scripts/ci/render_guardian_pr_comment.mjs`
+    - CLI JSON rapordan kısa PR summary markdown üretir (Top 10 new findings + counts).
+- Phase 16 testleri:
+  - `cd guardian && npm run verify` ✅ (format check + lint + unit + e2e + build + rust)
+  - `cd guardian/guardian-cli && cargo test` ✅ (12/12)
+
 ## Kararlar ve Varsayımlar (Kilitleme)
 
 ### 1. CI'da Cloud AI Kullanımı
