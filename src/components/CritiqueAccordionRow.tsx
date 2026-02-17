@@ -1,6 +1,7 @@
 import React, { type ReactElement, MouseEvent } from "react";
 import { invoke } from "../lib/tauri";
 import clsx from "clsx";
+import { useToast } from "../hooks/useToast";
 import {
     ShieldAlert,
     BadgeInfo,
@@ -37,6 +38,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ l
     const severity = log.severity.toLowerCase();
     const isCritical = severity === "critical";
     const isWarning = severity === "warning";
+    const { showToast, showError, showSuccess } = useToast();
 
     // Improved Path Logic: Handle short paths and Windows/Unix separators
     const parts = log.file_path.split(/[/\\]/);
@@ -59,10 +61,14 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ l
         try {
             await invoke("apply_fix", { filePath: log.file_path, newContent: log.suggested_diff });
             // Governance Update
-            alert("Governance Review Started! 🛡️\nCheck Guru Chat for the final verification result and to approve the patch.");
+            showToast(
+                "Review started. Check Guru Chat for the final verification result and approve the patch.",
+                "info",
+                5000
+            );
             onFix(); // Remove from UI as it's now in the 'Review' phase
         } catch (err) {
-            alert("Failed to start review: " + err);
+            showError(`Failed to start review: ${String(err)}`, 6000);
         }
     };
 
@@ -209,8 +215,14 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ l
                                         <button
                                             onClick={() => {
                                                 invoke("apply_fix", { filePath: log.file_path, newContent: log.suggested_diff })
-                                                    .then(() => alert("Review Requested! 🛡️\nPlease confirm the final patch in the Chat view."))
-                                                    .catch(e => alert("Failed to start review: " + e));
+                                                    .then(() => {
+                                                        showSuccess(
+                                                            "Review requested. Please confirm the final patch in the Guru chat.",
+                                                            5000
+                                                        );
+                                                        onFix();
+                                                    })
+                                                    .catch(e => showError(`Failed to start review: ${String(e)}`, 6000));
                                             }}
                                             className="w-full py-2 bg-[var(--accent-500)] hover:opacity-90 text-background font-bold rounded-lg text-xs transition-colors shadow-lg shadow-black/40 flex items-center justify-center gap-2 cursor-pointer"
                                         >

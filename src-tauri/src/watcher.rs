@@ -1517,7 +1517,7 @@ fn handle_critiques(
                 }
                 let r_clone = root.to_string();
                 let a_clone = app.clone();
-                std::thread::spawn(move || {
+                tokio::task::spawn_blocking(move || {
                     a_clone
                         .emit(
                             "guardian:analyzing",

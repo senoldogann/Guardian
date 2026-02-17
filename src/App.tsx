@@ -26,12 +26,7 @@ import type {
   FixProposal,
 } from "./types";
 import { STORAGE_KEYS } from "./constants";
-
-function critiqueStateKey(critique: Critique): string {
-  const finding = critique.finding_id?.trim();
-  if (finding) return finding;
-  return critique.file_path;
-}
+import { critiqueStateKey } from "./lib/critiqueStateKey";
 
 function isSystemLogEntry(key: string, critique: Critique): boolean {
   return key.startsWith("System") || critique.file_path.startsWith("System");

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, useRef, useState, type ReactElement } from "react";
 import clsx from "clsx";
 import {
   Moon,
@@ -15,6 +15,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { openExternal } from "../lib/tauri";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 export type EmbeddingMode = "auto" | "openai" | "ollama" | "local";
 export type SettingsTab = "general" | "provider" | "embedding" | "web" | "updates" | "export";
@@ -225,7 +226,15 @@ export function SettingsModal({
   settingsTab,
   onSettingsTabChange,
 }: SettingsModalProps): ReactElement | null {
-  if (!open) return null;
+  const modalRef = useRef<HTMLDivElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useFocusTrap({
+    active: open,
+    containerRef: modalRef,
+    onEscape: onClose,
+    initialFocusRef: closeButtonRef,
+  });
 
   const {
     providerDraft,
@@ -347,12 +356,34 @@ export function SettingsModal({
     void openExternal("https://github.com/settings/personal-access-tokens/new");
   };
 
+  if (!open) {
+    return null;
+  }
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
-      <div className="max-w-3xl w-[92%] bg-surface border border-border-main rounded-2xl p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="guardian-settings-title"
+        className="max-w-3xl w-[92%] bg-surface border border-border-main rounded-2xl p-6 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto"
+      >
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h3 className="text-sm font-black uppercase tracking-widest text-text-main">Setup & Settings</h3>
+            <h3
+              id="guardian-settings-title"
+              className="text-sm font-black uppercase tracking-widest text-text-main"
+            >
+              Setup & Settings
+            </h3>
             <p className="text-xs text-text-muted">Configure provider, API key, and updates. Changes apply on next session or monitoring restart.</p>
           </div>
           <div className="flex items-center gap-2">
@@ -366,6 +397,7 @@ export function SettingsModal({
             <button
               onClick={onClose}
               className="px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 transition-colors cursor-pointer text-xs uppercase tracking-widest"
+              ref={closeButtonRef}
             >
               Close
             </button>

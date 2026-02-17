@@ -168,8 +168,7 @@ fn render_sarif(report: &ScanReport) -> Result<String> {
             "message": { "text": finding.message },
             "locations": [{
                 "physicalLocation": {
-                    "artifactLocation": { "uri": finding.file_path },
-                    "region": { "startLine": 1 }
+                    "artifactLocation": { "uri": finding.file_path }
                 }
             }],
             "properties": {

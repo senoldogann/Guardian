@@ -1948,6 +1948,47 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
   - `cd guardian/guardian-cli && cargo test` ✅ (8/8)
   - `cd guardian && npm run verify` ✅
 
+### v1.2.2 Quality - Phase 13 (Review Output Remediation: Modals + UX + Backend Cleanup) (2026-02-17)
+- Root cause:
+  - Review raporunda UX ve stabilite açısından birkaç somut risk vardı:
+    - UI: native `alert()` kullanımı, modal focus trap eksikliği, modal erişilebilir isimlendirme eksikliği.
+    - UI: `DiagramView` içinde cleanup’siz `setTimeout` (unmount sonrası callback riski).
+    - Backend: auto-verify yolunda `std::thread::spawn` (Tokio ekosistemiyle uyumsuz).
+    - CLI: SARIF çıktısında `startLine: 1` hardcoded (yanlış highlight).
+    - Website: CSP header’ları iki farklı yerde yönetiliyordu (drift riski).
+- Uygulanan değişiklikler:
+  - Desktop UI:
+    - `src/components/CritiqueAccordionRow.tsx`
+      - `alert()` kaldırıldı; Toast sistemi ile bilgilendirme (`info/success/error`) yapılıyor.
+    - `src/hooks/useFocusTrap.ts`
+      - Basit focus trap + Escape handling eklendi (Tab wrap, focus restore).
+    - `src/components/SettingsModal.tsx`
+      - `role="dialog"` + `aria-modal` + `aria-labelledby` eklendi.
+      - Backdrop click ile close (yalnız backdrop click) eklendi.
+      - Focus trap aktif edildi (initial focus: Close).
+    - `src/components/ChatView.tsx`
+      - Clear confirmation modal’ına `role="dialog"` + `aria-*` + focus trap + backdrop click ile close eklendi.
+    - `src/components/StallOverlay.tsx`
+      - Modal’a `aria-labelledby` eklendi (E2E/AT için stabil accessible name).
+    - `src/components/DiagramView.tsx`
+      - Toggle sonrası kullanılan `setTimeout` için cleanup + de-bounce (pending timer clear) eklendi.
+    - Küçük refactor:
+      - `src/lib/critiqueStateKey.ts`: `finding_id` öncelikli state key helper tekilleştirildi.
+      - `src/lib/uiFormat.ts`: `basenameOf`, `formatTimestamp`, `copyToClipboard` helper’ları tekilleştirildi.
+  - Backend:
+    - `src-tauri/src/watcher.rs`
+      - Auto-verify path’i `tokio::task::spawn_blocking` ile çalışacak şekilde güncellendi.
+  - CLI:
+    - `guardian-cli/src/output.rs`
+      - SARIF çıktısından yanlış `region.startLine=1` kaldırıldı (unknown line yerine region omit).
+  - Website:
+    - `website/middleware.ts` kaldırıldı; CSP + security header kaynağı tekleştirildi (Next headers).
+- Phase 13 testleri:
+  - `cd guardian && npm run verify` ✅ (unit 64/64, coverage gate OK, e2e 17/17, build PASS, rust 70/70)
+  - `cd guardian/guardian-cli && cargo test` ✅ (8/8)
+  - `cd guardian/website && npm run test:run` ✅ (107/107)
+  - `cd guardian/website && npm run build` ✅
+
 ## Kararlar ve Varsayımlar (Kilitleme)
 
 ### 1. CI'da Cloud AI Kullanımı

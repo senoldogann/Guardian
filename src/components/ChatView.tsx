@@ -26,6 +26,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSanitize from "rehype-sanitize";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 interface ReviewDecisionPayload {
     file_path: string;
@@ -86,6 +87,8 @@ export function ChatView({
     const [rejectedFixes, setRejectedFixes] = useState<Set<number>>(new Set());
     const [guideOpen, setGuideOpen] = useState(false);
     const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+    const clearConfirmRef = useRef<HTMLDivElement | null>(null);
+    const clearCancelRef = useRef<HTMLButtonElement | null>(null);
     const ignoreResponseRef = useRef(false);
     const autoPromptRef = useRef<string | null>(null);
     const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -96,6 +99,13 @@ export function ChatView({
     const [thinkingMessageIndex, setThinkingMessageIndex] = useState(0);
     const [plusMenuOpen, setPlusMenuOpen] = useState(false);
     const plusMenuRef = useRef<HTMLDivElement>(null);
+
+    useFocusTrap({
+        active: clearConfirmOpen,
+        containerRef: clearConfirmRef,
+        onEscape: () => setClearConfirmOpen(false),
+        initialFocusRef: clearCancelRef,
+    });
 
     // Close plus menu on outside click
     useEffect(() => {
@@ -491,16 +501,36 @@ export function ChatView({
                 </div>
             </div>
             {clearConfirmOpen && (
-                <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center">
-                    <div className="max-w-sm w-[90%] bg-surface border border-border-main rounded-2xl p-5 shadow-2xl">
-                        <div className="text-sm font-bold uppercase tracking-widest text-text-main mb-2">Are you sure?</div>
-                        <p className="text-xs text-text-muted">
+                <div
+                    className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center"
+                    onMouseDown={(e) => {
+                        if (e.target === e.currentTarget) {
+                            setClearConfirmOpen(false);
+                        }
+                    }}
+                >
+                    <div
+                        ref={clearConfirmRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="guardian-clear-chat-title"
+                        aria-describedby="guardian-clear-chat-desc"
+                        className="max-w-sm w-[90%] bg-surface border border-border-main rounded-2xl p-5 shadow-2xl"
+                    >
+                        <div
+                            id="guardian-clear-chat-title"
+                            className="text-sm font-bold uppercase tracking-widest text-text-main mb-2"
+                        >
+                            Are you sure?
+                        </div>
+                        <p id="guardian-clear-chat-desc" className="text-xs text-text-muted">
                             This will permanently delete the current chat history for this workspace.
                         </p>
                         <div className="mt-4 flex justify-end gap-2">
                             <button
                                 onClick={() => setClearConfirmOpen(false)}
                                 className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-text-main rounded-md transition-colors cursor-pointer"
+                                ref={clearCancelRef}
                             >
                                 Cancel
                             </button>

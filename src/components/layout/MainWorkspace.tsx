@@ -15,6 +15,7 @@ import type {
   FixProposalsSnapshot,
   ProjectContext,
 } from "../../types";
+import { critiqueStateKey } from "../../lib/critiqueStateKey";
 
 export interface MainWorkspaceProps {
   view: "monitor" | "chat" | "diagram" | "ai-context" | "reviews";
@@ -56,12 +57,6 @@ export interface MainWorkspaceProps {
   contextError: string | null;
   context: ProjectContext | null;
   scopeLabel: string;
-}
-
-function critiqueStateKey(critique: Critique): string {
-  const finding = critique.finding_id?.trim();
-  if (finding) return finding;
-  return critique.file_path;
 }
 
 export function MainWorkspace({

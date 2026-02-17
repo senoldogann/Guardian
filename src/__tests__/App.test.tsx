@@ -245,7 +245,7 @@ describe("App", () => {
 
     expect(await screen.findByText("Critical Stall")).toBeInTheDocument();
 
-    const dialog = screen.getByRole("dialog");
+    const dialog = screen.getByRole("dialog", { name: /critical stall/i });
     fireEvent.click(within(dialog).getByRole("button", { name: /resolve in guru/i }));
 
     expect(screen.queryByText("Critical Stall")).not.toBeInTheDocument();
