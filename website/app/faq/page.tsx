@@ -62,6 +62,10 @@ const faqCategories = [
         a: "Use Settings > General > Scan Scope. Source (default) focuses on code and skips docs/tests/scripts/lockfiles. Extended adds infra and security surfaces (Docker/CI/locks/config). Full scans most text files for deep one-off audits."
       },
       {
+        q: "How do I use web search with Guru?",
+        a: "Add your Tavily key in Settings > Web Search, then toggle Web Search on. To force web search for a single message, prefix your question with /web or include @web. If your message includes a URL, Guardian prefers focused URL extraction; otherwise it uses web search. You can tune Search Depth (Basic/Advanced/Fast/Ultra-fast/Auto) in Settings."
+      },
+      {
         q: "Why don't I see findings after restarting Guardian?",
         a: "On launch, the monitor view hydrates from .guardian/critiques.json and then merges live updates. If the list is empty, confirm the snapshot file exists and relaunch the app or run a new scan to regenerate findings."
       },

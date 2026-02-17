@@ -48,9 +48,9 @@ Or go to **System Preferences > Security & Privacy** and click "Open Anyway"
 
 **Solutions**:
 1. Wait 1 minute for rate limit reset
-2. Reduce concurrent scans
-3. Increase rate limit in **Settings > Provider** (if supported by your provider)
-4. Check provider dashboard for usage limits
+2. Reduce concurrent activity (pause monitoring, or avoid rapid file saves during large refactors)
+3. Switch to a different provider/model temporarily (or use a local provider like Ollama)
+4. Check provider dashboard for usage limits and plan/quota settings
 
 ### "Provider Unavailable"
 
@@ -215,9 +215,9 @@ Or go to **System Preferences > Security & Privacy** and click "Open Anyway"
 ### Incorrect suggestions from Guru
 
 **Solutions**:
-1. Provide correction feedback (click thumbs down)
-2. Add more context about the codebase
-3. Clarify the question or requirements
+1. Add more constraints and context to your prompt (file path, expected behavior, failure mode)
+2. Ask for the FULL updated file content only (no diff markers, no markdown) when you need copy/paste-ready output
+3. Try a different model/provider if you need deeper reasoning
 4. Check if the right model is selected for the task
 
 ## Performance Issues

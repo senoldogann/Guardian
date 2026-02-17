@@ -31,12 +31,10 @@ Choose your AI provider from the dropdown:
 
 After selecting a provider, choose a model. Available models are fetched automatically from the provider.
 
-**Popular choices:**
-- **Ollama**: llama3.2, codellama, mistral
-- **OpenAI**: gpt-4o, gpt-4o-mini
-- **Anthropic**: claude-sonnet-4-20250514, claude-haiku
-- **Gemini**: gemini-2.0-flash, gemini-2.5-pro
-- **GitHub Models**: GitHub-hosted models
+**Choosing a model:**
+- Prefer a faster model for day-to-day monitoring and quick Guru questions.
+- Use a deeper model when you need higher-quality architectural analysis.
+- For Ollama, pick a model you already pulled locally (for example: `ollama pull <model>`).
 
 ### API Key Management
 
@@ -74,7 +72,7 @@ Open **Settings > General > Scan Scope** and choose:
 Enable AI-powered web search for Guru:
 
 1. Get an API key from [tavily.com](https://tavily.com)
-2. Enter the key in "Web Search API Key"
+2. Enter the key in the "Tavily API Key" field
 3. Guru can now search the web for context
 
 ### Search Depth
@@ -89,6 +87,21 @@ In **Settings > Web Search**, you can control how deep the search should go:
 ### URL Extract
 
 If your question includes a URL, Guru will prefer **URL extraction** to pull the most relevant chunks from that page (instead of doing a broad search first).
+
+### Per-Message Overrides
+
+You can force web search for a single question by adding:
+
+- `/web` prefix (for example: `/web explain the latest Node.js LTS changes`)
+- `@web` tag anywhere in the question
+
+This works even if Web Search is off, but it still requires a Tavily key.
+
+### Best Practices
+
+1. Keep web queries short and specific (Guardian truncates Tavily queries to ~400 characters).
+2. Use `site:example.com` when you already know the best source domain.
+3. Prefer a URL + a clear instruction when you want one page summarized (Extract is tighter than broad Search).
 
 ## Updates
 

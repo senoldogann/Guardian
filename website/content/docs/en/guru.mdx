@@ -37,12 +37,37 @@ Guru understands natural language queries:
 
 ### Web Search
 
-Enable web search by toggling it on in Settings (requires a Tavily key). You can also add `/web` or `@web` to your query:
+Guardian can use Tavily to pull up-to-date information from the web. Web search is opt-in and requires a Tavily API key.
+
+Enable it in **Settings > Web Search**. You can also force web search for a single message by adding `/web` or `@web`:
 
 ```
 "/web What are the latest React best practices?"
 "Explain the latest TypeScript 5 features @web"
 ```
+
+### How It Works
+
+- If no Tavily key is stored, web search requests will fail (web search is optional; you can keep it off).
+- If your message includes a URL, Guardian prefers Tavily **Extract** (focused extraction from the page).
+- Otherwise Guardian uses Tavily **Search** (top results + short answer).
+- The Tavily request contains your question (not your code). The extracted/search results are appended into the Guru context so your AI provider can cite them.
+
+### Search Depth
+
+You can control depth in **Settings > Web Search**:
+
+- **Basic**: best default (fast and relevant)
+- **Advanced**: highest recall (slower)
+- **Fast / Ultra-fast**: quickest response (smaller result set)
+- **Auto**: Guardian picks depth from your query (for example, “latest”, “pricing”, “CVE”, “security advisory” tends to trigger advanced depth)
+
+### Best Practices (Better Results, Lower Cost)
+
+1. Keep queries short and specific (Guardian truncates Tavily queries to ~400 characters).
+2. Split complex questions into a few focused requests instead of one long prompt.
+3. Use `site:example.com` to restrict sources when you already know the best domain.
+4. Prefer a URL + a clear instruction when you want one page summarized (Extract is tighter than broad Search).
 
 ## Applying Fixes
 
