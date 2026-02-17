@@ -64,7 +64,7 @@ describe("useSettings", () => {
     };
     const ollamaProvider = {
       provider_id: "ollama",
-      base_url: "http://127.0.0.1:11434",
+      base_url: "http://localhost:11434",
       model: "llama3",
     };
 
@@ -229,7 +229,8 @@ describe("useSettings", () => {
 
     await waitFor(() => {
       expect(mockExportPdfFn).toHaveBeenCalled();
-      expect(result.current.exportPdfMessage).toContain("browser download flow");
+      expect(result.current.exportPdfMessage).toBeNull();
+      expect(result.current.exportPdfError).toBeNull();
     });
   });
 

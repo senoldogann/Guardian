@@ -3,11 +3,20 @@ import { invoke, isTauriRuntime } from "../lib/tauri";
 import type { Critique } from "../components/CritiqueAccordionRow";
 import { STORAGE_KEYS } from "../constants";
 import type { ExportAuditPdfResult } from "../lib/exportAuditPdf";
+import { useToast } from "./useToast";
 
 export type ProviderConfig = {
   provider_id: string;
   base_url: string;
   model: string;
+};
+
+export type ProviderConnectionTestResult = {
+  ok: boolean;
+  provider_id: string;
+  base_url: string;
+  model: string;
+  message: string;
 };
 
 export type ApiKeyStatus = {
@@ -51,7 +60,7 @@ export type UpdateCheckResult = {
 };
 
 export const PROVIDER_OPTIONS = [
-  { id: "ollama", label: "Ollama (Local/Hosted)", baseUrl: "http://127.0.0.1:11434" },
+  { id: "ollama", label: "Ollama (Local/Hosted)", baseUrl: "http://localhost:11434" },
   { id: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1" },
   { id: "anthropic", label: "Anthropic (Claude)", baseUrl: "https://api.anthropic.com/v1" },
   { id: "gemini", label: "Google Gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta" },
@@ -86,7 +95,7 @@ const buildFallbackUpdateInfo = (
 const DEFAULT_EMBEDDING_CONFIG: EmbeddingRuntimeConfig = {
   mode: "auto",
   openai_base_url: "",
-  ollama_base_url: "http://127.0.0.1:11434",
+  ollama_base_url: "http://localhost:11434",
   openai_model: "text-embedding-3-small",
   ollama_model: "nomic-embed-text",
 };
@@ -115,6 +124,9 @@ export interface UseSettingsReturn {
   providerModels: string[];
   providerModelLoading: boolean;
   providerModelError: string | null;
+  providerTestLoading: boolean;
+  providerTestMessage: string | null;
+  providerTestError: string | null;
 
   // Embeddings
   embeddingDraft: EmbeddingRuntimeConfig | null;
@@ -168,6 +180,7 @@ export interface UseSettingsReturn {
   onModelChange: (value: string) => void;
   refreshProviderModels: (force?: boolean, resetModel?: boolean, override?: ProviderConfig) => Promise<void>;
   saveProviderSettings: () => Promise<void>;
+  testProviderConnection: () => Promise<void>;
   onEmbeddingModeChange: (mode: EmbeddingMode) => void;
   onEmbeddingOpenAiBaseUrlChange: (value: string) => void;
   onEmbeddingOllamaBaseUrlChange: (value: string) => void;
@@ -214,6 +227,7 @@ export function useSettings(
   settingsOpen = false
 ): UseSettingsReturn {
   const isDesktop = isTauriRuntime();
+  const toast = useToast();
 
   // Provider state
   const [providerDraft, setProviderDraft] = useState<ProviderConfig | null>(null);
@@ -222,6 +236,10 @@ export function useSettings(
   const [providerModels, setProviderModels] = useState<string[]>([]);
   const [providerModelLoading, setProviderModelLoading] = useState(false);
   const [providerModelError, setProviderModelError] = useState<string | null>(null);
+  const [providerTestLoading, setProviderTestLoading] = useState(false);
+  const [providerTestMessage, setProviderTestMessage] = useState<string | null>(null);
+  const [providerTestError, setProviderTestError] = useState<string | null>(null);
+  const providerTestMessageTimerRef = useRef<number | null>(null);
   const providerModelCacheRef = useRef<Map<string, string[]>>(new Map());
   const providerIdentityRef = useRef<{ id: string; base_url: string } | null>(null);
 
@@ -356,12 +374,13 @@ export function useSettings(
       const raw = (res?.profile ?? scanProfile).toString().toLowerCase();
       const normalized: ScanProfile = raw === "extended" || raw === "full" ? raw : "source";
       setScanProfile(normalized);
+      toast.showSuccess("Scan scope saved.", 2500);
     } catch (e: unknown) {
       setScanProfileError(e instanceof Error ? e.message : String(e));
     } finally {
       setScanProfileSaving(false);
     }
-  }, [isDesktop, scanProfile]);
+  }, [isDesktop, scanProfile, toast]);
 
   const onWebSearchDepthChange = useCallback((value: WebSearchDepth): void => {
     setWebSearchDepth(normalizeWebSearchDepth(value));
@@ -650,12 +669,13 @@ export function useSettings(
       const normalized = normalizeEmbeddingConfig(applied);
       setEmbeddingDraft(normalized);
       persistEmbeddingConfig(normalized);
+      toast.showSuccess("Embedding settings saved.", 2500);
     } catch (e: unknown) {
       setEmbeddingError(e instanceof Error ? e.message : String(e));
     } finally {
       setEmbeddingSaving(false);
     }
-  }, [isDesktop, embeddingDraft, persistEmbeddingConfig]);
+  }, [isDesktop, embeddingDraft, persistEmbeddingConfig, toast]);
 
   const onEmbeddingOpenAiKeyFocus = useCallback((): void => {
     if (embeddingOpenAiKeyMasked) {
@@ -680,12 +700,13 @@ export function useSettings(
       await invoke("set_user_api_key", { apiKey: trimmed, providerId: "openai" });
       const status = await invoke<ApiKeyStatus>("get_api_key_status", { providerId: "openai" });
       applyEmbeddingOpenAiKeyStatus(status);
+      toast.showSuccess("Embedding key saved.", 2500);
     } catch (e: unknown) {
       setEmbeddingOpenAiKeyError(e instanceof Error ? e.message : String(e));
     } finally {
       setEmbeddingOpenAiKeySaving(false);
     }
-  }, [isDesktop, embeddingOpenAiKeyInput, embeddingOpenAiKeyMasked, applyEmbeddingOpenAiKeyStatus]);
+  }, [isDesktop, embeddingOpenAiKeyInput, embeddingOpenAiKeyMasked, applyEmbeddingOpenAiKeyStatus, toast]);
 
   const clearEmbeddingOpenAiKey = useCallback(async (): Promise<void> => {
     if (!isDesktop) return;
@@ -695,18 +716,21 @@ export function useSettings(
       await invoke("clear_user_api_key", { providerId: "openai" });
       const status = await invoke<ApiKeyStatus>("get_api_key_status", { providerId: "openai" });
       applyEmbeddingOpenAiKeyStatus(status);
+      toast.showSuccess("Embedding key cleared.", 2500);
     } catch (e: unknown) {
       setEmbeddingOpenAiKeyError(e instanceof Error ? e.message : String(e));
     } finally {
       setEmbeddingOpenAiKeySaving(false);
     }
-  }, [isDesktop, applyEmbeddingOpenAiKeyStatus]);
+  }, [isDesktop, applyEmbeddingOpenAiKeyStatus, toast]);
 
   const onProviderChange = useCallback((nextId: string): void => {
     const defaults = getProviderDefaults(nextId);
     const snapshot = { provider_id: nextId, base_url: defaults.baseUrl, model: "" };
     setProviderModels([]);
     setProviderModelError(null);
+    setProviderTestMessage(null);
+    setProviderTestError(null);
     setProviderDraft(prev => prev ? {
       ...prev,
       provider_id: nextId,
@@ -717,10 +741,14 @@ export function useSettings(
   }, []);
 
   const onBaseUrlChange = useCallback((value: string): void => {
+    setProviderTestMessage(null);
+    setProviderTestError(null);
     setProviderDraft(prev => prev ? { ...prev, base_url: value } : prev);
   }, []);
 
   const onModelChange = useCallback((value: string): void => {
+    setProviderTestMessage(null);
+    setProviderTestError(null);
     setProviderDraft(prev => prev ? { ...prev, model: value } : prev);
   }, []);
 
@@ -790,12 +818,54 @@ export function useSettings(
         },
       });
       setProviderDraft(res);
+      toast.showSuccess("Provider settings saved.", 2500);
     } catch (e: unknown) {
       setProviderError(e instanceof Error ? e.message : String(e));
     } finally {
       setProviderSaving(false);
     }
-  }, [isDesktop, providerDraft]);
+  }, [isDesktop, providerDraft, toast]);
+
+  const testProviderConnection = useCallback(async (): Promise<void> => {
+    if (!isDesktop || !providerDraft) return;
+    setProviderTestLoading(true);
+    setProviderTestMessage(null);
+    setProviderTestError(null);
+    try {
+      const defaults = getProviderDefaults(providerDraft.provider_id);
+      const baseUrl = providerDraft.base_url.trim() || defaults.baseUrl;
+      const model = providerDraft.model.trim();
+      if (!baseUrl || !model) {
+        throw new Error("Provider base URL and model are required.");
+      }
+      if (!isValidUrl(baseUrl)) {
+        throw new Error("Provider base URL must be a valid http/https URL.");
+      }
+
+      const res = await invoke<ProviderConnectionTestResult>("test_provider_connection", {
+        config: {
+          ...providerDraft,
+          base_url: baseUrl,
+          model,
+        },
+      });
+      // UX: keep success messaging short and consistent (toast only).
+      // Backend message can contain details; we intentionally do not show it here.
+      toast.showSuccess("Connection OK.", 3000);
+
+      if (providerTestMessageTimerRef.current) {
+        window.clearTimeout(providerTestMessageTimerRef.current);
+      }
+      providerTestMessageTimerRef.current = window.setTimeout(() => {
+        setProviderTestMessage(null);
+      }, 3000);
+      void res;
+    } catch (e: unknown) {
+      setProviderTestError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setProviderTestLoading(false);
+    }
+  }, [isDesktop, providerDraft, toast]);
 
   const onApiKeyFocus = useCallback((): void => {
     if (apiKeyMasked) {
@@ -826,12 +896,13 @@ export function useSettings(
         providerId: providerDraft?.provider_id,
       });
       applyApiKeyStatus(status);
+      toast.showSuccess("API key saved.", 2500);
     } catch (e: unknown) {
       setApiKeyError(e instanceof Error ? e.message : String(e));
     } finally {
       setApiKeySaving(false);
     }
-  }, [isDesktop, providerDraft, apiKeyInput, apiKeyMasked, applyApiKeyStatus]);
+  }, [isDesktop, providerDraft, apiKeyInput, apiKeyMasked, applyApiKeyStatus, toast]);
 
   const clearApiKey = useCallback(async (): Promise<void> => {
     if (!isDesktop) return;
@@ -847,12 +918,13 @@ export function useSettings(
         providerId: providerDraft?.provider_id,
       });
       applyApiKeyStatus(status);
+      toast.showSuccess("API key cleared.", 2500);
     } catch (e: unknown) {
       setApiKeyError(e instanceof Error ? e.message : String(e));
     } finally {
       setApiKeySaving(false);
     }
-  }, [isDesktop, providerDraft, applyApiKeyStatus]);
+  }, [isDesktop, providerDraft, applyApiKeyStatus, toast]);
 
   const onTavilyKeyFocus = useCallback((): void => {
     if (tavilyKeyMasked) {
@@ -877,12 +949,13 @@ export function useSettings(
       await invoke("set_tavily_key", { key: trimmed });
       const status = await invoke<TavilyKeyStatus>("get_tavily_key_status");
       applyTavilyStatus(status);
+      toast.showSuccess("Tavily key saved.", 2500);
     } catch (e: unknown) {
       setTavilyKeyError(e instanceof Error ? e.message : String(e));
     } finally {
       setTavilyKeySaving(false);
     }
-  }, [isDesktop, tavilyKeyInput, tavilyKeyMasked, applyTavilyStatus]);
+  }, [isDesktop, tavilyKeyInput, tavilyKeyMasked, applyTavilyStatus, toast]);
 
   const clearTavilyKey = useCallback(async (): Promise<void> => {
     if (!isDesktop) return;
@@ -892,12 +965,13 @@ export function useSettings(
       await invoke("clear_tavily_key");
       const status = await invoke<TavilyKeyStatus>("get_tavily_key_status");
       applyTavilyStatus(status);
+      toast.showSuccess("Tavily key cleared.", 2500);
     } catch (e: unknown) {
       setTavilyKeyError(e instanceof Error ? e.message : String(e));
     } finally {
       setTavilyKeySaving(false);
     }
-  }, [isDesktop, applyTavilyStatus]);
+  }, [isDesktop, applyTavilyStatus, toast]);
 
   const onWebSearchToggle = useCallback((): void => {
     setWebSearchEnabled(prev => !prev);
@@ -930,18 +1004,12 @@ export function useSettings(
       try {
         const result = await exportPdfFn({ logs, path });
         if (result.mode === "tauri") {
-          const pathText = result.savedPath ? `Saved to ${result.savedPath}` : "PDF exported.";
+          const savedPath = result.savedPath || "your Downloads folder";
           const openedText = result.folderOpened ? " Folder opened automatically." : "";
-          setExportPdfMessage(`${pathText}${openedText}`.trim());
+          toast.showSuccess(`Saved to ${savedPath}.${openedText}`.replace("..", "."), 3000);
         } else {
-          setExportPdfMessage("PDF export started in browser download flow.");
+          toast.showSuccess("PDF export started.", 2500);
         }
-
-        // Auto-dismiss success message after 5 seconds
-        exportStatusTimerRef.current = window.setTimeout(() => {
-          setExportPdfMessage(null);
-          exportStatusTimerRef.current = null;
-        }, 5000);
       } catch (e: unknown) {
         setExportPdfError(e instanceof Error ? e.message : String(e));
 
@@ -954,7 +1022,7 @@ export function useSettings(
         setExportPdfInProgress(false);
       }
     })();
-  }, [exportPdfFn, exportPdfInProgress]);
+  }, [exportPdfFn, exportPdfInProgress, toast]);
 
   const checkForUpdates = useCallback(async (): Promise<void> => {
     if (!isDesktop) return;
@@ -1042,6 +1110,9 @@ export function useSettings(
     providerModels,
     providerModelLoading,
     providerModelError,
+    providerTestLoading,
+    providerTestMessage,
+    providerTestError,
     embeddingDraft,
     embeddingError,
     embeddingSaving,
@@ -1079,6 +1150,7 @@ export function useSettings(
     onModelChange,
     refreshProviderModels,
     saveProviderSettings,
+    testProviderConnection,
     onEmbeddingModeChange,
     onEmbeddingOpenAiBaseUrlChange,
     onEmbeddingOllamaBaseUrlChange,

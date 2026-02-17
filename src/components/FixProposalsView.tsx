@@ -44,19 +44,40 @@ export function FixProposalsView({
   });
   const reviewRequested = proposals.filter((p) => (p.status || "").toLowerCase() === "review_requested");
 
-  if (!snapshot && !loading && !error) {
+  const isEmpty = proposals.length === 0;
+
+  if ((!snapshot && !loading && !error) || (snapshot && isEmpty && !loading && !error)) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-4 py-12">
+      <div className="h-full flex flex-col items-center justify-center text-text-muted gap-4 py-12 px-6">
         <div className="w-16 h-16 rounded-2xl border border-border-main bg-background/40 flex items-center justify-center">
           <ClipboardList className="w-7 h-7 text-text-muted/80" />
         </div>
         <div className="text-center space-y-1">
-          <h3 className="font-bold text-sm text-zinc-500">No Fix Proposals</h3>
-          <p className="text-[10px] text-zinc-500 font-mono italic max-w-md">
-            Append JSONL proposals to <span className="text-[var(--text-main)]">.guardian-proposals/fix_proposals.jsonl</span>{" "}
-            to request review. Guardian will never auto-apply fixes without confirmation.
+          <h3 className="font-bold text-sm text-text-main">Reviews Is Your Fix Proposal Inbox</h3>
+          <p className="text-[10px] leading-relaxed max-w-md">
+            Guardian can apply fixes instantly from <span className="font-bold">Monitor</span> and <span className="font-bold">Guru</span>.
+            Fix Proposals are optional: use them when you want a review queue or CI-driven workflows.
+          </p>
+          <p className="text-[10px] leading-relaxed max-w-md">
+            Advanced workflow: append JSONL proposals to{" "}
+            <span className="font-mono text-[var(--text-main)]">.guardian-proposals/fix_proposals.jsonl</span>.
           </p>
         </div>
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            disabled={loading}
+            className={clsx(
+              "px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer",
+              "bg-background/60 text-text-muted border-border-main hover:bg-border-main",
+              loading && "opacity-50 cursor-not-allowed"
+            )}
+            title="Refresh from backend"
+          >
+            <RefreshCw className={clsx("w-3 h-3", loading && "animate-spin")} />
+            Refresh
+          </button>
+        )}
       </div>
     );
   }

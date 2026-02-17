@@ -55,7 +55,7 @@ export interface UpdateCheckResult {
 }
 
 const PROVIDER_OPTIONS = [
-  { id: "ollama", label: "Ollama (Local/Hosted)", baseUrl: "http://127.0.0.1:11434" },
+  { id: "ollama", label: "Ollama (Local/Hosted)", baseUrl: "http://localhost:11434" },
   { id: "openai", label: "OpenAI", baseUrl: "https://api.openai.com/v1" },
   { id: "anthropic", label: "Anthropic (Claude)", baseUrl: "https://api.anthropic.com/v1" },
   { id: "gemini", label: "Google Gemini", baseUrl: "https://generativelanguage.googleapis.com/v1beta" },
@@ -121,11 +121,15 @@ export interface ProviderSettingsProps {
   providerModels: string[];
   providerModelLoading: boolean;
   providerModelError: string | null;
+  providerTestLoading: boolean;
+  providerTestMessage: string | null;
+  providerTestError: string | null;
   onProviderChange: (nextId: string) => void;
   onBaseUrlChange: (value: string) => void;
   onModelChange: (value: string) => void;
   onRefreshModels: () => void;
   onSaveProvider: () => void;
+  onTestProviderConnection: () => void;
   apiKeyStatus: ApiKeyStatus | null;
   apiKeyInput: string;
   apiKeyError: string | null;
@@ -221,7 +225,6 @@ export function SettingsModal({
   updateProps,
   onExportPDF,
   exportPdfInProgress,
-  exportPdfMessage,
   exportPdfError,
   settingsTab,
   onSettingsTabChange,
@@ -243,11 +246,15 @@ export function SettingsModal({
     providerModels,
     providerModelLoading,
     providerModelError,
+    providerTestLoading,
+    providerTestMessage,
+    providerTestError,
     onProviderChange,
     onBaseUrlChange,
     onModelChange,
     onRefreshModels,
     onSaveProvider,
+    onTestProviderConnection,
     apiKeyStatus,
     apiKeyInput,
     apiKeyError,
@@ -534,7 +541,7 @@ export function SettingsModal({
                       value={providerDraft.base_url}
                       onChange={(e) => onBaseUrlChange(e.target.value)}
                     >
-                      <option value="http://127.0.0.1:11434">Local (http://127.0.0.1:11434)</option>
+                      <option value="http://localhost:11434">Local (http://localhost:11434)</option>
                       <option value="https://ollama.com">Cloud (https://ollama.com)</option>
                     </StyledSelect>
                   ) : (
@@ -583,13 +590,32 @@ export function SettingsModal({
                     </div>
                   )}
                   {providerError && <div className="text-[10px] text-rose-400">{providerError}</div>}
-                  <button
-                    onClick={onSaveProvider}
-                    disabled={!isDesktop || providerSaving}
-                    className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
-                  >
-                    {providerSaving ? "Saving..." : "Save Provider"}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={onSaveProvider}
+                      disabled={!isDesktop || providerSaving}
+                      className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
+                    >
+                      {providerSaving ? "Saving..." : "Save Provider"}
+                    </button>
+                    <button
+                      onClick={onTestProviderConnection}
+                      disabled={!isDesktop || providerSaving || providerTestLoading}
+                      className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors disabled:opacity-50"
+                    >
+                      {providerTestLoading ? "Testing..." : "Test Connection"}
+                    </button>
+                  </div>
+                  {providerTestMessage && (
+                    <div className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-3 py-2">
+                      {providerTestMessage}
+                    </div>
+                  )}
+                  {providerTestError && (
+                    <div className="text-[10px] text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-md px-3 py-2">
+                      {providerTestError}
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -735,7 +761,7 @@ export function SettingsModal({
                     value={embeddingDraft?.ollama_base_url ?? ""}
                     onChange={(e) => onEmbeddingOllamaBaseUrlChange(e.target.value)}
                     className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
-                    placeholder="http://127.0.0.1:11434"
+                    placeholder="http://localhost:11434"
                   />
                 </div>
                 <div className="space-y-1">
@@ -1011,11 +1037,7 @@ export function SettingsModal({
                 </span>
               </div>
             )}
-            {exportPdfMessage && !exportPdfInProgress && (
-              <div className="rounded-lg border border-emerald-200 bg-emerald-100 dark:border-emerald-500/20 dark:bg-emerald-500/10 px-3 py-2 text-[10px] text-emerald-900 dark:text-emerald-300 font-bold">
-                {exportPdfMessage}
-              </div>
-            )}
+            {/* Success feedback is shown via top-right toast to reduce clutter in this tab. */}
             {exportPdfError && !exportPdfInProgress && (
               <div className="rounded-lg border border-rose-200 bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 px-3 py-2 text-[10px] text-rose-900 dark:text-rose-300 font-bold">
                 {exportPdfError}

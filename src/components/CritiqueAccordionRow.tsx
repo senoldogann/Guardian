@@ -12,7 +12,8 @@ import {
     ChevronRight,
     ChevronDown,
     Hammer,
-    Bot
+    Bot,
+    RotateCcw
 } from "lucide-react";
 
 export interface Critique {
@@ -30,15 +31,16 @@ interface CritiqueAccordionRowProps {
     isExpanded: boolean;
     onToggle: () => void;
     onAskGuru: () => void;
-    onFix: () => void; // Clean Code: Callback for UI update
+    rootPath: string;
     findingStatus?: "new" | "active";
 }
 
-export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onAskGuru, onFix, findingStatus }: CritiqueAccordionRowProps): ReactElement {
+export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onAskGuru, rootPath, findingStatus }: CritiqueAccordionRowProps): ReactElement {
     const severity = log.severity.toLowerCase();
     const isCritical = severity === "critical";
     const isWarning = severity === "warning";
-    const { showToast, showError, showSuccess } = useToast();
+    const { showError, showSuccess } = useToast();
+    const [undoReady, setUndoReady] = React.useState(false);
 
     // Improved Path Logic: Handle short paths and Windows/Unix separators
     const parts = log.file_path.split(/[/\\]/);
@@ -55,21 +57,52 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ l
             ? `${parentDir}/`
             : "./";
 
+    const undoFixNow = async (): Promise<void> => {
+        if (!rootPath?.trim()) {
+            showError("Cannot undo: workspace path is missing.", 4500);
+            return;
+        }
+        try {
+            await invoke("undo_fix", { filePath: log.file_path, root: rootPath });
+            setUndoReady(false);
+            showSuccess(`Undo complete for ${fileName}.`, 3000);
+        } catch (err) {
+            showError(`Undo failed: ${String(err)}`, 6000);
+        }
+    };
+
+    const applyFixNow = async (): Promise<void> => {
+        if (!log.suggested_diff) return;
+        if (!rootPath?.trim()) {
+            showError("Cannot apply fix: workspace path is missing.", 4500);
+            return;
+        }
+        try {
+            await invoke("apply_fix_now", { filePath: log.file_path, newContent: log.suggested_diff, root: rootPath });
+            setUndoReady(true);
+            showSuccess(
+                `Applied fix to ${fileName}.`,
+                6000,
+                {
+                    label: "Undo",
+                    onClick: () => {
+                        void undoFixNow();
+                    }
+                }
+            );
+        } catch (err) {
+            showError(`Failed to apply fix: ${String(err)}`, 6000);
+        }
+    };
+
     const applyFix = async (e: MouseEvent): Promise<void> => {
         e.stopPropagation();
-        if (!log.suggested_diff) return;
-        try {
-            await invoke("apply_fix", { filePath: log.file_path, newContent: log.suggested_diff });
-            // Governance Update
-            showToast(
-                "Review started. Check Guru Chat for the final verification result and approve the patch.",
-                "info",
-                5000
-            );
-            onFix(); // Remove from UI as it's now in the 'Review' phase
-        } catch (err) {
-            showError(`Failed to start review: ${String(err)}`, 6000);
-        }
+        await applyFixNow();
+    };
+
+    const undoFix = async (e: MouseEvent): Promise<void> => {
+        e.stopPropagation();
+        await undoFixNow();
     };
 
     return (
@@ -137,13 +170,22 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ l
                             <Bot className="w-3.5 h-3.5" />
                         </button>
                     )}
-                    {log.suggested_diff && (
+                    {log.suggested_diff && !undoReady && (
                         <button
                             onClick={applyFix}
                             className="flex items-center gap-1.5 text-xs font-bold text-[var(--accent-500)] bg-[var(--accent-200)] px-2.5 py-1.5 rounded-lg border border-[var(--accent-400)] hover:opacity-90 hover:scale-105 transition-all cursor-pointer z-10 min-w-[76px] justify-center"
                             title="Quick Fix: Apply this patch immediately"
                         >
                             <Hammer className="w-3.5 h-3.5" /> FIX
+                        </button>
+                    )}
+                    {log.suggested_diff && undoReady && (
+                        <button
+                            onClick={undoFix}
+                            className="flex items-center gap-1.5 text-xs font-bold text-text-main bg-background/60 px-2.5 py-1.5 rounded-lg border border-border-main hover:bg-background transition-colors cursor-pointer z-10 min-w-[76px] justify-center"
+                            title="Undo last applied fix for this file"
+                        >
+                            <RotateCcw className="w-3.5 h-3.5" /> UNDO
                         </button>
                     )}
                     <span className={clsx(
@@ -213,20 +255,30 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ l
                                             <pre className="text-text-main opacity-80">{log.suggested_diff}</pre>
                                         </div>
                                         <button
-                                            onClick={() => {
-                                                invoke("apply_fix", { filePath: log.file_path, newContent: log.suggested_diff })
-                                                    .then(() => {
-                                                        showSuccess(
-                                                            "Review requested. Please confirm the final patch in the Guru chat.",
-                                                            5000
-                                                        );
-                                                        onFix();
-                                                    })
-                                                    .catch(e => showError(`Failed to start review: ${String(e)}`, 6000));
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (undoReady) {
+                                                    void undoFixNow();
+                                                } else {
+                                                    void applyFixNow();
+                                                }
                                             }}
-                                            className="w-full py-2 bg-[var(--accent-500)] hover:opacity-90 text-background font-bold rounded-lg text-xs transition-colors shadow-lg shadow-black/40 flex items-center justify-center gap-2 cursor-pointer"
+                                            className={clsx(
+                                                "w-full py-2 font-bold rounded-lg text-xs transition-colors shadow-lg shadow-black/40 flex items-center justify-center gap-2 cursor-pointer",
+                                                undoReady
+                                                    ? "bg-background/60 hover:bg-background/80 text-text-main border border-border-main"
+                                                    : "bg-[var(--accent-500)] hover:opacity-90 text-background"
+                                            )}
                                         >
-                                            <Hammer className="w-3 h-3 fill-current" /> APPLY THIS FIX
+                                            {undoReady ? (
+                                                <>
+                                                    <RotateCcw className="w-3 h-3 fill-current" /> UNDO
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Hammer className="w-3 h-3 fill-current" /> APPLY THIS FIX
+                                                </>
+                                            )}
                                         </button>
                                     </div>
                                 )}

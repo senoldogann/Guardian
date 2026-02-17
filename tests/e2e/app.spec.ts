@@ -166,7 +166,13 @@ test.describe("Stats Display", () => {
     // Check sidebar stats
     await expect(page.locator("aside").getByText("Files").first()).toBeVisible();
     await expect(page.locator("aside").getByText("Issues").first()).toBeVisible();
-    await expect(page.locator("aside").getByText("Cost Metric").first()).toBeVisible();
+
+    // Cost metric is in the optional "Details" section.
+    const showDetails = page.getByRole("button", { name: /Show details/i });
+    if (await showDetails.count()) {
+      await showDetails.click();
+    }
+    await expect(page.locator("aside").getByText(/Cost Metric/i).first()).toBeVisible();
   });
 });
 

@@ -13,9 +13,11 @@ import type {
   Critique,
   FixProposal,
   FixProposalsSnapshot,
+  FixHistoryEntry,
   ProjectContext,
 } from "../../types";
 import { critiqueStateKey } from "../../lib/critiqueStateKey";
+import { formatTimestamp } from "../../lib/uiFormat";
 
 export interface MainWorkspaceProps {
   view: "monitor" | "chat" | "diagram" | "ai-context" | "reviews";
@@ -33,11 +35,11 @@ export interface MainWorkspaceProps {
   expandedLogKey: string | null;
   onToggleLog: (key: string) => void;
   onAskGuruForLog: (log: Critique, useWebSearch?: boolean) => void;
-  onFixLog: (log: Critique) => void;
   path: string;
   onSelectScope: () => Promise<void> | void;
   chatAutoPrompt: AutoPrompt | null;
   onAutoPromptConsumed: () => void;
+  onGuruReply: () => void;
   webSearchEnabled: boolean;
   webSearchDepth: "basic" | "advanced" | "fast" | "ultra-fast" | "auto";
   onWebSearchToggle: () => void;
@@ -48,6 +50,11 @@ export interface MainWorkspaceProps {
   onRefreshFixProposals: () => Promise<void>;
   onRequestReview: (proposal: FixProposal) => Promise<void>;
   onSetProposalStatus: (proposalId: string, status: string) => Promise<void>;
+  fixHistory: FixHistoryEntry[];
+  fixHistoryLoading: boolean;
+  fixHistoryError: string | null;
+  onRefreshFixHistory: () => Promise<void>;
+  onUndoFix: (filePath: string) => Promise<void>;
   aiContext: AiContextSnapshot | null;
   aiContextLoading: boolean;
   aiContextError: string | null;
@@ -75,11 +82,11 @@ export function MainWorkspace({
   expandedLogKey,
   onToggleLog,
   onAskGuruForLog,
-  onFixLog,
   path,
   onSelectScope,
   chatAutoPrompt,
   onAutoPromptConsumed,
+  onGuruReply,
   webSearchEnabled,
   webSearchDepth,
   onWebSearchToggle,
@@ -90,6 +97,11 @@ export function MainWorkspace({
   onRefreshFixProposals,
   onRequestReview,
   onSetProposalStatus,
+  fixHistory,
+  fixHistoryLoading,
+  fixHistoryError,
+  onRefreshFixHistory,
+  onUndoFix,
   aiContext,
   aiContextLoading,
   aiContextError,
@@ -250,6 +262,7 @@ export function MainWorkspace({
                   isExpanded={expandedLogKey === critiqueStateKey(log)}
                   onToggle={() => onToggleLog(critiqueStateKey(log))}
                   onAskGuru={() => onAskGuruForLog(log, false)}
+                  rootPath={path}
                   findingStatus={
                     baselineValid && log.finding_id
                       ? baselineIds.has(log.finding_id)
@@ -257,7 +270,6 @@ export function MainWorkspace({
                         : "new"
                       : undefined
                   }
-                  onFix={() => onFixLog(log)}
                 />
               ))}
             </div>
@@ -275,6 +287,7 @@ export function MainWorkspace({
           path={path}
           autoPrompt={chatAutoPrompt}
           onAutoPromptConsumed={onAutoPromptConsumed}
+          onGuruReply={onGuruReply}
           webSearchEnabled={webSearchEnabled}
           webSearchDepth={webSearchDepth}
           onWebSearchToggle={onWebSearchToggle}
@@ -306,14 +319,82 @@ export function MainWorkspace({
             </button>
           </div>
         ) : (
-          <FixProposalsView
-            snapshot={fixProposals}
-            loading={fixProposalsLoading}
-            error={fixProposalsError}
-            onRefresh={onRefreshFixProposals}
-            onRequestReview={onRequestReview}
-            onSetStatus={onSetProposalStatus}
-          />
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            <div className="shrink-0 border-b border-border-main bg-surface/30 px-6 py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-1 min-w-0">
+                  <h2 className="text-xs font-bold uppercase tracking-widest text-text-muted">
+                    Applied Fixes (Undo Available)
+                  </h2>
+                  <div className="text-[10px] text-text-muted">
+                    Undo is stored per file (last applied fix only).
+                  </div>
+                  {fixHistoryError && (
+                    <div className="text-[10px] text-rose-400 font-mono">{fixHistoryError}</div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => void onRefreshFixHistory()}
+                  disabled={fixHistoryLoading}
+                  className={clsx(
+                    "px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer",
+                    "bg-background/60 text-text-muted border-border-main hover:bg-border-main",
+                    fixHistoryLoading && "opacity-50 cursor-not-allowed"
+                  )}
+                  title="Refresh fix history"
+                >
+                  Refresh
+                </button>
+              </div>
+            </div>
+
+            <div className="shrink-0 px-6 py-4 border-b border-border-main bg-background/20">
+              {fixHistoryLoading ? (
+                <div className="text-[10px] font-mono text-text-muted">Loading...</div>
+              ) : fixHistory.length === 0 ? (
+                <div className="text-[10px] text-text-muted">
+                  No applied fixes yet. Apply a fix from Monitor or Guru to see Undo here.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {fixHistory.slice(0, 12).map((entry) => (
+                    <div
+                      key={entry.file_path}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-border-main bg-background/40 px-4 py-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-mono text-xs text-text-main truncate">
+                          {entry.file_path}
+                        </div>
+                        <div className="text-[10px] font-mono text-text-muted truncate">
+                          Applied: <span className="text-[var(--text-main)]">{formatTimestamp(entry.applied_at)}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => void onUndoFix(entry.file_path)}
+                        className="px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors cursor-pointer bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/15"
+                        title="Undo last applied fix for this file"
+                      >
+                        Undo
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex-1 min-h-0">
+              <FixProposalsView
+                snapshot={fixProposals}
+                loading={fixProposalsLoading}
+                error={fixProposalsError}
+                onRefresh={onRefreshFixProposals}
+                onRequestReview={onRequestReview}
+                onSetStatus={onSetProposalStatus}
+              />
+            </div>
+          </div>
         )}
       </section>
 

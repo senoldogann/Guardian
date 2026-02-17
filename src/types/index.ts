@@ -187,6 +187,11 @@ export interface FixProposalsSnapshot {
   proposals: FixProposal[];
 }
 
+export interface FixHistoryEntry {
+  file_path: string;
+  applied_at: string;
+}
+
 // Provider options
 export interface ProviderOption {
   id: string;

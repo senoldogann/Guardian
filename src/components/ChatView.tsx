@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, type ReactElement, type ReactNode, isValidElement, useMemo } from "react";
-import { invoke, listen, isTauriRuntime } from "../lib/tauri";
+import { invoke, listen, isTauriRuntime, openExternal } from "../lib/tauri";
 import clsx from "clsx";
 import {
     Bot,
@@ -27,6 +27,7 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSanitize from "rehype-sanitize";
 import { useFocusTrap } from "../hooks/useFocusTrap";
+import { useToast } from "../hooks/useToast";
 
 interface ReviewDecisionPayload {
     file_path: string;
@@ -57,6 +58,7 @@ interface ChatViewProps {
     path: string;
     autoPrompt?: AutoPrompt | null;
     onAutoPromptConsumed?: () => void;
+    onGuruReply?: () => void;
     webSearchEnabled: boolean;
     webSearchDepth: "basic" | "advanced" | "fast" | "ultra-fast" | "auto";
     onWebSearchToggle: () => void;
@@ -74,6 +76,7 @@ export function ChatView({
     path,
     autoPrompt,
     onAutoPromptConsumed,
+    onGuruReply,
     webSearchEnabled,
     webSearchDepth,
     onWebSearchToggle,
@@ -95,10 +98,16 @@ export function ChatView({
     const bottomRef = useRef<HTMLDivElement>(null);
     const forceScrollRef = useRef(false);
     const isDesktop = isTauriRuntime();
+    const onGuruReplyRef = useRef(onGuruReply);
     const [copiedSnippet, setCopiedSnippet] = useState<string | null>(null);
     const [thinkingMessageIndex, setThinkingMessageIndex] = useState(0);
     const [plusMenuOpen, setPlusMenuOpen] = useState(false);
     const plusMenuRef = useRef<HTMLDivElement>(null);
+    const toast = useToast();
+
+    useEffect(() => {
+        onGuruReplyRef.current = onGuruReply;
+    }, [onGuruReply]);
 
     useFocusTrap({
         active: clearConfirmOpen,
@@ -221,6 +230,11 @@ export function ChatView({
         const normalized = normalizeMessage(message);
         setChatHistory(prev => [...prev, normalized]);
 
+        // Force scroll for bot messages to ensure visibility
+        if (message.role !== "user") {
+            forceScrollRef.current = true;
+        }
+
         if (isDesktop) {
             if (!path) return;
             void invoke("append_chat_message", { path, message: normalized }).catch(() => { });
@@ -298,6 +312,7 @@ export function ChatView({
                         diff
                     }
                 });
+                onGuruReplyRef.current?.();
                 return;
             }
 
@@ -344,6 +359,7 @@ export function ChatView({
             });
             if (ignoreResponseRef.current) return;
             appendMessage({ role: "guru", content: answer, timestamp: nowIso() });
+            onGuruReplyRef.current?.();
         } catch (err: unknown) {
             const errorMsg = err instanceof Error ? err.message : String(err);
             if (ignoreResponseRef.current) return;
@@ -421,13 +437,26 @@ export function ChatView({
                 });
                 return;
             }
-            await invoke("confirm_fix", { filePath: filePath, newContent: diff, root: path });
+            await invoke("apply_fix_now", { filePath: filePath, newContent: diff, root: path });
             setAppliedFixes(prev => new Set(prev).add(index));
-            appendMessage({ role: "guru", content: `Applied fix to ${filePath.split('/').pop()} successfully! 🚀`, timestamp: nowIso() });
+            const fileName = filePath.split("/").pop() || "file";
+            toast.showSuccess(
+                `Applied fix to ${fileName}.`,
+                6000,
+                {
+                    label: "Undo",
+                    onClick: () => {
+                        invoke("undo_fix", { filePath, root: path })
+                            .then(() => toast.showSuccess(`Undo complete for ${fileName}.`, 3000))
+                            .catch((e) => toast.showError(`Undo failed: ${String(e)}`, 6000));
+                    }
+                }
+            );
+            appendMessage({ role: "guru", content: `Applied fix to ${fileName} successfully.`, timestamp: nowIso() });
         } catch (e) {
             appendMessage({ role: "guru", content: `Failed to apply fix: ${e}`, timestamp: nowIso() });
         }
-    }, [path, appendMessage, nowIso]);
+    }, [path, appendMessage, nowIso, toast]);
 
     const rejectFix = useCallback((index: number, filePath: string): void => {
         setRejectedFixes(prev => new Set(prev).add(index));
@@ -549,7 +578,7 @@ export function ChatView({
             <div
                 ref={scrollAreaRef}
                 className={clsx(
-                    "flex-1 p-6 custom-scrollbar",
+                    "flex-1 p-6 pb-10 custom-scrollbar",
                     chatHistory.length === 0 && !chatLoading ? "overflow-y-hidden" : "overflow-y-auto"
                 )}
             >
@@ -599,7 +628,7 @@ export function ChatView({
                 )}
 
                 {chatLoading && (
-                    <div className="flex gap-4 max-w-3xl">
+                    <div className="flex gap-4 max-w-3xl mt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
                         <div className="w-8 h-8 rounded-lg bg-white dark:bg-[var(--accent-200)] text-[var(--accent-500)] flex items-center justify-center shrink-0 animate-pulse shadow-sm">
                             <Bot className="w-4 h-4" />
                         </div>
@@ -867,6 +896,25 @@ function ChatMessageRow({
                                 remarkPlugins={[remarkGfm]}
                                 rehypePlugins={[rehypeHighlight, rehypeSanitize]}
                                 components={{
+                                    a: ({ href, children, ...props }) => {
+                                        const url = typeof href === "string" ? href : "";
+                                        const isHttp = /^https?:\/\//i.test(url);
+                                        return (
+                                            <a
+                                                {...props}
+                                                href={url}
+                                                rel={isHttp ? "noopener noreferrer" : props.rel}
+                                                onClick={(event) => {
+                                                    if (!url) return;
+                                                    if (!isHttp) return;
+                                                    event.preventDefault();
+                                                    void openExternal(url);
+                                                }}
+                                            >
+                                                {children}
+                                            </a>
+                                        );
+                                    },
                                     pre: ({ children }) => {
                                         const text = extractText(children);
                                         return (
