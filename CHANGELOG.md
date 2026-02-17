@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.3] - Quality-First: Faster Scans + Project-Aware Audits + One-Click Fixes
+
+Published: TBD
+
+### Highlights
+- One-click Apply + Undo: apply fixes immediately from Monitor and Guru, with a per-file Undo history.
+- Guru notifications: when a reply arrives and you are on another tab, you get a toast + a sidebar badge count.
+- Reviews now stays useful even without proposals: includes a Fix History panel (Undo available) alongside Fix Proposals.
+- Ollama reliability: default base URL `http://localhost:11434` (legacy `127.0.0.1:11434` configs are normalized to `localhost`).
+- Faster repeat scans: unchanged files can be skipped without reading file contents (mtime/bytes fingerprints).
+- Faster initial scan: bounded worker-pool pipeline (no per-file sleep) for stable throughput.
+- Better suggestions: "Project Intent Pack" is injected into audits and Guru so advice aligns with your workspace intent/architecture.
+- Smarter audits (less noise): mixed-gate triage for `extended/full` so infra/docs/lock/test surfaces are audited only when risk signals are present.
+
+### Changed
+- Project Map context now respects the persisted Scan Scope (`source|extended|full`) for consistency with monitoring.
+
 ## [1.2.2] - Balanced Performance + Smart Scope
 
 Published: Feb 17, 2026

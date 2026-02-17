@@ -198,7 +198,244 @@ pub struct BaselineStatus {
 - [x] Baseline oluşturulabiliyor
 - [x] Eski bulgular "new" olarak işaretlenmiyor
 - [x] Rules değişince baseline invalid sayılıyor
+
+---
+
+## v1.2.3 Quality-First (C + A) — Phase 1: Ollama `localhost` Default + `127` Normalization (2026-02-17)
+
+### Goal
+Make Ollama work out-of-the-box on typical local setups and reduce the repeated `"Batch audit failed: Failed to send request to AI provider"` loop.
+
+### Changes
+- Default Ollama base URL switched to `http://localhost:11434` across desktop defaults and Settings UI.
+- Removed `http://127.0.0.1:11434` from the UI + CSP allowlist. Any saved `127.0.0.1:11434` configs/envs are normalized to `localhost:11434` at runtime.
+- Ollama calls now use a single base URL (no loopback retry list). If Ollama is unreachable, we surface the error clearly instead of masking it with fallbacks.
+- Updated E2E selector to keep sidebar "Cost Metric" expectation stable after Details toggle changes.
+
+### Files Touched
+- `src-tauri/src/config.rs`
+- `src-tauri/src/ai_client.rs`
+- `src-tauri/src/semantic_index.rs`
+- `src-tauri/src/provider.rs`
+- `src-tauri/tauri.conf.json`
+- `src/constants/index.ts`
+- `src/hooks/useSettings.ts`
+- `src/components/SettingsModal.tsx`
+- `src/hooks/__tests__/useSettings.test.ts`
+- `tests/e2e/app.spec.ts`
+
+### Verification
+- `cd guardian && npm run verify`
+  - Vitest: `64/64` pass
+  - Playwright: `17/17` pass
+  - Rust (src-tauri): `81/81` pass
+- `cd guardian/guardian-cli && cargo test` → `13/13` pass
+
+---
+
+## v1.2.3 UX — One-Click Apply + Undo + Guru Notifications + Reviews Fix History (2026-02-17)
+
+### Goal
+Remove the "double confirmation" UX for fixes and make remediation feel trustworthy:
+- Apply fixes immediately from Monitor/Guru.
+- Support a safe Undo (per-file last fix).
+- Make Guru replies discoverable (toast + sidebar badge).
+- Make Reviews useful even without proposals (Fix History panel).
+
+### Changes
+- Backend (Tauri):
+  - New commands:
+    - `apply_fix_now(file_path, new_content, root)` (writes the file immediately)
+    - `undo_fix(file_path, root)` (restores the per-file backup)
+    - `get_fix_history(root)` (lists applied fixes with Undo available)
+  - New workspace storage: `.guardian/undo/`
+    - Per-file last backup: `.guardian/undo/<sha256(rel_path)>.bak`
+    - Index: `.guardian/undo/index.json`
+  - Safety guardrails:
+    - Rejects obvious chat/tool-call transcripts (e.g. ``````, `<invoke`, `tool_call`, `<minimax:`) to avoid corrupting files.
+    - `patcher` path security hardened for macOS `/var` vs `/private/var` canonicalization edge case.
+- Frontend (Desktop):
+  - Monitor "FIX / APPLY THIS FIX" calls `apply_fix_now` and shows a success toast with an **Undo** action.
+  - After apply, the Monitor fix button toggles to **UNDO** for that file (one-click revert).
+  - Guru "Confirm & Apply" uses the same `apply_fix_now` path (shared Undo behavior).
+  - Guru unread notifications:
+    - When a Guru reply arrives and user is not on the Guru tab: toast `Guru reply ready.`
+    - Sidebar shows a red badge count on the Guru tab.
+    - Collapsed sidebar does not render a `0` badge (only shows when count > 0).
+    - Works reliably even if you navigate away while the Guru request is still in-flight (reply callback uses a stable ref).
+  - Reviews tab:
+    - Added "Applied Fixes (Undo Available)" panel (Fix History) above Fix Proposals.
+    - Keeps Fix Proposals as an optional, advanced workflow.
+
+### Files Touched
+- `src-tauri/src/undo.rs` (new)
+- `src-tauri/src/lib.rs`
+- `src-tauri/src/patcher.rs`
+- `src/components/CritiqueAccordionRow.tsx`
+- `src/components/ChatView.tsx`
+- `src/components/layout/ControlSidebar.tsx`
+- `src/components/layout/MainWorkspace.tsx`
+- `src/hooks/useToast.ts`
+- `src/components/Toast.tsx`
+- `src/types/index.ts`
+- `src/__tests__/App.test.tsx`
+- `src/components/__tests__/CritiqueAccordionRow.test.tsx`
+
+### Verification
+- `cd guardian && npm run verify`
+  - Vitest: `64/64` pass
+  - Coverage gate: OK
+  - Playwright: `17/17` pass
+  - Rust (src-tauri): `81/81` pass
+- `cd guardian/guardian-cli && cargo test` → `13/13` pass
+
+---
+
+## v1.2.3 Quality-First (C + A) — Phase 2: Fingerprint v2 (mtime/bytes) Skip-Without-Read (2026-02-17)
+
+### Goal
+Speed up repeated scans by skipping unchanged files *without reading file contents* (lower IO, lower CPU, fewer downstream AI calls).
+
+### Changes
+- `file_fingerprints` schema extended with `mtime_ms` + `bytes` and automatic, idempotent migration on startup.
+- Watcher now checks `mtime_ms + bytes` first and skips unchanged files without `read_to_string` (unless `GUARDIAN_STRICT_HASH=1`).
+- Fingerprints are upserted after successful audits (keeps previous behavior of `last_audit_time` meaning "audited").
+
+### New Config (Optional)
+- `GUARDIAN_STRICT_HASH=1` forces hash-based auditing (disables skip-without-read) for edge-case file systems.
+
+### Files Touched
+- `src-tauri/src/storage/mod.rs`
+- `src-tauri/src/watcher.rs`
+
+### Verification
+- `cd guardian && npm run verify`
+  - Vitest: `64/64` pass
+  - Playwright: `17/17` pass
+  - Rust (src-tauri): `75/75` pass
+- `cd guardian/guardian-cli && cargo test` → `13/13` pass
+
+---
+
+## v1.2.3 Quality-First (C + A) — Phase 3: Initial Scan Worker Pool + Backpressure (2026-02-17)
+
+### Goal
+Remove the initial-scan "spawn storm" and the artificial `20ms` per-file sleep, while keeping CPU/RAM stable via bounded queues.
+
+### Changes
+- Initial scan now pushes file paths into a bounded queue and processes them with a fixed worker pool.
+- Backpressure is enforced by the channel capacity; scan does not outrun audit workers.
+- Removed `std::thread::sleep(Duration::from_millis(20))` from the initial scan loop.
+- Added `GUARDIAN_FS_WORKERS` (optional) to override worker count (default derives from `available_parallelism`, clamped to `2..=8`).
+
+### Files Touched
+- `src-tauri/src/watcher.rs`
+
+### Verification
+- `cd guardian && npm run verify`
+  - Vitest: `64/64` pass
+  - Playwright: `17/17` pass
+  - Rust (src-tauri): `75/75` pass
+- `cd guardian/guardian-cli && cargo test` → `13/13` pass
 - [x] UI'da filtreleme çalışıyor
+
+---
+
+## v1.2.3 Quality-First (C + A) — Phase 4: Project Intent Pack (Thorough Quality) (2026-02-17)
+
+### Goal
+Improve audit and Guru answer quality by injecting a bounded, redacted "Project Intent Pack" that summarizes workspace intent + architecture + dependencies + scope metadata.
+
+### Changes
+- Refactored `ProjectContext` indexing to be scan-profile-aware and closer to real watcher scope:
+  - Uses `ignore::WalkBuilder` + `guardian_scan_policy::classify_path`.
+  - Skips sensitive files (redaction gate) from the intent pack/index.
+- Added dependency extraction:
+  - `package.json` dependencies/devDependencies (names only).
+  - `Cargo.toml` dependencies/dev-dependencies/build-dependencies (lightweight parsing).
+- Added intent discovery + redaction:
+  - Reads a prioritized, small set of docs (`AGENTS.md`, `.agent/*`, `README.md`, etc.).
+  - Always runs `mask_inline_secrets`, truncates to bounded size.
+- Added in-memory intent pack cache (TTL=5 minutes) to keep Guru responsive.
+- Watcher now builds the intent pack on startup and injects it into batch audits:
+  - `AiClient::analyze_batch_with_intent(...)` prepends the pack to the batch prompt.
+- Guru now prepends the same intent pack to its RAG context (better project-aware answers).
+- `get_project_context` now respects the persisted `scan_profile` config for consistency.
+
+### Files Touched
+- `src-tauri/src/context.rs`
+- `src-tauri/src/watcher.rs`
+- `src-tauri/src/ai_client.rs`
+- `src-tauri/src/lib.rs`
+
+### Verification
+- `cd guardian && npm run verify`
+  - Vitest: `64/64` pass
+  - Playwright: `17/17` pass
+  - Rust (src-tauri): `78/78` pass
+- `cd guardian/guardian-cli && cargo test` → `13/13` pass
+- Note (local): Playwright browsers were missing in cache once; `npx playwright install` was required to restore E2E execution.
+
+---
+
+## v1.2.3 Quality-First (C + A) — Phase 5: Mixed-Gate Triage (Smart Scope, Noise Reduction) (2026-02-17)
+
+### Goal
+Reduce low-signal AI calls in `extended/full` while keeping real security/high-risk findings visible. Source code remains "always-audit"; non-source surfaces are audited only when triage detects meaningful risk signals.
+
+### Changes
+- Added `triage.rs` (cheap heuristics + deterministic scoring):
+  - Produces `risk_score (0-100)`, `signals[]`, `file_kind` (`source|infra|doc|lock|test|other`).
+  - Signals include: secret/token patterns, `curl | sh`, `--no-sandbox`, privileged flags, `chmod 777`, root-user Docker patterns, etc.
+- Mixed-gate policy (profile-aware):
+  - `source`: unchanged behavior (policy already filters heavily).
+  - `extended`: non-source is audited only if `risk_score >= 30`.
+  - `full`: docs/tests audited only if `risk_score >= 50`; other non-source audited if `risk_score >= 30`.
+- Watcher integration:
+  - Triage runs after content read (only for changed files) and gates batch enqueue.
+  - Low-signal files still upsert fingerprints (mtime/bytes + hash + risk_score) so "unchanged skip-without-read" stays effective.
+  - When a file is audited, the diff-focused context is prefixed with a short triage header (kind/risk/signals) to keep the LLM focused.
+- Fingerprint updates now persist the triage `risk_score` instead of always writing `0`.
+
+### Files Touched
+- `src-tauri/src/triage.rs` (new)
+- `src-tauri/src/watcher.rs`
+- `src-tauri/src/lib.rs`
+- `src-tauri/src/ai_client.rs` (warning cleanup)
+- `src-tauri/src/context.rs` (warning cleanup)
+
+### Verification
+- `cd guardian && npm run verify`
+  - Vitest: `64/64` pass
+  - Playwright: `17/17` pass
+  - Rust (src-tauri): `81/81` pass
+- `cd guardian/guardian-cli && cargo test` → `13/13` pass
+
+---
+
+## v1.2.3 Quality-First (C + A) — Phase 6: Verification + Version Bump + Release Notes (2026-02-17)
+
+### Goal
+Prepare the repo for `1.2.3` release: version sync + short user-facing changelog + full verification.
+
+### Changes
+- Version bumped to `1.2.3` (desktop + Tauri):
+  - `package.json`
+  - `src-tauri/Cargo.toml`
+  - `src-tauri/tauri.conf.json`
+- Changelog updated with a short, user-value summary for `1.2.3`:
+  - `CHANGELOG.md`
+
+### Verification
+- `cd guardian && npm run verify`
+  - Vitest: `64/64` pass
+  - Playwright: `17/17` pass
+  - Rust (src-tauri): `81/81` pass
+- `cd guardian/guardian-cli && cargo test` → `13/13` pass
+
+### Post-Phase UX Tweaks (2026-02-17)
+- Provider (Ollama) base URL selector no longer exposes the `127.0.0.1:11434` loopback option; the UI stays aligned to `http://localhost:11434`.
+- Provider "Test Connection" success is now a short top-right toast: `Connection OK.` (no verbose model list text), auto-hides after 3 seconds.
 
 ### Phase 1 - Implemented (2026-02-09)
 - Baseline schema + manager eklendi: `src-tauri/src/baseline/manager.rs`
@@ -1318,6 +1555,45 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
 
 ---
 
+## v1.2.2 - Stabilite: Batch Audit Backoff + Daha Doğru Cost Metrics (2026-02-17)
+
+### Problem
+- Provider erişilemediğinde (örn. Ollama kapalı / base URL yanlış / network down) initial scan sırasında her batch flush’ında `Batch audit failed` hatası üretiliyordu.
+- Bu durum hem UI’da spam warning’e, hem de `Cost metrics` tarafında “call” sayısının gereksiz artmasına yol açıyordu.
+
+### Çözüm
+- Batch audit’lerde “provider unhealthy” durumunda progresif backoff eklendi ve batch içerikleri bellekte tutulup otomatik retry için re-queue edildi.
+- UI uyarıları debounce edildi (hata aynı ise belirli bir süre içinde tekrar basmıyor) ve provider + base_url ile daha aksiyon alınabilir mesaj veriliyor.
+- HTTP request “gönderilemeden” patlayan hatalarda cost metrics artık `calls=0, tokens=0` sayılıyor.
+- Auto verification tarafında `npm/cargo/python/go` gibi tool’lar PATH’te yoksa “failed” yerine “skipped” dönülüyor (GUI app’lerde NVM kaynaklı PATH sorunları yüzünden yanlış negatif alarmı azaltmak için).
+
+### Değişen Dosyalar
+- `guardian/src-tauri/src/watcher.rs`
+- `guardian/src-tauri/src/ai_client.rs`
+- `guardian/src-tauri/src/executor.rs`
+
+### UX İyileştirmeleri
+- Settings → Provider tab’ına **Test Connection** eklendi (provider/base_url/model + API key doğrulaması, daha aksiyon alınabilir sonuç mesajı).
+- Test Connection başarı mesajı 3 saniye sonra otomatik kaybolur (sekme kirlenmesini önlemek için).
+- Save Provider / Save Key / Save Scan Scope / Save Embedding Settings gibi aksiyonlarda kısa süreli “success toast” gösterimi eklendi (light/dark uyumlu).
+- Export PDF tamamlandığında Settings tab içinde uzun mesaj basmak yerine sadece kısa “success toast” gösterilir.
+- Reviews (Fix Proposals) sekmesi boşken artık “ne işe yarar / nasıl doldurulur?” açıklayan net bir empty-state gösteriyor.
+
+### Ek Değişen Dosyalar
+- `guardian/src-tauri/src/lib.rs`
+- `guardian/src/hooks/useSettings.ts`
+- `guardian/src/components/SettingsModal.tsx`
+- `guardian/src/App.tsx`
+- `guardian/src/components/FixProposalsView.tsx`
+- `guardian/src/components/__tests__/FixProposalsView.test.tsx`
+
+### Testler
+- `cd guardian && npm run verify` (PASS)
+- `cd guardian/src-tauri && cargo test` (70/70 PASS)
+- `cd guardian/guardian-cli && cargo test` (13/13 PASS)
+
+---
+
 ## v1.2.0 Web Hotfix - Release API Rate Limit + Hero CTA (2026-02-11)
 
 ### Root Cause
@@ -2071,6 +2347,54 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
   - `docs/PROJECT_DOCUMENTATION.md`
     - “CI / PR Integration (Optional)” bölümü eklendi ve dokümana link verildi.
 - Phase 18 testleri:
+  - `cd guardian && npm run verify` ✅
+  - `cd guardian/guardian-cli && cargo test` ✅ (13/13)
+
+### v1.2.2 UX - Phase 19 (Collapsible Sidebar + Details Fold) (2026-02-17)
+- Amaç:
+  - Sol menüde (sidebar) “navigation” ile “detay/telemetri” içeriklerini ayırarak kalabalığı azaltmak.
+  - Menüyü açılır/kapanır (icon rail) hale getirerek dar ekranlarda ve yoğun projelerde kullanılabilirliği artırmak.
+- Uygulanan değişiklikler:
+  - `guardian/src/components/layout/ControlSidebar.tsx`
+    - Sidebar collapse/expand eklendi (persist: `localStorage`).
+    - “Details” fold eklendi: Cost Metric + Baseline + Engine Status + auth/api-key banner’ları artık isteğe bağlı görünür.
+    - Navigation butonları icon-only modda da erişilebilir olacak şekilde `aria-label` ile stabilize edildi.
+  - `guardian/tests/e2e/app.spec.ts`
+    - Sidebar stats testi “Details” açıldıktan sonra Cost Metric görünürlüğünü kontrol edecek şekilde güncellendi.
+- Phase 19 testleri:
+  - `cd guardian && npm run verify` ✅ (unit + coverage gate + e2e + build + rust test)
+  - `cd guardian/guardian-cli && cargo test` ✅ (13/13)
+
+### v1.2.2 UX - Phase 20 (Sidebar Dock Polish: Collapsed Rail + Unified Details Panel) (2026-02-17)
+- Amaç:
+  - Collapse modda “kırık/kırpılmış” görünümü engellemek ve icon-rail tasarımını daha dengeli hale getirmek.
+  - Expanded modda “dağınık kartlar” yerine tek bir Workspace kartı içinde birleşik bir Details paneli kullanmak.
+- Uygulanan değişiklikler:
+  - `guardian/src/components/layout/ControlSidebar.tsx`
+    - Collapsed mod artık sadece dock/rail: nav ikonları + scope + details aksiyonları.
+    - Details panel collapsed modda asla render edilmez (clipping yok); “Details” tıklanınca sidebar expand olur ve panel açılır.
+    - Launch/Kill butonu collapsed modda icon-only hale getirildi (text wrap / taşma yok).
+    - Details içeriği ayrı kartlar yerine tek panelde bölümlere ayrıldı (Cost Metric / Baseline / Engine).
+- Phase 20 testleri:
+  - `cd guardian && npm run verify` ✅
+  - `cd guardian/guardian-cli && cargo test` ✅ (13/13)
+
+### v1.2.2 Stability - Phase 21 (Ollama Reliability: Better Errors + Longer Timeout + Initial Scan Pruning) (2026-02-17)
+- Amaç:
+  - “Failed to send request to AI provider” gibi genel hataları gerçek sebebiyle (timeout/connection refused) görünür kılmak.
+  - Ollama için daha gerçekçi timeout default’u sağlamak ve kullanıcı override’ını kısıtlamamak.
+  - İlk taramada gereksiz klasörlere (node_modules/target vb.) girip binlerce dosyayı “skip” ederek zaman kaybetmeyi azaltmak.
+- Uygulanan değişiklikler:
+  - `guardian/src-tauri/src/config.rs`
+    - Maksimum timeout üst sınırı artırıldı (`MAX_TIMEOUT_SECS=600`).
+    - Ollama için default timeout daha yüksek (`>=180s`), env ile override destekleniyor (`GUARDIAN_TIMEOUT_OLLAMA`).
+  - `guardian/src-tauri/src/watcher.rs`
+    - Provider hataları artık tam error-chain ile toplanıyor (`format!("{e:#}")`).
+    - Initial scan: `filter_entry` ile ignored segment’ler erken prune ediliyor (devasa klasörlere descent yok).
+    - Ollama send-failure timeout ise daha net hint veriliyor.
+  - `guardian/src-tauri/src/ai_client.rs`
+    - Ollama send error context artık URL içeriyor (debug daha kolay).
+- Phase 21 testleri:
   - `cd guardian && npm run verify` ✅
   - `cd guardian/guardian-cli && cargo test` ✅ (13/13)
 
