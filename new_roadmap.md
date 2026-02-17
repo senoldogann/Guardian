@@ -2061,6 +2061,19 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
   - `cd guardian && npm run verify` ✅
   - `cd guardian/guardian-cli && cargo test` ✅ (13/13)
 
+### v1.2.2 Docs - Phase 18 (CI/PR Integration Doc: Desktop vs CLI) (2026-02-17)
+- Amaç:
+  - Desktop kullanıcılarının CLI kullanmak zorunda olmadığını netleştirmek; CI/PR entegrasyonu isteyen ekipler için kısa bir runbook sağlamak.
+- Uygulanan değişiklikler:
+  - `docs/CI_PR_INTEGRATION.md`
+    - PR summary + gate + SARIF upload akışı (GitHub Actions) anlatıldı.
+    - Desktop vs CLI rol ayrımı netleştirildi.
+  - `docs/PROJECT_DOCUMENTATION.md`
+    - “CI / PR Integration (Optional)” bölümü eklendi ve dokümana link verildi.
+- Phase 18 testleri:
+  - `cd guardian && npm run verify` ✅
+  - `cd guardian/guardian-cli && cargo test` ✅ (13/13)
+
 ## Kararlar ve Varsayımlar (Kilitleme)
 
 ### 1. CI'da Cloud AI Kullanımı

@@ -199,6 +199,12 @@ npm run test:e2e
 npm run verify
 ```
 
+## 15. CI / PR Integration (Optional)
+Desktop users do not need the CLI. For CI-friendly PR checks (summary comments, gating, SARIF upload),
+see:
+
+- `docs/CI_PR_INTEGRATION.md`
+
 ## 15. Build & Release
 ### Frontend build
 ```bash
