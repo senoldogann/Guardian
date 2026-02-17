@@ -10,6 +10,7 @@ pub const ANTHROPIC_BASE_URL: &str = "https://api.anthropic.com/v1";
 pub const GEMINI_BASE_URL: &str = "https://generativelanguage.googleapis.com/v1beta";
 pub const GITHUB_MODELS_BASE_URL: &str = "https://models.github.ai";
 pub const OLLAMA_CLOUD_BASE_URL: &str = "https://ollama.com";
+const OLLAMA_LOCALHOST_URL: &str = "http://localhost:11434";
 
 fn normalize_provider_id(provider_id: &str) -> String {
     let trimmed = provider_id.trim().to_lowercase();
@@ -87,6 +88,9 @@ pub fn apply_defaults(mut config: ProviderConfig) -> ProviderConfig {
     config.provider_id = normalize_provider_id(&config.provider_id);
     if config.base_url.trim().is_empty() {
         config.base_url = default_base_url(&config.provider_id).to_string();
+    }
+    if config.provider_id == "ollama" {
+        config.base_url = normalize_ollama_base_url(&config.base_url);
     }
     config
 }
@@ -175,10 +179,14 @@ struct OllamaModel {
 }
 
 pub async fn list_ollama_models(base_url: &str) -> Result<Vec<String>, String> {
-    let base = base_url.trim_end_matches('/');
-    let url = format!("{}/api/tags", base);
     let client = Client::new();
-    let response = client.get(url).send().await.map_err(|e| e.to_string())?;
+    let base = normalize_ollama_base_url(base_url);
+    let url = format!("{}/api/tags", base.trim_end_matches('/'));
+    let response = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
 
     if !response.status().is_success() {
         return Err(format!("Model list failed: {}", response.status()));
@@ -197,6 +205,19 @@ pub async fn list_ollama_models(base_url: &str) -> Result<Vec<String>, String> {
     names.sort();
     names.dedup();
     Ok(names)
+}
+
+fn normalize_base_url(value: &str) -> String {
+    value.trim().trim_end_matches('/').to_string()
+}
+
+fn normalize_ollama_base_url(base_url: &str) -> String {
+    let base = normalize_base_url(base_url);
+    if base.eq_ignore_ascii_case("http://127.0.0.1:11434") {
+        OLLAMA_LOCALHOST_URL.to_string()
+    } else {
+        base
+    }
 }
 
 #[derive(Debug, Deserialize)]

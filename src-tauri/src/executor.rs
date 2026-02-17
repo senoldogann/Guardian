@@ -76,11 +76,18 @@ pub fn verify_python_project(root: &str) -> Result<String, String> {
 }
 
 fn run_verification(root: &str, bin: &str, args: &[&str], label: &str) -> Result<String, String> {
-    let out = Command::new(bin)
-        .args(args)
-        .current_dir(root)
-        .output()
-        .map_err(|e| format!("{} failed to start: {}", label, e))?;
+    let out = match Command::new(bin).args(args).current_dir(root).output() {
+        Ok(out) => out,
+        Err(e) => {
+            // Auto-verification is best-effort. If the tool isn't available on the user's machine
+            // (common on fresh setups or when installed via shell-only managers like nvm),
+            // treat this as a "skip" rather than a scary error.
+            if e.kind() == std::io::ErrorKind::NotFound {
+                return Ok(format!("{label} skipped: '{bin}' not found in PATH"));
+            }
+            return Err(format!("{} failed to start: {}", label, e));
+        }
+    };
 
     if out.status.success() {
         Ok(format!("{} Passed", label))

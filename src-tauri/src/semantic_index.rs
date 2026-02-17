@@ -18,6 +18,7 @@ const DEFAULT_MATCH_LIMIT: usize = 5;
 const MIN_SIMILARITY_THRESHOLD: f32 = 0.55;
 const CRITICAL_SIMILARITY_THRESHOLD: f32 = 0.72;
 static AUTO_OPENAI_KEY_MISSING_LOGGED: AtomicBool = AtomicBool::new(false);
+const OLLAMA_LOCALHOST_URL: &str = "http://localhost:11434";
 
 #[derive(Debug, Clone)]
 pub struct SemanticIndexInput {
@@ -371,14 +372,15 @@ async fn embed_with_openai(text: &str) -> Result<Vec<f32>> {
 
 async fn embed_with_ollama(text: &str) -> Result<Vec<f32>> {
     let model = embedding_model_for("ollama");
-    let base_url = std::env::var("GUARDIAN_EMBED_BASE_URL_OLLAMA")
+    let base_url_raw = std::env::var("GUARDIAN_EMBED_BASE_URL_OLLAMA")
         .ok()
         .filter(|v| !v.trim().is_empty())
         .or_else(|| std::env::var("GUARDIAN_EMBED_BASE_URL").ok())
         .unwrap_or_else(|| config::DEFAULT_HOST.to_string());
-    let url = format!("{}/api/embeddings", base_url.trim_end_matches('/'));
+    let base_url = normalize_ollama_base_url(&base_url_raw);
 
     let client = Client::new();
+    let url = format!("{}/api/embeddings", base_url.trim_end_matches('/'));
     let response = client
         .post(url)
         .json(&serde_json::json!({
@@ -469,6 +471,19 @@ fn local_hash_embedding(text: &str) -> Vec<f32> {
         out[idx] += sign * weight;
     }
     normalize_vector(out)
+}
+
+fn normalize_base_url(value: &str) -> String {
+    value.trim().trim_end_matches('/').to_string()
+}
+
+fn normalize_ollama_base_url(base_url: &str) -> String {
+    let base = normalize_base_url(base_url);
+    if base.eq_ignore_ascii_case("http://127.0.0.1:11434") {
+        OLLAMA_LOCALHOST_URL.to_string()
+    } else {
+        base
+    }
 }
 
 fn normalize_vector(mut vector: Vec<f32>) -> Vec<f32> {

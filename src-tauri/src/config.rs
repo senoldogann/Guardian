@@ -5,7 +5,7 @@ use std::env;
 use std::path::Path;
 
 pub const DEFAULT_MODEL: &str = "gemini-3-flash-preview:cloud";
-pub const DEFAULT_HOST: &str = "http://127.0.0.1:11434";
+pub const DEFAULT_HOST: &str = "http://localhost:11434";
 
 const PLACEHOLDER_API_KEY: &str = "PLACEHOLDER_KEY";
 const PLACEHOLDER_TAVILY_KEYS: [&str; 2] = ["PLACEHOLDER_TAVILY_1", "PLACEHOLDER_TAVILY_2"];
@@ -18,7 +18,9 @@ const KEYCHAIN_TAVILY_ACCOUNT: &str = "tavily_api_key";
 const KEYCHAIN_GITHUB_SECRET_ACCOUNT: &str = "github_client_secret";
 const DEFAULT_TIMEOUT_SECS: u64 = 60;
 const MIN_TIMEOUT_SECS: u64 = 5;
-const MAX_TIMEOUT_SECS: u64 = 180;
+// Local providers (e.g. Ollama) can legitimately take longer for large prompts.
+// Keep a sane upper bound to avoid hanging forever, but allow user override.
+const MAX_TIMEOUT_SECS: u64 = 600;
 
 // Watcher Configuration
 pub const DEFAULT_MAX_BATCH_SIZE: usize = 3;
@@ -131,7 +133,13 @@ pub fn provider_timeout_seconds(provider_id: &str) -> u64 {
         "GUARDIAN_TIMEOUT_{}",
         normalized.replace('-', "_").to_uppercase()
     );
-    let provider_timeout = parse_timeout_env(&env_key).unwrap_or(default);
+    let provider_default = if normalized == "ollama" {
+        // Ollama can be slower on consumer hardware; use a safer default than cloud.
+        default.max(180)
+    } else {
+        default
+    };
+    let provider_timeout = parse_timeout_env(&env_key).unwrap_or(provider_default);
     clamp_timeout(provider_timeout)
 }
 

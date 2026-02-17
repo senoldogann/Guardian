@@ -28,7 +28,7 @@ fn canonicalize_path(path: &Path) -> Result<PathBuf> {
 
 /// Validates that the target path is within an allowed workspace directory.
 /// Uses strict path canonicalization and symlink checks to prevent traversal.
-fn validate_path_security(file_path: &str, workspace_root: &str) -> Result<PathBuf> {
+pub(crate) fn validate_path_security(file_path: &str, workspace_root: &str) -> Result<PathBuf> {
     let root = Path::new(workspace_root);
     let canonical_root = canonicalize_path(root).with_context(|| {
         format!(
@@ -72,9 +72,20 @@ fn validate_path_security(file_path: &str, workspace_root: &str) -> Result<PathB
 }
 
 fn ensure_no_symlink_components(candidate: &Path, canonical_root: &Path) -> Result<()> {
-    let rel = candidate
-        .strip_prefix(canonical_root)
-        .with_context(|| "Security Violation: Path is not within workspace root")?;
+    // macOS can represent the same path as both `/var/...` and `/private/var/...`.
+    // If the raw candidate doesn't share a textual prefix with the canonical root, try the
+    // canonicalized candidate for prefix computation, then continue checking the *original*
+    // path components for symlinks.
+    let rel = match candidate.strip_prefix(canonical_root) {
+        Ok(rel) => rel.to_path_buf(),
+        Err(_) => {
+            let canonical_candidate = canonicalize_path(candidate)?;
+            canonical_candidate
+                .strip_prefix(canonical_root)
+                .with_context(|| "Security Violation: Path is not within workspace root")?
+                .to_path_buf()
+        }
+    };
 
     let mut current = canonical_root.to_path_buf();
     for component in rel.components() {
