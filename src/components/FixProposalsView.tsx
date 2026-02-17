@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ClipboardList, Copy, FileText, RefreshCw, Search } from "lucide-react";
+import { ClipboardList, Copy, FileText, Search } from "lucide-react";
 import clsx from "clsx";
 import type { FixProposal, FixProposalsSnapshot } from "../types";
 import { basenameOf, copyToClipboard, formatTimestamp } from "../lib/uiFormat";
@@ -30,23 +30,12 @@ export function FixProposalsView({
   snapshot,
   loading = false,
   error = null,
-  onRefresh,
   onRequestReview,
   onSetStatus,
 }: FixProposalsViewProps): ReactElement {
   const toast = useToast();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ProposalFilter>("pending");
-
-  const onRefreshClick = useCallback(async (): Promise<void> => {
-    if (!onRefresh) return;
-    try {
-      await Promise.resolve(onRefresh());
-      toast.showSuccess("Refreshed.", 2500);
-    } catch {
-      toast.showError("Refresh failed.", 3000);
-    }
-  }, [onRefresh, toast]);
 
   const proposals = snapshot?.proposals ?? [];
   const pending = proposals.filter((p) => {
@@ -80,21 +69,7 @@ export function FixProposalsView({
             <span className="font-mono text-[var(--text-main)]">.guardian-proposals/fix_proposals.jsonl</span>.
           </p>
         </div>
-        {onRefresh && (
-          <button
-            onClick={() => void onRefreshClick()}
-            disabled={loading}
-            className={clsx(
-              "px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer",
-              "bg-background/60 text-text-muted border-border-main hover:bg-border-main",
-              loading && "opacity-50 cursor-not-allowed"
-            )}
-            title="Refresh from backend"
-          >
-            <RefreshCw className={clsx("w-3 h-3", loading && "animate-spin")} />
-            Refresh
-          </button>
-        )}
+        {/* Refresh is intentionally not shown here; use the global refresh controls instead. */}
       </div>
     );
   }
@@ -197,21 +172,7 @@ export function FixProposalsView({
           {error && <div className="text-[10px] text-rose-400 font-mono">{error}</div>}
         </div>
 
-        {onRefresh && (
-          <button
-            onClick={() => void onRefreshClick()}
-            disabled={loading}
-            className={clsx(
-              "px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer",
-              "bg-background/60 text-text-muted border-border-main hover:bg-border-main",
-              loading && "opacity-50 cursor-not-allowed"
-            )}
-            title="Refresh from backend"
-          >
-            <RefreshCw className={clsx("w-3 h-3", loading && "animate-spin")} />
-            Refresh
-          </button>
-        )}
+        {/* Refresh is intentionally not shown here; use the global refresh controls instead. */}
       </div>
 
       <div className="flex-1 overflow-hidden">

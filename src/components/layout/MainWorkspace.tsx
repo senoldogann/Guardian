@@ -48,7 +48,6 @@ export interface MainWorkspaceProps {
   fixProposals: FixProposalsSnapshot | null;
   fixProposalsLoading: boolean;
   fixProposalsError: string | null;
-  onRefreshFixProposals: () => Promise<void>;
   onRequestReview: (proposal: FixProposal) => Promise<void>;
   onSetProposalStatus: (proposalId: string, status: string) => Promise<void>;
   fixHistory: FixHistoryEntry[];
@@ -95,7 +94,6 @@ export function MainWorkspace({
   fixProposals,
   fixProposalsLoading,
   fixProposalsError,
-  onRefreshFixProposals,
   onRequestReview,
   onSetProposalStatus,
   fixHistory,
@@ -398,7 +396,6 @@ export function MainWorkspace({
                 snapshot={fixProposals}
                 loading={fixProposalsLoading}
                 error={fixProposalsError}
-                onRefresh={onRefreshFixProposals}
                 onRequestReview={onRequestReview}
                 onSetStatus={onSetProposalStatus}
               />
