@@ -1,4 +1,5 @@
 import type { GithubAsset } from "./github";
+import type { Locale } from "./locale";
 
 export type Platform =
   | "mac_arm64"
@@ -60,7 +61,7 @@ export async function detectPlatform(): Promise<Platform> {
   return "unknown";
 }
 
-export function getPlatformLabel(platform: Platform): string {
+export function getPlatformLabel(platform: Platform, locale: Locale = "en"): string {
   switch (platform) {
     case "mac_arm64":
       return "macOS (Apple Silicon)";
@@ -71,7 +72,7 @@ export function getPlatformLabel(platform: Platform): string {
     case "linux_x64":
       return "Linux";
     default:
-      return "Unknown";
+      return locale === "tr" ? "Bilinmiyor" : "Unknown";
   }
 }
 
@@ -120,4 +121,3 @@ export function pickBestAsset(assets: GithubAsset[], platform: Platform): Github
 
   return undefined;
 }
-

@@ -7,9 +7,12 @@ import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState, useRef } from "react";
 import type { SiteDictionary } from "../../lib/i18n";
+import type { Locale } from "../../lib/locale";
+import { withLocale } from "../../lib/locale";
 
 interface DemoSectionProps {
     dict: SiteDictionary;
+    locale: Locale;
 }
 
 // Video component with loading state
@@ -59,7 +62,18 @@ function VideoWithLoading({ src, poster }: { src: string; poster: string }) {
     );
 }
 
-export function DemoSection({ dict }: DemoSectionProps) {
+export function DemoSection({ dict, locale }: DemoSectionProps) {
+    const guruBullets =
+        locale === "tr"
+            ? ["Bağlam farkında analiz", "Anında fix önerileri", "Açıklayıcı raporlar"]
+            : ["Context-Aware Analysis", "Instant Fix Suggestions", "Explanatory Reports"];
+    const authBullets =
+        locale === "tr"
+            ? ["Platform-native güvenli saklama", "Çoklu sağlayıcı desteği", "GitHub cihaz doğrulaması"]
+            : ["Platform-Native Secure Storage", "Multi-Provider Support", "GitHub Device Authorization"];
+    const guruCta = locale === "tr" ? "Guru'yu Keşfet" : "Learn About Guru";
+    const securityCta = locale === "tr" ? "Güvenliği Keşfet" : "Learn About Security";
+
     return (
         <>
             {/* Guru Section */}
@@ -77,11 +91,7 @@ export function DemoSection({ dict }: DemoSectionProps) {
                                 {dict.home.sections.guru.description}
                             </p>
                             <ul className="space-y-4 pt-2">
-                                {[
-                                    "Context-Aware Analysis",
-                                    "Instant Fix Suggestions",
-                                    "Explanatory Reports"
-                                ].map((item, idx) => (
+                                {guruBullets.map((item, idx) => (
                                     <motion.li
                                         key={idx}
                                         initial={{ opacity: 0, x: -20 }}
@@ -96,8 +106,8 @@ export function DemoSection({ dict }: DemoSectionProps) {
                                 ))}
                             </ul>
                             <Button asChild className="mt-4 rounded-full px-6 h-12 gap-2 bg-black text-white dark:bg-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 cursor-pointer">
-                                <Link href="/docs/guru">
-                                    Learn About Guru
+                                <Link href={withLocale(locale, "/docs/guru")}>
+                                    {guruCta}
                                 </Link>
                             </Button>
                         </motion.div>
@@ -139,11 +149,7 @@ export function DemoSection({ dict }: DemoSectionProps) {
                                 {dict.home.sections.auth.description}
                             </p>
                             <ul className="space-y-4 pt-2">
-                                {[
-                                    "Platform-Native Secure Storage",
-                                    "Multi-Provider Support",
-                                    "GitHub Device Authorization"
-                                ].map((item, idx) => (
+                                {authBullets.map((item, idx) => (
                                     <motion.li
                                         key={idx}
                                         initial={{ opacity: 0, x: 20 }}
@@ -158,8 +164,8 @@ export function DemoSection({ dict }: DemoSectionProps) {
                                 ))}
                             </ul>
                             <Button asChild variant="outline" className="mt-4 rounded-full px-6 h-12 gap-2 border border-black/20 dark:border-white/20 text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer">
-                                <Link href="/docs/auth">
-                                    Learn About Security
+                                <Link href={withLocale(locale, "/docs/auth")}>
+                                    {securityCta}
                                 </Link>
                             </Button>
                         </motion.div>

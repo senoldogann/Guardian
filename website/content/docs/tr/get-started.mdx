@@ -1,0 +1,91 @@
+---
+title: "Başlarken"
+summary: "İlk çalıştırmadan önce ürünü ve sürüm modelini anlayın."
+section: "Genel"
+order: 1
+---
+
+## Guardian nedir?
+
+Guardian, kod tabanlarını mimari kısıtlar, güvenlik beklentileri ve sürüm kalitesi standartlarına göre değerlendiren bir masaüstü yönetişim uygulamasıdır. Kod kalitesine gerçek zamanlı geri bildirim verir, Guru asistanıyla düzeltme önerileri sunar ve mevcut sürüm akışlarınızla entegre çalışır.
+
+### Temel yetenekler
+
+- **Kod tabanı taraması**: Projenizi mimari ihlaller, güvenlik sorunları ve kalite riskleri için analiz eder.
+- **Guru AI asistanı**: Bulguları bağlamıyla açıklar ve uygulanabilir düzeltme önerileri verir.
+- **Sürüm yönetişimi**: Güncelleme kontrolü ve sürüm yönetimiyle release akışını destekler.
+- **Uygulama içi güncellemeler**: GitHub Releases üzerinden güncellemeleri kontrol eder ve kurulum adımlarında rehberlik eder.
+
+## Kimler için?
+
+Guardian, kod kalitesini önemseyen ekipler ve bireyler için tasarlanmıştır:
+
+| Rol | Kullanım senaryosu |
+|------|----------|
+| **Teknik liderler** | Ekip genelinde mimari standartları uygulatmak |
+| **Platform/DevOps ekipleri** | Kalite kontrollerini CI/CD akışına entegre etmek |
+| **Güvenlik ekipleri** | Zafiyetleri ve uyumluluğu izlemek |
+| **Bireysel geliştiriciler** | Kod kalitesine hızlı geri bildirim almak |
+
+## Nasıl çalışır?
+
+Guardian, üç adımlı bir yönetişim döngüsü izler:
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│    TARA     │────▶│   ANALİZ    │────▶│    HAREKET   │
+│ Kod tabanı  │     │ Bulgular    │     │ Düzelt/Onay  │
+└─────────────┘     └─────────────┘     └─────────────┘
+```
+
+1. **Tara**: Guardian kod tabanınızı tarar ve bulguları tipe göre sınıflandırır (güvenlik, mimari, kalite).
+2. **Analiz**: Bulgular önceliklendirilir; Guru bağlam ve açıklama sağlar.
+3. **Hareket**: Bulguları gözden geçirin, uygun olan düzeltmeleri uygulayın ve baseline ile “yeni” vs “bilinen” ayrımını takip edin.
+
+## İlk 10 dakika
+
+İlk oturumda şu adımları uygulayın:
+
+### 1. Uygulamayı kurun
+Download sayfasından kurulum dosyasını indirin. macOS build'leri hazır; Windows ve Linux yayınlandığında görünecek.
+
+### 2. Provider ayarlarını yapın
+
+**Settings > Provider** bölümünden AI provider kimlik bilgilerinizi ayarlayın. Guardian hem bulut tabanlı hem de lokal seçenekleri destekler.
+
+### 3. İlk taramanızı başlatın
+**Scope** alanından (veya klasörü uygulamaya sürükleyip bırakarak) workspace'inizi seçin, ardından **Launch Guardian** ile izlemeyi başlatın.
+
+### 4. Bulguları inceleyin
+Tarama tamamlandığında:
+- Herhangi bir bulguya tıklayıp detayları görün
+- Sorular için Guru sohbetini kullanın
+- Uygunsa fix önerilerini uygulayın veya mevcut durumu baseline olarak sabitleyin
+
+## Uygulama yerleşimi
+
+Guardian arayüzü dört ana bölümden oluşur:
+
+| Alan | Amaç |
+|------|---------|
+| **Sidebar** | Sekmeler arası gezinme, ayarlar ve durum bilgileri |
+| **Main Panel** | Bulguların listesi, detaylar ve analiz |
+| **Guru Chat** | Etkileşimli AI asistanı |
+| **Status Bar** | Bağlantı durumu, sürüm bilgisi ve hızlı aksiyonlar |
+
+## Sonraki adımlar
+
+- [Kurulum rehberi](/docs/installation) - Detaylı kurulum adımları
+- [Guru asistanı](/docs/guru) - AI mimari asistanı nasıl kullanılır
+- [Reviews & Fix Proposals](/docs/reviews) - Önerilen düzeltmeleri yönetin
+- [Yapılandırma](/docs/configuration) - Ayarlar ve guardian.lock
+- [Güvenlik](/docs/security) - Güvenlik modeli
+
+## v1.2.2'de neler yeni?
+
+v1.2.2, kaliteyi düşürmeden daha iyi maliyet kontrolü ve izleme sırasında daha akıcı etkileşimler üzerine odaklanır.
+
+- **Scan scope profilleri**: `Source` (varsayılan), `Extended` veya `Full` seçerek izleme sırasında hangi dosyaların değerlendirileceğini kontrol edin.
+- **Adaptive AI queue**: Monitor taramaları ve Guru istekleri adil bir şekilde kuyruklanır; aktif tarama varken bile Guru daha responsif kalır.
+- **Web search iyileştirmeleri (Tavily)**: Sorunuz bir URL içeriyorsa, Guru daha iyi bağlam için URL extraction kullanır. Search depth, Settings'ten ayarlanabilir.
+- **Full vs Extended görünürlük**: `Full`, `Extended`'dan daha fazla warning (ve anlamlı info) yüzeye çıkarmak için tasarlanmıştır.

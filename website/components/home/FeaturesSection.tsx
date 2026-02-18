@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Button } from "../ui/button";
 import { ChevronRight, ShieldCheck, Zap, RefreshCw, Terminal, type LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
+import type { Locale } from "../../lib/locale";
+import { withLocale } from "../../lib/locale";
 
 type LocalizedBlock = {
     title: string;
@@ -12,7 +14,7 @@ type LocalizedBlock = {
     link: string;
 };
 
-const featureBlocks: LocalizedBlock[] = [
+const featureBlocksEn: LocalizedBlock[] = [
     {
         title: "Live Monitoring",
         description: "Scans repository changes in real time and safely stalls execution on critical violations.",
@@ -39,7 +41,44 @@ const featureBlocks: LocalizedBlock[] = [
     }
 ];
 
-export function FeaturesSection() {
+const featureBlocksTr: LocalizedBlock[] = [
+    {
+        title: "Canlı İzleme",
+        description: "Repo değişikliklerini gerçek zamanlı tarar ve kritik ihlallerde güvenli şekilde akışı durdurur.",
+        icon: Terminal,
+        link: "/docs/monitoring"
+    },
+    {
+        title: "Guru Destek Katmanı",
+        description: "Onay akışı ve bağlamlı önerilerle, teslimatı yavaşlatmadan uygulanabilir çözümler sunar.",
+        icon: Zap,
+        link: "/docs/guru"
+    },
+    {
+        title: "Uygulama İçi Güncellemeler",
+        description: "Release metadatasını kullanır ve güvenli update akışını doğrudan masaüstü uygulamasında çalıştırır.",
+        icon: RefreshCw,
+        link: "/docs/get-started"
+    },
+    {
+        title: "Sürüm Yönetişimi",
+        description: "Güvenli teslim için private source + public distribution mimarisini destekler.",
+        icon: ShieldCheck,
+        link: "/docs"
+    }
+];
+
+export function FeaturesSection({ locale }: { locale: Locale }) {
+    const featureBlocks = locale === "tr" ? featureBlocksTr : featureBlocksEn;
+    const eyebrow = locale === "tr" ? "Yetenekler" : "Capabilities";
+    const title = locale === "tr" ? "Güçlü Özellikler" : "Powerful Features";
+    const desc =
+        locale === "tr"
+            ? "Kod kalitesini korumak için ihtiyaç duyduğunuz her şey, tek bir masaüstü uygulamasında."
+            : "Everything you need to maintain code quality, all in one powerful desktop application";
+    const ctaPrompt = locale === "tr" ? "Tüm özellikleri çalışırken görmek ister misiniz?" : "Ready to see all features in action?";
+    const ctaLabel = locale === "tr" ? "Dokümantasyonu Keşfet" : "Explore Documentation";
+
     return (
         <section className="py-24 md:py-32 relative bg-white dark:bg-black transition-colors duration-300">
             <div className="absolute inset-0 bg-white dark:bg-black" />
@@ -53,13 +92,13 @@ export function FeaturesSection() {
                     className="text-center mb-16 md:mb-20"
                 >
                     <span className="inline-block px-4 py-1.5 mb-4 text-xs sm:text-sm font-medium tracking-wider text-neutral-500 dark:text-neutral-400 uppercase bg-neutral-100 dark:bg-neutral-900 rounded-full border border-neutral-200 dark:border-neutral-800">
-                        Capabilities
+                        {eyebrow}
                     </span>
                     <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-4 md:mb-6 text-black dark:text-white" style={{ fontFamily: 'var(--font-poppins)' }}>
-                        Powerful Features
+                        {title}
                     </h2>
                     <p className="text-base sm:text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto px-4" style={{ fontFamily: 'var(--font-poppins)' }}>
-                        Everything you need to maintain code quality, all in one powerful desktop application
+                        {desc}
                     </p>
                 </motion.div>
 
@@ -100,8 +139,10 @@ export function FeaturesSection() {
                                         </p>
 
                                         <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-neutral-200 dark:border-neutral-800">
-                                            <Link href={feature.link} className="flex items-center gap-2 text-xs sm:text-sm text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300 transition-colors cursor-pointer">
-                                                <span style={{ fontFamily: 'var(--font-poppins)' }}>Learn more about {feature.title}</span>
+                                            <Link href={withLocale(locale, feature.link)} className="flex items-center gap-2 text-xs sm:text-sm text-neutral-500 group-hover:text-neutral-700 dark:group-hover:text-neutral-300 transition-colors cursor-pointer">
+                                                <span style={{ fontFamily: 'var(--font-poppins)' }}>
+                                                    {locale === "tr" ? `${feature.title} hakkında` : `Learn more about ${feature.title}`}
+                                                </span>
                                                 <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
                                             </Link>
                                         </div>
@@ -122,15 +163,15 @@ export function FeaturesSection() {
                     className="mt-12 sm:mt-16 text-center"
                 >
                     <p className="text-sm sm:text-base text-zinc-500 dark:text-zinc-500 mb-4" style={{ fontFamily: 'var(--font-poppins)' }}>
-                        Ready to see all features in action?
+                        {ctaPrompt}
                     </p>
                     <Button
                         variant="outline"
                         className="rounded-full px-6 sm:px-8 py-2 sm:py-3 text-sm sm:text-base border-black/20 dark:border-white/20 text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-all cursor-pointer"
                         asChild
                     >
-                        <Link href="/docs">
-                            <span style={{ fontFamily: 'var(--font-poppins)' }}>Explore Documentation</span>
+                        <Link href={withLocale(locale, "/docs")}>
+                            <span style={{ fontFamily: 'var(--font-poppins)' }}>{ctaLabel}</span>
                             <ChevronRight className="w-4 h-4 ml-2" aria-hidden="true" />
                         </Link>
                     </Button>

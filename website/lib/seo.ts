@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import type { Locale } from "./locale";
+import { swapLocaleInPath } from "./locale";
 
 export const SITE_URL = "https://guardianide.com";
 
@@ -15,16 +17,22 @@ export function buildPageMetadata(input: {
   title: string;
   description: string;
   path: string;
+  locale?: Locale;
 }): Metadata {
-  const { title, description, path } = input;
+  const { title, description, path, locale = "en" } = input;
   const currentUrl = `${SITE_URL}${path}`;
   const ogImageUrl = generateOgImageUrl(title, description);
+  const ogLocale = locale === "tr" ? "tr_TR" : "en_US";
 
   return {
     title,
     description,
     alternates: {
-      canonical: currentUrl
+      canonical: currentUrl,
+      languages: {
+        en: `${SITE_URL}${swapLocaleInPath(path, "en")}`,
+        tr: `${SITE_URL}${swapLocaleInPath(path, "tr")}`,
+      }
     },
     openGraph: {
       title,
@@ -32,7 +40,7 @@ export function buildPageMetadata(input: {
       url: currentUrl,
       siteName: "Guardian",
       type: "website",
-      locale: "en_US",
+      locale: ogLocale,
       images: [
         {
           url: ogImageUrl,

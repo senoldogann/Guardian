@@ -7,12 +7,15 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import type { SiteDictionary } from "../../lib/i18n";
 import { getLatestReleaseClient, releaseTagToVersionClient } from "../../lib/releases-client";
+import type { Locale } from "../../lib/locale";
+import { withLocale } from "../../lib/locale";
 
 interface HeroSectionProps {
     dict: SiteDictionary;
+    locale: Locale;
 }
 
-export function HeroSection({ dict }: HeroSectionProps) {
+export function HeroSection({ dict, locale }: HeroSectionProps) {
     const [releaseInfo, setReleaseInfo] = useState({
         tag: "—"
     });
@@ -43,9 +46,7 @@ export function HeroSection({ dict }: HeroSectionProps) {
                     className="mb-8"
                 >
                     <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] text-black dark:text-white">
-                        Quality Standards
-                        <br />
-                        <span className="text-neutral-600 dark:text-neutral-400">at Release Speed</span>
+                        {dict.home.title}
                     </h1>
                 </motion.div>
 
@@ -55,7 +56,7 @@ export function HeroSection({ dict }: HeroSectionProps) {
                     transition={{ duration: 0.5, delay: 0.2 }}
                     className="text-lg md:text-xl text-neutral-600 dark:text-neutral-400 max-w-2xl mx-auto mb-12 leading-relaxed"
                 >
-                    Enterprise-grade architecture governance and security audit platform for engineering teams.
+                    {dict.home.description}
                 </motion.p>
 
                 <motion.div
@@ -69,7 +70,7 @@ export function HeroSection({ dict }: HeroSectionProps) {
                         size="lg"
                         className="rounded-lg px-8 h-12 text-base font-semibold gap-2 bg-black text-white dark:bg-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 shadow-md transition-all duration-200"
                     >
-                        <Link href="/download">
+                        <Link href={withLocale(locale, "/download")}>
                             <span>{dict.home.ctaPrimary}</span>
                             <span className="text-xs opacity-70 font-normal">v{releaseInfo.tag}</span>
                         </Link>
@@ -81,8 +82,8 @@ export function HeroSection({ dict }: HeroSectionProps) {
                         className="rounded-lg px-8 h-12 text-base font-semibold gap-2 border-2 border-neutral-300 dark:border-white/20 text-neutral-700 dark:text-white hover:bg-neutral-100 dark:hover:bg-white/10 hover:border-neutral-400 dark:hover:border-white/40 transition-all duration-200"
                         asChild
                     >
-                        <Link href="/docs">
-                            <span>Documentation</span>
+                        <Link href={withLocale(locale, "/docs")}>
+                            <span>{dict.home.ctaSecondaryDocs}</span>
                         </Link>
                     </Button>
                 </motion.div>

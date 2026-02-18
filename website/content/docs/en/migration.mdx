@@ -1,0 +1,76 @@
+---
+title: "Migration Guide"
+summary: "Upgrade safely across Guardian versions, baselines, and guardian.lock changes."
+section: "Operations"
+order: 6
+---
+
+## Overview
+
+Guardian is designed to be backward compatible, but a few features introduce new local files that you should account for when upgrading:
+
+- `guardian.lock` (reproducible scans + drift control)
+- `.guardian/baseline.json` (baseline tracking)
+- `.guardian/critiques.json` (monitor snapshot hydration)
+
+This guide covers a safe upgrade flow that preserves your workflow and avoids confusing "all findings are new" situations.
+
+## Recommended Upgrade Flow
+
+1. **Update Guardian**
+   - Install the new desktop build from `/download` or via in-app updates.
+
+2. **Open the same workspace root**
+   - Make sure Scope points to the project root (not a subfolder).
+
+3. **Start monitoring once**
+   - The app will re-index and may generate/update local files.
+
+4. **Confirm `guardian.lock`**
+   - If your project didn’t have a `guardian.lock`, it will be created after a scan.
+   - Commit `guardian.lock` to version control if you want reproducible scans across the team.
+
+5. **Recreate baseline (recommended)**
+   - Open Monitor and click **Set Baseline**.
+   - This ensures the baseline matches your current rules + Guardian version.
+
+## If You See “Everything Is New”
+
+This usually means the baseline is missing or incompatible with your current rules hash.
+
+Fix:
+1. Clear the baseline (or click **Reset** in the baseline panel).
+2. Run a scan.
+3. Click **Set Baseline** again.
+
+## Files Created in Your Workspace
+
+Guardian writes a small set of files to your workspace for safety and reproducibility:
+
+```
+.guardian/
+  baseline.json
+  critiques.json
+  history.jsonl
+guardian.lock
+```
+
+If your organization requires strict repository hygiene, you can:
+- Commit `guardian.lock` (recommended)
+- Add `.guardian/` to `.gitignore` if you don’t want to track local history/snapshots
+
+## CLI (CI-only) Note
+
+If you run Guardian in CI via `guardian-cli`, align the `scan_profile` and lock mode:
+
+```bash
+guardian-cli scan --root . --scan-profile source --lock-mode warn
+```
+
+## Need Help?
+
+If migration behaves unexpectedly:
+- Check the current version in **Settings > Updates**
+- Share the relevant error message and your scan profile
+- Use `/contact` for support
+

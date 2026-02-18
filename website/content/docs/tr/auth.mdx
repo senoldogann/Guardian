@@ -1,0 +1,120 @@
+---
+title: "Kimlik Doğrulama"
+summary: "AI provider'ları yapılandırın, API key yönetin ve kimlik bilgisi saklamasını güvenceye alın."
+section: "Operasyonlar"
+order: 3
+---
+
+## Genel bakış
+
+Guardian, monitoring'i açmak için GitHub device authorization kullanır. AI provider ayarları ise Settings üzerinden ayrı olarak yapılandırılır.
+
+## Desteklenen provider'lar
+
+Guardian kod analizi için birden fazla AI provider destekler:
+
+| Provider | Açıklama | En iyi kullanım |
+|----------|-------------|----------|
+| **Ollama** | Lokal veya self-hosted modeller | Gizlilik, offline kullanım |
+| **OpenAI** | Hosted modeller | Genel kullanım, hızlı yanıt |
+| **Anthropic** | Hosted modeller | Derin analiz, security review |
+| **Google Gemini** | Hosted modeller | Yüksek hız |
+| **GitHub Models** | GitHub-hosted modeller | Yönetilen altyapı |
+
+## GitHub ile giriş
+
+1. İstendiğinde **Sign In with GitHub** tıklayın.
+2. Tarayıcıda device authorization adımlarını tamamlayın.
+3. Gerekirse Guardian'a dönüp **Check Now** tıklayın.
+
+## Provider kurulumu
+
+### Adım 1: API key alın
+
+1. **OpenAI**: [platform.openai.com](https://platform.openai.com)
+2. **Anthropic**: [console.anthropic.com](https://console.anthropic.com)
+3. **Google**: [aistudio.google.com](https://aistudio.google.com)
+4. **GitHub Models**: `models:read` iznine sahip fine-grained GitHub token oluşturun (uygulama içi Settings notuna bakın).
+5. **Ollama**: Lokal kurulumda API key gerekmez
+
+### Adım 2: Guardian içinde yapılandırın
+
+Settings (dişli ikon) ekranından:
+
+1. Dropdown'dan bir **Provider** seçin
+2. Gerekliyse **API Key** girin
+3. Uygun bir **Model** seçin
+4. **Save** ile uygulayın
+
+### Adım 3: Bağlantıyı doğrulayın
+
+Monitoring başlatırken veya Guru kullanırken uygulama kimlik bilgilerini otomatik doğrular.
+
+## Kimlik bilgisi saklama
+
+Guardian platform-native güvenli saklama kullanır:
+
+| Platform | Yöntem | Şifreleme |
+|----------|---------------|------------|
+| **macOS** | Keychain | OS-managed |
+
+> **Güvenlik notu**: API key'ler hiçbir zaman düz metin dosyalarına yazılmaz ve loglarda gösterilmez.
+
+## Ollama yapılandırması
+
+Lokal AI modelleri için:
+
+### Lokal kurulum
+1. [ollama.com](https://ollama.com) üzerinden Ollama kurun
+2. Model indirin: `ollama pull llama3.2`
+3. Guardian'da **Ollama** provider seçin
+4. Base URL'yi `http://localhost:11434` (Local) veya kendi endpoint'iniz olarak ayarlayın
+
+### Cloud/remote kurulum
+Hosted bir Ollama instance'ınız varsa:
+1. **Ollama** provider seçin
+2. Base URL dropdown'undan “Cloud” seçin veya custom endpoint girin
+
+## Rate limit yönetimi
+
+Guardian rate limit durumlarında exponential backoff uygular. Rate limit görürseniz:
+
+- Biraz bekleyip tekrar deneyin
+- Geçici olarak farklı bir provider kullanmayı düşünün
+
+## API key rotasyonu
+
+Güvenlik için API key'leri düzenli aralıklarla rotate edin:
+
+1. Provider dashboard'undan yeni key üretin
+2. Guardian Settings'te güncelleyin
+3. Guru veya monitoring ile test edin
+4. Eski key'i provider dashboard'undan iptal edin
+
+## Sorun giderme
+
+### Yaygın hatalar
+
+| Hata | Neden | Çözüm |
+|-------|-------|----------|
+| "Invalid API Key" | Yanlış veya süresi dolmuş key | Provider dashboard'undan doğrulayın |
+| "Rate Limited" | Çok fazla istek | Bekleyip tekrar deneyin |
+| "Network Error" | Bağlantı sorunu | Firewall/proxy ayarlarını kontrol edin |
+| "Model Not Found" | Geçersiz model adı | Desteklenen modele geçin |
+
+### Kimlik bilgilerini sıfırlama
+
+Kaydedilmiş kimlik bilgilerini temizlemek için:
+
+1. Settings'i açın
+2. API Key alanındaki **Clear** butonunu tıklayın
+3. Yeni key ile tekrar kaydedin
+
+## Best practices
+
+1. **Ayrı key kullanın**: dev/staging/prod için ayrı key
+2. **Kullanımı izleyin**: Provider dashboard'larında usage kontrol edin
+3. **Düzenli rotate edin**: Örn. 3 ayda bir
+4. **Scope sınırlayın**: Provider kısıtları varsa kullanın
+5. **Asla commit etmeyin**: Key'leri version control'e sokmayın
+

@@ -5,7 +5,10 @@
     "home": "Home",
     "download": "Download",
     "changelog": "Changelog",
-    "docs": "Docs"
+    "docs": "Docs",
+    "faq": "FAQ",
+    "contact": "Contact",
+    "privacy": "Privacy Policy"
   },
   "home": {
     "eyebrow": "Desktop Governance Platform",
@@ -37,6 +40,9 @@
     "manual": "Manual Packages",
     "noMatch": "Automatic matching was not found. Continue with manual packages below.",
     "detecting": "Detecting your operating system...",
+    "platformLabel": "Platform",
+    "platformAuto": "Auto (detect)",
+    "platformDetected": "Detected",
     "size": "Size"
   },
   "changelog": {
@@ -59,9 +65,41 @@
     "tableOfContents": "On This Page",
     "sections": "Sections"
   },
+  "footer": {
+    "sections": {
+      "product": "Product",
+      "resources": "Resources",
+      "legal": "Legal"
+    },
+    "links": {
+      "gettingStarted": "Getting Started",
+      "security": "Security",
+      "configuration": "Configuration",
+      "guru": "Guru AI",
+      "monitoring": "Monitoring"
+    },
+    "tagline": "Release-driven governance platform for engineering teams. Maintain code quality and security at scale.",
+    "rights": "All rights reserved.",
+    "builtBy": "Designed & Developed by"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "language": {
+    "label": "Language",
+    "english": "English",
+    "turkish": "Turkish"
+  },
   "common": {
     "latestVersion": "Latest version",
     "releaseNotAvailable": "No release is available yet.",
-    "updatedAt": "Updated"
+    "updatedAt": "Updated",
+    "skipToContent": "Skip to main content",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "mobileNavigation": "Mobile navigation",
+    "themeSelection": "Theme selection"
   }
 }

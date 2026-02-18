@@ -1,11 +1,12 @@
 import type { MetadataRoute } from "next";
 import { getDocs } from "../lib/docs";
 import { fetchReleaseSnapshot } from "../lib/releases-source";
+import { SUPPORTED_LOCALES, withLocale } from "../lib/locale";
 import { SITE_URL } from "../lib/seo";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [docs, releases] = await Promise.all([
-    getDocs(),
+  const [docsByLocale, releases] = await Promise.all([
+    Promise.all(SUPPORTED_LOCALES.map((locale) => getDocs(locale))),
     fetchReleaseSnapshot(1).catch(() => [])
   ]);
   const latestRelease = releases[0];
@@ -23,13 +24,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/contact"
   ];
 
-  const docRoutes = docs.map((doc) => `/docs/${doc.meta.slug}`);
+  const localizedStaticRoutes = SUPPORTED_LOCALES.flatMap((locale) =>
+    staticRoutes.map((route) => withLocale(locale, route))
+  );
 
-  return [...staticRoutes, ...docRoutes].map((route) => {
-    const isChangelog = route === "/changelog";
-    const isDownload = route === "/download";
+  const localizedDocRoutes = SUPPORTED_LOCALES.flatMap((locale, index) => {
+    const docs = docsByLocale[index] ?? [];
+    return docs.map((doc) => withLocale(locale, `/docs/${doc.meta.slug}`));
+  });
+
+  return [...localizedStaticRoutes, ...localizedDocRoutes].map((route) => {
+    const baseRoute = route.replace(/^\/(en|tr)(?=\/|$)/, "") || "/";
+    const isChangelog = baseRoute === "/changelog";
+    const isDownload = baseRoute === "/download";
     const changeFrequency = isChangelog ? "daily" : "weekly";
-    const priority = route === "/" ? 1 : isDownload ? 0.85 : 0.7;
+    const priority = baseRoute === "/" ? 1 : isDownload ? 0.85 : 0.7;
 
     return {
       url: `${SITE_URL}${route}`,

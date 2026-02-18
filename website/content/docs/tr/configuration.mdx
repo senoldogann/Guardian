@@ -1,0 +1,225 @@
+---
+title: "Yapılandırma"
+summary: "Guardian ayarlarını ve uygulama tercihlerini özelleştirin."
+section: "Operasyonlar"
+order: 4
+---
+
+## Genel bakış
+
+Guardian, iş akışınıza göre uygulamayı uyarlamak için çeşitli ayarlar sunar. Bu sayfa, yapılandırılabilir seçenekleri özetler.
+
+## Ayarlara erişim
+
+Header'daki **gear icon** (⚙️) ile Settings modal'ını açın.
+
+## Provider yapılandırması
+
+### Provider seçimi
+
+Dropdown'dan AI provider seçin:
+
+| Provider | API Key gerekli mi? | Lokal seçenek |
+|----------|----------------------|--------------|
+| **Ollama** | Hayır (Local) / Evet (Cloud) | Evet (`http://localhost:11434`) |
+| **OpenAI** | Evet | Hayır |
+| **Anthropic (Claude)** | Evet | Hayır |
+| **Google Gemini** | Evet | Hayır |
+| **GitHub Models** | Evet | Hayır |
+
+### Model seçimi
+
+Provider seçtikten sonra bir model seçin. Uygun modeller provider'dan otomatik alınır.
+
+**Model seçerken:**
+- Günlük monitoring ve hızlı Guru soruları için daha hızlı modelleri tercih edin.
+- Mimari analiz kalitesi gerektiğinde daha güçlü modeller kullanın.
+- Ollama için, lokal indirdiğiniz bir modeli seçin (ör. `ollama pull <model>`).
+
+### API key yönetimi
+
+API key gerektiren provider'larda:
+
+1. Provider dashboard'undan API key alın
+2. "API Key" alanına girin
+3. **Save** ile güvenli şekilde kaydedin
+4. **Clear** ile kaydı temizleyin
+
+> **Güvenlik**: API key'ler platform-native secure storage'da saklanır (Keychain, Credential Manager veya Secret Service).
+
+## Tema ayarları
+
+**Light** / **Dark** tema arasında geçiş:
+- Settings modal içindeki theme toggle ile
+- veya header'daki theme toggle ile
+
+## Scan Scope
+
+Scan Scope, monitoring sırasında **hangi dosyaların** dahil edileceğini belirler (maliyet vs kapsam).
+
+**Settings > General > Scan Scope** üzerinden seçin:
+
+| Profil | Kapsam |
+|---------|--------------|
+| **Source** (varsayılan) | Kod odaklı. Varsayılan olarak docs/tests/scripts/lockfile'ları atlar. |
+| **Extended** | Infra ve security yüzeylerini ekler (Docker/CI/workflows/config/shell/locks). Docs/tests yine atlanır. |
+| **Full** | Çoğu text dosyası (docs/tests/scripts/workflows dahil). En yüksek kapsam ve maliyet. |
+
+> Değişiklikler monitoring bir sonraki başlangıcında uygulanır (monitoring'i restart edin).
+
+## Web Search (Tavily)
+
+Guru için AI destekli web search'i açabilirsiniz:
+
+1. [tavily.com](https://tavily.com) üzerinden API key alın
+2. "Tavily API Key" alanına girin
+3. Guru artık web'den bağlam çekebilir
+
+### Search depth
+
+**Settings > Web Search** bölümünde arama derinliğini seçebilirsiniz:
+
+- **Auto**: Soru niyetine göre uygun derinliği seçer
+- **Basic**: Çoğu soru için iyi varsayılan
+- **Advanced**: Daha yüksek recall (daha yavaş)
+- **Fast / Ultra-fast**: Daha hızlı, daha küçük sonuç
+
+### URL Extract
+
+Sorunuz bir URL içeriyorsa, Guru geniş arama yerine Tavily **Extract** kullanmayı tercih eder (o sayfadan hedefli chunk çıkarımı).
+
+### Mesaj bazlı override
+
+Tek bir soru için web search'i zorlamak isterseniz:
+
+- `/web` prefix (ör. `/web explain the latest Node.js LTS changes`)
+- veya sorunun içinde `@web`
+
+Bu, Web Search kapalı olsa bile çalışır; yine de Tavily key gerekir.
+
+### Best practices
+
+1. Web sorgularını kısa ve spesifik tutun (Guardian Tavily sorgularını ~400 karaktere kısaltır).
+2. Kompleks soruları tek uzun prompt yerine birkaç odaklı soruya bölün.
+3. Kaynağı biliyorsanız `site:example.com` ile domain kısıtlayın.
+4. Tek bir sayfa özet istiyorsanız URL + net talimat verin (Extract, Search'e göre daha sıkıdır).
+
+## Updates
+
+### Güncelleme kontrolü
+
+Guardian otomatik olarak güncelleme kontrol eder. Ayrıca:
+- Settings içinden **Check Now** ile manuel kontrol yapabilirsiniz
+- Mevcut sürüm bilgisini görebilirsiniz
+
+### Update feed URL
+
+İleri kullanıcılar `GUARDIAN_UPDATE_FEED_URL` env değişkeniyle self-hosted update feed kullanabilir.
+
+## Konfigürasyon saklama
+
+Guardian konfigürasyonu platforma göre şu konumlarda saklar:
+
+| Platform | Konum |
+|----------|----------|
+| **macOS** | `~/Library/Application Support/Guardian/` |
+
+## guardian.lock
+
+`guardian.lock`, farklı makinelerde ve zamanlarda taramaların daha tekrar üretilebilir olmasını sağlar.
+
+### Ne yapar?
+
+- Rules sürümünü (hash) sabitler
+- Workspace ID kaydeder
+- Guardian sürümünü kaydeder
+- Tarama tutarlılığı sağlar
+
+### Konum
+
+```
+your-project/
+├── guardian.lock          # Otomatik üretilir
+├── .guardian/
+│   └── baseline.json
+└── .agent/rules/
+```
+
+### Şema
+
+```json
+{
+  "schema_version": 1,
+  "created_at": "2026-02-10T12:00:00Z",
+  "updated_at": "2026-02-10T12:00:00Z",
+  "guardian_version": "1.2.2",
+  "workspace_id": "sha256-hash",
+  "rules_hash": "abc123...",
+  "rules_source": ".agent/rules"
+}
+```
+
+### CLI lock enforcement modları
+
+`guardian-cli` ile lock uyumluluğunu enforce edebilirsiniz:
+
+```bash
+# Warn (varsayılan): mismatch varsa uyar ama devam et
+guardian-cli scan --root . --lock-mode warn
+
+# Strict: mismatch varsa taramayı fail et
+guardian-cli scan --root . --lock-mode strict
+
+# Off: lock dosyasını yok say
+guardian-cli scan --root . --lock-mode off
+```
+
+### Migration
+
+Eski sürümlerden geçişte (guardian.lock yokken):
+
+1. Projeyi Guardian Desktop ile açın
+2. Bir tarama çalıştırın (lock otomatik oluşur)
+3. UI üzerinden baseline'ı yeniden oluşturun
+4. Detaylar için [Migration Guide](/docs/migration)
+
+## Semantic index ayarları
+
+Semantic search davranışını yapılandırma:
+
+### Embedding provider
+
+Embedding'lerin nasıl üretileceğini seçin:
+
+```bash
+# Environment variables
+GUARDIAN_EMBED_MODE=auto            # "auto", "openai", "ollama", "local"
+GUARDIAN_EMBED_MODEL=text-embedding-3-small
+GUARDIAN_EMBED_MODEL_OLLAMA=nomic-embed-text
+GUARDIAN_OFFLINE=1                  # Local hash modunu zorlar
+```
+
+**Auto mode davranışı**
+
+- Geçerli bir OpenAI key varsa, auto mode OpenAI'ı tercih eder.
+- OpenAI key yoksa, auto mode OpenAI'ı tamamen atlar; Ollama ile başlar, sonra local hash fallback.
+
+| Mode | Kalite | Gecikme | Offline |
+|------|---------|---------|---------|
+| OpenAI | ⭐⭐⭐ | ~500ms | ❌ |
+| Ollama | ⭐⭐ | ~200ms | ✅ |
+| Local Hash | ⭐ | ~10ms | ✅ |
+
+### Similarity threshold
+
+Guardian, semantic match'leri minimum **0.72** similarity skoruyla filtreler.
+
+## Best practices
+
+1. **Konfigürasyon yedeği alın**: Büyük değişikliklerden önce PDF export alın
+2. **API key güvenliği**: API key'leri paylaşmayın/commit etmeyin
+3. **Değişiklik sonrası test**: Provider değişince Guru'nun çalıştığını doğrulayın
+4. **Güncel kalın**: Otomatik update kontrolünü açık tutun
+5. **guardian.lock commit edin**: Takım tutarlılığı için version control'e ekleyin
+6. **CI'da strict mode**: CI/CD'de lock uyumluluğunu enforce edin
+

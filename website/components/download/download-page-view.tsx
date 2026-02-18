@@ -2,12 +2,14 @@ import type { SiteDictionary } from "../../lib/i18n";
 import { getLatestRelease, pickInstallers, releaseTagToVersion } from "../../lib/github";
 import { fetchReleaseSnapshot } from "../../lib/releases-source";
 import { DownloadClient } from "../../app/download/download-client";
+import type { Locale } from "../../lib/locale";
 
 type Props = {
   dict: SiteDictionary;
+  locale: Locale;
 };
 
-export async function DownloadPageView({ dict }: Props) {
+export async function DownloadPageView({ dict, locale }: Props) {
   let latestTag = "—";
   let installers = [] as ReturnType<typeof pickInstallers>;
   let fetchError: string | null = null;
@@ -49,7 +51,7 @@ export async function DownloadPageView({ dict }: Props) {
         {fetchError ? <p className="mt-2 text-sm text-red-600">{fetchError}</p> : null}
       </section>
 
-      <DownloadClient assets={installers} dict={dict} />
+      <DownloadClient assets={installers} dict={dict} locale={locale} />
     </>
   );
 }

@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { FolderOpen, ChevronRight, Menu } from "lucide-react";
+import type { Locale } from "@/lib/locale";
+import { withLocale } from "@/lib/locale";
+import type { SiteDictionary } from "@/lib/i18n";
 
 interface TocItem {
     title: string;
@@ -28,9 +31,11 @@ interface ProLayoutProps {
     children: React.ReactNode;
     sidebar: DocSection[];
     toc?: TocItem[];
+    dict: SiteDictionary;
+    locale: Locale;
 }
 
-export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
+export function ProLayout({ children, sidebar, toc, dict, locale }: ProLayoutProps) {
     const pathname = usePathname();
     const [activeSectionIndex, setActiveSectionIndex] = React.useState<number>(-1);
     const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
@@ -123,7 +128,7 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
             {/* Desktop Sidebar (IDE Style) - Sticky, scrolls with content */}
             <aside className="hidden lg:block w-72 pl-6 pr-4">
                 <div className="sticky top-24 w-60 max-h-[calc(100vh-8rem)] overflow-y-auto transition-all duration-200">
-                    <SidebarContent sidebar={sidebar} pathname={pathname} />
+                    <SidebarContent sidebar={sidebar} pathname={pathname} dict={dict} locale={locale} />
                 </div>
             </aside>
 
@@ -139,42 +144,44 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
                                 className="flex-1 h-10 gap-2 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-sm hover:bg-white dark:hover:bg-neutral-900 rounded-xl"
                             >
                                 <Menu className="w-4 h-4" aria-hidden="true" />
-                                <span className="text-sm font-medium">Sections</span>
+                                <span className="text-sm font-medium">{dict.docs.sections}</span>
                             </Button>
                         </SheetTrigger>
                         <SheetContent side="left" className="w-80 p-0 bg-white dark:bg-black border-r border-neutral-200 dark:border-neutral-800">
                             <SheetHeader className="p-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50">
                                 <SheetTitle className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-neutral-600 dark:text-neutral-400">
                                     <FolderOpen className="w-4 h-4" aria-hidden="true" />
-                                    Documentation
+                                    {dict.nav.docs}
                                 </SheetTitle>
                             </SheetHeader>
                             <ScrollArea className="h-[calc(100vh-5rem)] p-4">
-                                <SidebarContent
-                                    sidebar={sidebar}
-                                    pathname={pathname}
-                                    onItemClick={() => setMobileNavOpen(false)}
-                                />
-                            </ScrollArea>
-                        </SheetContent>
-                    </Sheet>
+                                    <SidebarContent
+                                        sidebar={sidebar}
+                                        pathname={pathname}
+                                        dict={dict}
+                                        locale={locale}
+                                        onItemClick={() => setMobileNavOpen(false)}
+                                    />
+                                </ScrollArea>
+                            </SheetContent>
+                        </Sheet>
 
                     {/* Mobile TOC Toggle */}
                     {toc && toc.length > 0 && (
                         <Sheet open={mobileTocOpen} onOpenChange={setMobileTocOpen}>
                             <SheetTrigger asChild>
                                 <Button
-                                    variant="outline"
-                                    className="flex-1 h-10 gap-2 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-sm hover:bg-white dark:hover:bg-neutral-900 rounded-xl"
-                                >
-                                    <span className="text-sm font-medium">On This Page</span>
+                                variant="outline"
+                                className="flex-1 h-10 gap-2 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-md border border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 shadow-sm hover:bg-white dark:hover:bg-neutral-900 rounded-xl"
+                            >
+                                    <span className="text-sm font-medium">{dict.docs.tableOfContents}</span>
                                     <ChevronRight className="w-4 h-4" aria-hidden="true" />
                                 </Button>
                             </SheetTrigger>
                             <SheetContent side="right" className="w-80 p-0 bg-white dark:bg-black border-l border-neutral-200 dark:border-neutral-800">
                                 <SheetHeader className="p-4 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50">
                                     <SheetTitle className="text-sm font-bold uppercase tracking-widest text-neutral-600 dark:text-neutral-400">
-                                        On This Page
+                                        {dict.docs.tableOfContents}
                                     </SheetTitle>
                                 </SheetHeader>
                                 <ScrollArea className="h-[calc(100vh-5rem)] p-4">
@@ -200,7 +207,7 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
                 <aside className="hidden xl:block w-64 pr-6">
                     <div className="sticky top-24 w-56 max-h-[calc(100vh-8rem)] p-4 flex flex-col overflow-y-auto transition-all duration-200">
                         <h2 className="mb-4 text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest flex items-center gap-2 flex-shrink-0">
-                            On This Page
+                            {dict.docs.tableOfContents}
                         </h2>
                         <TocContent
                             toc={toc}
@@ -217,10 +224,14 @@ export function ProLayout({ children, sidebar, toc }: ProLayoutProps) {
 function SidebarContent({
     sidebar,
     pathname,
+    dict,
+    locale,
     onItemClick
 }: {
     sidebar: DocSection[];
     pathname: string;
+    dict: SiteDictionary;
+    locale: Locale;
     onItemClick?: () => void;
 }) {
     return (
@@ -228,7 +239,7 @@ function SidebarContent({
             <div className="p-4 hidden lg:block flex-shrink-0">
                 <h2 className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest flex items-center gap-2">
                     <FolderOpen className="w-3 h-3" aria-hidden="true" />
-                    Sections
+                    {dict.docs.sections}
                 </h2>
             </div>
             <ScrollArea className="h-full lg:h-[calc(100%-3rem)] p-4">
@@ -240,7 +251,7 @@ function SidebarContent({
                             </h3>
                             <div className="space-y-1">
                                 {section.items.map((item) => {
-                                    const href = `/docs/${item.slug}`;
+                                    const href = withLocale(locale, `/docs/${item.slug}`);
                                     const isActive = pathname === href;
 
                                     return (

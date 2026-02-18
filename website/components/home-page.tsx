@@ -7,12 +7,14 @@ import { HeroSection } from "./home/HeroSection";
 import { FeaturesSection } from "./home/FeaturesSection";
 import { DemoSection } from "./home/DemoSection";
 import { UseCasesSection } from "./home/UseCasesSection";
+import type { Locale } from "../lib/locale";
 
 type HomePageProps = {
   dict: SiteDictionary;
+  locale: Locale;
 };
 
-export function HomePageView({ dict }: HomePageProps) {
+export function HomePageView({ dict, locale }: HomePageProps) {
   return (
     <>
       <StructuredData payload={buildSoftwareApplicationJsonLd()} />
@@ -20,10 +22,10 @@ export function HomePageView({ dict }: HomePageProps) {
       <StructuredData payload={buildWebsiteJsonLd()} />
 
       <div className="flex flex-col min-h-screen pt-16 overflow-x-hidden">
-        <HeroSection dict={dict} />
-        <FeaturesSection />
-        <DemoSection dict={dict} />
-        <UseCasesSection />
+        <HeroSection dict={dict} locale={locale} />
+        <FeaturesSection locale={locale} />
+        <DemoSection dict={dict} locale={locale} />
+        <UseCasesSection locale={locale} />
       </div>
     </>
   );

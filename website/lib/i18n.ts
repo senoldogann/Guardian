@@ -1,4 +1,6 @@
 import en from "../content/i18n/en.json";
+import tr from "../content/i18n/tr.json";
+import type { Locale } from "./locale";
 
 export type SiteDictionary = {
   localeLabel?: string;
@@ -8,6 +10,9 @@ export type SiteDictionary = {
     download: string;
     changelog: string;
     docs: string;
+    faq: string;
+    contact: string;
+    privacy: string;
   };
   home: {
     eyebrow: string;
@@ -39,6 +44,9 @@ export type SiteDictionary = {
     manual: string;
     noMatch: string;
     detecting: string;
+    platformLabel: string;
+    platformAuto: string;
+    platformDetected: string;
     size: string;
   };
   changelog: {
@@ -61,15 +69,50 @@ export type SiteDictionary = {
     tableOfContents: string;
     sections: string;
   };
+  footer: {
+    sections: {
+      product: string;
+      resources: string;
+      legal: string;
+    };
+    links: {
+      gettingStarted: string;
+      security: string;
+      configuration: string;
+      guru: string;
+      monitoring: string;
+    };
+    tagline: string;
+    rights: string;
+    builtBy: string;
+  };
+  theme: {
+    light: string;
+    dark: string;
+    system: string;
+  };
+  language: {
+    label: string;
+    english: string;
+    turkish: string;
+  };
   common: {
     latestVersion: string;
     releaseNotAvailable: string;
     updatedAt: string;
+    skipToContent: string;
+    openMenu: string;
+    closeMenu: string;
+    mobileNavigation: string;
+    themeSelection: string;
   };
 };
 
-const DICTIONARY: SiteDictionary = en as SiteDictionary;
+const DICTIONARIES: Record<Locale, SiteDictionary> = {
+  en: en as SiteDictionary,
+  tr: tr as SiteDictionary,
+};
 
-export function getDictionary(): SiteDictionary {
-  return DICTIONARY;
+export function getDictionary(locale: Locale = "en"): SiteDictionary {
+  return DICTIONARIES[locale] ?? DICTIONARIES.en;
 }

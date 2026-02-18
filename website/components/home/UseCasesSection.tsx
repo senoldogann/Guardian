@@ -3,6 +3,7 @@
 import { Code2, Lock, GitBranch, Building2, type LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import type { Locale } from "../../lib/locale";
 
 type UseCase = {
     title: string;
@@ -54,7 +55,55 @@ const useCases: UseCase[] = [
     }
 ];
 
-export function UseCasesSection() {
+const useCasesTr: UseCase[] = [
+    {
+        title: "Mimari Standartlar",
+        description: "Kod tabanınızın ekip genelinde belirlenen mimari desenlere ve standartlara uymasını sağlayın.",
+        icon: Code2,
+        scenarios: [
+            "Katmanlar arası bağımlılık ihlallerini tespit edin",
+            "Kod standartlarını otomatik zorunlu kılın",
+            "Zamanla mimari drift’i önleyin"
+        ]
+    },
+    {
+        title: "Güvenlik Uyumluluğu",
+        description: "Kodunuzu güvenlik açıkları ve standart uyumluluğu için sürekli denetleyin.",
+        icon: Lock,
+        scenarios: [
+            "OWASP Top 10 zafiyetlerini belirleyin",
+            "Sızan secret/token/credential’ları tespit edin",
+            "Güvenlik politikalarına uyumu doğrulayın"
+        ]
+    },
+    {
+        title: "Release Quality Gates",
+        description: "Düşük kaliteli kodun prod’a çıkmasını engelleyen otomatik kalite kontrolleri uygulayın.",
+        icon: GitBranch,
+        scenarios: [
+            "Kritik sorunlarda release’i bloklayın",
+            "Otomatik pre-deploy kontroller",
+            "Kalite metrikleri ve raporlama"
+        ]
+    },
+    {
+        title: "Kurumsal Yönetişim",
+        description: "Merkezi yönetişim ile büyük organizasyonlarda kalite pratiklerini ölçekleyin.",
+        icon: Building2,
+        scenarios: [
+            "Ekipler arası standartlaştırma",
+            "Merkezi politika yönetimi",
+            "Denetim izi ve uyumluluk raporları"
+        ]
+    }
+];
+
+export function UseCasesSection({ locale }: { locale: Locale }) {
+    const items = locale === "tr" ? useCasesTr : useCases;
+    const heading = locale === "tr" ? "Gerçek Dünya İçin" : "Built for Real-World Challenges";
+    const sub = locale === "tr"
+        ? "Mühendislik ekipleri kaliteyi ölçeklerken Guardian'ı nasıl kullanıyor?"
+        : "How engineering teams use Guardian to maintain quality at scale";
     return (
         <section className="py-32 relative bg-white dark:bg-black transition-colors duration-300">
             <div className="absolute inset-0 bg-gradient-to-b from-white via-zinc-50 to-white dark:from-black dark:via-zinc-950 dark:to-black" />
@@ -68,17 +117,17 @@ export function UseCasesSection() {
                     className="text-center mb-24"
                 >
                     <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-black dark:text-white">
-                        Built for Real-World Challenges
+                        {heading}
                     </h2>
                     <p className="text-zinc-500 max-w-xl mx-auto">
-                        How engineering teams use Guardian to maintain quality at scale
+                        {sub}
                     </p>
                 </motion.div>
 
                 <div className="relative">
                     <div className="absolute left-1/2 top-0 bottom-0 w-px bg-black/5 dark:bg-white/5 -translate-x-1/2 hidden md:block" />
 
-                    {useCases.map((useCase, idx) => {
+                    {items.map((useCase, idx) => {
                         const Icon = useCase.icon;
                         const isEven = idx % 2 === 0;
 

@@ -1,0 +1,136 @@
+---
+title: "Reviews ve Fix Proposals"
+summary: "Önerilen fix'leri review kuyruğundan yönetin."
+section: "Özellikler"
+order: 4
+---
+
+## Genel bakış
+
+Reviews & Fix Proposals, fix'leri kontrollü şekilde önizleyip uygulamak için hafif bir kuyruk sağlar. Guardian, workspace'inizdeki şu dosyadan proposal okur:
+
+```
+.guardian-proposals/fix_proposals.jsonl
+```
+
+Bir proposal, **dosyanın TAM güncel içeriğini** (patch/diff değil) içeren bir JSONL kaydıdır. Proposal'ları kendi tooling'inizle üretebilir veya Guru çıktısını kopyalayıp bir proposal kaydı olarak ekleyebilirsiniz.
+
+## Nasıl çalışır?
+
+1. `.guardian-proposals/fix_proposals.jsonl` dosyasına proposal kayıtları ekleyin
+2. **Reviews** sekmesinden proposal'ları listeleyip önizleyin
+3. **Request Review** ile dosyaya yazdırın ve Guru ile doğrulayın
+4. Sonucu **Applied** veya **Rejected** olarak işaretleyin
+
+## Reviews'e erişim
+
+Sol sidebar'daki **Reviews** sekmesine tıklayın.
+
+## Proposal yaşam döngüsü
+
+### Durumlar
+
+```
+Pending ──► Review Requested ──► Applied
+    │
+    └──────► Rejected
+```
+
+| Status | Açıklama |
+|--------|----------|
+| **Pending** | Yeni proposal, henüz incelenmedi |
+| **Review Requested** | Önerilen içerik diske yazıldı ve onay bekliyor |
+| **Applied** | Uygulandı olarak işaretlendi |
+| **Rejected** | Reddedildi olarak işaretlendi |
+
+## Aksiyonlar
+
+### Request Review
+
+Guardian'ın proposal'ı uygulayıp ardından chat'te doğrulamasını istediğinizde:
+
+1. Proposal'ı seçin
+2. **Request Review** tıklayın
+3. Guardian `proposed_content` içeriğini target dosyaya yazar
+4. Proposal **Review Requested** olur ve Guru doğrulama için açılır
+
+### Mark Applied
+
+Sonuçtan memnunsanız:
+
+1. Dosyanın doğru göründüğünü doğrulayın
+2. **Mark Applied** ile status'u finalize edin
+
+### Reject
+
+Proposal uygun değilse:
+
+1. **Reject** tıklayın
+2. Proposal **Done** içinde **Rejected** olarak işaretlenir
+
+## Proposal formatı
+
+### Zorunlu alanlar
+
+Her JSONL kaydı şunları içermelidir:
+
+- `proposal_id`
+- `timestamp`
+- `file_path`
+- `proposed_content` (dosyanın TAM güncel içeriği)
+
+UI tarafından desteklenen opsiyonel alanlar:
+
+- `finding_id`
+- `suggestion`
+- `reasoning`
+- `confidence`
+- `proposed_by`
+- `original_content_hash`
+
+### Minimal örnek
+
+```json
+{
+  "proposal_id": "p-1700000000-1",
+  "timestamp": "2026-02-17T12:00:00Z",
+  "file_path": "src/example.ts",
+  "proposed_content": "/* FULL UPDATED FILE CONTENT HERE */\n"
+}
+```
+
+## Saklama
+
+Fix proposals workspace içinde saklanır:
+
+```
+.guardian-proposals/
+└── fix_proposals.jsonl
+```
+
+- Append-only JSON Lines formatı
+- İnsan okunabilir
+- Uygulama restart'larında korunur
+- İsteğe bağlı olarak version control'e eklenebilir
+
+## Best practices
+
+1. Önce en yüksek etkili dosyalarla başlayın (auth, payments, build/deploy yüzeyleri)
+2. Guru'dan her zaman full-file output isteyin (diff marker yok, markdown yok)
+3. Değişiklikten sonra testleri çalıştırın
+4. Dosya ciddi değiştiyse proposal'ı reddedip yeniden üretin
+
+## Sorun giderme
+
+| Sorun | Çözüm |
+|-------|----------|
+| Proposal görünmüyor | `.guardian-proposals/fix_proposals.jsonl` var mı ve JSONL geçerli mi kontrol edin |
+| `proposed_content` eksik | Diff değil, full-file content yazıldığından emin olun |
+| Review istenemiyor | Dosya izinlerini ve target path'in doğruluğunu kontrol edin |
+| UI güncellenmiyor | **Refresh** tıklayın veya uygulamayı restart edin |
+
+## Yakında
+
+- Batch operasyonlar: birden fazla proposal apply/reject
+- Review template'leri: sık kullanılan rejection nedenlerini kaydetme
+

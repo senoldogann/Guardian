@@ -1,0 +1,202 @@
+---
+title: "Guru: AI Asistanı"
+summary: "Kod analizi, açıklamalar ve fix önerileri için AI asistanını nasıl kullanacağınızı öğrenin."
+section: "Özellikler"
+order: 3
+---
+
+## Guru nedir?
+
+Guru, Guardian'ın yerleşik AI asistanıdır. Kod sorunlarını bağlamıyla açıklar, fix önerileri sunar ve kod tabanınızı daha iyi anlamanıza yardımcı olur.
+
+### Temel özellikler
+
+| Özellik | Açıklama |
+|---------|----------|
+| **Bağlam odaklı analiz** | Kod tabanınızın yapısını dikkate alır |
+| **Fix önerileri** | Uygulanabilir kod değişiklikleri önerir |
+| **Açıklamalar** | Bir bulgunun neden önemli olduğunu anlatır |
+| **Web Search** | Güncel bilgi için web'den bağlam çekebilir |
+
+## Guru'yu kullanma
+
+### Sohbeti açma
+
+Guru sohbet paneline ana arayüzden ulaşabilirsiniz. Ekranın altındaki input'a sorunu yazmanız yeterli.
+
+### Soru sorma
+
+Guru doğal dilde soruları anlayabilir:
+
+```
+"Why is this function flagged as a security issue?"
+"How can I fix the N+1 query problem here?"
+"What's the best way to refactor this class?"
+"Explain the architectural impact of this change"
+```
+
+## Web Search (Tavily)
+
+Guardian, güncel bilgi için Tavily kullanabilir. Web search opsiyoneldir ve Tavily API key gerektirir.
+
+**Settings > Web Search** bölümünden açın. Tek bir mesaj için `/web` veya `@web` ile web search'i zorlayabilirsiniz:
+
+```
+"/web What are the latest React best practices?"
+"Explain the latest TypeScript 5 features @web"
+```
+
+### Nasıl çalışır?
+
+- Tavily key kayıtlı değilse web search istekleri başarısız olur (web search opsiyoneldir; kapalı tutabilirsiniz).
+- Mesajınızda bir URL varsa, Guardian Tavily **Extract** (o sayfadan hedefli içerik çıkarımı) tercih eder.
+- Aksi halde Tavily **Search** (üst sonuçlar + kısa cevap) kullanır.
+- Tavily request'i sorunuzun kendisini içerir (kodunuz değil). Extract/Search sonuçları Guru context'ine eklenir; böylece AI provider yanıtında bu kaynaklara dayanabilir.
+
+### Search depth
+
+**Settings > Web Search** içinde derinliği seçebilirsiniz:
+
+- **Basic**: en iyi varsayılan (hızlı ve ilgili)
+- **Advanced**: en yüksek recall (daha yavaş)
+- **Fast / Ultra-fast**: en hızlı yanıt (daha küçük sonuç seti)
+- **Auto**: Guardian sorunun niyetine göre depth seçer (ör. “latest”, “pricing”, “CVE”, “security advisory” gibi ifadeler daha derin aramayı tetikleyebilir)
+
+### Best practices (Daha iyi sonuç, daha az maliyet)
+
+1. Sorguları kısa ve net tutun (Guardian Tavily sorgularını ~400 karaktere kısaltır).
+2. Kompleks soruları tek uzun prompt yerine birkaç odaklı soruya bölün.
+3. Kaynağı biliyorsanız `site:example.com` ile domain'i sınırlandırın.
+4. Tek bir sayfayı özetlemek istiyorsanız URL + net talimat verin (Extract, Search'e göre daha sıkı bağlam sağlar).
+
+## Fix uygulama
+
+Guru bir fix önerdiğinde, mümkünse **dosyanın TAM güncel içeriğini** isteyin (diff marker yok, markdown yok). Ardından:
+
+- Monitor ekranında bir bulgu için fix hazırsa **FIX** aksiyonunu kullanın.
+- Ya da `.guardian-proposals/fix_proposals.jsonl` dosyasına proposal yazıp **Reviews** üzerinden uygulayın ve takip edin.
+
+> **İpucu**: Fix'leri uygulamadan önce mutlaka gözden geçirin. Guru yardımcı olur ama öneriler her zaman doğrulanmalıdır.
+
+## Guru neleri yapabilir?
+
+### Kod analizi
+
+Guru şunları analiz edebilir:
+- Güvenlik zafiyetleri
+- Mimari pattern'ler
+- Performans sorunları
+- Kod stili / best practices
+
+### Açıklamalar
+
+Guru'dan şunları açıklamasını isteyebilirsiniz:
+- Bir pattern neden problemli?
+- Bir bulgunun etkisi nedir?
+- Alternatif yaklaşımlar
+- Stack'iniz için best practices
+
+### Refactor
+
+Guru şunları önerebilir:
+- Fonksiyon parçalama
+- Interface iyileştirmeleri
+- Dependency pattern'leri
+- Test yapısı önerileri
+
+## Yapılandırma
+
+### Provider ayarları
+
+Guru'yu kullanmak için **Settings** üzerinden:
+
+| Ayar | Açıklama |
+|---------|----------|
+| **Provider** | AI model provider (Ollama, OpenAI, vb.) |
+| **Model** | Seçili model |
+| **API Key** | Provider API key |
+
+### Web Search ayarları
+
+Web search için Tavily:
+
+| Ayar | Açıklama |
+|---------|----------|
+| **Tavily API Key** | Web search'i etkinleştirir |
+
+## Sohbet geçmişi
+
+Guru sohbeti proje bazında saklar:
+- Konuşmalar oturumlar arasında kalır
+- Yeni başlamak için **Clear Chat** kullanın
+- Geçmiş, Guru'nun bağlamı anlamasına yardımcı olur
+
+## Semantic search
+
+Guardian, kod tabanınızda benzer pattern'leri bulmak için **semantic search** içerir.
+
+### Nasıl çalışır?
+
+Tarama sırasında Guardian, bulgular için semantic embedding üretip lokal olarak saklar. Bu sayede benzerlik bazlı arama yapılabilir.
+
+### Kullanım
+
+Soru içinde şu anahtar kelimelerle tetikleyebilirsiniz:
+
+```
+"Find similar issues to this"
+"Show me critical patterns like this"
+"Are there semantic matches for this vulnerability?"
+```
+
+### Tetikleyiciler
+
+Guru, aşağıdaki ifadeler geçtiğinde semantic search'i otomatik dener:
+- **İngilizce**: "similar", "like this", "resemble", "pattern", "semantic"
+
+### Ne görürsünüz?
+
+Semantic match bulunursa Guru context'e ekler:
+
+```
+### Semantic Similarity Matches
+- `src/auth.ts` [Critical] similarity=0.87 (openai:text-embedding-3-small)
+  - preview: SQL injection in user input validation
+- `src/db.rs` [Critical] similarity=0.82 (openai:text-embedding-3-small)
+  - preview: Raw SQL concatenation with user input
+```
+
+### Embedding provider'lar
+
+Guardian birden fazla embedding stratejisi destekler:
+
+| Provider | Model | Kullanım |
+|----------|-------|----------|
+| **Auto** (varsayılan) | `openai:text-embedding-3-small` veya `ollama:nomic-embed-text` | OpenAI key varsa OpenAI; yoksa Ollama ile başlar ve local hash'e düşer |
+| **OpenAI** | `text-embedding-3-small` | En iyi kalite, API key gerekir |
+| **Ollama** | `nomic-embed-text` | Lokal/offline seçenek |
+| **Local Hash** | Deterministic fallback | Offline mod, dış çağrı yok |
+
+Env ile konfigure edebilirsiniz:
+```bash
+GUARDIAN_EMBED_MODE=ollama  # veya "openai", "local", "auto"
+GUARDIAN_EMBED_PROVIDER=openai  # legacy alias
+GUARDIAN_EMBED_MODEL=text-embedding-3-small
+GUARDIAN_EMBED_MODEL_OLLAMA=nomic-embed-text
+GUARDIAN_OFFLINE=1  # Local hash fallback'i zorlar
+```
+
+### Gizlilik
+
+- Embedding'ler **lokal** olarak `~/.guardian/memory.db` içinde saklanır
+- OpenAI/Ollama modlarında yalnızca analiz edilen snippet gönderilir
+
+## Sorun giderme
+
+| Sorun | Çözüm |
+|-------|----------|
+| Yanıt yok | Settings'te API key'i kontrol edin |
+| Genel cevaplar | Sorunuza daha fazla bağlam ekleyin |
+| Yavaş yanıt | Daha hızlı bir model deneyin |
+| Yanlış öneriler | Daha spesifik prompt yazın |
+

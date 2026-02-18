@@ -1,0 +1,242 @@
+---
+title: "Sorun Giderme"
+summary: "Kurulum, giriş, tarama ve güncelleme problemleri için hızlı çözümler."
+section: "Destek"
+order: 4
+---
+
+## Kurulum sorunları
+
+### Uygulama açılmıyor
+
+**Belirti**: İkona tıklayınca hiçbir şey olmuyor
+
+**Çözümler**:
+1. **Sistem gereksinimleri**: macOS 12+ doğrulayın. Windows/Linux yönergeleri build'ler yayınlanınca eklenecek.
+2. **Tercihleri silin**: `rm -rf ~/Library/Application\\ Support/Guardian`
+3. **Yeniden kurun**: Güncel installer indirip tekrar kurun
+
+### macOS'ta “Damaged app”
+
+**Neden**: macOS Gatekeeper imzasız uygulamayı engelliyor
+
+**Çözüm**:
+```bash
+xattr -cr /Applications/Guardian.app
+```
+
+Veya **System Preferences > Security & Privacy** içinden “Open Anyway” tıklayın.
+
+## Kimlik doğrulama sorunları
+
+### “Invalid API Key”
+
+**Neden**: Key formatı yanlış veya key revoke edildi
+
+**Çözümler**:
+1. Key'in tamamen kopyalandığını doğrulayın (fazladan boşluk yok)
+2. Provider console'da key'in aktif olduğunu kontrol edin:
+   - Anthropic: [console.anthropic.com](https://console.anthropic.com)
+   - OpenAI: [platform.openai.com](https://platform.openai.com)
+3. Gerekirse yeni key üretin
+4. **Settings > Provider** içinde doğru provider seçildiğini doğrulayın
+
+### “Rate Limit Exceeded”
+
+**Neden**: Kısa sürede çok fazla istek
+
+**Çözümler**:
+1. Rate limit reset için 1 dakika bekleyin
+2. Eşzamanlı aktiviteyi azaltın (monitoring'i duraklatın veya büyük refactor sırasında hızlı save'lerden kaçının)
+3. Geçici olarak farklı provider/model deneyin (veya lokal provider: Ollama)
+4. Provider dashboard'unda limit/quota ayarlarını kontrol edin
+
+### “Provider Unavailable”
+
+**Neden**: Servis kesintisi veya network sorunu
+
+**Çözümler**:
+1. Provider status sayfasını kontrol edin:
+   - Anthropic: [status.anthropic.com](https://status.anthropic.com)
+   - OpenAI: [status.openai.com](https://status.openai.com)
+2. İnternet bağlantısını doğrulayın
+3. Firewall/proxy ayarlarını kontrol edin
+4. Varsa yedek provider'a geçin
+
+### “Model Not Found”
+
+**Neden**: Seçilen model deprecate edilmiş veya erişilemez
+
+**Çözümler**:
+1. Guardian'ı güncelleyin
+2. Provider console'da model listesini kontrol edin
+3. **Settings > Provider** içinde alternatif model seçin
+4. API key'in ilgili modele erişimi olduğunu doğrulayın
+
+## Tarama sorunları
+
+### Tarama sırasında boş ekran
+
+**Neden**: Antivirus / güvenlik yazılımı engelliyor olabilir
+
+**Çözümler**:
+1. Guardian'ı antivirus exclusions listesine ekleyin
+2. macOS Security & Privacy bildirimlerini kontrol edin
+3. Test için geçici olarak antivirus'u kapatın
+
+### Tarama çok yavaş
+
+**Nedenler & çözümler**:
+
+| Neden | Çözüm |
+|-------|----------|
+| Büyük repo | Scope'u ana klasörlerle sınırlandırın |
+| Çok fazla dosya | Küçük başlayıp kademeli genişletin |
+| Yetersiz bellek | Diğer uygulamaları kapatın |
+| Yavaş disk | SSD kullanın, network drive'ları hariç tutun |
+
+**Hızı artırmak için**:
+1. Projede ignore pattern kullanın (örn. `.gitignore` veya Guardian ignore işaretleri):
+   ```
+   node_modules/
+   dist/
+   build/
+   .git/
+   *.min.js
+   *.bundle.js
+   vendor/
+   coverage/
+   .next/
+   ```
+2. Gürültüyü azaltmak için önce yüksek severity bulgulara odaklanın
+3. Scope'u en ilgili klasörlerle sınırlandırın
+
+### Sonuçlarda dosya eksik
+
+**Neden**: Ignore pattern'ler fazla geniş
+
+**Çözüm**:
+1. Ignore kurallarını gözden geçirin
+2. `*.js` veya `src/` gibi aşırı geniş pattern'leri kaldırın
+3. Daha spesifik pattern kullanın:
+   ```
+   # Çok geniş (tüm JS dosyaları gider)
+   *.js
+   
+   # Daha iyi
+   *.min.js
+   *.bundle.js
+   ```
+
+### Tarama çöküyor veya donuyor
+
+**Çözümler**:
+1. Scope'u daraltın
+2. En ilgili klasörleri izleyin
+3. Küçük dizinlerle başlayın
+4. CPU/RAM kullanımını kontrol edin
+5. Raporunuza app versiyonu ve hata mesajını ekleyin
+
+## Güncelleme sorunları
+
+### Restart sonrası Monitor boş
+
+**Neden**: Lokal snapshot henüz hydrate edilmedi.
+
+**Çözümler**:
+1. Workspace içinde `.guardian/critiques.json` olduğunu doğrulayın.
+2. Guardian'ı yeniden açın ve snapshot sync'in tamamlanmasını bekleyin.
+3. Dosya yoksa yeni bir scan çalıştırın.
+
+### Updates tab'ında sürüm yok
+
+**Neden**: `latest.json` bulunamadı veya bozuk
+
+**Çözümler**:
+1. Distribution release içinde `latest.json` var mı kontrol edin
+2. `latest.json` içindeki URL'lerin public repo'ya gittiğini doğrulayın
+3. Update host'a network erişimini kontrol edin
+4. Gerekirse web sitesinden manuel indirin
+
+### Yanlış paket öneriliyor
+
+**Çözümler**:
+1. Download sayfasından manuel paket listesini kullanın
+2. Temiz tarayıcı profiliyle test edin
+3. User agent'ı değiştiren eklentiler var mı kontrol edin
+4. OS'inize uygun paketi manuel seçin
+
+### Update kurulamıyor
+
+**Çözümler**:
+1. **Disk alanı**: 500MB+ boş alan olduğundan emin olun
+2. **Guardian'ı kapatın**: Güncellemeden önce tamamen çıkın
+3. **Permissions**: `/Applications` yazma iznini kontrol edin
+4. **Manuel update**: Web sitesinden installer indirip kurun
+
+### “Update verification failed”
+
+**Neden**: Bozuk indirme veya signature uyuşmazlığı
+
+**Çözümler**:
+1. İndirilen update paketini silin
+2. Güncellemeyi tekrar deneyin
+3. Web sitesinden güncel installer indirin
+4. Sistem tarih/saatini kontrol edin (sertifika doğrulamasını etkileyebilir)
+
+## Guru sorunları
+
+### Guru yanıt vermiyor
+
+**Çözümler**:
+1. **Settings > Provider** içinde API key'i kontrol edin
+2. Provider bağlantısını doğrulamak için monitoring başlatın
+3. İnternet bağlantısını kontrol edin
+4. Provider status sayfasına bakın
+5. Yedek provider'a geçin
+
+### Guru genel cevap veriyor
+
+**Çözümler**:
+1. Prompt'a daha fazla bağlam ekleyin
+2. Spesifik dosya/line referansı verin
+3. Daha güçlü bir model/provider deneyin
+
+### Guru yavaş
+
+**Çözümler**:
+1. Input'u küçültüp daha küçük bir snippet'e odaklanın
+2. Daha hızlı model seçin
+3. İnternet hızını kontrol edin
+4. Bandwidth tüketen uygulamaları kapatın
+
+## Ağ sorunları
+
+### AI provider'a bağlanamıyor
+
+Kontrol edin:
+1. İnternet bağlantısı
+2. Firewall ayarları
+3. Proxy konfigürasyonu
+4. VPN etkisi
+
+**Proxy**:
+```bash
+export HTTPS_PROXY=http://proxy.company.com:8080
+```
+
+## Yardım alma
+
+Sorunlar devam ederse:
+
+1. Dokümantasyonu kontrol edin
+2. Support talebinde app versiyonu ve hata mesajlarını paylaşın
+3. contact@senoldogan.dev adresine yazın
+
+Support için ekleyin:
+- Guardian versiyonu
+- OS ve sürümü
+- Repro adımları
+- Hata mesajları
+- (Mümkünse) export edilen loglar
+

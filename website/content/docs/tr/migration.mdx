@@ -1,0 +1,76 @@
+---
+title: "Geçiş Rehberi"
+summary: "Guardian sürümleri arasında güvenli yükseltme, baseline ve guardian.lock uyumu."
+section: "Operasyonlar"
+order: 6
+---
+
+## Genel bakış
+
+Guardian geriye dönük uyumluluk hedefler; ancak bazı özellikler yükseltmelerde dikkate almanız gereken yeni lokal dosyalar oluşturur:
+
+- `guardian.lock` (tekrar üretilebilir tarama + drift kontrolü)
+- `.guardian/baseline.json` (baseline takibi)
+- `.guardian/critiques.json` (monitor snapshot hydration)
+
+Bu rehber, yükseltme sonrası “her şey yeni görünüyor” gibi durumları önleyecek güvenli bir akış önerir.
+
+## Önerilen yükseltme akışı
+
+1. **Guardian'ı güncelleyin**
+   - `/download` sayfasından yeni build'i kurun veya in-app update ile yükseltin.
+
+2. **Aynı workspace root'u açın**
+   - Scope'un proje root'una işaret ettiğini doğrulayın (alt klasör değil).
+
+3. **Monitoring'i bir kez başlatın**
+   - Uygulama yeniden indexleyebilir ve lokal dosyaları oluşturup güncelleyebilir.
+
+4. **`guardian.lock` dosyasını kontrol edin**
+   - Projede `guardian.lock` yoksa, bir scan sonrası otomatik oluşur.
+   - Takım içinde tutarlılık istiyorsanız `guardian.lock` dosyasını version control'e ekleyin.
+
+5. **Baseline'ı yeniden oluşturun (önerilir)**
+   - Monitor ekranında **Set Baseline** tıklayın.
+   - Böylece baseline, mevcut rules hash + Guardian sürümü ile hizalanır.
+
+## “Her şey yeni” görünüyorsa
+
+Bu genellikle baseline'ın eksik veya rules hash ile uyumsuz olduğu anlamına gelir.
+
+Çözüm:
+1. Baseline'ı temizleyin (baseline panelindeki **Reset**).
+2. Bir scan çalıştırın.
+3. Tekrar **Set Baseline** tıklayın.
+
+## Workspace içinde oluşan dosyalar
+
+Guardian, güvenlik ve tekrar üretilebilirlik için workspace'e bazı dosyalar yazar:
+
+```
+.guardian/
+  baseline.json
+  critiques.json
+  history.jsonl
+guardian.lock
+```
+
+Repo hijyeni için:
+- `guardian.lock` dosyasını commit etmek genelde faydalıdır
+- `.guardian/` klasörünü takip etmek istemiyorsanız `.gitignore` ekleyebilirsiniz
+
+## CLI (CI-only) notu
+
+CI'da `guardian-cli` kullanıyorsanız scan profile ve lock mode'u hizalayın:
+
+```bash
+guardian-cli scan --root . --scan-profile source --lock-mode warn
+```
+
+## Yardım
+
+Beklenmedik bir davranış görürseniz:
+- **Settings > Updates** altında sürümü kontrol edin
+- Scan profile bilgisini ve hata mesajını not edin
+- Destek için `/contact` kullanın
+

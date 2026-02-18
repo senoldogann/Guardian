@@ -1,0 +1,105 @@
+{
+  "localeLabel": "TR",
+  "brandTagline": "Kod güvencesi ve sürüm yönetişimi",
+  "nav": {
+    "home": "Ana Sayfa",
+    "download": "İndir",
+    "changelog": "Değişiklikler",
+    "docs": "Dokümantasyon",
+    "faq": "SSS",
+    "contact": "İletişim",
+    "privacy": "Gizlilik Politikası"
+  },
+  "home": {
+    "eyebrow": "Masaüstü Yönetişim Platformu",
+    "title": "Kaliteyi, sürüm hızında zorunlu kılın.",
+    "description": "Guardian kod tabanınızı mimari ve güvenlik kurallarıyla denetler. İndirme ve changelog içerikleri sürümlerle otomatik senkron kalır.",
+    "ctaPrimary": "Guardian'ı İndir",
+    "ctaSecondaryDocs": "Dokümantasyonu Aç",
+    "ctaSecondaryChangelog": "Changelog'u Gör",
+    "trustRelease": "Sürüme dayalı içerik",
+    "trustUpdates": "Uygulama içi güncellemeler hazır",
+    "trustSecurity": "İmzalı dağıtım paketleri",
+    "sections": {
+      "guru": {
+        "title": "Guru: AI Mimar",
+        "description": "Kodunuzu çalışırken analiz eder, bulguları bağlamıyla açıklar ve çözüm önerileri sunar."
+      },
+      "auth": {
+        "title": "Güvenli Kimlik Yönetimi",
+        "description": "İzleme ve güvenli akışları açmak için GitHub cihaz doğrulamasıyla giriş yapın."
+      }
+    }
+  },
+  "download": {
+    "eyebrow": "İndirme Merkezi",
+    "title": "İşletim sisteminize uygun Guardian sürümünü indirin.",
+    "description": "Platformunuz otomatik tespit edilir ve en uygun paket önerilir. Emin olunamazsa aşağıdaki manuel paketleri kullanın.",
+    "latestLabel": "Güncel sürüm",
+    "recommended": "Önerilen İndirme",
+    "manual": "Manuel Paketler",
+    "noMatch": "Otomatik eşleştirme bulunamadı. Aşağıdaki manuel paketleri kullanın.",
+    "detecting": "İşletim sistemi tespit ediliyor...",
+    "platformLabel": "Platform",
+    "platformAuto": "Otomatik (algıla)",
+    "platformDetected": "Algılandı",
+    "size": "Boyut"
+  },
+  "changelog": {
+    "eyebrow": "Sürüm Geçmişi",
+    "title": "Guardian changelog",
+    "description": "Tüm sürüm notları, release kayıtlarından gerçek zamanlı olarak alınır.",
+    "highlights": "Öne Çıkanlar",
+    "sections": "Sürüm notları",
+    "all": "Tümü",
+    "stable": "Stabil",
+    "prerelease": "Ön Sürüm",
+    "archive": "Arşiv",
+    "published": "Yayınlandı",
+    "noNotes": "Bu sürüm için not paylaşılmadı."
+  },
+  "docs": {
+    "eyebrow": "Dokümantasyon",
+    "title": "Guardian'ı üretimde güvenle çalıştırın.",
+    "description": "Kurulumdan güncelleme stratejisine kadar tüm operasyonel rehber tek yerde.",
+    "tableOfContents": "Bu Sayfada",
+    "sections": "Bölümler"
+  },
+  "footer": {
+    "sections": {
+      "product": "Ürün",
+      "resources": "Kaynaklar",
+      "legal": "Yasal"
+    },
+    "links": {
+      "gettingStarted": "Başlarken",
+      "security": "Güvenlik",
+      "configuration": "Yapılandırma",
+      "guru": "Guru AI",
+      "monitoring": "İzleme"
+    },
+    "tagline": "Mühendislik ekipleri için sürüme dayalı yönetişim. Kalite ve güvenliği ölçekleyin.",
+    "rights": "Tüm hakları saklıdır.",
+    "builtBy": "Tasarım ve geliştirme"
+  },
+  "theme": {
+    "light": "Açık",
+    "dark": "Koyu",
+    "system": "Sistem"
+  },
+  "language": {
+    "label": "Dil",
+    "english": "English",
+    "turkish": "Türkçe"
+  },
+  "common": {
+    "latestVersion": "Güncel sürüm",
+    "releaseNotAvailable": "Henüz bir sürüm yok.",
+    "updatedAt": "Güncellendi",
+    "skipToContent": "İçeriğe atla",
+    "openMenu": "Menüyü aç",
+    "closeMenu": "Menüyü kapat",
+    "mobileNavigation": "Mobil navigasyon",
+    "themeSelection": "Tema seçimi"
+  }
+}

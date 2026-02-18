@@ -5,12 +5,14 @@ import { useTheme } from "./theme-provider";
 import { trackThemeToggle } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
+import type { SiteDictionary } from "@/lib/i18n";
 
 interface ThemeToggleProps {
   className?: string;
+  dict: SiteDictionary;
 }
 
-export function ThemeToggle({ className }: ThemeToggleProps) {
+export function ThemeToggle({ className, dict }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -19,9 +21,9 @@ export function ThemeToggle({ className }: ThemeToggleProps) {
   }, []);
 
   const themes: { value: "light" | "dark" | "system"; icon: React.ReactNode; label: string }[] = [
-    { value: "light", icon: <Sun className="w-4 h-4" aria-hidden="true" />, label: "Light" },
-    { value: "dark", icon: <Moon className="w-4 h-4" aria-hidden="true" />, label: "Dark" },
-    { value: "system", icon: <Monitor className="w-4 h-4" aria-hidden="true" />, label: "System" },
+    { value: "light", icon: <Sun className="w-4 h-4" aria-hidden="true" />, label: dict.theme.light },
+    { value: "dark", icon: <Moon className="w-4 h-4" aria-hidden="true" />, label: dict.theme.dark },
+    { value: "system", icon: <Monitor className="w-4 h-4" aria-hidden="true" />, label: dict.theme.system },
   ];
 
   // Avoid hydration mismatch by rendering neutral state on server

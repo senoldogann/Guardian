@@ -1,0 +1,129 @@
+---
+title: "Proje İzleme"
+summary: "Gerçek zamanlı kod tabanı taraması ve AI destekli analiz."
+section: "Özellikler"
+order: 4
+---
+
+## Genel bakış
+
+Guardian'ın Project Monitoring özelliği, kod tabanınızı gerçek zamanlı izler ve siz çalışırken AI destekli analizle bulguları üretir.
+
+## Monitoring'i başlatma
+
+### Adım 1: Proje seçin
+
+1. **Scope** alanına tıklayın veya bir klasörü uygulamaya sürükleyip bırakın
+2. Projenizin root dizinini seçin
+3. Seçilen path Scope alanında görünür
+
+### Adım 2: Launch Guardian
+
+Şunları yaptıktan sonra:
+- Geçerli bir proje path'i seçin
+- AI provider'ınızı yapılandırın
+- (Gerekiyorsa) GitHub ile giriş yapın
+
+**Launch Guardian** ile izlemeyi başlatın.
+
+## Monitoring nasıl çalışır?
+
+Guardian, dosya değişikliklerini izler ve seçili AI provider ile analiz eder:
+
+1. **Dosya tespiti**: Projede kaydedilen değişiklikleri yakalar
+2. **Batch işleme**: Verimli analiz için değişiklikleri gruplar
+3. **AI analizi**: Kod bağlamını provider'a gönderip bulgu üretir
+4. **Sonuç gösterimi**: Bulguları panelde listeler
+
+## Snapshot hydration
+
+Guardian yeniden başlarsa, Monitor ekranını önce lokal snapshot'tan (`.guardian/critiques.json`) hydrate eder ve sonra live event'lerle birleştirir. Bu, workspace içinde mevcut bulgular varken boş dashboard görünmesini engeller.
+
+## Scan scope profilleri
+
+Guardian, **maliyet vs kapsam** dengesini yönetmek için üç profil sunar.
+
+**Settings > General > Scan Scope** üzerinden değiştirebilirsiniz. Profil değişiklikleri monitoring bir sonraki başlangıcında uygulanır.
+
+| Profil | Neye odaklanır | Tipik kullanım |
+|---------|-----------------|-------------|
+| **Source** (varsayılan) | Sadece source code. Varsayılan olarak docs/tests/scripts/lockfile gibi düşük sinyalli dosyaları atlar. | Günlük geliştirme: düşük gürültü ve düşük maliyet. |
+| **Extended** | Source code + infra/security yüzeyleri (Docker/CI/workflows/shell/config/lockfiles). Docs/tests yine atlanır. | Deploy/runtime yüzeylerinde güvenlik kapsaması isteyen ekipler. |
+| **Full** | Çoğu text dosyası (docs/tests/scripts/workflows dahil). Daha fazla bulgu, daha yüksek maliyet. | Maksimum kapsama gereken derin audit'ler. |
+
+> İpucu: Guardian'ın “yanlış dosya türlerinde token harcadığını” hissediyorsanız **Source** profilinde kalın; **Extended/Full** profilini yalnızca ihtiyaç olduğunda açın.
+
+## Bulguları anlama
+
+### Severity seviyeleri
+
+| Seviye | Anlam | Aksiyon |
+|-------|---------|--------|
+| **Critical** | Yüksek riskli güvenlik zafiyeti veya büyük sorun | Hemen düzeltin |
+| **Warning** | Önemli riskli pattern | Kısa sürede ele alın |
+| **Info** | Bilgilendirici / düşük sinyal not | Opsiyonel |
+
+### Kategori örnekleri
+
+Guardian şunları tespit edebilir:
+- **Security**: Zafiyetler, açık secret'lar
+- **Code quality**: Anti-pattern'ler, yüksek kompleksite
+- **Performance**: Verimsiz pattern'ler
+- **Best practices**: Stil ve konvansiyon ihlalleri
+
+## Bulgularla çalışma
+
+### Detay görüntüleme
+
+Bir bulguya tıkladığınızda:
+- Sorunun açıklaması
+- Etkilenen dosya ve konum
+- (Varsa) önerilen fix
+
+### Fix uygulama
+
+Bir bulgu önerilen fix içeriyorsa **FIX** aksiyonu görünür:
+
+1. Bulgu detayını açıp önerilen içeriği inceleyin
+2. **FIX** (veya **APPLY THIS FIX**) ile dosyaya yazdırın
+3. Sonucu doğrulayıp gerekirse geri almak için Guru'yu kullanın
+
+### Guru'ya sor
+
+Bulgu üzerindeki **Ask Guru** aksiyonuyla:
+- Detaylı açıklama
+- Alternatif çözümler
+- Best practice önerileri
+
+## Monitoring'i durdurma
+
+**Kill Guardian** ile izlemeyi durdurabilirsiniz:
+- File watcher'lar kapatılır
+- Pending analizler iptal edilir
+- Uygulama idle duruma döner
+
+## Activity panel
+
+Activity panelde şunlar görünür:
+- Gerçek zamanlı durum
+- Severity ile bulgu listesi
+- Guru sohbet geçmişi
+- Uygulanan fix geçmişi
+
+## Sorun giderme
+
+| Sorun | Çözüm |
+|-------|----------|
+| Bulgu görünmüyor | Dosyaların gerçekten kaydedildiğini kontrol edin |
+| Analiz yavaş | Daha hızlı bir model deneyin |
+| Bağlantı hataları | API key ve network/base URL ayarlarını kontrol edin |
+| Yüksek token kullanımı | Scan scope'u daraltın |
+
+## Best practices
+
+1. **Küçük başlayın**: Önce odaklı bir dizinde çalışın
+2. **Apply öncesi inceleyin**: Fix'leri uygulamadan önce gözden geçirin
+3. **Guru kullanın**: Net olmayan bulgular için açıklama isteyin
+4. **Maliyeti izleyin**: Ücretli API'lerde usage takip edin
+5. **Önce kritikler**: Önce high-severity bulgulara odaklanın
+

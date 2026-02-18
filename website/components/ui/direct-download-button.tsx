@@ -7,8 +7,10 @@ import { detectPlatform, pickBestAsset } from "@/lib/download";
 import { getLatestReleaseClient, releaseTagToVersionClient, type LatestReleaseClientPayload } from "@/lib/releases-client";
 import { trackDownload } from "@/lib/analytics";
 import { useRouter } from "next/navigation";
+import type { Locale } from "@/lib/locale";
+import { withLocale } from "@/lib/locale";
 
-export function DirectDownloadButton() {
+export function DirectDownloadButton({ locale, label }: { locale: Locale; label: string }) {
     const [assets, setAssets] = React.useState<LatestReleaseClientPayload["assets"]>([]);
     const [version, setVersion] = React.useState<string>("");
     const [isLoading, setIsLoading] = React.useState(false);
@@ -52,13 +54,13 @@ export function DirectDownloadButton() {
                 window.location.href = bestAsset.browser_download_url;
             } else {
                 // Fallback to download page
-                router.push("/download");
+                router.push(withLocale(locale, "/download"));
             }
         } catch (error) {
             if (process.env.NODE_ENV === "development") {
                 console.error("Direct download failed", error);
             }
-            router.push("/download");
+            router.push(withLocale(locale, "/download"));
         } finally {
             // Keep loading state for a bit to show something happened
             setTimeout(() => setIsLoading(false), 1000);
@@ -75,7 +77,7 @@ export function DirectDownloadButton() {
                 suppressHydrationWarning
             >
                 <Download className="w-4 h-4 mr-2" aria-hidden="true" />
-                Download
+                {label}
             </Button>
         );
     }
@@ -94,7 +96,7 @@ export function DirectDownloadButton() {
                     <Download className="w-4 h-4 mr-2" aria-hidden="true" />
                 )
             }
-            Download
+            {label}
         </Button >
     );
 }

@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { ShieldCheck, Linkedin, Mail } from "lucide-react";
 import { useState, useEffect } from "react";
+import type { Locale } from "../lib/locale";
+import { withLocale } from "../lib/locale";
+import type { SiteDictionary } from "../lib/i18n";
 
-export function SiteFooter() {
+export function SiteFooter({ dict, locale }: { dict: SiteDictionary; locale: Locale }) {
     const [currentYear, setCurrentYear] = useState<number | null>(null);
 
     // Get year on client-side only to avoid hydration mismatch
@@ -14,20 +17,20 @@ export function SiteFooter() {
 
     const footerLinks = {
         product: [
-            { label: "Changelog", href: "/changelog" },
-            { label: "Documentation", href: "/docs" },
-            { label: "FAQ", href: "/faq" },
-            { label: "Contact", href: "/contact" },
+            { label: dict.nav.changelog, href: withLocale(locale, "/changelog") },
+            { label: dict.nav.docs, href: withLocale(locale, "/docs") },
+            { label: dict.nav.faq, href: withLocale(locale, "/faq") },
+            { label: dict.nav.contact, href: withLocale(locale, "/contact") },
         ],
         resources: [
-            { label: "Getting Started", href: "/docs/get-started" },
-            { label: "Security", href: "/docs/security" },
-            { label: "Configuration", href: "/docs/configuration" },
-            { label: "Guru AI", href: "/docs/guru" },
-            { label: "Monitoring", href: "/docs/monitoring" },
+            { label: dict.footer.links.gettingStarted, href: withLocale(locale, "/docs/get-started") },
+            { label: dict.footer.links.security, href: withLocale(locale, "/docs/security") },
+            { label: dict.footer.links.configuration, href: withLocale(locale, "/docs/configuration") },
+            { label: dict.footer.links.guru, href: withLocale(locale, "/docs/guru") },
+            { label: dict.footer.links.monitoring, href: withLocale(locale, "/docs/monitoring") },
         ],
         legal: [
-            { label: "Privacy Policy", href: "/privacy-policy" },
+            { label: dict.nav.privacy, href: withLocale(locale, "/privacy-policy") },
         ],
     };
 
@@ -43,7 +46,7 @@ export function SiteFooter() {
                             <span className="text-xl font-bold text-black dark:text-white">Guardian</span>
                         </div>
                         <p className="text-zinc-600 dark:text-zinc-500 text-sm leading-relaxed mb-6 max-w-sm">
-                            Release-driven governance platform for engineering teams. Maintain code quality and security at scale.
+                            {dict.footer.tagline}
                         </p>
 
                         <div className="flex items-center gap-4">
@@ -69,7 +72,7 @@ export function SiteFooter() {
                     {/* Product Links */}
                     <div>
                         <h3 className="text-sm font-semibold text-black dark:text-white uppercase tracking-wider mb-4">
-                            Product
+                            {dict.footer.sections.product}
                         </h3>
                         <ul className="space-y-3">
                             {footerLinks.product.map((link) => (
@@ -88,7 +91,7 @@ export function SiteFooter() {
                     {/* Resources Links */}
                     <div>
                         <h3 className="text-sm font-semibold text-black dark:text-white uppercase tracking-wider mb-4">
-                            Resources
+                            {dict.footer.sections.resources}
                         </h3>
                         <ul className="space-y-3">
                             {footerLinks.resources.map((link) => (
@@ -107,7 +110,7 @@ export function SiteFooter() {
                     {/* Legal Links */}
                     <div>
                         <h3 className="text-sm font-semibold text-black dark:text-white uppercase tracking-wider mb-4">
-                            Legal
+                            {dict.footer.sections.legal}
                         </h3>
                         <ul className="space-y-3">
                             {footerLinks.legal.map((link) => (
@@ -127,12 +130,12 @@ export function SiteFooter() {
                 {/* Bottom Bar */}
                 <div className="py-6 border-t border-black/5 dark:border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
                     <p className="text-sm text-zinc-500 dark:text-zinc-600" suppressHydrationWarning>
-                        &copy; {currentYear || "2026"} Guardian Project. All rights reserved.
+                        &copy; {currentYear || "2026"} Guardian Project. {dict.footer.rights}
                     </p>
 
                     {/* Designed & Developed by Credit */}
                     <p className="text-sm text-zinc-500 flex items-center gap-1">
-                        <span className="text-zinc-500 dark:text-zinc-600">Designed & Developed by</span>
+                        <span className="text-zinc-500 dark:text-zinc-600">{dict.footer.builtBy}</span>
                         <a
                             href="https://www.senoldogan.dev"
                             target="_blank"

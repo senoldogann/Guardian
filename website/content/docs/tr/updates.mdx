@@ -1,0 +1,199 @@
+---
+title: "Güncellemeler"
+summary: "Uygulama içi güncelleme akışı, release kaynağı, otomatik güncellemeler ve operasyonel davranış."
+section: "Operasyonlar"
+order: 3
+---
+
+## Genel bakış
+
+Guardian; açılışta, pencere odaklandığında ve uygulama açıkken her 15 dakikada bir güncellemeleri kontrol eder. Bir güncelleme olduğunda, üst banner'dan veya **Settings > Updates** üzerinden kurabilirsiniz.
+
+## Güncelleme kaynağı
+
+Guardian updater metadatasını **public distribution repository** üzerinden (GitHub Releases) okur.
+
+### Release yapısı
+
+```
+Distribution Repository
+├── latest.json              # Güncel sürüm metadatası
+├── Guardian_X.Y.Z_aarch64.app.tar.gz   # macOS updater artifact
+├── Guardian_X.Y.Z_aarch64.dmg          # macOS installer
+└── ...
+```
+
+### latest.json formatı
+
+```json
+{
+  "version": "vX.Y.Z",
+  "notes": "Bug fixes and performance improvements",
+  "pub_date": "2026-02-07T12:00:00Z",
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "base64-signature",
+      "url": "https://github.com/<org>/<repo>/releases/download/vX.Y.Z/Guardian_X.Y.Z_aarch64.app.tar.gz"
+    }
+  }
+}
+```
+
+## Uygulama içi güncelleme akışı
+
+### Otomatik kontrol
+
+Guardian şu durumlarda güncelleme kontrolü yapar:
+
+1. **Açılışta**: Uygulama açıldığında
+2. **Manuel**: **Settings > Updates > Check Now** ile
+
+### Bildirim
+
+Güncelleme varsa:
+
+1. Pencerenin üstünde **banner** görünür
+2. **Settings > Updates** ekranında sürüm bilgisi görünür
+
+### Kurulum süreci
+
+```
+1. Bildirim
+       ↓
+2. Kullanıcı onayı
+       ↓
+3. Arka planda indirme
+       ↓
+4. Doğrulama (integrity / signature / version)
+       ↓
+5. Kurulum
+       ↓
+6. Uygulamayı yeniden başlat
+       ↓
+7. Yeni sürüm aktif
+```
+
+**Adımlar**:
+
+1. **Onay**: Banner'dan veya Settings'ten “Install Update” tıklayın
+2. **İndirme**: Paket arka planda iner (ilerleme gösterilir)
+3. **Doğrulama**: Updater güncellemeyi doğrular (ör. signature kontrolü, yapılandırmaya bağlı)
+4. **Kurulum**: Yeni sürüm yüklenir
+5. **Yeniden başlatma**: Uygulama otomatik yeniden başlar
+6. **Doğrulama**: Yeni sürüm numarası Settings'te görünür
+
+### Güncelleme doğrulaması
+
+Guardian güncellemeyi uygulamadan önce şunları kontrol eder:
+
+| Kontrol | Amaç |
+|-------|---------|
+| **Updater doğrulaması** | Özgünlük ve bütünlük kontrolleri (updater konfigürasyonuna bağlı) |
+| **Sürüm formatı** | Geçersiz güncellemeleri engeller |
+
+Kontrollerden biri başarısız olursa, güncelleme reddedilir ve kullanıcı bilgilendirilir.
+
+## Güncelleme ayarları
+
+Mevcut deneyim; açılış/focus kontrolleri ve **Settings > Updates** içindeki manuel kontrole odaklanır.
+
+## Manuel güncellemeler
+
+### Manuel kontrol
+
+**Settings > Updates > Check Now** güncelleme kontrolünü anında tetikler.
+
+### Manuel indirme
+
+Otomatik güncellemeler başarısız olursa:
+
+1. Bu web sitesindeki `/download` sayfasına gidin
+2. Platformunuza uygun kurulum dosyasını indirin
+3. Kurulumu çalıştırın (mevcut sürümün üzerine kurulur)
+
+### Offline güncelleme
+
+Air-gapped sistemlerde:
+
+1. Bağlantılı bir makinede kurulum dosyasını indirin
+2. USB vb. ile taşıyın
+3. Kurulumu normal şekilde çalıştırın
+
+## Geri alma (rollback)
+
+### Manuel rollback
+
+**macOS**:
+```bash
+# Time Machine ile geri yükleyin
+# veya yedekten önceki sürümü yeniden kurun
+```
+
+## Operasyonel notlar
+
+### Release mirroring
+
+Release mirroring manuel ise şunları doğrulayın:
+
+- `latest.json` URL'lerinin **distribution repository**'ye işaret ettiğini
+- checksum'ların dosyalarla eşleştiğini
+- signature'ların geçerli olduğunu
+- asset'ların public erişilebilir olduğunu
+
+### Kurumsal dağıtımlar
+
+Enterprise ortamlarda öneriler:
+
+1. **Auto-update kapatın**: Politika gereği in-app update kullanmayın
+2. **Internal mirror**: `latest.json` dosyasını iç sunucuda yayınlayın
+3. **Staging**: Önce staging ortamında test edin
+4. **Planlı dağıtım**: Bakım pencerelerine göre planlayın
+5. **MDM/Policy**: Konfigürasyonu yönetim sistemleriyle yönetin
+
+`GUARDIAN_UPDATE_FEED_URL` environment variable ile internal update feed'i kullanabilirsiniz.
+
+## Güncelleme sorun giderme
+
+### Update check başarısız
+
+**Nedenler**:
+- Ağ bağlantısı
+- Firewall/proxy engeli
+- Update host erişim sorunu
+
+**Çözümler**:
+1. İnternet bağlantısını kontrol edin
+2. Update host erişimini doğrulayın
+3. Proxy gerekiyorsa konfigüre edin
+4. Manuel indirmeyi deneyin
+
+### İndirme takıldı/yavaş
+
+**Çözümler**:
+1. Bant genişliğini kontrol edin
+2. Duraklatıp devam ettirin
+3. Farklı ağ deneyin
+4. Manuel indirmeyi kullanın
+
+### “Update verification failed”
+
+**Neden**: Bozuk indirme veya signature uyuşmazlığı
+
+**Çözümler**:
+1. Güncellemeyi tekrar deneyin
+2. Download sayfasından manuel kurulum indirin
+
+### Kuruldu ama sürüm değişmedi
+
+**Çözümler**:
+1. Guardian'ı tamamen kapatın (sadece pencereyi kapatmayın)
+2. Uygulamayı yeniden başlatın
+3. Birden fazla kurulum olup olmadığını kontrol edin
+4. Gerekirse manuel yeniden kurun
+
+## Güvenlik notları
+
+- Resmi release'ler veya kurumunuzun internal mirror'u gibi güvenilir kaynakları tercih edin.
+- Signature ve integrity kontrolleri, build ve update kaynağı konfigürasyonunuza göre updater tarafından uygulanır.
+- Custom feed kullanıyorsanız, bağımsız doğrulama süreci yoksa indirmeleri “untrusted” kabul edin.
+

@@ -3,18 +3,19 @@ import type { ReleaseMonthGroup } from "../../lib/changelog";
 import { groupReleasesByMonth, toReleaseViewModel } from "../../lib/changelog";
 import { getDictionary } from "../../lib/i18n";
 import { ChangelogClient } from "./changelog-client";
+import type { Locale } from "../../lib/locale";
 
-export async function ChangelogPageView() {
+export async function ChangelogPageView({ locale }: { locale: Locale }) {
   let fetchError: string | null = null;
-  const dict = getDictionary();
+  const dict = getDictionary(locale);
   let groups: ReleaseMonthGroup[] = [];
 
   try {
     const releases = await fetchReleaseSnapshot(40);
     const releaseViewModels = releases.map(toReleaseViewModel);
-    groups = groupReleasesByMonth(releaseViewModels, "en-US");
+    groups = groupReleasesByMonth(releaseViewModels, locale === "tr" ? "tr-TR" : "en-US");
   } catch (error) {
-    fetchError = error instanceof Error ? error.message : "Failed to load releases";
+    fetchError = error instanceof Error ? error.message : (locale === "tr" ? "Sürüm notları yüklenemedi." : "Failed to load releases.");
   }
 
   return (
@@ -27,7 +28,7 @@ export async function ChangelogPageView() {
         </div>
       ) : null}
 
-      <ChangelogClient dict={dict} groups={groups} />
+      <ChangelogClient dict={dict} groups={groups} locale={locale} />
     </div>
   );
 }

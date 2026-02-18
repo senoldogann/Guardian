@@ -5,14 +5,17 @@ import { Loader2 } from "lucide-react";
 import type { GithubAsset } from "../../lib/github";
 import { formatBytes, getAssetKind } from "../../lib/github";
 import type { SiteDictionary } from "../../lib/i18n";
+import type { Locale } from "../../lib/locale";
 import { detectPlatform, getPlatformLabel, pickBestAsset, type Platform, type PlatformChoice } from "../../lib/download";
 
 export function DownloadClient({
   assets,
-  dict
+  dict,
+  locale
 }: {
   assets: GithubAsset[];
   dict: SiteDictionary;
+  locale: Locale;
 }) {
   const [platform, setPlatform] = useState<Platform>("unknown");
   const [isDetecting, setIsDetecting] = useState(true);
@@ -40,13 +43,13 @@ export function DownloadClient({
   const selected = useMemo(() => pickBestAsset(assets, effectivePlatform), [assets, effectivePlatform]);
 
   const headlineLabel = platformChoice === "auto"
-    ? (isDetecting ? dict.download.detecting : getPlatformLabel(platform))
-    : getPlatformLabel(platformChoice);
+    ? (isDetecting ? dict.download.detecting : getPlatformLabel(platform, locale))
+    : getPlatformLabel(platformChoice, locale);
 
   const downloadLabel =
     effectivePlatform === "unknown"
       ? dict.nav.download
-      : `${dict.nav.download} (${getPlatformLabel(effectivePlatform)})`;
+      : `${dict.nav.download} (${getPlatformLabel(effectivePlatform, locale)})`;
 
   return (
     <section className="mx-auto max-w-6xl px-4 pb-24">
@@ -67,7 +70,7 @@ export function DownloadClient({
 
             <div className="w-full sm:w-auto sm:min-w-[210px]">
               <label htmlFor="platform-picker-select" className="text-xs font-medium tracking-[0.18em] uppercase text-neutral-500">
-                Platform
+                {dict.download.platformLabel}
               </label>
               <select
                 id="platform-picker-select"
@@ -76,11 +79,11 @@ export function DownloadClient({
                 disabled={isDetecting}
                 className="mt-2 w-full rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 px-3 py-2 text-sm text-neutral-800 dark:text-neutral-200 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/20 focus-visible:ring-offset-2"
               >
-                <option value="auto">Auto (detect)</option>
-                <option value="mac_arm64">macOS (Apple Silicon)</option>
-                <option value="mac_x64">macOS (Intel)</option>
-                <option value="windows_x64">Windows</option>
-                <option value="linux_x64">Linux</option>
+                <option value="auto">{dict.download.platformAuto}</option>
+                <option value="mac_arm64">{getPlatformLabel("mac_arm64", locale)}</option>
+                <option value="mac_x64">{getPlatformLabel("mac_x64", locale)}</option>
+                <option value="windows_x64">{getPlatformLabel("windows_x64", locale)}</option>
+                <option value="linux_x64">{getPlatformLabel("linux_x64", locale)}</option>
               </select>
               <div className="mt-2 flex items-center gap-2 text-xs text-neutral-500">
                 {isDetecting ? (
@@ -89,7 +92,7 @@ export function DownloadClient({
                     <span>{dict.download.detecting}</span>
                   </>
                 ) : (
-                  <span>Detected: {getPlatformLabel(platform)}</span>
+                  <span>{dict.download.platformDetected}: {getPlatformLabel(platform, locale)}</span>
                 )}
               </div>
             </div>

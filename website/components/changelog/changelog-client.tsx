@@ -7,12 +7,15 @@ import { formatReleaseDate } from "../../lib/changelog";
 import { MarkdownBlock } from "../markdown-block";
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
+import type { Locale } from "../../lib/locale";
+import { withLocale } from "../../lib/locale";
 
 type Filter = "all" | "stable" | "prerelease";
 
 type Props = {
   dict: SiteDictionary;
   groups: ReleaseMonthGroup[];
+  locale: Locale;
 };
 
 function applyFilter(release: ReleaseViewModel, filter: Filter): boolean {
@@ -21,7 +24,7 @@ function applyFilter(release: ReleaseViewModel, filter: Filter): boolean {
   return release.prerelease;
 }
 
-export function ChangelogClient({ dict, groups }: Props) {
+export function ChangelogClient({ dict, groups, locale }: Props) {
   const [filter, setFilter] = useState<Filter>("all");
   const [activeMonth, setActiveMonth] = useState<string>(groups[0]?.key ?? "");
 
@@ -40,7 +43,7 @@ export function ChangelogClient({ dict, groups }: Props) {
     { key: "prerelease", label: dict.changelog.prerelease }
   ];
 
-  const dateLocale = "en-US";
+  const dateLocale = locale === "tr" ? "tr-TR" : "en-US";
 
   return (
     <section className="mx-auto max-w-6xl px-4 pb-24">
@@ -163,7 +166,7 @@ export function ChangelogClient({ dict, groups }: Props) {
                             ))
                             : release.body ? (
                               <div className="prose dark:prose-invert max-w-none">
-                                <MarkdownBlock value={release.body} />
+                                <MarkdownBlock value={release.body} locale={locale} />
                               </div>
                             ) : (
                               <p className="text-neutral-500 dark:text-neutral-400">{dict.changelog.noNotes}</p>
@@ -185,7 +188,7 @@ export function ChangelogClient({ dict, groups }: Props) {
                 {dict.changelog.archive}
               </p>
               <Link
-                href="/download"
+                href={withLocale(locale, "/download")}
                 className="text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:text-neutral-950 dark:hover:text-white transition-colors"
               >
                 {dict.nav.download}

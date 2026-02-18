@@ -1,0 +1,155 @@
+---
+title: "Güvenlik"
+summary: "Repo ayrımı, signing modeli, release hardening ve veri koruması."
+section: "Güvenlik"
+order: 5
+---
+
+## Güvenlik mimarisi
+
+Guardian, birden fazla katmandan oluşan defense-in-depth güvenlik modeli uygular:
+
+```
+┌──────────────────────────────────────────────┐
+│              🔒 Uygulama Katmanı             │
+│  • Güvenli kimlik bilgisi saklama (Keychain/DPAPI) │
+│  • Input validation & sanitization            │
+│  • CSP ile kısıtlı script çalıştırma          │
+└──────────────────────────────────────────────┘
+                       │
+┌──────────────────────────────────────────────┐
+│             🔐 Taşıma Katmanı               │
+│  • API iletişiminde HTTPS/TLS                │
+│  • GitHub Releases ile update kontrolü       │
+│  • Env override ile opsiyonel custom feed    │
+└──────────────────────────────────────────────┘
+                       │
+┌──────────────────────────────────────────────┐
+│              📦 Dağıtım Katmanı              │
+│  • Opsiyonel code signing (build/distribution'a bağlı) │
+│  • Sürüm artefact'ları + metadata             │
+│  • Updater signature verification (config'e bağlı) │
+└──────────────────────────────────────────────┘
+```
+
+## Repo stratejisi
+
+Guardian, maksimum güvenlik için dual-repository yaklaşımı kullanır:
+
+### Source repository
+- Tüm source code burada
+- Erişim geliştirme ekibiyle sınırlandırılır
+- Artefact/binary bu repoda tutulmaz
+- Protected branch + code review gereksinimleri
+
+### Distribution repository / update host
+- Sadece release artefact'ları (tercihen imzalı)
+- `latest.json` içinde update metadata
+- Sürüm geçmişi için release kayıtları
+- İndirme ve update check için public veya internal erişim
+
+> **Temel ilke**: Source code dağıtım konumlarında asla yer almamalı. Sadece derlenmiş (ve mümkünse imzalı) artefact yayınlanmalı.
+
+## Signing modeli
+
+Release hardening, build ve dağıtım setup'ınıza bağlıdır. Guardian yaygın signing/verification pattern'lerini destekler; ancak kesin garantiler platform ve konfigürasyona göre değişir.
+
+### Code signing
+
+| Platform | Yöntem | Sertifika |
+|----------|--------|-------------|
+| macOS | Code signing / notarization | Build'e bağlı |
+
+### Update doğrulaması
+
+Uygulama içi updater, update uygulamadan önce doğrulama yapabilir:
+
+```
+1. Update paketini indir
+2. Update'i doğrula (ör. signature kontrolleri, konfigürasyona bağlı)
+3. Kontroller geçerse uygula
+```
+
+Doğrulama başarısız olursa update reddedilir ve kullanıcı bilgilendirilir.
+
+## Secret yönetimi
+
+### Neleri korumalı?
+
+| Secret tipi | Saklama yeri | Asla şurada saklama |
+|-------------|--------------|----------------------|
+| API key'ler | Keychain/DPAPI | Düz metin dosyalar |
+| Private key'ler | CI secrets | Repository |
+| Auth token'lar | Secure storage | localStorage |
+
+### Konfigürasyon best practices
+
+1. **Environment variable kullanın**: CI/CD için encrypted secrets:
+   ```yaml
+   env:
+     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+   ```
+
+2. **Düzenli rotate edin**: Key rotation için takvim hatırlatması koyun
+
+3. **Erişimi denetleyin**: Secret erişimlerini düzenli olarak gözden geçirin
+
+## Veri koruması
+
+### Lokal veri
+
+Guardian bazı verileri lokal olarak saklar:
+
+| Veri tipi | Konum | Şifreleme |
+|-----------|-------|------------|
+| Settings | App data klasörü | OS/filesystem'e bağlı |
+| Scan history | App data klasörü | OS/filesystem'e bağlı |
+| API credentials | System keychain | OS keychain encryption |
+
+### Veri iletimi
+
+- API çağrıları HTTPS/TLS kullanır
+- Telemetry, kullanıcı onayı olmadan toplanmaz
+- Scan sonuçları varsayılan olarak lokal işlenir; external entegrasyonlar açılırsa seçtiğiniz bağlam üçüncü parti servislerinize gönderilebilir
+
+## Content Security Policy (CSP)
+
+Guardian, sıkı CSP kuralları uygular (örnek):
+
+```
+default-src 'self';
+script-src 'self';
+style-src 'self';
+img-src 'self' data: https:;
+connect-src 'self' https://api.openai.com https://api.anthropic.com https://github.com;
+```
+
+Bu sayede:
+- XSS (cross-site scripting)
+- Yetkisiz dış bağlantılar
+- Code injection denemeleri
+
+engellenir.
+
+## Zafiyet bildirimi
+
+Bir güvenlik sorunu buldunuz mu? Sorumlu şekilde bildirin:
+
+1. Kullandığınız repository'nin issue tracker'ını kullanın (veya internal deployment ise kurum içi kanalınızı).
+2. Fix çıkmadan exploit detaylarını public paylaşmayın.
+
+**Yapmayın**:
+- Fix yokken public paylaşım
+- Başkalarının verisine erişim denemesi
+- Destructive test
+
+## Güvenlik checklist
+
+Kurumsal kullanım öncesi:
+
+- [ ] CSP ayarlarını gözden geçirin ve onaylayın
+- [ ] API key'leri güvenli saklayın (düz metin değil)
+- [ ] Security patch'leri için auto-update stratejinizi belirleyin
+- [ ] Network erişim gereksinimlerini security ekibiyle doğrulayın
+- [ ] İstisna/override süreçlerini dokümante edin
+

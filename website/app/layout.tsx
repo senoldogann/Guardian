@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { DM_Sans, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import { ClientLayout } from "../components/client-layout";
 import { SITE_URL } from "../lib/seo";
 
 const dmSans = DM_Sans({
@@ -38,7 +38,11 @@ export const metadata: Metadata = {
   description:
     "Guardian is a desktop governance app for architecture quality, secure release operations, and in-app update management.",
   alternates: {
-    canonical: `${SITE_URL}/`
+    canonical: `${SITE_URL}/en`,
+    languages: {
+      en: `${SITE_URL}/en`,
+      tr: `${SITE_URL}/tr`,
+    },
   },
   openGraph: {
     title: "Guardian | Release-Driven Governance Platform",
@@ -80,16 +84,18 @@ export const viewport: Viewport = {
   colorScheme: "dark light",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const hdrs = await headers();
+  const localeHeader = hdrs.get("x-guardian-locale") ?? "en";
+  const lang = localeHeader.toLowerCase().startsWith("tr") ? "tr" : "en";
+
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang={lang} className="scroll-smooth">
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className={`${dmSans.variable} ${spaceGrotesk.variable} antialiased`}>
-        <ClientLayout>
-          {children}
-        </ClientLayout>
+        {children}
       </body>
     </html>
   );

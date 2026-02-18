@@ -1,0 +1,79 @@
+---
+title: "Kurulum"
+summary: "Guardian'ı macOS üzerinde güvenle kurun. Windows/Linux yönergeleri bu build'ler yayınlandığında eklenecek."
+section: "Operasyonlar"
+order: 2
+---
+
+## Sistem gereksinimleri
+
+Guardian'ı kurmadan önce sisteminizin aşağıdaki gereksinimleri karşıladığından emin olun:
+
+### Minimum gereksinimler
+
+| Platform | Sürüm | Not |
+|----------|---------|-------|
+| **macOS** | 12.0+ (Monterey) | Apple Silicon ve Intel desteklenir |
+
+Windows ve Linux kurulum paketleri yayınlandığında Download sayfasında görünecek.
+
+### Ek gereksinimler
+
+- **İnternet bağlantısı**: Release kontrolü ve AI provider iletişimi için gerekir
+- **Disk alanı**: Kurulum için minimum 500 MB
+- **Bellek**: 4 GB RAM önerilir
+
+## Kurulum adımları
+
+### macOS
+
+1. **İndir**: Download sayfasından `.dmg` dosyasını indirin
+2. **Aç**: İndirilen dosyaya çift tıklayıp disk imajını bağlayın
+3. **Kur**: Guardian'ı Applications klasörüne sürükleyin
+4. **İlk çalıştırma**: Gatekeeper nedeniyle ilk açılışta sağ tıklayıp **Open** seçin
+5. **Doğrula**: Sürüm numarasını kontrol etmek için **Settings > Updates** bölümüne bakın
+
+> **Not**: “Guardian is damaged” görürseniz Terminal'de şunu çalıştırın:
+> ```bash
+> xattr -cr /Applications/Guardian.app
+> ```
+
+## Kurulum sonrası ayarlar
+
+Kurulumdan sonra şu adımları tamamlayın:
+
+### 1. AI provider yapılandırması
+
+**Settings > Provider** bölümünden AI provider kimlik bilgilerinizi ekleyin.
+
+### 2. Kurulumu doğrulayın
+
+**Settings > Updates** bölümünde mevcut sürümün doğru göründüğünü kontrol edin.
+
+## Guardian'ı güncelleme
+
+Guardian otomatik güncellemeleri destekler:
+
+1. **Otomatik kontrol**: Uygulama açılışta, odaklanınca ve açık kaldığı sürece belirli aralıklarla güncellemeleri kontrol eder
+2. **Bildirim**: Güncelleme varsa bir banner görünür
+3. **Tek tık kurulum**: “Install Update” ile indirip kurabilirsiniz
+
+## Kaldırma
+
+### macOS
+```bash
+rm -rf /Applications/Guardian.app
+rm -rf ~/Library/Application\\ Support/Guardian
+```
+
+## Sorun giderme
+
+| Sorun | Çözüm |
+|-------|----------|
+| Uygulama açılmıyor | Tercihleri silip yeniden başlatın |
+| macOS'ta “Damaged app” | Yukarıdaki `xattr -cr` komutunu çalıştırın |
+| Boş ekran | Güvenlik yazılımı engelliyor olabilir |
+| AI'a bağlanamıyor | Settings'te API key'i doğrulayın |
+
+Daha fazla sorun için [Sorun Giderme](/docs/troubleshooting) sayfasına bakın.
+
