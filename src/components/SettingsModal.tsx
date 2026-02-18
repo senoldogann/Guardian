@@ -325,21 +325,25 @@ export function SettingsModal({
   } = updateProps;
 
   const API_KEY_MASK = "••••••";
-  const providerLabel = providerDraft ? getProviderDefaults(providerDraft.provider_id).label : "provider";
+  const providerLabel = providerDraft ? getProviderDefaults(providerDraft.provider_id).label : t("common.loading");
   const requiresApiKey = isDesktop && Boolean(providerDraft) && apiKeyStatus?.has_key === false;
-  const currentVersionLabel = updateInfo?.current_version ?? "Unknown";
+  const currentVersionLabel = updateInfo?.current_version ?? t("common.unknown");
   const latestVersionLabel = updateInfo?.latest_version
     ?? (updateInfo?.status === "up_to_date"
       ? updateInfo.current_version
-      : (updateChecking ? "Checking..." : "Unavailable"));
-  const updateStatusLabel = updateChecking
-    ? "checking"
-    : updateInfo?.status
-      ? updateInfo.status.replace(/_/g, " ")
-      : "idle";
+      : (updateChecking ? t("settings.updates.checking") : t("settings.updates.unavailable")));
+  const updateStatusBadge = updateChecking
+    ? t("settings.updates.status.checking")
+    : updateInfo?.status === "up_to_date"
+      ? t("settings.updates.status.upToDate")
+      : updateInfo?.status === "available"
+        ? t("settings.updates.status.available")
+        : updateInfo?.status === "error"
+          ? t("settings.updates.status.error")
+          : t("settings.updates.status.idle");
   const lastCheckLabel = updateInfo?.last_checked_at
     ? new Date(updateInfo.last_checked_at).toLocaleString()
-    : "Not checked yet";
+    : t("settings.updates.notCheckedYet");
 
   const settingsTabClass = (tab: SettingsTab) =>
     clsx(
@@ -990,7 +994,7 @@ export function SettingsModal({
               <span>{t("settings.updates.latest")}: {latestVersionLabel}</span>
               <span>{t("settings.updates.lastCheck")}: {lastCheckLabel}</span>
               <span className="px-2 py-0.5 rounded-full bg-white/10 text-[9px] uppercase tracking-widest text-text-main">
-                {updateStatusLabel}
+                {updateStatusBadge}
               </span>
             </div>
             {updateInfo?.status === "available" && (

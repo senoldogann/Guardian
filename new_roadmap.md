@@ -1569,6 +1569,10 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
   - `I18nProvider` + sözlük tabanlı çeviri altyapısı eklendi.
   - Settings içine Language seçimi eklendi (localStorage: `guardian_language`).
   - UI metinleri (Guru, Monitor, AI Context, Reviews, Settings, onboarding/empty states) EN/TR hale getirildi.
+  - Follow-up:
+    - Settings modal açılışında default tab `General` olacak şekilde ayarlandı.
+    - Provider > Model “Refresh” aksiyonunda toast success/error feedback eklendi.
+    - Header “Logout” ve Updates/Export terminolojisi TR’ye çevrildi (status badge dahil).
 - Backend (Tauri):
   - `start_monitoring` ve `ask_guru` çağrılarına `language` eklendi.
   - AI prompt'larına dil yönlendirmesi eklendi (seviyeler `Critical/Warning/Info` sabit kaldı).
