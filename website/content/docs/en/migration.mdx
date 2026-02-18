@@ -49,15 +49,30 @@ Guardian writes a small set of files to your workspace for safety and reproducib
 
 ```
 .guardian/
+  AGENT_INSTRUCTIONS.md
   baseline.json
   critiques.json
+  critiques.md
   history.jsonl
+  agent_queue.jsonl
+  agent_queue.<timestamp>.jsonl
+  chat.md
+  chat_queue.md
+  STALL
+  undo/
+    index.json
+    <hash>.bak
 guardian.lock
 ```
 
 If your organization requires strict repository hygiene, you can:
 - Commit `guardian.lock` (recommended)
 - Add `.guardian/` to `.gitignore` if you don’t want to track local history/snapshots
+
+Notes:
+- `.guardian/*` is generated and owned by Guardian. Avoid editing these files manually.
+- `STALL` is only present while monitoring is stalled on a critical file.
+- `undo/` is created after you apply a fix (per-file last undo).
 
 ## CLI (CI-only) Note
 
@@ -73,4 +88,3 @@ If migration behaves unexpectedly:
 - Check the current version in **Settings > Updates**
 - Share the relevant error message and your scan profile
 - Use `/contact` for support
-

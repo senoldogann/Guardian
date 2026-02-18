@@ -1578,6 +1578,12 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
   - Middleware ile locale olmayan istekler `/en/...` altına redirect ediliyor.
   - TR içerik ve sözlükler eklendi; docs linkleri locale-aware hale getirildi.
   - Changelog render aşamasında inline `**...**` formatı normalize edilerek UI’dan kaldırıldı.
+  - Follow-up:
+    - Dil değişiminde “titreme” riskini azaltmak için locale serialize/deserialize callback’leri stabilize edildi (infinite effect loop önleme).
+    - Contact form TR/EN olarak güncellendi.
+    - Header language toggle globe + `EN/TR` şeklinde yenilendi.
+    - Cookie banner iç linki locale-aware `Link` ile düzeltildi (Vercel/Next lint uyumu).
+    - Docs: workspace içinde üretilen `.guardian/*` dosya listesi genişletildi.
 
 ### Doğrulama
 - Desktop:

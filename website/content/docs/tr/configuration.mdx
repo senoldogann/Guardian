@@ -141,7 +141,16 @@ Guardian konfigürasyonu platforma göre şu konumlarda saklar:
 your-project/
 ├── guardian.lock          # Otomatik üretilir
 ├── .guardian/
-│   └── baseline.json
+│   ├── AGENT_INSTRUCTIONS.md
+│   ├── baseline.json
+│   ├── critiques.json
+│   ├── critiques.md
+│   ├── history.jsonl
+│   ├── agent_queue.jsonl
+│   ├── chat.md
+│   ├── chat_queue.md
+│   ├── STALL              # Takılma durumunda oluşur
+│   └── undo/              # Fix uyguladıktan sonra oluşur
 └── .agent/rules/
 ```
 
@@ -222,4 +231,3 @@ Guardian, semantic match'leri minimum **0.72** similarity skoruyla filtreler.
 4. **Güncel kalın**: Otomatik update kontrolünü açık tutun
 5. **guardian.lock commit edin**: Takım tutarlılığı için version control'e ekleyin
 6. **CI'da strict mode**: CI/CD'de lock uyumluluğunu enforce edin
-

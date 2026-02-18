@@ -49,15 +49,30 @@ Guardian, güvenlik ve tekrar üretilebilirlik için workspace'e bazı dosyalar 
 
 ```
 .guardian/
+  AGENT_INSTRUCTIONS.md
   baseline.json
   critiques.json
+  critiques.md
   history.jsonl
+  agent_queue.jsonl
+  agent_queue.<timestamp>.jsonl
+  chat.md
+  chat_queue.md
+  STALL
+  undo/
+    index.json
+    <hash>.bak
 guardian.lock
 ```
 
 Repo hijyeni için:
 - `guardian.lock` dosyasını commit etmek genelde faydalıdır
 - `.guardian/` klasörünü takip etmek istemiyorsanız `.gitignore` ekleyebilirsiniz
+
+Notlar:
+- `.guardian/*` dosyaları Guardian tarafından üretilir ve sahiplenilir. Bu dosyaları manuel olarak değiştirmeyin.
+- `STALL` yalnızca kritik bir dosyada tarama takıldığında geçici olarak oluşur.
+- `undo/` bir fix uyguladıktan sonra oluşur (dosya başına son geri alma).
 
 ## CLI (CI-only) notu
 
@@ -73,4 +88,3 @@ Beklenmedik bir davranış görürseniz:
 - **Settings > Updates** altında sürümü kontrol edin
 - Scan profile bilgisini ve hata mesajını not edin
 - Destek için `/contact` kullanın
-

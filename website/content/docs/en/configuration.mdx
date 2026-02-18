@@ -141,7 +141,16 @@ The `guardian.lock` file ensures reproducible scans across different machines an
 your-project/
 ├── guardian.lock          # Auto-generated
 ├── .guardian/
-│   └── baseline.json
+│   ├── AGENT_INSTRUCTIONS.md
+│   ├── baseline.json
+│   ├── critiques.json
+│   ├── critiques.md
+│   ├── history.jsonl
+│   ├── agent_queue.jsonl
+│   ├── chat.md
+│   ├── chat_queue.md
+│   ├── STALL              # Only while stalled
+│   └── undo/              # Only after applying a fix
 └── .agent/rules/
 ```
 
