@@ -112,6 +112,25 @@ export function MainWorkspace({
   scopeLabel,
 }: MainWorkspaceProps): ReactElement {
   const toast = useToast();
+  const normalizeUndoKey = (value: string, root?: string): string => {
+    let out = (value || "").trim().replace(/\\/g, "/");
+    if (!out) return "";
+
+    if (root) {
+      const rootNorm = root.trim().replace(/\\/g, "/").replace(/\/+$/, "");
+      if (rootNorm && (out === rootNorm || out.startsWith(`${rootNorm}/`))) {
+        out = out.slice(rootNorm.length);
+      }
+    }
+
+    out = out.replace(/^\.\/+/, "");
+    out = out.replace(/^\/+/, "");
+    return out;
+  };
+
+  const undoAvailableSet = new Set<string>(
+    (fixHistory || []).map((entry) => normalizeUndoKey(entry.file_path)),
+  );
   return (
     <main className="flex-1 flex overflow-hidden">
       <section
@@ -263,6 +282,8 @@ export function MainWorkspace({
                   onToggle={() => onToggleLog(critiqueStateKey(log))}
                   onAskGuru={() => onAskGuruForLog(log, false)}
                   rootPath={path}
+                  undoAvailable={undoAvailableSet.has(normalizeUndoKey(log.file_path, path))}
+                  onFixHistoryRefresh={onRefreshFixHistory}
                   findingStatus={
                     baselineValid && log.finding_id
                       ? baselineIds.has(log.finding_id)
@@ -288,6 +309,7 @@ export function MainWorkspace({
           autoPrompt={chatAutoPrompt}
           onAutoPromptConsumed={onAutoPromptConsumed}
           onGuruReply={onGuruReply}
+          onFixHistoryRefresh={onRefreshFixHistory}
           webSearchEnabled={webSearchEnabled}
           webSearchDepth={webSearchDepth}
           onWebSearchToggle={onWebSearchToggle}

@@ -33,14 +33,31 @@ interface CritiqueAccordionRowProps {
     onAskGuru: () => void;
     rootPath: string;
     findingStatus?: "new" | "active";
+    undoAvailable?: boolean;
+    onFixHistoryRefresh?: () => void | Promise<void>;
 }
 
-export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ log, index, isExpanded, onToggle, onAskGuru, rootPath, findingStatus }: CritiqueAccordionRowProps): ReactElement {
+export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
+    log,
+    index,
+    isExpanded,
+    onToggle,
+    onAskGuru,
+    rootPath,
+    findingStatus,
+    undoAvailable,
+    onFixHistoryRefresh,
+}: CritiqueAccordionRowProps): ReactElement {
     const severity = log.severity.toLowerCase();
     const isCritical = severity === "critical";
     const isWarning = severity === "warning";
     const { showError, showSuccess } = useToast();
-    const [undoReady, setUndoReady] = React.useState(false);
+    const [undoReady, setUndoReady] = React.useState<boolean>(() => Boolean(undoAvailable));
+
+    // Keep UI aligned with persisted undo history (survives tab switches).
+    React.useEffect(() => {
+        setUndoReady(Boolean(undoAvailable));
+    }, [undoAvailable]);
 
     // Improved Path Logic: Handle short paths and Windows/Unix separators
     const parts = log.file_path.split(/[/\\]/);
@@ -65,6 +82,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ l
         try {
             await invoke("undo_fix", { filePath: log.file_path, root: rootPath });
             setUndoReady(false);
+            void Promise.resolve(onFixHistoryRefresh?.()).catch(() => { });
             showSuccess(`Undo complete for ${fileName}.`, 3000);
         } catch (err) {
             showError(`Undo failed: ${String(err)}`, 6000);
@@ -80,6 +98,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({ l
         try {
             await invoke("apply_fix_now", { filePath: log.file_path, newContent: log.suggested_diff, root: rootPath });
             setUndoReady(true);
+            void Promise.resolve(onFixHistoryRefresh?.()).catch(() => { });
             showSuccess(
                 `Applied fix to ${fileName}.`,
                 6000,

@@ -59,6 +59,7 @@ interface ChatViewProps {
     autoPrompt?: AutoPrompt | null;
     onAutoPromptConsumed?: () => void;
     onGuruReply?: () => void;
+    onFixHistoryRefresh?: () => void | Promise<void>;
     webSearchEnabled: boolean;
     webSearchDepth: "basic" | "advanced" | "fast" | "ultra-fast" | "auto";
     onWebSearchToggle: () => void;
@@ -77,6 +78,7 @@ export function ChatView({
     autoPrompt,
     onAutoPromptConsumed,
     onGuruReply,
+    onFixHistoryRefresh,
     webSearchEnabled,
     webSearchDepth,
     onWebSearchToggle,
@@ -439,6 +441,7 @@ export function ChatView({
             }
             await invoke("apply_fix_now", { filePath: filePath, newContent: diff, root: path });
             setAppliedFixes(prev => new Set(prev).add(index));
+            void Promise.resolve(onFixHistoryRefresh?.()).catch(() => { });
             const fileName = filePath.split("/").pop() || "file";
             toast.showSuccess(
                 `Applied fix to ${fileName}.`,
@@ -447,7 +450,10 @@ export function ChatView({
                     label: "Undo",
                     onClick: () => {
                         invoke("undo_fix", { filePath, root: path })
-                            .then(() => toast.showSuccess(`Undo complete for ${fileName}.`, 3000))
+                            .then(async () => {
+                                toast.showSuccess(`Undo complete for ${fileName}.`, 3000);
+                                await Promise.resolve(onFixHistoryRefresh?.());
+                            })
                             .catch((e) => toast.showError(`Undo failed: ${String(e)}`, 6000));
                     }
                 }
@@ -456,7 +462,7 @@ export function ChatView({
         } catch (e) {
             appendMessage({ role: "guru", content: `Failed to apply fix: ${e}`, timestamp: nowIso() });
         }
-    }, [path, appendMessage, nowIso, toast]);
+    }, [path, appendMessage, nowIso, toast, onFixHistoryRefresh]);
 
     const rejectFix = useCallback((index: number, filePath: string): void => {
         setRejectedFixes(prev => new Set(prev).add(index));

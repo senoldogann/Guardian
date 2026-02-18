@@ -393,6 +393,12 @@ function App(): ReactElement {
     void refreshFixHistory();
   }, [view, refreshFixProposals, refreshFixHistory]);
 
+  // Keep Undo availability in sync across tabs (Monitor/Reviews/Guru).
+  useEffect(() => {
+    if (!path) return;
+    void refreshFixHistory();
+  }, [path, refreshFixHistory]);
+
   useEffect(() => {
     if (view === "chat") {
       setGuruUnreadCount(0);

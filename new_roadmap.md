@@ -257,6 +257,7 @@ Remove the "double confirmation" UX for fixes and make remediation feel trustwor
 - Frontend (Desktop):
   - Monitor "FIX / APPLY THIS FIX" calls `apply_fix_now` and shows a success toast with an **Undo** action.
   - After apply, the Monitor fix button toggles to **UNDO** for that file (one-click revert).
+  - Undo state survives tab switches by hydrating Undo availability from Fix History (workspace-relative path normalization; supports absolute critique paths).
   - Guru "Confirm & Apply" uses the same `apply_fix_now` path (shared Undo behavior).
   - Guru unread notifications:
     - When a Guru reply arrives and user is not on the Guru tab: toast `Guru reply ready.`
