@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Published: TBD
 
 ### Highlights
+- Full EN/TR localization: Desktop + website UI now support English and Turkish. Guru + Monitor AI outputs follow your selected language (severity tokens remain stable).
 - One-click Apply + Undo: apply fixes immediately from Monitor and Guru, with a per-file Undo history.
 - Guru notifications: when a reply arrives and you are on another tab, you get a toast + a sidebar badge count.
 - Reviews now stays useful even without proposals: includes a Fix History panel (Undo available) alongside Fix Proposals.

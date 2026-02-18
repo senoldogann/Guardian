@@ -1556,6 +1556,43 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
 
 ---
 
+## v1.2.3 - EN/TR Localization + SEO Locale Routes (2026-02-18)
+
+### Hedef
+- Desktop uygulama + website için tam **EN/TR** dil desteği.
+- SEO için website route'larında zorunlu locale prefix: `/en/...` ve `/tr/...`.
+- Guru + Monitor AI çıktıları seçilen dile göre gelsin.
+- Changelog içeriği değişmesin; UI’da `**` gibi Markdown işaretleri görünmesin.
+
+### Uygulananlar
+- Desktop:
+  - `I18nProvider` + sözlük tabanlı çeviri altyapısı eklendi.
+  - Settings içine Language seçimi eklendi (localStorage: `guardian_language`).
+  - UI metinleri (Guru, Monitor, AI Context, Reviews, Settings, onboarding/empty states) EN/TR hale getirildi.
+- Backend (Tauri):
+  - `start_monitoring` ve `ask_guru` çağrılarına `language` eklendi.
+  - AI prompt'larına dil yönlendirmesi eklendi (seviyeler `Critical/Warning/Info` sabit kaldı).
+  - Bazı sistem uyarıları UI diliyle uyumlu hale getirildi.
+- Website (Next.js):
+  - Locale segment yapısı eklendi: `app/[locale]/...` (home/docs/download/changelog/faq/contact/privacy-policy).
+  - Middleware ile locale olmayan istekler `/en/...` altına redirect ediliyor.
+  - TR içerik ve sözlükler eklendi; docs linkleri locale-aware hale getirildi.
+  - Changelog render aşamasında inline `**...**` formatı normalize edilerek UI’dan kaldırıldı.
+
+### Doğrulama
+- Desktop:
+  - `cd guardian && npm run verify` (PASS)
+  - `cd guardian && python3 .agent/scripts/verify_all.py` (PASS)
+- Tauri:
+  - `cd guardian/src-tauri && cargo test` (PASS)
+- CLI:
+  - `cd guardian/guardian-cli && cargo test` (PASS)
+- Website:
+  - `cd guardian/website && npm run build` (PASS)
+  - `cd guardian/website && npm run test:run` (PASS)
+
+---
+
 ## v1.2.2 - Stabilite: Batch Audit Backoff + Daha Doğru Cost Metrics (2026-02-17)
 
 ### Problem
