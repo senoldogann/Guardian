@@ -629,7 +629,7 @@ function App(): ReactElement {
           onProviderChange: settings.onProviderChange,
           onBaseUrlChange: settings.onBaseUrlChange,
           onModelChange: settings.onModelChange,
-          onRefreshModels: () => settings.refreshProviderModels(true),
+          onRefreshModels: () => settings.refreshProviderModels(true, false, undefined, true),
           onSaveProvider: settings.saveProviderSettings,
           onTestProviderConnection: settings.testProviderConnection,
           apiKeyStatus: settings.apiKeyStatus,

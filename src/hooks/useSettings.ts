@@ -334,7 +334,13 @@ export function useSettings(
   }, []);
 
   // Tab state
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>("provider");
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
+
+  // Always open Settings on General tab to reduce setup confusion.
+  useEffect(() => {
+    if (!settingsOpen) return;
+    setSettingsTab("general");
+  }, [settingsOpen]);
 
   // Persist web search setting
   useEffect(() => {
