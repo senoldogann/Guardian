@@ -28,6 +28,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeSanitize from "rehype-sanitize";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { useToast } from "../hooks/useToast";
+import { useI18n } from "../i18n";
 
 interface ReviewDecisionPayload {
     file_path: string;
@@ -66,13 +67,6 @@ interface ChatViewProps {
     webSearchReady: boolean;
 }
 
-const THINKING_MESSAGES = [
-    "Analyzing project context",
-    "Cross-checking architecture patterns",
-    "Comparing with active monitor findings",
-    "Building an actionable answer",
-];
-
 export function ChatView({
     path,
     autoPrompt,
@@ -84,6 +78,7 @@ export function ChatView({
     onWebSearchToggle,
     webSearchReady,
 }: ChatViewProps): ReactElement {
+    const { locale, t } = useI18n();
     const [chatInput, setChatInput] = useState("");
     const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
     const [chatLoading, setChatLoading] = useState(false);
@@ -106,6 +101,16 @@ export function ChatView({
     const [plusMenuOpen, setPlusMenuOpen] = useState(false);
     const plusMenuRef = useRef<HTMLDivElement>(null);
     const toast = useToast();
+
+    const thinkingMessages = useMemo(
+        () => [
+            t("chat.thinking.analyzing"),
+            t("chat.thinking.crossChecking"),
+            t("chat.thinking.comparing"),
+            t("chat.thinking.building"),
+        ],
+        [t],
+    );
 
     useEffect(() => {
         onGuruReplyRef.current = onGuruReply;
@@ -321,7 +326,10 @@ export function ChatView({
             if (payload.decision) {
                 appendMessage({
                     role: "guardian",
-                    content: `Decision received for ${payload.file_path}: **${payload.decision}**`,
+                    content: t("chat.decisionReceived", {
+                        file: payload.file_path,
+                        decision: payload.decision,
+                    }),
                     timestamp: nowIso(),
                 });
             }
@@ -330,7 +338,7 @@ export function ChatView({
         return () => {
             unlisten.then(f => f());
         };
-    }, [appendMessage, nowIso]);
+    }, [appendMessage, nowIso, t]);
 
     const submitPrompt = async (prompt: string, forceWebSearch?: boolean): Promise<void> => {
         if (chatLoading || !prompt.trim()) return;
@@ -338,7 +346,7 @@ export function ChatView({
         if (!path) {
             appendMessage({
                 role: "guardian",
-                content: "Select a workspace path to ask the Guru.",
+                content: t("chat.systemSelectWorkspace"),
                 timestamp: nowIso(),
             });
             return;
@@ -358,6 +366,7 @@ export function ChatView({
                 query: prompt,
                 webSearch: useWebSearch,
                 webSearchDepth,
+                language: locale,
             });
             if (ignoreResponseRef.current) return;
             appendMessage({ role: "guru", content: answer, timestamp: nowIso() });
@@ -368,13 +377,13 @@ export function ChatView({
             if (errorMsg.toLowerCase().includes("web search failed")) {
                 appendMessage({
                     role: "guardian",
-                    content: `Guru Error: ${errorMsg}. Web search is optional; try again or disable web search in Settings.`,
+                    content: t("chat.errorWebSearchOptional", { error: errorMsg }),
                     timestamp: nowIso(),
                 });
             } else {
                 appendMessage({
                     role: "guardian",
-                    content: `Guru Error: ${errorMsg}. Ensure local AI server is running.`,
+                    content: t("chat.errorLocalServer", { error: errorMsg }),
                     timestamp: nowIso(),
                 });
             }
@@ -490,10 +499,10 @@ export function ChatView({
             return;
         }
         const interval = window.setInterval(() => {
-            setThinkingMessageIndex((prev) => (prev + 1) % THINKING_MESSAGES.length);
+            setThinkingMessageIndex((prev) => (prev + 1) % thinkingMessages.length);
         }, 1400);
         return () => window.clearInterval(interval);
-    }, [chatLoading]);
+    }, [chatLoading, thinkingMessages.length]);
 
     useEffect(() => {
         if (!chatHistory.length && !chatLoading) {
@@ -515,13 +524,13 @@ export function ChatView({
             <div className="guardian-topbar justify-between shrink-0">
                 <div className="flex items-center gap-3">
                     <Bot className="w-5 h-5 text-text-muted dark:text-[var(--accent-500)]" />
-                    <h2 className="guardian-topbar-text">Guru Architect</h2>
+                    <h2 className="guardian-topbar-text">{t("chat.title")}</h2>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setGuideOpen(true)}
                         className="p-2 rounded-lg transition-all active:scale-95 cursor-pointer hover:bg-white/5 group"
-                        title="Open Guide"
+                        title={t("chat.openGuide")}
                     >
                         <HelpCircle className="w-4 h-4 text-[var(--accent-500)] group-hover:scale-110 transition-transform" />
                     </button>
@@ -529,7 +538,7 @@ export function ChatView({
                         onClick={() => setClearConfirmOpen(true)}
                         className="p-2 rounded-lg transition-all active:scale-95 cursor-pointer hover:bg-white/5 group disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
                         disabled={chatHistory.length === 0}
-                        title="Clear History"
+                        title={t("chat.clearHistory")}
                     >
                         <Trash2 className="w-4 h-4 text-rose-500 group-hover:scale-110 transition-transform" />
                     </button>
@@ -556,10 +565,10 @@ export function ChatView({
                             id="guardian-clear-chat-title"
                             className="text-sm font-bold uppercase tracking-widest text-text-main mb-2"
                         >
-                            Are you sure?
+                            {t("chat.clearConfirmTitle")}
                         </div>
                         <p id="guardian-clear-chat-desc" className="text-xs text-text-muted">
-                            This will permanently delete the current chat history for this workspace.
+                            {t("chat.clearConfirmDescription")}
                         </p>
                         <div className="mt-4 flex justify-end gap-2">
                             <button
@@ -567,13 +576,13 @@ export function ChatView({
                                 className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-text-main rounded-md transition-colors cursor-pointer"
                                 ref={clearCancelRef}
                             >
-                                Cancel
+                                {t("common.cancel")}
                             </button>
                             <button
                                 onClick={handleClearChat}
                                 className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer"
                             >
-                                Delete
+                                {t("common.delete")}
                             </button>
                         </div>
                     </div>
@@ -597,9 +606,11 @@ export function ChatView({
                     <div className="h-full flex flex-col items-center justify-center gap-6 animate-in fade-in zoom-in duration-700">
                         <Bot className="w-16 h-16 text-zinc-600 dark:text-text-muted dark:opacity-20" />
                         <div className="text-center space-y-2">
-                            <p className="text-sm font-bold uppercase tracking-tighter text-zinc-900 dark:text-text-muted">Guru Architect Engine</p>
-                            <p className="text-xs font-mono max-w-xs leading-relaxed text-zinc-600 dark:text-text-muted/60">
-                                I am the Guardian Guru. Accessing project context via RAG-Lite.<br />Ask me anything about your codebase.
+                            <p className="text-sm font-bold uppercase tracking-tighter text-zinc-900 dark:text-text-muted">
+                                {t("chat.emptyTitle")}
+                            </p>
+                            <p className="text-xs font-mono max-w-xs leading-relaxed text-zinc-600 dark:text-text-muted/60 whitespace-pre-line">
+                                {t("chat.emptyDescription")}
                             </p>
                         </div>
                         <div className="guru-placeholder opacity-100 dark:opacity-20" aria-hidden="true">
@@ -641,9 +652,9 @@ export function ChatView({
                         <div className="p-4 rounded-2xl !bg-white dark:!bg-white/5 border border-zinc-200 dark:border-white/5 text-xs font-mono text-zinc-600 dark:text-zinc-400 flex items-center gap-2 shadow-sm min-w-[280px]">
                             <Activity className="w-3 h-3 animate-spin shrink-0 text-zinc-400 dark:text-zinc-500" />
                             <span className="inline-flex items-center gap-0.5">
-                                <span className="transition-opacity duration-300">
-                                    {THINKING_MESSAGES[thinkingMessageIndex]}
-                                </span>
+                                    <span className="transition-opacity duration-300">
+                                    {thinkingMessages[thinkingMessageIndex]}
+                                    </span>
                                 <span className="inline-flex gap-0.5 pt-1" aria-hidden="true">
                                     <span className="h-0.5 w-0.5 rounded-full bg-current animate-pulse" />
                                     <span className="h-0.5 w-0.5 rounded-full bg-current animate-pulse [animation-delay:120ms]" />
@@ -683,8 +694,8 @@ export function ChatView({
                                             <Shield className="w-7 h-7" />
                                         </div>
                                         <div>
-                                            <h3 className="text-xl font-black tracking-tight text-text-main">Guardian Guru</h3>
-                                            <p className="text-xs font-medium text-text-muted">Hybrid Autonomous Engineering Protocol</p>
+                                            <h3 className="text-xl font-black tracking-tight text-text-main">{t("chat.guide.title")}</h3>
+                                            <p className="text-xs font-medium text-text-muted">{t("chat.guide.subtitle")}</p>
                                         </div>
                                     </div>
                                     <button
@@ -699,29 +710,29 @@ export function ChatView({
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                                     <GuideOption
                                         icon={Shield}
-                                        title="Guardian Sentry"
-                                        desc="Monitors your code in real-time. Instantly locks the system on critical violations."
+                                        title={t("chat.guide.options.sentryTitle")}
+                                        desc={t("chat.guide.options.sentryDesc")}
                                         color="sky"
                                         onClick={() => { }} // Added onClick as per new interface
                                     />
                                     <GuideOption
                                         icon={Bot}
-                                        title="Guru Architect"
-                                        desc="Architectural intelligence. Autonomously cleans technical debt found by Guardian."
+                                        title={t("chat.guide.options.architectTitle")}
+                                        desc={t("chat.guide.options.architectDesc")}
                                         color="sky"
                                         onClick={() => { }} // Added onClick as per new interface
                                     />
                                     <GuideOption
                                         icon={Clock}
-                                        title="Hard Lock"
-                                        desc="Development is blocked until critical issues are resolved, enforcing a safe cycle."
+                                        title={t("chat.guide.options.hardLockTitle")}
+                                        desc={t("chat.guide.options.hardLockDesc")}
                                         color="rose"
                                         onClick={() => { }} // Added onClick as per new interface
                                     />
                                     <GuideOption
                                         icon={Info}
-                                        title="Plan-Driven"
-                                        desc="Ingests 'PLAN-*.md' files to ensure code aligns with your original design intent."
+                                        title={t("chat.guide.options.planDrivenTitle")}
+                                        desc={t("chat.guide.options.planDrivenDesc")}
                                         color="amber"
                                         onClick={() => { }} // Added onClick as per new interface
                                     />
@@ -729,19 +740,19 @@ export function ChatView({
 
                                 {/* Steps / Usage */}
                                 <div className="bg-zinc-50 dark:bg-white/5 p-6 rounded-2xl border border-black/5 dark:border-white/5 space-y-4">
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">Operational Steps</h4>
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t("chat.guide.stepsTitle")}</h4>
                                     <div className="grid grid-cols-1 gap-3">
                                         <div className="flex items-start gap-4 text-xs">
                                             <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[9px] font-black shrink-0 shadow-lg shadow-black/20">1</div>
-                                            <p className="font-medium text-zinc-600 dark:text-zinc-400">Guardian locks the system when a critical violation is detected in the workspace.</p>
+                                            <p className="font-medium text-zinc-600 dark:text-zinc-400">{t("chat.guide.step1")}</p>
                                         </div>
                                         <div className="flex items-start gap-4 text-xs">
                                             <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[9px] font-black shrink-0 shadow-lg shadow-black/20">2</div>
-                                            <p className="font-medium text-zinc-600 dark:text-zinc-400">Request analysis and a patch (fix) from the Guru Architect to resolve the issue.</p>
+                                            <p className="font-medium text-zinc-600 dark:text-zinc-400">{t("chat.guide.step2")}</p>
                                         </div>
                                         <div className="flex items-start gap-4 text-xs">
                                             <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[9px] font-black shrink-0 shadow-lg shadow-black/20">3</div>
-                                            <p className="font-medium text-zinc-600 dark:text-zinc-400">On your confirmation, Antigravity applies the fix while respecting project architecture.</p>
+                                            <p className="font-medium text-zinc-600 dark:text-zinc-400">{t("chat.guide.step3")}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -750,7 +761,7 @@ export function ChatView({
                                     onClick={() => setGuideOpen(false)}
                                     className="w-full py-4 bg-[var(--accent-500)] text-background text-sm font-black rounded-xl hover:opacity-90 transition-all active:scale-[0.98] shadow-2xl shadow-black/20 cursor-pointer"
                                 >
-                                    START PROTOCOL
+                                    {t("chat.guide.start")}
                                 </button>
                             </div>
                         </motion.div>
@@ -770,7 +781,7 @@ export function ChatView({
                                     ? "bg-white/10 text-text-main"
                                     : "text-text-muted hover:text-text-main hover:bg-white/5"
                             )}
-                            title="Add actions"
+                            title={t("chat.actionsTitle")}
                         >
                             <Plus className={clsx("w-5 h-5 transition-transform", plusMenuOpen && "rotate-45")} />
                         </button>
@@ -796,7 +807,7 @@ export function ChatView({
                                         )}
                                     >
                                         <Globe className="w-4 h-4" />
-                                        <span className="flex-1 text-left">Web Search</span>
+                                        <span className="flex-1 text-left">{t("chat.webSearch")}</span>
                                         {webSearchEnabled && <Check className="w-4 h-4" />}
                                     </button>
                                 </motion.div>
@@ -808,7 +819,7 @@ export function ChatView({
                         value={chatInput}
                         onChange={(e) => setChatInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && askGuru()}
-                        placeholder="Ask the Guru about logical flows, architecture, or resolving STALLs..."
+                        placeholder={t("chat.inputPlaceholder")}
                         className="w-full bg-background border border-border-main rounded-2xl py-5 pl-14 pr-16 text-sm font-sans outline-none focus:border-[var(--focus-border)] transition-all placeholder:opacity-30 shadow-inner"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -816,7 +827,7 @@ export function ChatView({
                             onClick={chatLoading ? cancelPending : askGuru}
                             className="p-2 bg-[var(--accent-500)] hover:opacity-90 text-background rounded-xl transition-colors shadow-lg shadow-black/30 cursor-pointer icon-button"
                             disabled={!chatInput.trim() && !chatLoading}
-                            aria-label={chatLoading ? "Cancel" : "Send"}
+                            aria-label={chatLoading ? t("chat.cancel") : t("chat.send")}
                         >
                             {chatLoading ? <X className="w-5 h-5" /> : <Send className="w-5 h-5" />}
                         </button>
@@ -824,7 +835,7 @@ export function ChatView({
                 </div>
                 {!webSearchReady && (
                     <div className="text-[10px] text-amber-400">
-                        Add your Tavily key in Settings to enable web search.
+                        {t("chat.webSearchSetupHint")}
                     </div>
                 )}
             </div>
@@ -889,6 +900,7 @@ function ChatMessageRow({
     extractText,
     formatTimestamp
 }: ChatMessageRowProps): ReactElement {
+    const { t } = useI18n();
     return (
         <div className={clsx("flex w-full", msg.role === "user" ? "justify-end" : "justify-start")}>
             <div className={clsx("flex gap-4 max-w-[90%] md:max-w-[80%]", msg.role === "user" ? "flex-row-reverse" : "")}>
@@ -928,10 +940,10 @@ function ChatMessageRow({
                                                 <button
                                                     className="guardian-copy-btn"
                                                     onClick={() => onCopy(text)}
-                                                    title="Copy code"
+                                                    title={t("chat.copyCode")}
                                                 >
                                                     <Copy className="w-3 h-3" />
-                                                    {copiedSnippet === text ? "Copied" : "Copy"}
+                                                    {copiedSnippet === text ? t("chat.copied") : t("chat.copy")}
                                                 </button>
                                                 <pre>{children}</pre>
                                             </div>
@@ -952,15 +964,15 @@ function ChatMessageRow({
                     {msg.action && (
                         <div className="flex flex-col items-center justify-center p-6 bg-[var(--guide-bg)] border border-white/5 rounded-[var(--guide-radius)] text-center space-y-5 animate-in fade-in zoom-in duration-500">
                             <div className="flex items-center gap-2 mb-2">
-                                {msg.action.status === "MODIFIED" ? (
-                                    <AlertTriangle className="w-4 h-4 text-amber-500" />
-                                ) : (
-                                    <CheckCircle className="w-4 h-4 text-[var(--accent-500)]" />
-                                )}
-                                <span className={clsx("text-xs font-bold uppercase", msg.action.status === "MODIFIED" ? "text-amber-500" : "text-[var(--accent-500)]")}>
-                                    {msg.action.status === "MODIFIED" ? "Guardian Auto-Corrected" : "Verified Safe"}
-                                </span>
-                            </div>
+                                    {msg.action.status === "MODIFIED" ? (
+                                        <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                    ) : (
+                                        <CheckCircle className="w-4 h-4 text-[var(--accent-500)]" />
+                                    )}
+                                    <span className={clsx("text-xs font-bold uppercase", msg.action.status === "MODIFIED" ? "text-amber-500" : "text-[var(--accent-500)]")}>
+                                    {msg.action.status === "MODIFIED" ? t("chat.guardianAutoCorrected") : t("chat.verifiedSafe")}
+                                    </span>
+                                </div>
 
                             <div className="bg-black/10 dark:bg-black/30 rounded p-2 mb-2 max-h-40 overflow-y-auto border border-border-main w-full">
                                 <pre className="text-[10px] font-mono text-[color:var(--text-main)] opacity-80 whitespace-pre-wrap">
@@ -971,7 +983,7 @@ function ChatMessageRow({
                             <div className="flex flex-wrap justify-center gap-2">
                                 {appliedFixes.has(index) ? (
                                     <div className="flex items-center gap-2 text-xs text-[var(--accent-500)] font-bold bg-[var(--accent-200)] px-3 py-1.5 rounded-md border border-[var(--accent-400)]">
-                                        <CheckCircle className="w-3 h-3" /> Successfully Applied
+                                        <CheckCircle className="w-3 h-3" /> {t("chat.successfullyApplied")}
                                     </div>
                                 ) : rejectedFixes.has(index) ? (
                                     <div className="flex items-center gap-2 text-xs text-rose-400 font-bold bg-rose-500/10 px-3 py-1.5 rounded-md border border-rose-500/20">

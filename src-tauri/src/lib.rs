@@ -305,6 +305,7 @@ async fn start_monitoring(
     app: AppHandle,
     path: String,
     auto_verify_enabled: Option<bool>,
+    language: Option<String>,
     watcher: tauri::State<'_, WatcherSupervisor>,
     auth_state: tauri::State<'_, AuthState>,
 ) -> Result<(), String> {
@@ -340,6 +341,10 @@ async fn start_monitoring(
                 provider_id: provider.provider_id,
                 auto_verify_enabled: auto_verify_enabled.unwrap_or(false),
                 scan_profile,
+                language: language
+                    .unwrap_or_else(|| "en".to_string())
+                    .trim()
+                    .to_lowercase(),
             },
         )
         .await;
@@ -962,6 +967,7 @@ async fn ask_guru(
     query: String,
     web_search: Option<bool>,
     web_search_depth: Option<String>,
+    language: Option<String>,
     storage: tauri::State<'_, Arc<Mutex<storage::StorageManager>>>,
 ) -> Result<String, String> {
     let root_path = std::path::Path::new(&path);
@@ -1045,7 +1051,7 @@ async fn ask_guru(
 
     // 3. Ask
     let result = client
-        .ask_question(&guru_context, &clean_query)
+        .ask_question(&guru_context, &clean_query, language.as_deref().unwrap_or("en"))
         .await
         .map_err(|e| e.to_string())?;
 

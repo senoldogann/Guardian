@@ -2,6 +2,7 @@ import { useCallback, useMemo, type Dispatch, type SetStateAction } from "react"
 import { invoke } from "../lib/tauri";
 import { handleError } from "../lib/error";
 import type { ApiKeyStatus, Critique, ProviderConfig } from "../types";
+import { useI18n } from "../i18n";
 
 interface AuthController {
   authSession: unknown;
@@ -52,36 +53,37 @@ export function useMonitoringController({
   canToggleMonitoring: boolean;
   toggleMonitoring: () => Promise<void>;
 } {
+  const { locale, t } = useI18n();
   const launchGate = useMemo<LaunchGate>(() => {
     if (!path) {
-      return { canLaunch: false, blockingReason: "Select a workspace scope first." };
+      return { canLaunch: false, blockingReason: t("monitor.gateSelectScope") };
     }
     if (!settings.providerDraft) {
-      return { canLaunch: false, blockingReason: "Provider configuration is still loading." };
+      return { canLaunch: false, blockingReason: t("monitor.gateProviderLoading") };
     }
     if (settings.requiresApiKey) {
       return {
         canLaunch: false,
-        blockingReason: `Add your ${settings.providerLabel} API key in Settings.`,
+        blockingReason: t("monitor.gateAddApiKey", { provider: settings.providerLabel }),
       };
     }
     if (auth.requiresVerified) {
       return {
         canLaunch: false,
-        blockingReason: "Verify your GitHub session online before monitoring.",
+        blockingReason: t("monitor.gateVerifyGithub"),
       };
     }
     if (auth.authState === "signed_out") {
-      return { canLaunch: false, blockingReason: "Sign in with GitHub to launch monitoring." };
+      return { canLaunch: false, blockingReason: t("monitor.gateSignInGithub") };
     }
     if (auth.authState === "device_pending") {
       return {
         canLaunch: false,
-        blockingReason: "Complete the GitHub device authorization screen.",
+        blockingReason: t("monitor.gateDevicePending"),
       };
     }
     if (auth.authState === "verifying") {
-      return { canLaunch: false, blockingReason: "GitHub verification is in progress." };
+      return { canLaunch: false, blockingReason: t("monitor.gateVerifying") };
     }
     return { canLaunch: true, blockingReason: null };
   }, [
@@ -91,6 +93,7 @@ export function useMonitoringController({
     settings.providerDraft,
     settings.providerLabel,
     settings.requiresApiKey,
+    t,
   ]);
 
   const toggleMonitoring = useCallback(async (): Promise<void> => {
@@ -104,12 +107,12 @@ export function useMonitoringController({
           ["System"]: {
             file_path: "System",
             severity: "Warning",
-            message: `Failed to stop monitoring: ${errorMsg}`,
+            message: t("monitor.stopFailed", { error: errorMsg }),
           },
         }));
       } finally {
         setActive(false);
-        setStatus("Paused");
+        setStatus(t("monitor.statusPaused"));
       }
       return;
     }
@@ -128,7 +131,7 @@ export function useMonitoringController({
         ["System:Auth"]: {
           file_path: "System",
           severity: "Critical",
-          message: "GitHub login is required. Complete GitHub authentication before starting monitoring.",
+          message: t("monitor.authRequired"),
         },
       }));
       return;
@@ -141,7 +144,7 @@ export function useMonitoringController({
         ["System:Provider"]: {
           file_path: "System",
           severity: "Critical",
-          message: "Provider config not ready. Try again in a moment.",
+          message: t("monitor.providerNotReady"),
         },
       }));
       return;
@@ -167,7 +170,7 @@ export function useMonitoringController({
         ["System:APIKey"]: {
           file_path: "System",
           severity: "Critical",
-          message: `Missing API key for ${settings.providerLabel}. Open Settings and add your key before starting.`,
+          message: t("monitor.missingApiKey", { provider: settings.providerLabel }),
         },
       }));
       setSettingsOpen(true);
@@ -175,10 +178,14 @@ export function useMonitoringController({
     }
 
     try {
-      await invoke("start_monitoring", { path, autoVerifyEnabled: settings.autoVerifyEnabled });
+      await invoke("start_monitoring", {
+        path,
+        autoVerifyEnabled: settings.autoVerifyEnabled,
+        language: locale,
+      });
       await refreshMonitorCritiques();
       setActive(true);
-      setStatus("Monitoring Active");
+      setStatus(t("monitor.statusActive"));
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       setLogs((prev) => ({
@@ -186,13 +193,14 @@ export function useMonitoringController({
         ["System"]: {
           file_path: "System",
           severity: "Critical",
-          message: `Failed to start: ${errorMsg}`,
+          message: t("monitor.startFailed", { error: errorMsg }),
         },
       }));
     }
   }, [
     active,
     auth,
+    locale,
     path,
     refreshMonitorCritiques,
     setActive,
@@ -203,6 +211,7 @@ export function useMonitoringController({
     settings.autoVerifyEnabled,
     settings.providerDraft?.provider_id,
     settings.providerLabel,
+    t,
   ]);
 
   return {

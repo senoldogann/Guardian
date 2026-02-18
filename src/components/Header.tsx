@@ -1,6 +1,7 @@
 import React, { type ReactElement, ReactNode, useMemo } from "react";
 import clsx from "clsx";
 import { Shield, ShieldAlert, AlertCircle, Cpu, Settings } from "lucide-react";
+import { useI18n } from "../i18n";
 
 export interface StatMiniProps {
   icon: ReactNode;
@@ -59,6 +60,7 @@ export function Header({
   onLogout,
   onSettingsClick,
 }: HeaderProps): ReactElement {
+  const { t } = useI18n();
   // Memoize stat icons to prevent inline object recreation
   const criticalIcon = useMemo(() => <ShieldAlertIcon />, []);
   const warningIcon = useMemo(() => <AlertCircleIcon />, []);
@@ -80,15 +82,15 @@ export function Header({
         <button
           onClick={onSettingsClick}
           className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-500 hover:text-white transition-all cursor-pointer"
-          title="Setup & Settings"
+          title={t("header.settingsTitle")}
         >
           <Settings className="w-4 h-4" />
         </button>
 
         <div className="flex gap-4 border-r border-border-main pr-6 hide-mobile">
-          <StatMini icon={criticalIcon} count={stats.critical} label="Critical" color="text-rose-400" />
-          <StatMini icon={warningIcon} count={stats.warning} label="Warning" color="text-amber-400" />
-          <StatMini icon={cpuIcon} count={usage.calls} label="AI Requests" color="text-[var(--accent-500)]" />
+          <StatMini icon={criticalIcon} count={stats.critical} label={t("header.stats.critical")} color="text-rose-400" />
+          <StatMini icon={warningIcon} count={stats.warning} label={t("header.stats.warning")} color="text-amber-400" />
+          <StatMini icon={cpuIcon} count={usage.calls} label={t("header.stats.aiRequests")} color="text-[var(--accent-500)]" />
         </div>
         <div className="flex items-center gap-2 ml-auto">
           {authSession && (
@@ -106,7 +108,7 @@ export function Header({
                 disabled={authLoading || !isDesktop}
                 className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--surface)] border border-border-main hover:bg-border-main text-text-main"
               >
-                Logout
+                {t("header.logout")}
               </button>
             </>
           )}

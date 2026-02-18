@@ -3,6 +3,8 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { ShieldAlert, RefreshCw } from "lucide-react";
 import { reportError } from "../lib/error";
+import { STORAGE_KEYS } from "../constants";
+import { createTranslator, type AppLocale } from "../i18n";
 
 interface Props {
   children: ReactNode;
@@ -12,6 +14,20 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
+}
+
+function readLocale(): AppLocale {
+  if (typeof window === "undefined") return "en";
+  const raw = window.localStorage.getItem(STORAGE_KEYS.LANGUAGE);
+  if (!raw) return "en";
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed === "en" || parsed === "tr") return parsed;
+  } catch {
+    // Ignore and fall through.
+  }
+  const trimmed = raw.trim().replace(/^"|"$/g, "");
+  return trimmed === "tr" ? "tr" : "en";
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -43,6 +59,7 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
+      const t = createTranslator(readLocale());
       return (
         <div className="min-h-screen flex items-center justify-center bg-background p-6">
           <div className="max-w-md w-full bg-surface border border-border-main rounded-2xl p-8 text-center space-y-6">
@@ -50,9 +67,9 @@ export class ErrorBoundary extends Component<Props, State> {
               <ShieldAlert className="w-8 h-8 text-rose-500" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-lg font-bold text-text-main">Something went wrong</h2>
+              <h2 className="text-lg font-bold text-text-main">{t("errorBoundary.title")}</h2>
               <p className="text-sm text-text-muted">
-                {this.state.error?.message || "An unexpected error occurred"}
+                {this.state.error?.message || t("errorBoundary.fallback")}
               </p>
             </div>
             <button
@@ -60,7 +77,7 @@ export class ErrorBoundary extends Component<Props, State> {
               className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--accent-500)] text-background rounded-lg font-bold text-sm hover:opacity-90 transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
-              Try Again
+              {t("errorBoundary.tryAgain")}
             </button>
           </div>
         </div>

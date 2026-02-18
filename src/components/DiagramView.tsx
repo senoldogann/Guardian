@@ -15,6 +15,7 @@ import {
 import dagre from 'dagre';
 import '@xyflow/react/dist/style.css';
 import { ChevronDown, ChevronRight, Folder, FileText } from 'lucide-react';
+import { useI18n } from "../i18n";
 
 // --- Types ---
 type FileNodeData = {
@@ -191,6 +192,7 @@ const DiagramContent = ({
     rootName?: string;
     autoExpandAll?: boolean;
 }): ReactElement => {
+    const { t } = useI18n();
     const { fitView } = useReactFlow();
     const fitTimerRef = useRef<number | null>(null);
 
@@ -227,14 +229,14 @@ const DiagramContent = ({
 
     // Initialize Graph
     const { initialNodes, initialEdges } = useMemo(() => {
-        const { nodes, edges } = buildGraphFromPaths(paths, rootName || "Project Root", shouldExpandAll);
+        const { nodes, edges } = buildGraphFromPaths(paths, rootName || t("diagram.projectRoot"), shouldExpandAll);
         const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nodes, edges, 'LR');
         // Root should be expanded by default so we can see children
         const root = layoutedNodes.find(n => n.id === 'root');
         if (root) root.data.expanded = true;
 
         return { initialNodes: layoutedNodes, initialEdges: layoutedEdges };
-    }, [paths, rootName, shouldExpandAll]);
+    }, [paths, rootName, shouldExpandAll, t]);
 
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);

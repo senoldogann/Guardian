@@ -5,6 +5,7 @@ import clsx from "clsx";
 import type { FixProposal, FixProposalsSnapshot } from "../types";
 import { basenameOf, copyToClipboard, formatTimestamp } from "../lib/uiFormat";
 import { useToast } from "../hooks/useToast";
+import { useI18n } from "../i18n";
 
 export interface FixProposalsViewProps {
   snapshot: FixProposalsSnapshot | null;
@@ -33,6 +34,7 @@ export function FixProposalsView({
   onSetStatus,
 }: FixProposalsViewProps): ReactElement {
   const toast = useToast();
+  const { t } = useI18n();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ProposalFilter>("pending");
 
@@ -58,14 +60,12 @@ export function FixProposalsView({
           <ClipboardList className="w-7 h-7 text-text-muted/80" />
         </div>
         <div className="text-center space-y-1">
-          <h3 className="font-bold text-sm text-text-main">Reviews Is Your Fix Proposal Inbox</h3>
+          <h3 className="font-bold text-sm text-text-main">{t("fixProposals.emptyTitle")}</h3>
           <p className="text-[10px] leading-relaxed max-w-md">
-            Guardian can apply fixes instantly from <span className="font-bold">Monitor</span> and <span className="font-bold">Guru</span>.
-            Fix Proposals are optional: use them when you want a review queue or CI-driven workflows.
+            {t("fixProposals.emptyNote")}
           </p>
           <p className="text-[10px] leading-relaxed max-w-md">
-            Advanced workflow: append JSONL proposals to{" "}
-            <span className="font-mono text-[var(--text-main)]">.guardian-proposals/fix_proposals.jsonl</span>.
+            {t("fixProposals.emptyAdvanced")}
           </p>
         </div>
         {/* Refresh is intentionally not shown here; use the global refresh controls instead. */}
@@ -130,40 +130,43 @@ export function FixProposalsView({
     if (!selectedProposal?.proposed_content) return;
     try {
       await copyToClipboard(selectedProposal.proposed_content);
-      toast.showSuccess("Copied.", 2500);
+      toast.showSuccess(t("toast.copied"), 2500);
     } catch {
-      toast.showError("Copy failed.", 3000);
+      toast.showError(t("toast.copyFailed"), 3000);
     }
-  }, [selectedProposal, toast]);
+  }, [selectedProposal, toast, t]);
 
   const onCopyProposalJson = useCallback(async (): Promise<void> => {
     if (!selectedProposal) return;
     try {
       await copyToClipboard(JSON.stringify(selectedProposal, null, 2));
-      toast.showSuccess("Copied.", 2500);
+      toast.showSuccess(t("toast.copied"), 2500);
     } catch {
-      toast.showError("Copy failed.", 3000);
+      toast.showError(t("toast.copyFailed"), 3000);
     }
-  }, [selectedProposal, toast]);
+  }, [selectedProposal, toast, t]);
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <div className="shrink-0 flex items-start justify-between gap-4 px-6 py-4 border-b border-border-main bg-surface/30">
         <div className="space-y-1 min-w-0">
           <h2 className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            Fix Proposals
+            {t("fixProposals.title")}
           </h2>
           {snapshot && (
             <div className="text-[10px] font-mono text-text-muted space-y-0.5">
               <div className="truncate">
-                Source: <span className="text-[var(--text-main)]">{snapshot.source_path}</span>
+                {t("fixProposals.source")}:{" "}
+                <span className="text-[var(--text-main)]">{snapshot.source_path}</span>
               </div>
               <div className="truncate">
-                Updated: <span className="text-[var(--text-main)]">{formatTimestamp(snapshot.timestamp)}</span>
+                {t("fixProposals.updated")}:{" "}
+                <span className="text-[var(--text-main)]">{formatTimestamp(snapshot.timestamp)}</span>
               </div>
               <div>
-                Pending: <span className="text-[var(--text-main)]">{pending.length}</span> | Done:{" "}
-                <span className="text-[var(--text-main)]">{done.length}</span> | Total:{" "}
+                {t("fixProposals.pending")}:{" "}
+                <span className="text-[var(--text-main)]">{pending.length}</span> | {t("fixProposals.done")}:{" "}
+                <span className="text-[var(--text-main)]">{done.length}</span> | {t("fixProposals.total")}:{" "}
                 <span className="text-[var(--text-main)]">{proposals.length}</span>
               </div>
             </div>
@@ -184,7 +187,7 @@ export function FixProposalsView({
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search proposals..."
+                    placeholder={t("fixProposals.searchPlaceholder")}
                     className="w-full bg-transparent text-xs outline-none placeholder:opacity-50"
                   />
                 </div>
@@ -192,10 +195,10 @@ export function FixProposalsView({
                 <div className="flex flex-wrap items-center gap-2">
                   {(
                     [
-                      { key: "pending", label: `Pending ${pending.length}` },
-                      { key: "review_requested", label: `Review Requested ${reviewRequested.length}` },
-                      { key: "done", label: `Done ${done.length}` },
-                      { key: "all", label: `All ${proposals.length}` },
+                      { key: "pending", label: `${t("fixProposals.filterPending")} ${pending.length}` },
+                      { key: "review_requested", label: `${t("fixProposals.filterReviewRequested")} ${reviewRequested.length}` },
+                      { key: "done", label: `${t("fixProposals.filterDone")} ${done.length}` },
+                      { key: "all", label: `${t("fixProposals.filterAll")} ${proposals.length}` },
                     ] as const
                   ).map(({ key, label }) => {
                     const active = filter === key;
@@ -221,13 +224,13 @@ export function FixProposalsView({
               <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-2 space-y-2">
                 {filteredProposals.length === 0 ? (
                   <div className="px-3 py-3 text-[10px] font-mono text-text-muted italic">
-                    No proposals match the current filter.
+                    {t("fixProposals.noMatch")}
                   </div>
                 ) : (
                   filteredProposals.map((p) => {
                     const selected = p.proposal_id === selectedProposalId;
                     const status = (p.status || "pending").toLowerCase();
-                    const filePath = p.file_path || "<unknown file>";
+                    const filePath = p.file_path || t("fixProposals.unknownFile");
                     const title = basenameOf(filePath);
                     const excerpt = (p.suggestion || "").trim().split("\n")[0] || "";
                     return (
@@ -283,9 +286,9 @@ export function FixProposalsView({
                   <div className="w-16 h-16 rounded-2xl border border-border-main bg-background/40 flex items-center justify-center">
                     <FileText className="w-7 h-7 text-text-muted/80" />
                   </div>
-                  <div className="text-xs uppercase tracking-widest">Select a proposal.</div>
+                  <div className="text-xs uppercase tracking-widest">{t("fixProposals.selectTitle")}</div>
                   <div className="text-[10px] text-text-muted max-w-md text-center">
-                    Use search and status filters to locate the proposal you want to inspect.
+                    {t("fixProposals.selectNote")}
                   </div>
                 </div>
               ) : (
@@ -294,7 +297,7 @@ export function FixProposalsView({
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="text-xs font-bold truncate" title={selectedProposal.file_path || ""}>
-                          {selectedProposal.file_path || "<unknown file>"}
+                          {selectedProposal.file_path || t("fixProposals.unknownFile")}
                         </div>
                         <div className="text-[10px] font-mono text-text-muted">
                           {formatTimestamp(selectedProposal.timestamp)} • id: {selectedProposal.proposal_id}
@@ -310,19 +313,19 @@ export function FixProposalsView({
                             "bg-background/60 text-text-muted border-border-main hover:bg-border-main",
                             !selectedHasContent && "opacity-50 cursor-not-allowed"
                           )}
-                          title="Copy proposed content"
+                          title={t("fixProposals.copyProposedContentTitle")}
                         >
                           <Copy className="w-3 h-3" />
-                          Copy Proposed Content
+                          {t("fixProposals.copyProposedContent")}
                         </button>
                         <button
                           type="button"
                           onClick={onCopyProposalJson}
                           className="px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer bg-background/60 text-text-muted border-border-main hover:bg-border-main"
-                          title="Copy proposal as JSON"
+                          title={t("fixProposals.copyProposalJsonTitle")}
                         >
                           <Copy className="w-3 h-3" />
-                          Copy Proposal JSON
+                          {t("fixProposals.copyProposalJson")}
                         </button>
                       </div>
                     </div>
@@ -351,7 +354,7 @@ export function FixProposalsView({
 
                     {!selectedHasContent && (
                       <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-200 px-3 py-2 text-[10px] font-mono">
-                        Proposal is missing <span className="font-bold">proposed_content</span>. Nothing can be reviewed or applied.
+                        {t("fixProposals.missingProposedContent")}
                       </div>
                     )}
 
@@ -371,9 +374,9 @@ export function FixProposalsView({
                             "bg-[var(--accent-200)] text-[var(--accent-500)] border-[var(--accent-400)] hover:opacity-90",
                             !selectedHasContent && "opacity-50 cursor-not-allowed"
                           )}
-                          title="Send this proposal to Guardian review (AI). You will still need to confirm apply."
+                          title={t("fixProposals.requestReviewTitle")}
                         >
-                          Request Review
+                          {t("fixProposals.requestReview")}
                         </button>
                       )}
 
@@ -381,9 +384,9 @@ export function FixProposalsView({
                         <button
                           onClick={() => selectedProposal && onSetStatus(selectedProposal.proposal_id, "rejected")}
                           className="px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors cursor-pointer bg-rose-500/10 text-rose-300 border-rose-500/20 hover:bg-rose-500/20"
-                          title="Mark as rejected (append status to JSONL)"
+                          title={t("fixProposals.rejectTitle")}
                         >
-                          Reject
+                          {t("fixProposals.reject")}
                         </button>
                       )}
 
@@ -391,9 +394,9 @@ export function FixProposalsView({
                         <button
                           onClick={() => selectedProposal && onSetStatus(selectedProposal.proposal_id, "applied")}
                           className="px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors cursor-pointer bg-emerald-500/10 text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/20"
-                          title="Mark as applied (append status to JSONL)"
+                          title={t("fixProposals.markAppliedTitle")}
                         >
-                          Mark Applied
+                          {t("fixProposals.markApplied")}
                         </button>
                       )}
                     </div>

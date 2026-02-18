@@ -19,6 +19,7 @@ import type {
 import { critiqueStateKey } from "../../lib/critiqueStateKey";
 import { formatTimestamp } from "../../lib/uiFormat";
 import { useToast } from "../../hooks/useToast";
+import { useI18n } from "../../i18n";
 
 export interface MainWorkspaceProps {
   view: "monitor" | "chat" | "diagram" | "ai-context" | "reviews";
@@ -112,6 +113,7 @@ export function MainWorkspace({
   scopeLabel,
 }: MainWorkspaceProps): ReactElement {
   const toast = useToast();
+  const { t } = useI18n();
   const normalizeUndoKey = (value: string, root?: string): string => {
     let out = (value || "").trim().replace(/\\/g, "/");
     if (!out) return "";
@@ -140,10 +142,10 @@ export function MainWorkspace({
         )}
       >
         <div className="guardian-topbar guardian-topbar-text sticky top-0 z-10 transition-colors duration-300 shrink-0">
-          <div className="w-8 shrink-0">#</div>
-          <div className="w-48 shrink-0">File Path</div>
-          <div className="flex-1 min-w-0 px-4">Core Violation Message</div>
-          <div className="w-40 text-right shrink-0">Actions / Sev</div>
+          <div className="w-8 shrink-0">{t("monitor.tableIndex")}</div>
+          <div className="w-48 shrink-0">{t("monitor.tableFilePath")}</div>
+          <div className="flex-1 min-w-0 px-4">{t("monitor.tableMessage")}</div>
+          <div className="w-40 text-right shrink-0">{t("monitor.tableActions")}</div>
         </div>
 
         {showFloatingFilter && (
@@ -155,14 +157,14 @@ export function MainWorkspace({
                   className="w-full bg-transparent text-xs outline-none placeholder:opacity-50"
                   value={filter}
                   onChange={(event) => onFilterChange(event.target.value)}
-                  placeholder="Search issues (file, message, severity)..."
+                  placeholder={t("monitor.searchPlaceholder")}
                 />
                 {filter.trim().length > 0 && (
                   <button
                     onClick={() => onFilterChange("")}
                     className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors cursor-pointer"
                   >
-                    Clear
+                    {t("common.clear")}
                   </button>
                 )}
               </div>
@@ -176,7 +178,7 @@ export function MainWorkspace({
               "pointer-events-none absolute inset-0 top-14 flex items-center justify-center transition-opacity opacity-20",
             )}
           >
-            <GuardianActivity status={status} compact showLabel={false} />
+            <GuardianActivity status={status} active={active} compact showLabel={false} />
           </div>
         )}
 
@@ -191,27 +193,27 @@ export function MainWorkspace({
               {!baselineStatus ? (
                 <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-4 py-12">
                   <div className="text-center space-y-1">
-                    <h3 className="font-bold text-sm text-zinc-500">No Baseline</h3>
+                    <h3 className="font-bold text-sm text-zinc-500">{t("monitor.resolved.noBaselineTitle")}</h3>
                     <p className="text-[10px] text-zinc-500 font-mono italic">
-                      Click "Set Baseline" to enable resolved tracking.
+                      {t("monitor.resolved.noBaselineNote")}
                     </p>
                   </div>
                 </div>
               ) : !baselineValid ? (
                 <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-4 py-12">
                   <div className="text-center space-y-1">
-                    <h3 className="font-bold text-sm text-zinc-500">Baseline Invalid</h3>
+                    <h3 className="font-bold text-sm text-zinc-500">{t("monitor.resolved.invalidTitle")}</h3>
                     <p className="text-[10px] text-zinc-500 font-mono italic">
-                      Rules changed since baseline. Reset baseline to continue.
+                      {t("monitor.resolved.invalidNote")}
                     </p>
                   </div>
                 </div>
               ) : resolvedFindings.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-4 py-12">
                   <div className="text-center space-y-1">
-                    <h3 className="font-bold text-sm text-zinc-500">No Resolved Findings</h3>
+                    <h3 className="font-bold text-sm text-zinc-500">{t("monitor.resolved.emptyTitle")}</h3>
                     <p className="text-[10px] text-zinc-500 font-mono italic">
-                      Nothing has been resolved since the current baseline.
+                      {t("monitor.resolved.emptyNote")}
                     </p>
                   </div>
                 </div>
@@ -234,12 +236,12 @@ export function MainWorkspace({
                         </div>
                         <div className="flex-1 min-w-0 pr-6">
                           <div className="text-sm opacity-80 font-medium truncate" title={finding.message ?? ""}>
-                            {finding.message ?? "Resolved since baseline"}
+                            {finding.message ?? t("monitor.resolved.defaultMessage")}
                           </div>
                         </div>
                         <div className="w-52 shrink-0 flex items-center justify-end gap-2">
                           <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-                            RESOLVED
+                            {t("critique.badgeResolved")}
                           </span>
                           <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border bg-white/5 text-text-muted border-border-main">
                             {finding.severity}
@@ -254,7 +256,7 @@ export function MainWorkspace({
           ) : filteredLogs.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-6">
               {active ? (
-                <GuardianActivity status={status} showLabel={false} />
+                <GuardianActivity status={status} active={active} showLabel={false} />
               ) : (
                 <div className="relative">
                   <CheckCircle2 className="w-16 h-16 text-zinc-500" />
@@ -262,11 +264,11 @@ export function MainWorkspace({
               )}
               <div className="text-center space-y-1">
                 <h3 className="font-bold text-sm text-zinc-500">
-                  {active ? "Guardian Online" : "System Secure"}
+                  {active ? t("monitor.guardianOnline") : t("monitor.systemSecure")}
                 </h3>
-                {(!active || status !== "Monitoring Active") && (
+                {(!active || status !== t("monitor.statusActive")) && (
                   <p className="text-[10px] text-zinc-500 font-mono italic">
-                    {active ? status : "Guardian is offline."}
+                    {active ? status : t("monitor.offline")}
                   </p>
                 )}
               </div>
@@ -328,16 +330,15 @@ export function MainWorkspace({
             <div className="w-16 h-16 rounded-2xl border border-border-main bg-background/40 flex items-center justify-center">
               <ClipboardList className="w-7 h-7 text-text-muted/80" />
             </div>
-            <div className="text-xs uppercase tracking-widest">No workspace selected.</div>
+            <div className="text-xs uppercase tracking-widest">{t("common.noWorkspaceSelected")}</div>
             <div className="text-[10px] text-text-muted max-w-md text-center">
-              Select a workspace, then write proposals to{" "}
-              <span className="text-[var(--text-main)]">.guardian-proposals/fix_proposals.jsonl</span>.
+              {t("reviews.selectWorkspaceHint")}
             </div>
             <button
               onClick={() => void onSelectScope()}
               className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer"
             >
-              Select Workspace
+              {t("common.selectWorkspace")}
             </button>
           </div>
         ) : (
@@ -346,10 +347,10 @@ export function MainWorkspace({
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1 min-w-0">
                   <h2 className="text-xs font-bold uppercase tracking-widest text-text-muted">
-                    Applied Fixes (Undo Available)
+                    {t("reviews.appliedFixesTitle")}
                   </h2>
                   <div className="text-[10px] text-text-muted">
-                    Undo is stored per file (last applied fix only).
+                    {t("reviews.appliedFixesNote")}
                   </div>
                   {fixHistoryError && (
                     <div className="text-[10px] text-rose-400 font-mono">{fixHistoryError}</div>
@@ -360,9 +361,9 @@ export function MainWorkspace({
                   onClick={async () => {
                     try {
                       await onRefreshFixHistory();
-                      toast.showSuccess("Refreshed.", 2500);
+                      toast.showSuccess(t("toast.refreshed"), 2500);
                     } catch {
-                      toast.showError("Refresh failed.", 3000);
+                      toast.showError(t("toast.refreshFailed"), 3000);
                     }
                   }}
                   disabled={fixHistoryLoading}
@@ -371,19 +372,19 @@ export function MainWorkspace({
                     "bg-background/60 text-text-muted border-border-main hover:bg-border-main",
                     fixHistoryLoading && "opacity-50 cursor-not-allowed"
                   )}
-                  title="Refresh fix history"
+                  title={t("common.refresh")}
                 >
-                  Refresh
+                  {t("common.refresh")}
                 </button>
               </div>
             </div>
 
             <div className="shrink-0 px-6 py-4 border-b border-border-main bg-background/20">
               {fixHistoryLoading ? (
-                <div className="text-[10px] font-mono text-text-muted">Loading...</div>
+                <div className="text-[10px] font-mono text-text-muted">{t("reviews.fixHistoryLoading")}</div>
               ) : fixHistory.length === 0 ? (
                 <div className="text-[10px] text-text-muted">
-                  No applied fixes yet. Apply a fix from Monitor or Guru to see Undo here.
+                  {t("reviews.noAppliedFixes")}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -397,15 +398,16 @@ export function MainWorkspace({
                           {entry.file_path}
                         </div>
                         <div className="text-[10px] font-mono text-text-muted truncate">
-                          Applied: <span className="text-[var(--text-main)]">{formatTimestamp(entry.applied_at)}</span>
+                          {t("reviews.appliedLabel")}:{" "}
+                          <span className="text-[var(--text-main)]">{formatTimestamp(entry.applied_at)}</span>
                         </div>
                       </div>
                       <button
                         onClick={() => void onUndoFix(entry.file_path)}
                         className="px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors cursor-pointer bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/15"
-                        title="Undo last applied fix for this file"
+                        title={t("reviews.undoTitle")}
                       >
-                        Undo
+                        {t("common.undo")}
                       </button>
                     </div>
                   ))}
@@ -437,15 +439,15 @@ export function MainWorkspace({
             <div className="w-16 h-16 rounded-2xl border border-border-main bg-background/40 flex items-center justify-center">
               <EyeOff className="w-7 h-7 text-text-muted/80" />
             </div>
-            <div className="text-xs uppercase tracking-widest">No workspace selected.</div>
+            <div className="text-xs uppercase tracking-widest">{t("aiContext.titleEmpty")}</div>
             <div className="text-[10px] text-text-muted max-w-md text-center">
-              Select a workspace, start monitoring, and modify a file to capture the outbound AI payload.
+              {t("aiContext.noteEmpty")}
             </div>
             <button
               onClick={() => void onSelectScope()}
               className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer"
             >
-              Select Workspace
+              {t("common.selectWorkspace")}
             </button>
           </div>
         ) : (
@@ -466,9 +468,9 @@ export function MainWorkspace({
       >
         <div className="guardian-topbar justify-between">
           <div className="guardian-topbar-text">
-            Project Map
-            <span className="ml-2 text-text-main/70" title={path || "No workspace selected"}>
-              {scopeLabel || "No workspace selected"}
+            {t("diagram.title")}
+            <span className="ml-2 text-text-main/70" title={path || t("common.noWorkspaceSelected")}>
+              {scopeLabel || t("common.noWorkspaceSelected")}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -481,35 +483,35 @@ export function MainWorkspace({
               onClick={async () => {
                 try {
                   await onRefreshContext();
-                  toast.showSuccess("Refreshed.", 2500);
+                  toast.showSuccess(t("toast.refreshed"), 2500);
                 } catch {
-                  toast.showError("Refresh failed.", 3000);
+                  toast.showError(t("toast.refreshFailed"), 3000);
                 }
               }}
               disabled={!path || contextLoading}
               className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-text-main rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              {contextLoading ? "Scanning..." : "Rescan"}
+              {contextLoading ? t("diagram.scanning") : t("common.rescan")}
             </button>
           </div>
         </div>
         {path && context?.file_structure && context.file_structure.length > 0 ? (
           <DiagramView
             filePaths={context.file_structure}
-            rootName={scopeLabel || "Project Root"}
+            rootName={scopeLabel || t("diagram.projectRoot")}
             autoExpandAll={false}
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-muted text-sm">
-            <div className="text-xs uppercase tracking-widest">Project map is empty.</div>
+            <div className="text-xs uppercase tracking-widest">{t("diagram.emptyTitle")}</div>
             <div className="text-[10px] text-text-muted max-w-md text-center">
-              Select a workspace to build the map, then rescan to verify the correct directory.
+              {t("diagram.emptyNote")}
             </div>
             <button
               onClick={() => void onSelectScope()}
               className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer"
             >
-              Select Workspace
+              {t("common.selectWorkspace")}
             </button>
           </div>
         )}
@@ -522,12 +524,14 @@ function GuardianActivity({
   status,
   compact = false,
   showLabel = true,
+  active = false,
 }: {
   status: string;
   compact?: boolean;
   showLabel?: boolean;
+  active?: boolean;
 }): ReactElement {
-  const label = status === "Monitoring Active" ? "" : status;
+  const label = active ? "" : status;
   return (
     <div
       className={clsx("flex flex-col items-center gap-5", compact && "scale-75")}

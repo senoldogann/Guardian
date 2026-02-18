@@ -39,6 +39,7 @@ describe("ChatView", () => {
       query: "Hello Guardian",
       webSearch: false,
       webSearchDepth: "basic",
+      language: "en",
     });
 
     expect(await screen.findByText("Short answer from Guru")).toBeInTheDocument();
@@ -71,6 +72,7 @@ describe("ChatView", () => {
       query: "Resolve the stall",
       webSearch: false,
       webSearchDepth: "basic",
+      language: "en",
     });
 
     expect(await screen.findByText("Auto response from Guru")).toBeInTheDocument();

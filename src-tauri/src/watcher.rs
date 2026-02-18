@@ -109,6 +109,18 @@ const DIFF_MAX_HUNKS: usize = 6;
 
 // Note: Configuration constants moved to config.rs, accessed via config::*() functions
 
+fn is_turkish(language: &str) -> bool {
+    language.trim().eq_ignore_ascii_case("tr")
+}
+
+fn ui_text<'a>(language: &str, en: &'a str, tr: &'a str) -> &'a str {
+    if is_turkish(language) {
+        tr
+    } else {
+        en
+    }
+}
+
 fn is_send_failure_error(err: &str) -> bool {
     // Most providers wrap reqwest::Error via `.context("Failed to send ... request")`.
     // Treat these as "no call made" for cost metrics.
@@ -687,6 +699,7 @@ pub struct WatcherRuntimeConfig {
     pub provider_id: String,
     pub auto_verify_enabled: bool,
     pub scan_profile: ScanProfile,
+    pub language: String,
 }
 
 pub async fn start_watching(
@@ -702,6 +715,7 @@ pub async fn start_watching(
         provider_id,
         auto_verify_enabled,
         scan_profile,
+        language,
     } = config;
 
     let (batch_tx, batch_rx) = tokio::sync::mpsc::channel(100);
@@ -710,7 +724,18 @@ pub async fn start_watching(
         Ok(client) => Arc::new(client),
         Err(err) => {
             error!(target: "guardian::watcher", "Failed to init AI client: {}", err);
-            app.emit("guardian:info", format!("AI client init failed: {}", err))
+            app.emit(
+                "guardian:info",
+                format!(
+                    "{} {}",
+                    ui_text(
+                        language.as_str(),
+                        "AI client init failed.",
+                        "AI client başlatılamadı.",
+                    ),
+                    err
+                ),
+            )
                 .ok();
             return;
         }
@@ -819,6 +844,7 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
     let batch_auto_verify_enabled = auto_verify_enabled;
     let batch_shutdown = shutdown.clone();
     let batch_profile = scan_profile;
+    let batch_language = language.clone();
     tokio::spawn(async move {
         batch_processing_loop(
             batch_rx,
@@ -830,6 +856,7 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
             batch_auto_verify_enabled,
             batch_shutdown,
             batch_profile,
+            batch_language,
         )
         .await;
     });
@@ -1302,6 +1329,7 @@ async fn batch_processing_loop(
     auto_verify_enabled: bool,
     shutdown: Arc<AtomicBool>,
     scan_profile: ScanProfile,
+    language: String,
 ) {
     let mut batch: Vec<BatchItem> = Vec::new();
     let flush_interval = Duration::from_secs(5); // 5s timeout
@@ -1323,6 +1351,7 @@ async fn batch_processing_loop(
                         &root,
                         auto_verify_enabled,
                         scan_profile,
+                        language.as_str(),
                         &mut last_request,
                     )
                     .await;
@@ -1345,6 +1374,7 @@ async fn batch_processing_loop(
                         &root,
                         auto_verify_enabled,
                         scan_profile,
+                        language.as_str(),
                         &mut last_request,
                     )
                     .await;
@@ -1363,6 +1393,7 @@ async fn process_batch(
     root: &str,
     auto_verify_enabled: bool,
     scan_profile: ScanProfile,
+    language: &str,
     last_request: &mut Instant,
 ) {
     if batch.is_empty() {
@@ -1403,7 +1434,7 @@ async fn process_batch(
     let mut attempt = 0;
     loop {
         let call = client
-            .analyze_batch_with_intent(project_intent_pack, prompt_data.clone())
+            .analyze_batch_with_intent(project_intent_pack, language, prompt_data.clone())
             .await;
         *last_request = Instant::now();
         match call {
@@ -1416,6 +1447,7 @@ async fn process_batch(
                 handle_critiques(
                     app,
                     root,
+                    language,
                     &items,
                     &hash_by_path,
                     critiques,
@@ -1428,11 +1460,19 @@ async fn process_batch(
                 );
                 app.emit(
                     "guardian:info",
-                    format!(
-                        "Scan scope: {} (batch={})",
-                        scan_profile.as_str(),
-                        items.len()
-                    ),
+                    if is_turkish(language) {
+                        format!(
+                            "Tarama kapsamı: {} (batch={})",
+                            scan_profile.as_str(),
+                            items.len()
+                        )
+                    } else {
+                        format!(
+                            "Scan scope: {} (batch={})",
+                            scan_profile.as_str(),
+                            items.len()
+                        )
+                    },
                 )
                 .ok();
                 schedule_semantic_indexing(
@@ -1452,9 +1492,14 @@ async fn process_batch(
                     let backoff = Duration::from_secs(
                         config::rate_limit_backoff_secs().saturating_mul((attempt + 1) as u64),
                     );
+                    let notice = if is_turkish(language) {
+                        format!("Rate limit. {}sn sonra tekrar deneniyor...", backoff.as_secs())
+                    } else {
+                        format!("Rate limited. Retrying in {}s...", backoff.as_secs())
+                    };
                     app.emit(
                         "guardian:warning",
-                        format!("Rate limited. Retrying in {}s...", backoff.as_secs()),
+                        notice,
                     )
                     .ok();
                     sleep(backoff).await;
@@ -1465,7 +1510,12 @@ async fn process_batch(
                 if is_token_limit_error(&err) && items.len() > 1 {
                     app.emit(
                         "guardian:warning",
-                        "Batch too large. Falling back to per-file audit.".to_string(),
+                        ui_text(
+                            language,
+                            "Batch too large. Falling back to per-file audit.",
+                            "Batch çok büyük. Dosya bazlı audit'e düşülüyor.",
+                        )
+                        .to_string(),
                     )
                     .ok();
                     for item in items {
@@ -1475,7 +1525,7 @@ async fn process_batch(
                         emit_ai_context(app, root, client, single_tokens, &single_context);
                         append_ai_request_history(root, client, single_tokens, &single_context);
                         match client
-                            .analyze_batch_with_intent(project_intent_pack, single_prompt)
+                            .analyze_batch_with_intent(project_intent_pack, language, single_prompt)
                             .await
                         {
                             Ok(result) => {
@@ -1489,6 +1539,7 @@ async fn process_batch(
                                 handle_critiques(
                                     app,
                                     root,
+                                    language,
                                     &single_items,
                                     &single_hash,
                                     critiques,
@@ -1511,7 +1562,15 @@ async fn process_batch(
                             Err(err) => {
                                 app.emit(
                                     "guardian:warning",
-                                    format!("Single-file audit failed. {}", err),
+                                    format!(
+                                        "{} {}",
+                                        ui_text(
+                                            language,
+                                            "Single-file audit failed.",
+                                            "Tek dosya audit'i başarısız.",
+                                        ),
+                                        err
+                                    ),
                                 )
                                 .ok();
                                 app.emit(
@@ -1532,15 +1591,35 @@ async fn process_batch(
                     let base_url = client.base_url();
                     let lowered = err.to_lowercase();
                     let hint = if provider == "ollama" && is_send_failure_error(&err) && lowered.contains("timed out") {
-                        "Ollama request timed out. Try a smaller model or increase the timeout (GUARDIAN_TIMEOUT_OLLAMA)."
+                        ui_text(
+                            language,
+                            "Ollama request timed out. Try a smaller model or increase the timeout (GUARDIAN_TIMEOUT_OLLAMA).",
+                            "Ollama isteği zaman aşımına uğradı. Daha küçük bir model deneyin veya timeout'u artırın (GUARDIAN_TIMEOUT_OLLAMA).",
+                        )
                     } else if provider == "ollama" && is_send_failure_error(&err) {
-                        "Ollama appears unreachable. Start Ollama (local server), verify the base URL, or switch provider in Settings."
+                        ui_text(
+                            language,
+                            "Ollama appears unreachable. Start Ollama (local server), verify the base URL, or switch provider in Settings.",
+                            "Ollama erişilemiyor görünüyor. Ollama'yı (local server) başlatın, base URL'i doğrulayın veya Settings'ten provider değiştirin.",
+                        )
                     } else if is_auth_error(&err) {
-                        "Authentication looks invalid. Check your provider API key in Settings."
+                        ui_text(
+                            language,
+                            "Authentication looks invalid. Check your provider API key in Settings.",
+                            "Kimlik doğrulama geçersiz görünüyor. Settings'ten provider API key'inizi kontrol edin.",
+                        )
                     } else if is_send_failure_error(&err) {
-                        "Provider endpoint appears unreachable. Check network/base URL and provider status."
+                        ui_text(
+                            language,
+                            "Provider endpoint appears unreachable. Check network/base URL and provider status.",
+                            "Provider endpoint erişilemiyor. Ağ/base URL ve provider durumunu kontrol edin.",
+                        )
                     } else {
-                        "Provider request failed. Check provider status and configuration."
+                        ui_text(
+                            language,
+                            "Provider request failed. Check provider status and configuration.",
+                            "Provider isteği başarısız. Provider durumu ve ayarlarını kontrol edin.",
+                        )
                     };
                     error!(
                         target: "guardian::watcher",
@@ -1549,15 +1628,26 @@ async fn process_batch(
                         base_url,
                         err
                     );
-                    app.emit(
-                        "guardian:warning",
+                    let notice = if is_turkish(language) {
+                        format!(
+                            "Batch audit {}sn duraklatıldı. {} (provider={}, base_url={})",
+                            cooldown.as_secs(),
+                            hint,
+                            provider,
+                            base_url
+                        )
+                    } else {
                         format!(
                             "Batch audit paused for {}s. {} (provider={}, base_url={})",
                             cooldown.as_secs(),
                             hint,
                             provider,
                             base_url
-                        ),
+                        )
+                    };
+                    app.emit(
+                        "guardian:warning",
+                        notice,
                     )
                     .ok();
                 } else {
@@ -1636,6 +1726,7 @@ fn append_ai_request_history(
 fn handle_critiques(
     app: &AppHandle,
     root: &str,
+    language: &str,
     items: &[BatchItem],
     hash_by_path: &HashMap<String, String>,
     critiques: Vec<crate::ai_client::Critique>,
@@ -1737,11 +1828,17 @@ fn handle_critiques(
                 }
                 let r_clone = root.to_string();
                 let a_clone = app.clone();
+                let lang = language.to_string();
                 tokio::task::spawn_blocking(move || {
                     a_clone
                         .emit(
                             "guardian:analyzing",
-                            "Running Automatic Verification...".to_string(),
+                            ui_text(
+                                lang.as_str(),
+                                "Running Automatic Verification...",
+                                "Otomatik doğrulama çalıştırılıyor...",
+                            )
+                            .to_string(),
                         )
                         .ok();
                     let verify_res = executor::auto_verify_project(&r_clone);
@@ -1749,7 +1846,14 @@ fn handle_critiques(
                         Ok(msg) => {
                             if msg.contains("Passed") {
                                 a_clone
-                                    .emit("guardian:info", format!("VERIFICATION PASSED: {}", msg))
+                                    .emit(
+                                        "guardian:info",
+                                        if is_turkish(lang.as_str()) {
+                                            format!("DOĞRULAMA BAŞARILI: {}", msg)
+                                        } else {
+                                            format!("VERIFICATION PASSED: {}", msg)
+                                        },
+                                    )
                                     .ok();
                             }
                         }
@@ -1757,7 +1861,11 @@ fn handle_critiques(
                             a_clone
                                 .emit(
                                     "guardian:verification",
-                                    format!("Verification failed: {}", err),
+                                    if is_turkish(lang.as_str()) {
+                                        format!("Doğrulama başarısız: {}", err)
+                                    } else {
+                                        format!("Verification failed: {}", err)
+                                    },
                                 )
                                 .ok();
                         }

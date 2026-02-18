@@ -5,6 +5,7 @@ import clsx from "clsx";
 import type { AiContextSnapshot } from "../types";
 import { basenameOf, copyToClipboard, formatTimestamp } from "../lib/uiFormat";
 import { useToast } from "../hooks/useToast";
+import { useI18n } from "../i18n";
 
 export interface AIContextPreviewProps {
   context: AiContextSnapshot | null;
@@ -22,6 +23,7 @@ export function AIContextPreview({
   onRefresh,
 }: AIContextPreviewProps): ReactElement {
   const toast = useToast();
+  const { t } = useI18n();
   const files = context?.files ?? [];
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ContextFileFilter>("all");
@@ -74,31 +76,31 @@ export function AIContextPreview({
     if (!selectedFile) return;
     try {
       await copyToClipboard(selectedFile.content);
-      toast.showSuccess("Copied.", 2500);
+      toast.showSuccess(t("toast.copied"), 2500);
     } catch {
-      toast.showError("Copy failed.", 3000);
+      toast.showError(t("toast.copyFailed"), 3000);
     }
-  }, [selectedFile, toast]);
+  }, [selectedFile, toast, t]);
 
   const onCopyFullPayload = useCallback(async (): Promise<void> => {
     if (!fullPayload) return;
     try {
       await copyToClipboard(fullPayload);
-      toast.showSuccess("Copied.", 2500);
+      toast.showSuccess(t("toast.copied"), 2500);
     } catch {
-      toast.showError("Copy failed.", 3000);
+      toast.showError(t("toast.copyFailed"), 3000);
     }
-  }, [fullPayload, toast]);
+  }, [fullPayload, toast, t]);
 
   const onRefreshClick = useCallback(async (): Promise<void> => {
     if (!onRefresh) return;
     try {
       await Promise.resolve(onRefresh());
-      toast.showSuccess("Refreshed.", 2500);
+      toast.showSuccess(t("toast.refreshed"), 2500);
     } catch {
-      toast.showError("Refresh failed.", 3000);
+      toast.showError(t("toast.refreshFailed"), 3000);
     }
-  }, [onRefresh, toast]);
+  }, [onRefresh, toast, t]);
 
   if (!context && !loading && !error) {
     return (
@@ -107,9 +109,9 @@ export function AIContextPreview({
           <EyeOff className="w-7 h-7 text-text-muted/80" />
         </div>
         <div className="text-center space-y-1">
-          <h3 className="font-bold text-sm text-zinc-500">No Captured Context</h3>
+          <h3 className="font-bold text-sm text-zinc-500">{t("aiContext.noCapturedTitle")}</h3>
           <p className="text-[10px] text-zinc-500 font-mono italic">
-            Start monitoring and modify a file to capture the outbound AI payload.
+            {t("aiContext.noCapturedNote")}
           </p>
         </div>
       </div>
@@ -121,19 +123,23 @@ export function AIContextPreview({
       <div className="shrink-0 flex items-start justify-between gap-4 px-6 py-4 border-b border-border-main bg-surface/30">
         <div className="space-y-1 min-w-0">
           <h2 className="text-xs font-bold uppercase tracking-widest text-text-muted">
-            AI Outbound Context
+            {t("aiContext.title")}
           </h2>
           {context && (
             <div className="text-[10px] font-mono text-text-muted space-y-0.5">
               <div className="truncate">
-                Provider: <span className="text-[var(--text-main)]">{context.provider_id}</span>{" "}
-                | Model: <span className="text-[var(--text-main)]">{context.model}</span>
+                {t("aiContext.provider")}:{" "}
+                <span className="text-[var(--text-main)]">{context.provider_id}</span>{" "}
+                | {t("aiContext.model")}:{" "}
+                <span className="text-[var(--text-main)]">{context.model}</span>
               </div>
               <div className="truncate">
-                Timestamp: <span className="text-[var(--text-main)]">{formatTimestamp(context.timestamp)}</span>
+                {t("aiContext.timestamp")}:{" "}
+                <span className="text-[var(--text-main)]">{formatTimestamp(context.timestamp)}</span>
               </div>
               <div>
-                Files: <span className="text-[var(--text-main)]">{files.length}</span> | Tokens (est):
+                {t("aiContext.files")}:{" "}
+                <span className="text-[var(--text-main)]">{files.length}</span> | {t("aiContext.tokensEst")}:
                 {" "}
                 <span className="text-[var(--text-main)]">{context.tokens_in}</span>
               </div>
@@ -155,10 +161,10 @@ export function AIContextPreview({
               "bg-background/60 text-text-muted border-border-main hover:bg-border-main",
               loading && "opacity-50 cursor-not-allowed"
             )}
-            title="Refresh from backend"
+            title={t("aiContext.refreshTitle")}
           >
             <RefreshCw className={clsx("w-3 h-3", loading && "animate-spin")} />
-            Refresh
+            {t("common.refresh")}
           </button>
         )}
       </div>
@@ -172,15 +178,13 @@ export function AIContextPreview({
               </div>
               <div className="min-w-0">
                 <div className="text-text-main">
-                  Sensitive content was redacted.{" "}
+                  {t("aiContext.redactionTitle")}{" "}
                   <span className="text-text-muted">
-                    Context:{" "}
-                    <span className="text-text-main">{redactedCount}</span> redacted,{" "}
-                    <span className="text-text-main">{truncatedCount}</span> truncated.
+                    {t("aiContext.redactionContext", { redacted: redactedCount, truncated: truncatedCount })}
                   </span>
                 </div>
                 <div className="mt-1 text-[10px] leading-relaxed">
-                  Preview reflects what was actually sent to the provider. Use filters to quickly inspect affected files.
+                  {t("aiContext.redactionNote")}
                 </div>
               </div>
             </div>
@@ -194,7 +198,7 @@ export function AIContextPreview({
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search files..."
+                    placeholder={t("aiContext.searchFilesPlaceholder")}
                     className="w-full bg-transparent text-xs outline-none placeholder:opacity-50"
                   />
                 </div>
@@ -202,7 +206,12 @@ export function AIContextPreview({
                 <div className="flex items-center gap-2">
                   {(["all", "redacted", "truncated"] as const).map((key) => {
                     const active = filter === key;
-                    const label = key === "all" ? "All" : key === "redacted" ? `Redacted ${redactedCount}` : `Truncated ${truncatedCount}`;
+                    const label =
+                      key === "all"
+                        ? t("aiContext.filterAll")
+                        : key === "redacted"
+                          ? `${t("aiContext.filterRedacted")} ${redactedCount}`
+                          : `${t("aiContext.filterTruncated")} ${truncatedCount}`;
                     return (
                       <button
                         key={key}
@@ -225,7 +234,7 @@ export function AIContextPreview({
               <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-2 space-y-2">
                 {filteredFiles.length === 0 ? (
                   <div className="px-3 py-3 text-[10px] font-mono text-text-muted italic">
-                    No files match the current filter.
+                    {t("aiContext.noFilesMatch")}
                   </div>
                 ) : (
                   filteredFiles.map((file) => {
@@ -282,9 +291,9 @@ export function AIContextPreview({
                   <div className="w-16 h-16 rounded-2xl border border-border-main bg-background/40 flex items-center justify-center">
                     <FileText className="w-7 h-7 text-text-muted/80" />
                   </div>
-                  <div className="text-xs uppercase tracking-widest">Select a file to preview.</div>
+                  <div className="text-xs uppercase tracking-widest">{t("aiContext.selectFileTitle")}</div>
                   <div className="text-[10px] text-text-muted max-w-md text-center">
-                    Use search and filters to locate the file you want to inspect.
+                    {t("aiContext.selectFileNote")}
                   </div>
                 </div>
               ) : (
@@ -296,7 +305,7 @@ export function AIContextPreview({
                           {selectedFile.file_path}
                         </div>
                         <div className="text-[10px] font-mono text-text-muted">
-                          Tokens (est): {selectedFile.token_estimate}
+                          {t("aiContext.tokensEst")}: {selectedFile.token_estimate}
                         </div>
                       </div>
                       <div className="shrink-0 flex items-center gap-2">
@@ -304,19 +313,19 @@ export function AIContextPreview({
                           type="button"
                           onClick={onCopyFileContext}
                           className="px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer bg-background/60 text-text-muted border-border-main hover:bg-border-main"
-                          title="Copy selected file context"
+                          title={t("aiContext.copyFileContextTitle")}
                         >
                           <Copy className="w-3 h-3" />
-                          Copy File Context
+                          {t("aiContext.copyFileContext")}
                         </button>
                         <button
                           type="button"
                           onClick={onCopyFullPayload}
                           className="px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer bg-background/60 text-text-muted border-border-main hover:bg-border-main"
-                          title="Copy full payload as JSON"
+                          title={t("aiContext.copyFullPayloadTitle")}
                         >
                           <Copy className="w-3 h-3" />
-                          Copy Full Payload
+                          {t("aiContext.copyFullPayload")}
                         </button>
                       </div>
                     </div>
@@ -324,12 +333,12 @@ export function AIContextPreview({
                     <div className="flex items-center gap-2">
                       {selectedFile.redacted && (
                         <span className="px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-amber-500/10 text-amber-200 border-amber-500/20">
-                          REDACTED
+                          {t("aiContext.badgeRedacted")}
                         </span>
                       )}
                       {selectedFile.truncated && (
                         <span className="px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-white/5 text-text-muted border-border-main">
-                          TRUNCATED
+                          {t("aiContext.badgeTruncated")}
                         </span>
                       )}
                     </div>

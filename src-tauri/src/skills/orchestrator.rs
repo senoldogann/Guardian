@@ -94,7 +94,7 @@ impl AgentOrchestrator {
             persona, path, diff, system_rules
         );
 
-        match self.ai.ask_question(&prompt, "Review this fix").await {
+        match self.ai.ask_question(&prompt, "Review this fix", "en").await {
             Ok(verdict) => {
                 let verdict = verdict.value;
                 if verdict.contains("LGTM") {

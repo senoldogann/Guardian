@@ -2,6 +2,7 @@ import React, { type ReactElement, MouseEvent } from "react";
 import { invoke } from "../lib/tauri";
 import clsx from "clsx";
 import { useToast } from "../hooks/useToast";
+import { useI18n } from "../i18n";
 import {
     ShieldAlert,
     BadgeInfo,
@@ -48,6 +49,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
     undoAvailable,
     onFixHistoryRefresh,
 }: CritiqueAccordionRowProps): ReactElement {
+    const { t } = useI18n();
     const severity = log.severity.toLowerCase();
     const isCritical = severity === "critical";
     const isWarning = severity === "warning";
@@ -61,7 +63,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
 
     // Improved Path Logic: Handle short paths and Windows/Unix separators
     const parts = log.file_path.split(/[/\\]/);
-    const fileName = parts.pop() || "System";
+    const fileName = parts.pop() || t("critique.system");
     const parentDir = parts.pop();
     const grandParentDir = parts.pop();
 
@@ -76,23 +78,23 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
 
     const undoFixNow = async (): Promise<void> => {
         if (!rootPath?.trim()) {
-            showError("Cannot undo: workspace path is missing.", 4500);
+            showError(t("critique.cannotUndoMissingWorkspace"), 4500);
             return;
         }
         try {
             await invoke("undo_fix", { filePath: log.file_path, root: rootPath });
             setUndoReady(false);
             void Promise.resolve(onFixHistoryRefresh?.()).catch(() => { });
-            showSuccess(`Undo complete for ${fileName}.`, 3000);
+            showSuccess(t("critique.undoCompleteToast", { file: fileName }), 3000);
         } catch (err) {
-            showError(`Undo failed: ${String(err)}`, 6000);
+            showError(t("critique.undoFailedToast", { error: String(err) }), 6000);
         }
     };
 
     const applyFixNow = async (): Promise<void> => {
         if (!log.suggested_diff) return;
         if (!rootPath?.trim()) {
-            showError("Cannot apply fix: workspace path is missing.", 4500);
+            showError(t("critique.cannotApplyMissingWorkspace"), 4500);
             return;
         }
         try {
@@ -100,17 +102,17 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
             setUndoReady(true);
             void Promise.resolve(onFixHistoryRefresh?.()).catch(() => { });
             showSuccess(
-                `Applied fix to ${fileName}.`,
+                t("critique.appliedFixToast", { file: fileName }),
                 6000,
                 {
-                    label: "Undo",
+                    label: t("common.undo"),
                     onClick: () => {
                         void undoFixNow();
                     }
                 }
             );
         } catch (err) {
-            showError(`Failed to apply fix: ${String(err)}`, 6000);
+            showError(t("critique.applyFailedToast", { error: String(err) }), 6000);
         }
     };
 
@@ -160,9 +162,13 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                         ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                                         : "bg-white/5 text-text-muted border-border-main"
                                 )}
-                                title={findingStatus === "new" ? "New since baseline" : "Present in baseline"}
+                                title={
+                                    findingStatus === "new"
+                                        ? t("critique.findingNewSinceBaseline")
+                                        : t("critique.findingPresentInBaseline")
+                                }
                             >
-                                {findingStatus === "new" ? "NEW" : "ACTIVE"}
+                                {findingStatus === "new" ? t("critique.badgeNew") : t("critique.badgeActive")}
                             </span>
                         )}
                     </div>
@@ -183,8 +189,8 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                 onAskGuru();
                             }}
                             className="p-2 rounded-lg border border-border-main bg-background/60 hover:bg-background transition-colors text-text-muted hover:text-text-main"
-                            title="Ask Guru to resolve"
-                            aria-label="Ask Guru to resolve"
+                            title={t("critique.askGuru")}
+                            aria-label={t("critique.askGuru")}
                         >
                             <Bot className="w-3.5 h-3.5" />
                         </button>
@@ -193,18 +199,18 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                         <button
                             onClick={applyFix}
                             className="flex items-center gap-1.5 text-xs font-bold text-[var(--accent-500)] bg-[var(--accent-200)] px-2.5 py-1.5 rounded-lg border border-[var(--accent-400)] hover:opacity-90 hover:scale-105 transition-all cursor-pointer z-10 min-w-[76px] justify-center"
-                            title="Quick Fix: Apply this patch immediately"
+                            title={t("critique.quickFixTitle")}
                         >
-                            <Hammer className="w-3.5 h-3.5" /> FIX
+                            <Hammer className="w-3.5 h-3.5" /> {t("critique.fix")}
                         </button>
                     )}
                     {log.suggested_diff && undoReady && (
                         <button
                             onClick={undoFix}
                             className="flex items-center gap-1.5 text-xs font-bold text-text-main bg-background/60 px-2.5 py-1.5 rounded-lg border border-border-main hover:bg-background transition-colors cursor-pointer z-10 min-w-[76px] justify-center"
-                            title="Undo last applied fix for this file"
+                            title={t("reviews.undoTitle")}
                         >
-                            <RotateCcw className="w-3.5 h-3.5" /> UNDO
+                            <RotateCcw className="w-3.5 h-3.5" /> {t("critique.undo")}
                         </button>
                     )}
                     <span className={clsx(
@@ -228,7 +234,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                             <div className="relative bg-background border border-border-main p-5 rounded-2xl">
                                 <div className="mb-4 rounded-xl border border-border-main bg-surface/70 px-4 py-3">
                                     <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">
-                                        File Path
+                                        {t("critique.filePath")}
                                     </div>
                                     <div className="font-mono text-xs break-all opacity-90">
                                         {log.file_path}
@@ -246,7 +252,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                     </div>
                                     <div>
                                         <h4 className="text-xs font-bold opacity-60 uppercase tracking-widest mb-1 flex items-center gap-2">
-                                            <Activity className="w-3 h-3" /> System Violation Details
+                                            <Activity className="w-3 h-3" /> {t("critique.violationDetails")}
                                         </h4>
                                         <p className="text-sm leading-relaxed opacity-90">{log.message}</p>
                                     </div>
@@ -256,7 +262,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                     <div className="mt-4 space-y-3">
                                         <div className="h-px w-full bg-border-main" />
                                         <div className="flex items-center gap-2 text-[10px] font-bold opacity-60 uppercase tracking-widest">
-                                            <Terminal className="w-3 h-3" /> Architect's Verdict & Suggestion
+                                            <Terminal className="w-3 h-3" /> {t("critique.verdictSuggestion")}
                                         </div>
                                         <div className="bg-surface border border-border-main p-4 rounded-xl font-mono text-xs leading-relaxed opacity-80 whitespace-pre-wrap">
                                             {log.suggestion}
@@ -268,7 +274,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                     <div className="mt-4 space-y-3">
                                         <div className="h-px w-full bg-border-main" />
                                         <div className="flex items-center gap-2 text-[10px] font-bold text-[var(--accent-500)] uppercase tracking-widest">
-                                            <Hammer className="w-3 h-3" /> Autopilot: Proposed Fix
+                                            <Hammer className="w-3 h-3" /> {t("critique.autopilotProposedFix")}
                                         </div>
                                         <div className="bg-surface border border-border-main p-4 rounded-xl font-mono text-xs overflow-x-auto">
                                             <pre className="text-text-main opacity-80">{log.suggested_diff}</pre>
@@ -291,11 +297,11 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                         >
                                             {undoReady ? (
                                                 <>
-                                                    <RotateCcw className="w-3 h-3 fill-current" /> UNDO
+                                                    <RotateCcw className="w-3 h-3 fill-current" /> {t("critique.undo")}
                                                 </>
                                             ) : (
                                                 <>
-                                                    <Hammer className="w-3 h-3 fill-current" /> APPLY THIS FIX
+                                                    <Hammer className="w-3 h-3 fill-current" /> {t("critique.applyThisFix")}
                                                 </>
                                             )}
                                         </button>

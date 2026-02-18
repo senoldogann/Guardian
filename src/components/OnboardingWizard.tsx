@@ -1,44 +1,49 @@
-import { useState, type ReactElement } from "react";
+import { useMemo, useState, type ReactElement } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
 import clsx from "clsx";
 import { STORAGE_KEYS } from "../constants";
+import { useI18n } from "../i18n";
 
 interface Slide {
-    title: string;
-    description: string;
-    highlight?: string;
+  title: string;
+  description: string;
+  highlight?: string;
 }
-
-const slides: Slide[] = [
-    {
-        title: "Welcome to Guardian",
-        description: "Your AI-powered code governance agent. Guardian monitors your codebase in real-time, catching security issues, bugs, and anti-patterns before they become problems.",
-        highlight: "Protect your code. Elevate your standards.",
-    },
-    {
-        title: "Neural Governance",
-        description: "Choose your AI engine. Use cloud providers like OpenAI, Anthropic, or Gemini for maximum power—or run completely locally with Ollama for full privacy.",
-        highlight: "Your data, your choice.",
-    },
-    {
-        title: "Real-time Monitoring",
-        description: "Guardian watches your files as you code. Every save triggers an intelligent review. Critical issues stall your workflow until resolved.",
-        highlight: "No bug goes unnoticed.",
-    },
-    {
-        title: "Ready to Begin",
-        description: "Sign in with GitHub to unlock Guardian's full potential. Your free tier includes generous usage—no credit card required.",
-        highlight: "Let's secure your codebase.",
-    },
-];
 
 interface OnboardingWizardProps {
     onComplete: () => void;
 }
 
 export function OnboardingWizard({ onComplete }: OnboardingWizardProps): ReactElement {
-    const [currentSlide, setCurrentSlide] = useState(0);
+  const { t } = useI18n();
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const slides: Slide[] = useMemo(
+    () => [
+      {
+        title: t("onboarding.slides.welcome.title"),
+        description: t("onboarding.slides.welcome.description"),
+        highlight: t("onboarding.slides.welcome.highlight"),
+      },
+      {
+        title: t("onboarding.slides.neural.title"),
+        description: t("onboarding.slides.neural.description"),
+        highlight: t("onboarding.slides.neural.highlight"),
+      },
+      {
+        title: t("onboarding.slides.realtime.title"),
+        description: t("onboarding.slides.realtime.description"),
+        highlight: t("onboarding.slides.realtime.highlight"),
+      },
+      {
+        title: t("onboarding.slides.ready.title"),
+        description: t("onboarding.slides.ready.description"),
+        highlight: t("onboarding.slides.ready.highlight"),
+      },
+    ],
+    [t]
+  );
 
     const handleNext = (): void => {
         if (currentSlide < slides.length - 1) {
@@ -111,7 +116,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps): ReactEl
                             onClick={handleSkip}
                             className="px-4 py-2 text-sm text-text-muted hover:text-text-main transition-colors"
                         >
-                            Skip Tour
+                            {t("onboarding.skip")}
                         </button>
                     )}
                     <button
@@ -121,7 +126,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps): ReactEl
                             "bg-[var(--accent-500)] text-background hover:opacity-90"
                         )}
                     >
-                        {isLast ? "Get Started" : "Continue"}
+                        {isLast ? t("onboarding.getStarted") : t("onboarding.continue")}
                         <ArrowRight className="w-4 h-4" />
                     </button>
                 </div>
@@ -129,4 +134,3 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps): ReactEl
         </div>
     );
 }
-

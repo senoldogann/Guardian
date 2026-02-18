@@ -4,6 +4,7 @@ import type { Critique } from "../components/CritiqueAccordionRow";
 import { STORAGE_KEYS } from "../constants";
 import type { ExportAuditPdfResult } from "../lib/exportAuditPdf";
 import { useToast } from "./useToast";
+import { useI18n } from "../i18n";
 
 export type ProviderConfig = {
   provider_id: string;
@@ -233,6 +234,7 @@ export function useSettings(
 ): UseSettingsReturn {
   const isDesktop = isTauriRuntime();
   const toast = useToast();
+  const { t } = useI18n();
 
   // Provider state
   const [providerDraft, setProviderDraft] = useState<ProviderConfig | null>(null);
@@ -379,13 +381,13 @@ export function useSettings(
       const raw = (res?.profile ?? scanProfile).toString().toLowerCase();
       const normalized: ScanProfile = raw === "extended" || raw === "full" ? raw : "source";
       setScanProfile(normalized);
-      toast.showSuccess("Scan scope saved.", 2500);
+      toast.showSuccess(t("toast.saved"), 2500);
     } catch (e: unknown) {
       setScanProfileError(e instanceof Error ? e.message : String(e));
     } finally {
       setScanProfileSaving(false);
     }
-  }, [isDesktop, scanProfile, toast]);
+  }, [isDesktop, scanProfile, t, toast]);
 
   const onWebSearchDepthChange = useCallback((value: WebSearchDepth): void => {
     setWebSearchDepth(normalizeWebSearchDepth(value));
@@ -509,7 +511,7 @@ export function useSettings(
   const applyApiKeyStatus = useCallback((status: ApiKeyStatus | null | undefined): void => {
     if (!status || typeof status.has_key !== "boolean") {
       setApiKeyStatus(null);
-      setApiKeyError("API key status could not be loaded.");
+      setApiKeyError(t("settings.errors.apiKeyStatusLoadFailed"));
       setApiKeyMasked(false);
       setApiKeyInput("");
       return;
@@ -527,12 +529,12 @@ export function useSettings(
       setApiKeyMasked(false);
       setApiKeyInput("");
     }
-  }, []);
+  }, [t]);
 
   const applyTavilyStatus = useCallback((status: TavilyKeyStatus | null | undefined): void => {
     if (!status || typeof status.has_key !== "boolean") {
       setTavilyKeyStatus(null);
-      setTavilyKeyError("Tavily key status could not be loaded.");
+      setTavilyKeyError(t("settings.errors.tavilyKeyStatusLoadFailed"));
       setTavilyKeyMasked(false);
       setTavilyKeyInput("");
       setWebSearchEnabled(false);
@@ -548,12 +550,12 @@ export function useSettings(
       setTavilyKeyInput("");
       setWebSearchEnabled(false);
     }
-  }, []);
+  }, [t]);
 
   const applyEmbeddingOpenAiKeyStatus = useCallback((status: ApiKeyStatus | null | undefined): void => {
     if (!status || typeof status.has_key !== "boolean") {
       setEmbeddingOpenAiKeyStatus(null);
-      setEmbeddingOpenAiKeyError("Embedding OpenAI key status could not be loaded.");
+      setEmbeddingOpenAiKeyError(t("settings.errors.embeddingOpenAiKeyStatusLoadFailed"));
       setEmbeddingOpenAiKeyMasked(false);
       setEmbeddingOpenAiKeyInput("");
       return;
@@ -571,7 +573,7 @@ export function useSettings(
       setEmbeddingOpenAiKeyMasked(false);
       setEmbeddingOpenAiKeyInput("");
     }
-  }, []);
+  }, [t]);
 
   const readStoredEmbeddingConfig = useCallback((): EmbeddingRuntimeConfig | null => {
     if (typeof window === "undefined") return null;
@@ -608,16 +610,16 @@ export function useSettings(
       setEmbeddingDraft(normalizeEmbeddingConfig(runtime));
       setEmbeddingError(null);
       if (announce) {
-        toast.showSuccess("Refreshed.", 2500);
+        toast.showSuccess(t("toast.refreshed"), 2500);
       }
     } catch (error) {
       setEmbeddingError(error instanceof Error ? error.message : String(error));
       setEmbeddingDraft((prev) => prev ?? normalizeEmbeddingConfig(DEFAULT_EMBEDDING_CONFIG));
       if (announce) {
-        toast.showError("Refresh failed.", 3000);
+        toast.showError(t("toast.refreshFailed"), 3000);
       }
     }
-  }, [isDesktop, toast]);
+  }, [isDesktop, t, toast]);
 
   const isValidUrl = (value: string): boolean => {
     try {
@@ -663,10 +665,10 @@ export function useSettings(
     try {
       const next = normalizeEmbeddingConfig(embeddingDraft);
       if (next.openai_base_url && !isValidUrl(next.openai_base_url)) {
-        throw new Error("OpenAI embedding base URL must be a valid http/https URL.");
+        throw new Error(t("settings.errors.openAiEmbeddingUrlInvalid"));
       }
       if (next.ollama_base_url && !isValidUrl(next.ollama_base_url)) {
-        throw new Error("Ollama embedding base URL must be a valid http/https URL.");
+        throw new Error(t("settings.errors.ollamaEmbeddingUrlInvalid"));
       }
       const applied = await invoke<EmbeddingRuntimeConfig>("set_embedding_runtime_config", {
         config: {
@@ -680,13 +682,13 @@ export function useSettings(
       const normalized = normalizeEmbeddingConfig(applied);
       setEmbeddingDraft(normalized);
       persistEmbeddingConfig(normalized);
-      toast.showSuccess("Embedding settings saved.", 2500);
+      toast.showSuccess(t("toast.saved"), 2500);
     } catch (e: unknown) {
       setEmbeddingError(e instanceof Error ? e.message : String(e));
     } finally {
       setEmbeddingSaving(false);
     }
-  }, [isDesktop, embeddingDraft, persistEmbeddingConfig, toast]);
+  }, [isDesktop, embeddingDraft, persistEmbeddingConfig, t, toast]);
 
   const onEmbeddingOpenAiKeyFocus = useCallback((): void => {
     if (embeddingOpenAiKeyMasked) {
@@ -706,18 +708,18 @@ export function useSettings(
     try {
       const trimmed = embeddingOpenAiKeyInput.trim();
       if (!trimmed || (embeddingOpenAiKeyMasked && trimmed === API_KEY_MASK)) {
-        throw new Error("Embedding OpenAI key cannot be empty.");
+        throw new Error(t("settings.errors.embeddingOpenAiKeyEmpty"));
       }
       await invoke("set_user_api_key", { apiKey: trimmed, providerId: "openai" });
       const status = await invoke<ApiKeyStatus>("get_api_key_status", { providerId: "openai" });
       applyEmbeddingOpenAiKeyStatus(status);
-      toast.showSuccess("Embedding key saved.", 2500);
+      toast.showSuccess(t("toast.saved"), 2500);
     } catch (e: unknown) {
       setEmbeddingOpenAiKeyError(e instanceof Error ? e.message : String(e));
     } finally {
       setEmbeddingOpenAiKeySaving(false);
     }
-  }, [isDesktop, embeddingOpenAiKeyInput, embeddingOpenAiKeyMasked, applyEmbeddingOpenAiKeyStatus, toast]);
+  }, [isDesktop, embeddingOpenAiKeyInput, embeddingOpenAiKeyMasked, applyEmbeddingOpenAiKeyStatus, t, toast]);
 
   const clearEmbeddingOpenAiKey = useCallback(async (): Promise<void> => {
     if (!isDesktop) return;
@@ -727,13 +729,13 @@ export function useSettings(
       await invoke("clear_user_api_key", { providerId: "openai" });
       const status = await invoke<ApiKeyStatus>("get_api_key_status", { providerId: "openai" });
       applyEmbeddingOpenAiKeyStatus(status);
-      toast.showSuccess("Embedding key cleared.", 2500);
+      toast.showSuccess(t("toast.saved"), 2500);
     } catch (e: unknown) {
       setEmbeddingOpenAiKeyError(e instanceof Error ? e.message : String(e));
     } finally {
       setEmbeddingOpenAiKeySaving(false);
     }
-  }, [isDesktop, applyEmbeddingOpenAiKeyStatus, toast]);
+  }, [isDesktop, applyEmbeddingOpenAiKeyStatus, t, toast]);
 
   const onProviderChange = useCallback((nextId: string): void => {
     const defaults = getProviderDefaults(nextId);
@@ -802,17 +804,17 @@ export function useSettings(
         }
       }
       if (announce) {
-        toast.showSuccess("Refreshed.", 2500);
+        toast.showSuccess(t("toast.refreshed"), 2500);
       }
     } catch (e: unknown) {
       setProviderModelError(e instanceof Error ? e.message : String(e));
       if (announce) {
-        toast.showError("Refresh failed.", 3000);
+        toast.showError(t("toast.refreshFailed"), 3000);
       }
     } finally {
       setProviderModelLoading(false);
     }
-  }, [isDesktop, providerDraft, toast]);
+  }, [isDesktop, providerDraft, t, toast]);
 
   const saveProviderSettings = useCallback(async (): Promise<void> => {
     if (!isDesktop || !providerDraft) return;
@@ -823,10 +825,10 @@ export function useSettings(
       const baseUrl = providerDraft.base_url.trim() || defaults.baseUrl;
       const model = providerDraft.model.trim();
       if (!baseUrl || !model) {
-        throw new Error("Provider base URL and model are required.");
+        throw new Error(t("settings.errors.providerBaseUrlModelRequired"));
       }
       if (!isValidUrl(baseUrl)) {
-        throw new Error("Provider base URL must be a valid http/https URL.");
+        throw new Error(t("settings.errors.providerBaseUrlInvalid"));
       }
       const res = await invoke<ProviderConfig>("set_provider_config", {
         config: {
@@ -836,13 +838,13 @@ export function useSettings(
         },
       });
       setProviderDraft(res);
-      toast.showSuccess("Provider settings saved.", 2500);
+      toast.showSuccess(t("toast.providerSaved"), 2500);
     } catch (e: unknown) {
       setProviderError(e instanceof Error ? e.message : String(e));
     } finally {
       setProviderSaving(false);
     }
-  }, [isDesktop, providerDraft, toast]);
+  }, [isDesktop, providerDraft, t, toast]);
 
   const testProviderConnection = useCallback(async (): Promise<void> => {
     if (!isDesktop || !providerDraft) return;
@@ -854,10 +856,10 @@ export function useSettings(
       const baseUrl = providerDraft.base_url.trim() || defaults.baseUrl;
       const model = providerDraft.model.trim();
       if (!baseUrl || !model) {
-        throw new Error("Provider base URL and model are required.");
+        throw new Error(t("settings.errors.providerBaseUrlModelRequired"));
       }
       if (!isValidUrl(baseUrl)) {
-        throw new Error("Provider base URL must be a valid http/https URL.");
+        throw new Error(t("settings.errors.providerBaseUrlInvalid"));
       }
 
       const res = await invoke<ProviderConnectionTestResult>("test_provider_connection", {
@@ -869,7 +871,8 @@ export function useSettings(
       });
       // UX: keep success messaging short and consistent (toast only).
       // Backend message can contain details; we intentionally do not show it here.
-      toast.showSuccess("Connection OK.", 3000);
+      toast.showSuccess(t("toast.connectionOk"), 3000);
+      setProviderTestMessage(t("toast.connectionOk"));
 
       if (providerTestMessageTimerRef.current) {
         window.clearTimeout(providerTestMessageTimerRef.current);
@@ -883,7 +886,7 @@ export function useSettings(
     } finally {
       setProviderTestLoading(false);
     }
-  }, [isDesktop, providerDraft, toast]);
+  }, [isDesktop, providerDraft, t, toast]);
 
   const onApiKeyFocus = useCallback((): void => {
     if (apiKeyMasked) {
@@ -899,7 +902,7 @@ export function useSettings(
   const saveApiKey = useCallback(async (): Promise<void> => {
     if (!isDesktop) return;
     if (!providerDraft) {
-      setApiKeyError("Provider configuration is still loading. Try again in a moment.");
+      setApiKeyError(t("settings.errors.providerConfigLoading"));
       return;
     }
     setApiKeySaving(true);
@@ -907,25 +910,25 @@ export function useSettings(
     try {
       const trimmed = apiKeyInput.trim();
       if (!trimmed || (apiKeyMasked && trimmed === API_KEY_MASK)) {
-        throw new Error("API key cannot be empty.");
+        throw new Error(t("settings.errors.apiKeyEmpty"));
       }
       await invoke("set_user_api_key", { apiKey: trimmed, providerId: providerDraft?.provider_id });
       const status = await invoke<ApiKeyStatus>("get_api_key_status", {
         providerId: providerDraft?.provider_id,
       });
       applyApiKeyStatus(status);
-      toast.showSuccess("API key saved.", 2500);
+      toast.showSuccess(t("toast.saved"), 2500);
     } catch (e: unknown) {
       setApiKeyError(e instanceof Error ? e.message : String(e));
     } finally {
       setApiKeySaving(false);
     }
-  }, [isDesktop, providerDraft, apiKeyInput, apiKeyMasked, applyApiKeyStatus, toast]);
+  }, [isDesktop, providerDraft, apiKeyInput, apiKeyMasked, applyApiKeyStatus, t, toast]);
 
   const clearApiKey = useCallback(async (): Promise<void> => {
     if (!isDesktop) return;
     if (!providerDraft) {
-      setApiKeyError("Provider configuration is still loading. Try again in a moment.");
+      setApiKeyError(t("settings.errors.providerConfigLoading"));
       return;
     }
     setApiKeySaving(true);
@@ -936,13 +939,13 @@ export function useSettings(
         providerId: providerDraft?.provider_id,
       });
       applyApiKeyStatus(status);
-      toast.showSuccess("API key cleared.", 2500);
+      toast.showSuccess(t("toast.saved"), 2500);
     } catch (e: unknown) {
       setApiKeyError(e instanceof Error ? e.message : String(e));
     } finally {
       setApiKeySaving(false);
     }
-  }, [isDesktop, providerDraft, applyApiKeyStatus, toast]);
+  }, [isDesktop, providerDraft, applyApiKeyStatus, t, toast]);
 
   const onTavilyKeyFocus = useCallback((): void => {
     if (tavilyKeyMasked) {
@@ -962,18 +965,18 @@ export function useSettings(
     try {
       const trimmed = tavilyKeyInput.trim();
       if (!trimmed || (tavilyKeyMasked && trimmed === API_KEY_MASK)) {
-        throw new Error("Tavily key cannot be empty.");
+        throw new Error(t("settings.errors.tavilyKeyEmpty"));
       }
       await invoke("set_tavily_key", { key: trimmed });
       const status = await invoke<TavilyKeyStatus>("get_tavily_key_status");
       applyTavilyStatus(status);
-      toast.showSuccess("Tavily key saved.", 2500);
+      toast.showSuccess(t("toast.saved"), 2500);
     } catch (e: unknown) {
       setTavilyKeyError(e instanceof Error ? e.message : String(e));
     } finally {
       setTavilyKeySaving(false);
     }
-  }, [isDesktop, tavilyKeyInput, tavilyKeyMasked, applyTavilyStatus, toast]);
+  }, [isDesktop, tavilyKeyInput, tavilyKeyMasked, applyTavilyStatus, t, toast]);
 
   const clearTavilyKey = useCallback(async (): Promise<void> => {
     if (!isDesktop) return;
@@ -983,13 +986,13 @@ export function useSettings(
       await invoke("clear_tavily_key");
       const status = await invoke<TavilyKeyStatus>("get_tavily_key_status");
       applyTavilyStatus(status);
-      toast.showSuccess("Tavily key cleared.", 2500);
+      toast.showSuccess(t("toast.saved"), 2500);
     } catch (e: unknown) {
       setTavilyKeyError(e instanceof Error ? e.message : String(e));
     } finally {
       setTavilyKeySaving(false);
     }
-  }, [isDesktop, applyTavilyStatus, toast]);
+  }, [isDesktop, applyTavilyStatus, t, toast]);
 
   const onWebSearchToggle = useCallback((): void => {
     setWebSearchEnabled(prev => !prev);
@@ -999,12 +1002,12 @@ export function useSettings(
     // SECURITY: Auto-verify runs project commands inside the monitored workspace.
     if (!autoVerifyEnabled) {
       const ok = window.confirm(
-        "Automatic Verification runs project commands (npm/cargo/etc) inside your monitored workspace. Enable only for trusted repos."
+        t("settings.errors.autoVerifyConfirm")
       );
       if (!ok) return;
     }
     setAutoVerifyEnabled(prev => !prev);
-  }, [autoVerifyEnabled]);
+  }, [autoVerifyEnabled, t]);
 
   const onExportPDF = useCallback((logs: Record<string, Critique>, path: string): void => {
     if (exportPdfInProgress) return;
@@ -1023,10 +1026,13 @@ export function useSettings(
         const result = await exportPdfFn({ logs, path });
         if (result.mode === "tauri") {
           const savedPath = result.savedPath || "your Downloads folder";
-          const openedText = result.folderOpened ? " Folder opened automatically." : "";
-          toast.showSuccess(`Saved to ${savedPath}.${openedText}`.replace("..", "."), 3000);
+          const openedText = result.folderOpened ? t("toast.folderOpened") : "";
+          toast.showSuccess(
+            t("toast.exportSaved", { path: savedPath, opened: openedText }).trim(),
+            3000
+          );
         } else {
-          toast.showSuccess("PDF export started.", 2500);
+          toast.showSuccess(t("toast.saved"), 2500);
         }
       } catch (e: unknown) {
         setExportPdfError(e instanceof Error ? e.message : String(e));
@@ -1062,12 +1068,13 @@ export function useSettings(
         });
         setUpdateError(res.error ?? null);
       } else {
-        setUpdateInfo(buildFallbackUpdateInfo(appVersion ?? "Unknown", "unavailable", "Update service unavailable."));
-        setUpdateError("Update service unavailable.");
+        const msg = t("settings.errors.updateUnavailable");
+        setUpdateInfo(buildFallbackUpdateInfo(appVersion ?? "Unknown", "unavailable", msg));
+        setUpdateError(msg);
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      const displayMessage = "Update service unavailable. Check network and try again.";
+      const displayMessage = t("settings.errors.updateUnavailableHint");
       setUpdateError(displayMessage);
       setUpdateInfo(buildFallbackUpdateInfo(appVersion ?? "Unknown", "unavailable", displayMessage));
       console.warn("[Guardian] Update check failed:", message);

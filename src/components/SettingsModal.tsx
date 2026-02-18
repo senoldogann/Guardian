@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import clsx from "clsx";
 import {
   Moon,
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { openExternal } from "../lib/tauri";
 import { useFocusTrap } from "../hooks/useFocusTrap";
+import { useI18n } from "../i18n";
 
 export type EmbeddingMode = "auto" | "openai" | "ollama" | "local";
 export type SettingsTab = "general" | "provider" | "embedding" | "web" | "updates" | "export";
@@ -66,13 +67,6 @@ const getProviderDefaults = (providerId: string) => {
   const match = PROVIDER_OPTIONS.find((p) => p.id === providerId);
   return match ?? PROVIDER_OPTIONS[0];
 };
-
-const EXPORT_STATUS_MESSAGES = [
-  "Preparing report blocks...",
-  "Rendering PDF pages...",
-  "Finalizing and saving file...",
-  "Opening export location...",
-];
 
 interface InfoPopoverProps {
   title: string;
@@ -229,8 +223,18 @@ export function SettingsModal({
   settingsTab,
   onSettingsTabChange,
 }: SettingsModalProps): ReactElement | null {
+  const { locale, setLocale, t } = useI18n();
   const modalRef = useRef<HTMLDivElement | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const exportStatusMessages = useMemo(
+    () => [
+      t("settings.export.preparing"),
+      t("settings.export.rendering"),
+      t("settings.export.finalizing"),
+      t("settings.export.openingFolder"),
+    ],
+    [t],
+  );
 
   useFocusTrap({
     active: open,
@@ -353,10 +357,10 @@ export function SettingsModal({
       return;
     }
     const interval = window.setInterval(() => {
-      setExportStatusMessageIndex((prev) => (prev + 1) % EXPORT_STATUS_MESSAGES.length);
+      setExportStatusMessageIndex((prev) => (prev + 1) % exportStatusMessages.length);
     }, 1200);
     return () => window.clearInterval(interval);
-  }, [exportPdfInProgress]);
+  }, [exportPdfInProgress, exportStatusMessages.length]);
 
   const openGithubModelsTokenPage = (): void => {
     if (!isDesktop) return;
@@ -389,15 +393,15 @@ export function SettingsModal({
               id="guardian-settings-title"
               className="text-sm font-black uppercase tracking-widest text-text-main"
             >
-              Setup & Settings
+              {t("settings.title")}
             </h3>
-            <p className="text-xs text-text-muted">Configure provider, API key, and updates. Changes apply on next session or monitoring restart.</p>
+            <p className="text-xs text-text-muted">{t("settings.subtitle")}</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={onThemeToggle}
               className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-text-main transition-all cursor-pointer"
-              title="Toggle Theme"
+              title={t("settings.toggleTheme")}
             >
               {theme === "dark" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
             </button>
@@ -406,24 +410,24 @@ export function SettingsModal({
               className="px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 transition-colors cursor-pointer text-xs uppercase tracking-widest"
               ref={closeButtonRef}
             >
-              Close
+              {t("common.close")}
             </button>
           </div>
         </div>
 
         {!isDesktop && (
           <div className="text-[10px] text-amber-400">
-            Desktop app required to update settings.
+            {t("settings.desktopRequired")}
           </div>
         )}
 
         <div className="flex flex-wrap gap-2 border-b border-border-main pb-4">
-          <button onClick={() => onSettingsTabChange("general")} className={settingsTabClass("general")}>General</button>
-          <button onClick={() => onSettingsTabChange("provider")} className={settingsTabClass("provider")}>Provider</button>
-          <button onClick={() => onSettingsTabChange("embedding")} className={settingsTabClass("embedding")}>Embedding</button>
-          <button onClick={() => onSettingsTabChange("web")} className={settingsTabClass("web")}>Web Search</button>
-          <button onClick={() => onSettingsTabChange("updates")} className={settingsTabClass("updates")}>Updates</button>
-          <button onClick={() => onSettingsTabChange("export")} className={settingsTabClass("export")}>Export</button>
+          <button onClick={() => onSettingsTabChange("general")} className={settingsTabClass("general")}>{t("settings.tabs.general")}</button>
+          <button onClick={() => onSettingsTabChange("provider")} className={settingsTabClass("provider")}>{t("settings.tabs.provider")}</button>
+          <button onClick={() => onSettingsTabChange("embedding")} className={settingsTabClass("embedding")}>{t("settings.tabs.embedding")}</button>
+          <button onClick={() => onSettingsTabChange("web")} className={settingsTabClass("web")}>{t("settings.tabs.web")}</button>
+          <button onClick={() => onSettingsTabChange("updates")} className={settingsTabClass("updates")}>{t("settings.tabs.updates")}</button>
+          <button onClick={() => onSettingsTabChange("export")} className={settingsTabClass("export")}>{t("settings.tabs.export")}</button>
         </div>
 
         {settingsTab === "general" && (
@@ -431,19 +435,21 @@ export function SettingsModal({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
                 <ShieldAlert className="w-4 h-4 text-[var(--accent-500)]" />
-                Safety
+                {t("settings.general.safety")}
               </div>
               <InfoPopover
-                title="Automatic Verification"
-                note="When enabled, Guardian can run project commands (npm/cargo, etc.). Keep it on only for trusted repositories."
+                title={t("settings.general.autoVerifyTitle")}
+                note={t("settings.general.autoVerifyNote")}
               />
             </div>
             <div className="text-[10px] text-text-muted">
-              Automatic Verification can run project commands (npm/cargo/etc) in your monitored workspace. Keep it off unless you fully trust the repo.
+              {t("settings.general.autoVerifyDescription")}
             </div>
             <div className="flex items-center justify-between bg-background border border-border-main rounded-lg px-3 py-2">
               <div className="text-[10px] text-text-muted">
-                Automatic Verification: {autoVerifyEnabled ? "Enabled" : "Disabled"}
+                {t("settings.general.autoVerifyStatus", {
+                  status: autoVerifyEnabled ? t("common.enabled") : t("common.disabled"),
+                })}
               </div>
               <button
                 onClick={onAutoVerifyToggle}
@@ -454,7 +460,7 @@ export function SettingsModal({
                   !isDesktop && "opacity-50 cursor-not-allowed"
                 )}
               >
-                {autoVerifyEnabled ? "On" : "Off"}
+                {autoVerifyEnabled ? t("common.on") : t("common.off")}
               </button>
             </div>
 
@@ -462,15 +468,15 @@ export function SettingsModal({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
                   <ShieldAlert className="w-4 h-4 text-[var(--accent-500)]" />
-                  Scan Scope
+                  {t("settings.general.scanScopeTitle")}
                 </div>
                 <InfoPopover
-                  title="Scan Scope"
-                  note="Source is fast and focused. Extended adds infra/security surfaces (Docker/CI/locks/scripts). Full scans most text files (higher cost). Changes apply on next monitoring start."
+                  title={t("settings.general.scanScopeTitle")}
+                  note={t("settings.general.scanScopeNote")}
                 />
               </div>
               <div className="text-[10px] text-text-muted">
-                Current scope: <span className="font-mono text-[var(--text-main)]">{scanProfile}</span>. Restart monitoring to apply changes.
+                {t("settings.general.scanScopeCurrent", { profile: scanProfile })}
               </div>
               <div className="grid grid-cols-1 gap-2">
                 <StyledSelect
@@ -478,9 +484,9 @@ export function SettingsModal({
                   value={scanProfile}
                   onChange={(e) => onScanProfileChange(e.target.value as "source" | "extended" | "full")}
                 >
-                  <option value="source">Source (Fast, code-focused)</option>
-                  <option value="extended">Extended (Infra + security files)</option>
-                  <option value="full">Full (Most text files)</option>
+                  <option value="source">{t("settings.general.scanScopeSource")}</option>
+                  <option value="extended">{t("settings.general.scanScopeExtended")}</option>
+                  <option value="full">{t("settings.general.scanScopeFull")}</option>
                 </StyledSelect>
                 {scanProfileError && (
                   <div className="text-[10px] text-rose-400">{scanProfileError}</div>
@@ -490,8 +496,28 @@ export function SettingsModal({
                   disabled={!isDesktop || scanProfileSaving}
                   className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
                 >
-                  {scanProfileSaving ? "Saving..." : "Save Scan Scope"}
+                  {scanProfileSaving ? t("common.saving") : t("settings.general.saveScanScope")}
                 </button>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-border-main space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                  <ShieldAlert className="w-4 h-4 text-[var(--accent-500)]" />
+                  {t("settings.general.languageTitle")}
+                </div>
+                <InfoPopover title={t("settings.general.languageTitle")} note={t("settings.general.languageNote")} />
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                <StyledSelect
+                  disabled={!isDesktop}
+                  value={locale}
+                  onChange={(e) => setLocale(e.target.value as "en" | "tr")}
+                >
+                  <option value="en">{t("language.english")}</option>
+                  <option value="tr">{t("language.turkish")}</option>
+                </StyledSelect>
               </div>
             </div>
           </div>
@@ -502,16 +528,18 @@ export function SettingsModal({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
                 <Server className="w-4 h-4 text-[var(--accent-500)]" />
-                AI Provider
+                {t("settings.provider.title")}
               </div>
               <InfoPopover
-                title="Provider Setup"
-                note="Save provider and model first, then add the API key if required. Use Ollama for local runs and OpenAI/Anthropic/Gemini for cloud."
+                title={t("settings.provider.popoverTitle")}
+                note={t("settings.provider.popoverNote")}
               />
             </div>
             <div className="space-y-3">
               <div className="text-[10px] text-text-muted">
-                Current provider: {providerDraft ? getProviderDefaults(providerDraft.provider_id).label : "Loading"}.
+                {t("settings.provider.currentProvider", {
+                  provider: providerDraft ? getProviderDefaults(providerDraft.provider_id).label : t("common.loading"),
+                })}
               </div>
               {!providerDraft ? (
                 <div className="space-y-3 animate-pulse">
@@ -524,7 +552,7 @@ export function SettingsModal({
                 </div>
               ) : (
                 <>
-                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">Provider</label>
+                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">{t("settings.provider.providerLabel")}</label>
                   <StyledSelect
                     disabled={!isDesktop}
                     value={providerDraft.provider_id}
@@ -534,7 +562,7 @@ export function SettingsModal({
                       <option key={option.id} value={option.id}>{option.label}</option>
                     ))}
                   </StyledSelect>
-                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">Base URL</label>
+                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">{t("settings.provider.baseUrlLabel")}</label>
                   {providerDraft.provider_id === "ollama" ? (
                     <StyledSelect
                       disabled={!isDesktop}
@@ -554,13 +582,13 @@ export function SettingsModal({
                     />
                   )}
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] uppercase tracking-widest text-zinc-500">Model</label>
+                    <label className="text-[10px] uppercase tracking-widest text-zinc-500">{t("settings.provider.modelLabel")}</label>
                     <button
                       onClick={onRefreshModels}
                       disabled={!isDesktop || providerModelLoading}
                       className="text-[10px] uppercase tracking-widest text-zinc-500 hover:text-text-main transition-colors"
                     >
-                      {providerModelLoading ? "Loading..." : "Refresh"}
+                      {providerModelLoading ? t("settings.provider.modelsLoading") : t("settings.provider.refreshModels")}
                     </button>
                   </div>
                   {providerModelLoading ? (
@@ -581,12 +609,14 @@ export function SettingsModal({
                       value={providerDraft.model}
                       onChange={(e) => onModelChange(e.target.value)}
                       className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
-                      placeholder="Enter model ID manually"
+                      placeholder={t("settings.provider.modelPlaceholder")}
                     />
                   )}
                   {providerModelError && (
                     <div className="text-[10px] text-rose-400">
-                      {requiresApiKey ? `Enter your ${providerLabel} API key to load models.` : providerModelError}
+                      {requiresApiKey
+                        ? t("settings.provider.requiresKeyLoadModels", { provider: providerLabel })
+                        : providerModelError}
                     </div>
                   )}
                   {providerError && <div className="text-[10px] text-rose-400">{providerError}</div>}
@@ -596,14 +626,14 @@ export function SettingsModal({
                       disabled={!isDesktop || providerSaving}
                       className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
                     >
-                      {providerSaving ? "Saving..." : "Save Provider"}
+                      {providerSaving ? t("common.saving") : t("settings.provider.saveProvider")}
                     </button>
                     <button
                       onClick={onTestProviderConnection}
                       disabled={!isDesktop || providerSaving || providerTestLoading}
                       className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors disabled:opacity-50"
                     >
-                      {providerTestLoading ? "Testing..." : "Test Connection"}
+                      {providerTestLoading ? t("settings.provider.testing") : t("settings.provider.testConnection")}
                     </button>
                   </div>
                   {providerTestMessage && (
@@ -624,17 +654,22 @@ export function SettingsModal({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
                   <KeyRound className="w-4 h-4 text-[var(--accent-500)]" />
-                  API Key
+                  {t("settings.provider.apiKeyTitle")}
                 </div>
                 <InfoPopover
-                  title="API Key"
-                  note="API key requirement depends on your selected provider. Paste the key and click Save Key; it is stored only in local keychain."
+                  title={t("settings.provider.apiKeyPopoverTitle")}
+                  note={t("settings.provider.apiKeyPopoverNote")}
                 />
               </div>
               <div className="text-[10px] text-text-muted">
                 {apiKeyStatus?.has_key
-                  ? `Key stored for ${providerDraft ? getProviderDefaults(providerDraft.provider_id).label : "provider"} (${apiKeyStatus.source}).`
-                  : `No API key stored for ${providerDraft ? getProviderDefaults(providerDraft.provider_id).label : "provider"}. Environment keys are ignored.`}
+                  ? t("settings.provider.keyStored", {
+                      provider: providerDraft ? getProviderDefaults(providerDraft.provider_id).label : "provider",
+                      source: apiKeyStatus.source,
+                    })
+                  : t("settings.provider.noKeyStored", {
+                      provider: providerDraft ? getProviderDefaults(providerDraft.provider_id).label : "provider",
+                    })}
               </div>
               {providerDraft?.provider_id === "github-models" && (
                 <div className="space-y-2">
@@ -664,7 +699,7 @@ export function SettingsModal({
               )}
               {requiresApiKey && (
                 <div className="text-[10px] text-rose-500 bg-rose-500/10 border border-rose-500/20 rounded-md px-3 py-2">
-                  Setup required: add your {providerLabel} API key to list models and start monitoring.
+                  {t("settings.provider.setupRequired", { provider: providerLabel })}
                 </div>
               )}
               <input
@@ -674,7 +709,7 @@ export function SettingsModal({
                 onFocus={onApiKeyFocus}
                 onChange={(e) => onApiKeyChange(e.target.value)}
                 className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
-                placeholder="Enter your API key"
+                placeholder={t("settings.provider.apiKeyPlaceholder")}
               />
               {apiKeyError && <div className="text-[10px] text-rose-400">{apiKeyError}</div>}
               <div className="flex gap-2">
@@ -683,14 +718,14 @@ export function SettingsModal({
                   disabled={!isDesktop || apiKeySaving}
                   className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
                 >
-                  {apiKeySaving ? "Saving..." : "Save Key"}
+                  {apiKeySaving ? t("common.saving") : t("settings.provider.saveKey")}
                 </button>
                 <button
                   onClick={onClearApiKey}
                   disabled={!isDesktop || apiKeySaving}
                   className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors disabled:opacity-50"
                 >
-                  Clear
+                  {t("common.clear")}
                 </button>
               </div>
             </div>
@@ -702,24 +737,24 @@ export function SettingsModal({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
                 <Database className="w-4 h-4 text-[var(--accent-500)]" />
-                Semantic Embeddings
+                {t("settings.embedding.title")}
               </div>
               <InfoPopover
-                title="Embedding Mode"
-                note="In auto mode, Guardian tries OpenAI only when an OpenAI key exists; otherwise it goes directly to Ollama, then local hash fallback."
+                title={t("settings.embedding.popoverTitle")}
+                note={t("settings.embedding.popoverNote")}
               />
             </div>
             <div className="text-[10px] text-text-muted">
-              Embedding settings are optional. With no OpenAI key, auto mode skips OpenAI and uses Ollama/local fallback.
+              {t("settings.embedding.note")}
             </div>
             <div className="rounded-xl border border-border-main bg-background/40 p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] uppercase tracking-widest text-zinc-500">Mode</label>
+                <label className="text-[10px] uppercase tracking-widest text-zinc-500">{t("settings.embedding.modeLabel")}</label>
                 <button
                   onClick={onRefreshEmbeddingSettings}
                   className="text-[10px] uppercase tracking-widest text-zinc-500 hover:text-text-main transition-colors"
                 >
-                  Refresh Runtime
+                  {t("settings.embedding.refresh")}
                 </button>
               </div>
               <StyledSelect
@@ -727,15 +762,15 @@ export function SettingsModal({
                 value={embeddingDraft?.mode ?? "auto"}
                 onChange={(e) => onEmbeddingModeChange(e.target.value as EmbeddingMode)}
               >
-                <option value="auto">Auto (OpenAI -&gt; Ollama -&gt; Local)</option>
-                <option value="openai">OpenAI Embeddings</option>
-                <option value="ollama">Ollama Local Embeddings</option>
-                <option value="local">Local Hash Only (No Network)</option>
+                <option value="auto">{t("settings.embedding.modeAuto")}</option>
+                <option value="openai">{t("settings.embedding.modeOpenAi")}</option>
+                <option value="ollama">{t("settings.embedding.modeOllama")}</option>
+                <option value="local">{t("settings.embedding.modeLocal")}</option>
               </StyledSelect>
 
               <div className="grid grid-cols-1 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">OpenAI Base URL</label>
+                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">{t("settings.embedding.openAiBaseUrl")}</label>
                   <input
                     disabled={!isDesktop || !embeddingDraft}
                     value={embeddingDraft?.openai_base_url ?? ""}
@@ -745,7 +780,7 @@ export function SettingsModal({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">OpenAI Model</label>
+                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">{t("settings.embedding.openAiModel")}</label>
                   <input
                     disabled={!isDesktop || !embeddingDraft}
                     value={embeddingDraft?.openai_model ?? ""}
@@ -755,7 +790,7 @@ export function SettingsModal({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">Ollama Base URL</label>
+                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">{t("settings.embedding.ollamaBaseUrl")}</label>
                   <input
                     disabled={!isDesktop || !embeddingDraft}
                     value={embeddingDraft?.ollama_base_url ?? ""}
@@ -765,7 +800,7 @@ export function SettingsModal({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">Ollama Model</label>
+                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">{t("settings.embedding.ollamaModel")}</label>
                   <input
                     disabled={!isDesktop || !embeddingDraft}
                     value={embeddingDraft?.ollama_model ?? ""}
@@ -777,7 +812,9 @@ export function SettingsModal({
               </div>
 
               <div className="text-[10px] text-text-muted">
-                Local setup: install Ollama and run <span className="font-mono text-[var(--text-main)]">ollama pull nomic-embed-text</span>.
+                {t("settings.embedding.localSetupNote", {
+                  command: "ollama pull nomic-embed-text",
+                })}
               </div>
 
               {embeddingError && (
@@ -789,7 +826,7 @@ export function SettingsModal({
                 disabled={!isDesktop || embeddingSaving || !embeddingDraft}
                 className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
               >
-                {embeddingSaving ? "Saving..." : "Save Embedding Settings"}
+                {embeddingSaving ? t("common.saving") : t("settings.embedding.saveEmbeddingSettings")}
               </button>
             </div>
 
@@ -797,20 +834,20 @@ export function SettingsModal({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
                   <KeyRound className="w-4 h-4 text-[var(--accent-500)]" />
-                  OpenAI Embedding Key (Optional)
+                  {t("settings.embedding.openAiKeyTitle")}
                 </div>
                 <InfoPopover
-                  title="Optional Key"
-                  note="This key is used only when embedding calls go to OpenAI. Ollama and Local modes work without this key."
+                  title={t("settings.embedding.openAiKeyPopoverTitle")}
+                  note={t("settings.embedding.openAiKeyPopoverNote")}
                 />
               </div>
               <div className="text-[10px] text-text-muted">
-                Used only when embedding mode can call OpenAI. Not required for Ollama/local modes.
+                {t("settings.embedding.openAiKeyNote")}
               </div>
               <div className="text-[10px] text-text-muted">
                 {embeddingOpenAiKeyStatus?.has_key
-                  ? `OpenAI key stored (${embeddingOpenAiKeyStatus.source}).`
-                  : "No OpenAI embedding key stored."}
+                  ? t("settings.embedding.openAiKeyStored", { source: embeddingOpenAiKeyStatus.source })
+                  : t("settings.embedding.openAiKeyMissing")}
               </div>
               <input
                 disabled={!isDesktop}
@@ -819,7 +856,7 @@ export function SettingsModal({
                 onFocus={onEmbeddingOpenAiKeyFocus}
                 onChange={(e) => onEmbeddingOpenAiKeyChange(e.target.value)}
                 className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
-                placeholder="Enter OpenAI key for embeddings"
+                placeholder={t("settings.embedding.openAiKeyPlaceholder")}
               />
               {embeddingOpenAiKeyError && (
                 <div className="text-[10px] text-rose-400">{embeddingOpenAiKeyError}</div>
@@ -835,14 +872,14 @@ export function SettingsModal({
                   }
                   className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
                 >
-                  {embeddingOpenAiKeySaving ? "Saving..." : "Save Key"}
+                  {embeddingOpenAiKeySaving ? t("common.saving") : t("settings.embedding.saveOpenAiKey")}
                 </button>
                 <button
                   onClick={onClearEmbeddingOpenAiKey}
                   disabled={!isDesktop || embeddingOpenAiKeySaving}
                   className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors disabled:opacity-50"
                 >
-                  Clear
+                  {t("settings.embedding.clearOpenAiKey")}
                 </button>
               </div>
             </div>
@@ -854,19 +891,19 @@ export function SettingsModal({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
                 <Search className="w-4 h-4 text-[var(--accent-500)]" />
-                Web Search (Tavily)
+                {t("settings.web.title")}
               </div>
               <InfoPopover
-                title="Web Search"
-                note="Optional internet context via Tavily. Basic depth is recommended for cost control. If your prompt includes a URL, Guru will extract that page directly for higher accuracy."
+                title={t("settings.web.popoverTitle")}
+                note={t("settings.web.popoverNote")}
               />
             </div>
             <div className="text-[10px] text-text-muted">
-              Allow Guru to use Tavily web results when needed. Web search is optional and only used when your prompt suggests external context.
+              {t("settings.web.note")}
             </div>
             <div className="flex items-center justify-between bg-background border border-border-main rounded-lg px-3 py-2">
               <div className="text-[10px] text-text-muted">
-                Web Search: {webSearchEnabled ? "Enabled" : "Disabled"}
+                {t("settings.web.status", { status: webSearchEnabled ? t("common.enabled") : t("common.disabled") })}
               </div>
               <button
                 onClick={onWebSearchToggle}
@@ -877,17 +914,18 @@ export function SettingsModal({
                   !webSearchReady && "opacity-50 cursor-not-allowed"
                 )}
               >
-                {webSearchEnabled ? "On" : "Off"}
+                {webSearchEnabled ? t("common.on") : t("common.off")}
               </button>
             </div>
             <div className="flex items-center justify-between bg-background border border-border-main rounded-lg px-3 py-2">
               <div className="text-[10px] text-text-muted">
-                Search depth: <span className="text-text-main font-semibold">{webSearchDepth}</span>
+                {t("settings.web.searchDepth")}:{" "}
+                <span className="text-text-main font-semibold">{webSearchDepth}</span>
               </div>
               <StyledSelect
                 value={webSearchDepth}
                 onChange={(e) => onWebSearchDepthChange(e.target.value as typeof webSearchDepth)}
-                aria-label="Web Search Depth"
+                aria-label={t("settings.web.depthAria")}
               >
                 <option value="basic">Basic (Default)</option>
                 <option value="advanced">Advanced</option>
@@ -898,13 +936,13 @@ export function SettingsModal({
             </div>
             {!webSearchReady && (
               <div className="text-[10px] text-amber-400">
-                Add your Tavily API key to enable web search.
+                {t("settings.web.tavilyKeyHint")}
               </div>
             )}
             <div className="text-[10px] text-text-muted">
               {tavilyKeyStatus?.has_key
-                ? `Tavily key stored (${tavilyKeyStatus.source}). If macOS prompts every session, choose “Always Allow” for Keychain access.`
-                : "No Tavily key stored. Add your own to enable web search."}
+                ? t("settings.web.keyStored", { source: tavilyKeyStatus.source })
+                : t("settings.web.keyMissing")}
             </div>
             <input
               disabled={!isDesktop}
@@ -913,10 +951,10 @@ export function SettingsModal({
               onFocus={onTavilyKeyFocus}
               onChange={(e) => onTavilyKeyChange(e.target.value)}
               className="w-full bg-background border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
-              placeholder="Enter your Tavily API key"
+              placeholder={t("settings.web.tavilyKeyPlaceholder")}
             />
             {!tavilyKeyInput.trim() && !tavilyKeyMasked && (
-              <div className="text-[10px] text-amber-400">Tavily key is required to save.</div>
+              <div className="text-[10px] text-amber-400">{t("settings.web.keyRequired")}</div>
             )}
             {tavilyKeyError && <div className="text-[10px] text-rose-400">{tavilyKeyError}</div>}
             <div className="flex gap-2">
@@ -925,14 +963,14 @@ export function SettingsModal({
                 disabled={!isDesktop || tavilyKeySaving || !tavilyKeyInput.trim() || (tavilyKeyMasked && tavilyKeyInput === API_KEY_MASK)}
                 className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
               >
-                {tavilyKeySaving ? "Saving..." : "Save Key"}
+                {tavilyKeySaving ? t("common.saving") : t("settings.web.saveKey")}
               </button>
               <button
                 onClick={onClearTavilyKey}
                 disabled={!isDesktop || tavilyKeySaving}
                 className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors disabled:opacity-50"
               >
-                Clear
+                {t("common.clear")}
               </button>
             </div>
           </div>
@@ -942,15 +980,15 @@ export function SettingsModal({
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
               <RefreshCw className="w-4 h-4 text-[var(--accent-500)]" />
-              Updates
+              {t("settings.updates.title")}
             </div>
             <div className="text-[10px] text-text-muted">
-              Updates are delivered from GitHub Releases and installed in-app.
+              {t("settings.updates.note")}
             </div>
             <div className="flex flex-wrap items-center gap-3 text-[10px] text-text-muted">
-              <span>Current: {currentVersionLabel}</span>
-              <span>Latest: {latestVersionLabel}</span>
-              <span>Last check: {lastCheckLabel}</span>
+              <span>{t("settings.updates.current")}: {currentVersionLabel}</span>
+              <span>{t("settings.updates.latest")}: {latestVersionLabel}</span>
+              <span>{t("settings.updates.lastCheck")}: {lastCheckLabel}</span>
               <span className="px-2 py-0.5 rounded-full bg-white/10 text-[9px] uppercase tracking-widest text-text-main">
                 {updateStatusLabel}
               </span>
@@ -961,7 +999,7 @@ export function SettingsModal({
                 className="flex items-center gap-2 text-[10px] text-[var(--accent-500)] hover:text-[var(--accent-400)] transition-colors"
               >
                 <ExternalLink className="w-3 h-3" />
-                <span className="underline">View changelog on website</span>
+                <span className="underline">{t("settings.updates.viewChangelog")}</span>
               </button>
             )}
             <div className="flex flex-wrap gap-2">
@@ -970,7 +1008,7 @@ export function SettingsModal({
                 disabled={!isDesktop || updateChecking}
                 className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-text-main rounded-md transition-colors disabled:opacity-50"
               >
-                {updateChecking ? "Checking..." : "Check Now"}
+                {updateChecking ? t("settings.updates.checking") : t("settings.updates.checkNow")}
               </button>
               {updateInfo?.status === "available" && (
                 <button
@@ -978,7 +1016,7 @@ export function SettingsModal({
                   disabled={!isDesktop || updateInstalling}
                   className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
                 >
-                  {updateInstalling ? "Updating..." : "Install Update"}
+                  {updateInstalling ? t("settings.updates.updating") : t("settings.updates.installUpdate")}
                 </button>
               )}
             </div>
@@ -986,10 +1024,10 @@ export function SettingsModal({
 
             <div className="pt-4 border-t border-border-main space-y-2">
               <div className="text-xs font-bold uppercase tracking-widest text-zinc-500">
-                About
+                {t("settings.updates.aboutTitle")}
               </div>
               <div className="text-[10px] text-text-muted bg-white/5 border border-border-main rounded-lg px-3 py-2">
-                Built by <span className="text-text-main font-semibold">Senol Dogan</span>.
+                {t("settings.updates.builtBy", { name: "Senol Dogan" })}
               </div>
               <div className="flex flex-wrap gap-3 text-[10px]">
                 <button
@@ -1006,7 +1044,7 @@ export function SettingsModal({
                   className="flex items-center gap-2 text-[10px] text-[var(--accent-500)] hover:text-[var(--accent-400)] transition-colors"
                 >
                   <ExternalLink className="w-3 h-3" />
-                  <span className="underline">Feedback / Suggestions / Bug Reports</span>
+                  <span className="underline">{t("settings.updates.feedback")}</span>
                 </button>
               </div>
             </div>
@@ -1017,23 +1055,23 @@ export function SettingsModal({
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
               <Download className="w-4 h-4 text-[var(--accent-500)]" />
-              Export
+              {t("settings.export.title")}
             </div>
             <div className="text-[10px] text-text-muted bg-white/5 border border-border-main rounded-lg px-3 py-2">
-              Export creates a PDF snapshot of the current workspace status, issues, and monitoring summary for sharing or archiving.
+              {t("settings.export.note")}
             </div>
             <button
               onClick={onExportPDF}
               disabled={exportPdfInProgress}
               className="w-full px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:opacity-60"
             >
-              {exportPdfInProgress ? "Exporting..." : "Export PDF"}
+              {exportPdfInProgress ? t("settings.export.exporting") : t("settings.export.exportPdf")}
             </button>
             {exportPdfInProgress && (
               <div className="rounded-lg border border-border-main bg-white/5 px-3 py-2 text-[10px] text-text-muted flex items-center gap-2">
                 <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent-500)] shrink-0" />
                 <span className="transition-opacity duration-300">
-                  {EXPORT_STATUS_MESSAGES[exportStatusMessageIndex]}
+                  {exportStatusMessages[exportStatusMessageIndex]}
                 </span>
               </div>
             )}

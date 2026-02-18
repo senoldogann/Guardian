@@ -723,16 +723,18 @@ JSON MODE:
         &self,
         batch: Vec<(String, String)>,
     ) -> Result<AiCall<Vec<Critique>>> {
-        self.analyze_batch_with_intent(None, batch).await
+        self.analyze_batch_with_intent(None, "en", batch).await
     }
 
     pub async fn analyze_batch_with_intent(
         &self,
         project_intent_pack: Option<&str>,
+        language: &str,
         batch: Vec<(String, String)>,
     ) -> Result<AiCall<Vec<Critique>>> {
         self.ensure_valid_api_key()?;
-        let system_prompt = r#"You are 'Guardian', a high-authority Senior Software Architect.
+        let mut system_prompt = String::from(
+            r#"You are 'Guardian', a high-authority Senior Software Architect.
 Your mission is to audit multiple files simultaneously for 'AI Smell', security risks, and architectural flaws.
 
 GUIDELINES:
@@ -753,7 +755,20 @@ JSON ARRAY MODE:
     "chat_message": "Warning.",
     "suggested_diff": "FULL file content only (no diff markers, no markdown)."
   }
-]"#;
+]"#,
+        );
+
+        let language_name = if language.trim().eq_ignore_ascii_case("tr") {
+            "Turkish"
+        } else {
+            "English"
+        };
+        system_prompt.push_str("\n\nLANGUAGE:\n");
+        system_prompt.push_str("- Write `message`, `suggestion`, and `chat_message` in ");
+        system_prompt.push_str(language_name);
+        system_prompt.push_str(".\n");
+        system_prompt.push_str("- Keep `severity` strictly as: Info | Warning | Critical (English tokens only).\n");
+        system_prompt.push_str("- Do not translate code, file paths, or identifiers.\n");
 
         let mut user_prompt = String::from("Batch Analysis Request:\n\n");
         if let Some(pack) = project_intent_pack {
@@ -774,7 +789,7 @@ JSON ARRAY MODE:
         }
 
         let response = self
-            .send_chat(system_prompt, &user_prompt, true, AiRequestClass::Audit)
+            .send_chat(&system_prompt, &user_prompt, true, AiRequestClass::Audit)
             .await?;
         let queue_wait_ms = response.queue_wait_ms;
         let content_str = response.value;
@@ -860,9 +875,14 @@ JSON ARRAY MODE:
         })
     }
 
-    pub async fn ask_question(&self, context: &str, query: &str) -> Result<AiCall<String>> {
+    pub async fn ask_question(
+        &self,
+        context: &str,
+        query: &str,
+        language: &str,
+    ) -> Result<AiCall<String>> {
         self.ensure_valid_api_key()?;
-        let system_prompt = "You are 'Guardian Guru', the Senior Software Architect for the Guardian desktop agent + cloud control panel.\n\
+        let mut system_prompt = String::from("You are 'Guardian Guru', the Senior Software Architect for the Guardian desktop agent + cloud control panel.\n\
     Your goal is to deliver high-leverage, actionable guidance using ONLY the provided project context.\n\
     \n\
     PROJECT CONSTRAINTS:\n\
@@ -878,11 +898,20 @@ JSON ARRAY MODE:
     4. ACCURACY: Do not invent file contents. If the file is outside the provided workspace or not present, say so explicitly and ask the user to select the correct workspace or provide the file.\n\
        If using general knowledge, prefix with: 'Based on general best practices...'.\n\
     5. ACTIONABILITY: When proposing a code change, include a minimal patch/diff. If the user explicitly asks for FULL updated file content only, comply with that format.\n\
-    6. BREVITY: Be concise. Focus on the fix and the rationale.";
+    6. BREVITY: Be concise. Focus on the fix and the rationale.");
+
+        let language_name = if language.trim().eq_ignore_ascii_case("tr") {
+            "Turkish"
+        } else {
+            "English"
+        };
+        system_prompt.push_str("\n\nLANGUAGE:\n- Respond in ");
+        system_prompt.push_str(language_name);
+        system_prompt.push_str(". Do not translate code, file paths, or identifiers.\n");
 
         let user_prompt = format!("Context:\n{}\n\nQuestion: {}", context, query);
 
-        self.send_chat(system_prompt, &user_prompt, false, AiRequestClass::Guru)
+        self.send_chat(&system_prompt, &user_prompt, false, AiRequestClass::Guru)
             .await
     }
 }

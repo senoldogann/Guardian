@@ -1,6 +1,7 @@
 import { useRef, type ReactElement } from "react";
 import { ShieldAlert } from "lucide-react";
 import { useFocusTrap } from "../hooks/useFocusTrap";
+import { useI18n } from "../i18n";
 
 export interface StallOverlayProps {
   stalled: { file: string; reason: string } | null;
@@ -10,6 +11,7 @@ export interface StallOverlayProps {
 }
 
 export function StallOverlay({ stalled, open, onResolve, onDismiss }: StallOverlayProps): ReactElement | null {
+  const { t } = useI18n();
   const modalRef = useRef<HTMLDivElement | null>(null);
   const resolveButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -21,6 +23,7 @@ export function StallOverlay({ stalled, open, onResolve, onDismiss }: StallOverl
   });
 
   if (!stalled || !open) return null;
+  const fileName = stalled.file.split("/").pop() || stalled.file;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center">
@@ -37,12 +40,13 @@ export function StallOverlay({ stalled, open, onResolve, onDismiss }: StallOverl
             id="guardian-stall-title"
             className="text-lg font-black uppercase tracking-widest text-text-main"
           >
-            Critical Stall
+            {t("stall.title")}
           </h2>
         </div>
         <p className="text-sm text-text-muted leading-relaxed">
-          Critical violation detected in <span className="font-bold break-all">{stalled.file.split('/').pop()}</span>.
-          Real-time monitoring is paused for safety. Resolve the issue in Guru to continue.
+          {t("stall.notePrefix")}{" "}
+          <span className="font-bold break-all">{fileName}</span>.{" "}
+          {t("stall.noteSuffix")}
         </p>
         <p className="text-xs text-text-muted/70 mt-2 break-all">
           {stalled.file}
@@ -55,13 +59,13 @@ export function StallOverlay({ stalled, open, onResolve, onDismiss }: StallOverl
             className="px-4 py-2 bg-[var(--accent-500)] hover:opacity-90 text-background font-bold rounded-lg text-xs uppercase tracking-widest transition-colors"
             ref={resolveButtonRef}
           >
-            Resolve In Guru
+            {t("stall.resolve")}
           </button>
           <button
             onClick={onDismiss}
             className="px-4 py-2 bg-[var(--accent-200)] hover:opacity-90 text-text-main font-bold rounded-lg text-xs uppercase tracking-widest transition-colors"
           >
-            Dismiss
+            {t("stall.dismiss")}
           </button>
         </div>
       </div>
