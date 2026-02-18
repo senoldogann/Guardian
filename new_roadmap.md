@@ -1573,6 +1573,7 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
     - Settings modal açılışında default tab `General` olacak şekilde ayarlandı.
     - Provider > Model “Refresh” aksiyonunda toast success/error feedback eklendi.
     - Header “Logout” ve Updates/Export terminolojisi TR’ye çevrildi (status badge dahil).
+    - `useFocusTrap` stabilize edildi (callback identity değişimlerinde focus ping-pong önlendi). TR dil seçimi sonrası görülen “titreme”/flicker semptomlarını azaltır.
 - Backend (Tauri):
   - `start_monitoring` ve `ask_guru` çağrılarına `language` eklendi.
   - AI prompt'larına dil yönlendirmesi eklendi (seviyeler `Critical/Warning/Info` sabit kaldı).
@@ -1588,18 +1589,19 @@ Phase 0 + Phase 1 (Baseline) ile başla. Bu bile Guardian'ı çok daha kullanıl
     - Header language toggle globe + `EN/TR` şeklinde yenilendi.
     - Cookie banner iç linki locale-aware `Link` ile düzeltildi (Vercel/Next lint uyumu).
     - Docs: workspace içinde üretilen `.guardian/*` dosya listesi genişletildi.
+    - Website package version `1.2.3` ile senkronlandı.
 
 ### Doğrulama
 - Desktop:
-  - `cd guardian && npm run verify` (PASS)
+  - `cd guardian && npm run verify` (PASS, 64 test + 17 e2e)
   - `cd guardian && python3 .agent/scripts/verify_all.py` (PASS)
 - Tauri:
-  - `cd guardian/src-tauri && cargo test` (PASS)
+  - `cd guardian/src-tauri && cargo test` (PASS, 81 test)
 - CLI:
-  - `cd guardian/guardian-cli && cargo test` (PASS)
+  - `cd guardian/guardian-cli && cargo test` (PASS, 13 test)
 - Website:
+  - `cd guardian/website && npm run test:run` (PASS, 107 test)
   - `cd guardian/website && npm run build` (PASS)
-  - `cd guardian/website && npm run test:run` (PASS)
 
 ---
 

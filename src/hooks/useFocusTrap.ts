@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 type FocusTrapOptions = {
   active: boolean;
@@ -37,6 +37,17 @@ export function useFocusTrap({
   onEscape,
   initialFocusRef,
 }: FocusTrapOptions): void {
+  const onEscapeRef = useRef<FocusTrapOptions["onEscape"]>(onEscape);
+  const initialFocusRefRef = useRef<FocusTrapOptions["initialFocusRef"]>(initialFocusRef);
+
+  useEffect(() => {
+    onEscapeRef.current = onEscape;
+  }, [onEscape]);
+
+  useEffect(() => {
+    initialFocusRefRef.current = initialFocusRef;
+  }, [initialFocusRef]);
+
   useEffect(() => {
     if (!active) return;
     const container = containerRef.current;
@@ -46,7 +57,8 @@ export function useFocusTrap({
       (document.activeElement instanceof HTMLElement ? document.activeElement : null) ?? null;
 
     // Initial focus: prefer the provided ref, otherwise first focusable in modal.
-    const initialTarget = initialFocusRef?.current ?? getFocusable(container)[0] ?? null;
+    const initialTarget =
+      initialFocusRefRef.current?.current ?? getFocusable(container)[0] ?? null;
     if (initialTarget) {
       initialTarget.focus();
     }
@@ -54,9 +66,9 @@ export function useFocusTrap({
     const onKeyDown = (event: KeyboardEvent) => {
       if (!containerRef.current) return;
 
-      if (event.key === "Escape" && onEscape) {
+      if (event.key === "Escape" && onEscapeRef.current) {
         event.preventDefault();
-        onEscape();
+        onEscapeRef.current();
         return;
       }
 
@@ -96,6 +108,5 @@ export function useFocusTrap({
         prevFocus.focus();
       }
     };
-  }, [active, containerRef, onEscape, initialFocusRef]);
+  }, [active, containerRef]);
 }
-
