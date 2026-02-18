@@ -1080,6 +1080,19 @@ function isLocale(value: unknown): value is AppLocale {
   return typeof value === "string" && (SUPPORTED_LOCALES as readonly string[]).includes(value);
 }
 
+const serializeLocale = (value: AppLocale): string => JSON.stringify(value);
+
+function deserializeLocale(raw: string): AppLocale {
+  try {
+    const parsed = JSON.parse(raw);
+    if (isLocale(parsed)) return parsed;
+  } catch {
+    // Ignore and fall through.
+  }
+  const trimmed = raw.trim().replace(/^"|"$/g, "");
+  return isLocale(trimmed) ? trimmed : DEFAULT_LOCALE;
+}
+
 function getPathValue(messages: Messages, key: string): unknown {
   const parts = key.split(".");
   let current: unknown = messages;
@@ -1123,17 +1136,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     STORAGE_KEYS.LANGUAGE,
     DEFAULT_LOCALE,
     {
-      deserialize: (raw) => {
-        try {
-          const parsed = JSON.parse(raw);
-          if (isLocale(parsed)) return parsed;
-        } catch {
-          // Ignore and fall through.
-        }
-        const trimmed = raw.trim().replace(/^"|"$/g, "");
-        return isLocale(trimmed) ? trimmed : DEFAULT_LOCALE;
-      },
-      serialize: (value) => JSON.stringify(value),
+      deserialize: deserializeLocale,
+      serialize: serializeLocale,
     }
   );
 
