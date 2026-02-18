@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, type ChangeEvent, type FormEvent } from "react";
+import { useState, useRef, type ChangeEvent, type FormEvent, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Send,
@@ -15,15 +15,89 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { Locale } from "@/lib/locale";
 
-const SUBJECT_OPTIONS = [
-    { id: "improvement", label: "Suggestion / Improvement", icon: Lightbulb, subjectPrefix: "Suggestion: " },
-    { id: "bug", label: "Bug Report", icon: Bug, subjectPrefix: "Bug Report: " },
-    { id: "collab", label: "Collaboration / Business", icon: Handshake, subjectPrefix: "Business: " },
-    { id: "other", label: "General Inquiry", icon: MessageSquare, subjectPrefix: "Inquiry: " },
-];
+type SubjectOption = {
+    id: "improvement" | "bug" | "collab" | "other";
+    label: string;
+    icon: typeof Lightbulb;
+    subjectPrefix: string;
+};
 
-export function ContactForm() {
+const SUBJECT_SUFFIX: Record<Locale, string> = {
+    en: "Guardian Feedback",
+    tr: "Guardian Geri Bildirim",
+};
+
+const COPY: Record<
+    Locale,
+    {
+        topicLabel: string;
+        messageLabel: string;
+        messagePlaceholder: string;
+        attachmentsLabel: string;
+        optional: string;
+        attachFiles: string;
+        attachmentNote: string;
+        submit: string;
+        openingClient: string;
+        warningTitle: string;
+        warningBody: (count: number) => string;
+    }
+> = {
+    en: {
+        topicLabel: "What can we help you with?",
+        messageLabel: "Your Message",
+        messagePlaceholder: "Tell us more about it...",
+        attachmentsLabel: "Attachments",
+        optional: "Optional",
+        attachFiles: "Attach Files",
+        attachmentNote:
+            "Browser security prevents automatic file attachment. You'll need to drag files into the email manually.",
+        submit: "Send Message",
+        openingClient: "Opening Mail Client...",
+        warningTitle: "Almost done!",
+        warningBody: (count) =>
+            `Your email client has been opened with the message.\nPlease drag your selected ${count} file(s) into the email manually.`,
+    },
+    tr: {
+        topicLabel: "Size nasıl yardımcı olabiliriz?",
+        messageLabel: "Mesajınız",
+        messagePlaceholder: "Detayları paylaşın...",
+        attachmentsLabel: "Ekler",
+        optional: "İsteğe bağlı",
+        attachFiles: "Dosya Ekle",
+        attachmentNote:
+            "Tarayıcı güvenliği nedeniyle dosyalar otomatik eklenemez. Seçtiğiniz dosyaları e-postaya manuel olarak sürükleyip bırakmanız gerekir.",
+        submit: "Mesaj Gönder",
+        openingClient: "E-posta uygulaması açılıyor...",
+        warningTitle: "Neredeyse bitti!",
+        warningBody: (count) =>
+            `E-posta uygulamanız mesajla birlikte açıldı.\nLütfen seçtiğiniz ${count} dosyayı e-postaya manuel olarak sürükleyip bırakın.`,
+    },
+};
+
+function buildSubjectOptions(locale: Locale): SubjectOption[] {
+    if (locale === "tr") {
+        return [
+            { id: "improvement", label: "Öneri / İyileştirme", icon: Lightbulb, subjectPrefix: "Öneri: " },
+            { id: "bug", label: "Hata Bildirimi", icon: Bug, subjectPrefix: "Hata: " },
+            { id: "collab", label: "İşbirliği / İş", icon: Handshake, subjectPrefix: "İş: " },
+            { id: "other", label: "Genel Soru", icon: MessageSquare, subjectPrefix: "Soru: " },
+        ];
+    }
+
+    return [
+        { id: "improvement", label: "Suggestion / Improvement", icon: Lightbulb, subjectPrefix: "Suggestion: " },
+        { id: "bug", label: "Bug Report", icon: Bug, subjectPrefix: "Bug Report: " },
+        { id: "collab", label: "Collaboration / Business", icon: Handshake, subjectPrefix: "Business: " },
+        { id: "other", label: "General Inquiry", icon: MessageSquare, subjectPrefix: "Inquiry: " },
+    ];
+}
+
+export function ContactForm({ locale }: { locale: Locale }) {
+    const copy = COPY[locale] ?? COPY.en;
+    const subjectOptions = useMemo(() => buildSubjectOptions(locale), [locale]);
     const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
     const [message, setMessage] = useState("");
     const [files, setFiles] = useState<File[]>([]);
@@ -50,9 +124,9 @@ export function ContactForm() {
         // Mimic loading for better UX
         await new Promise(resolve => setTimeout(resolve, 800));
 
-        const topic = SUBJECT_OPTIONS.find(t => t.id === selectedTopic);
-        const subjectPrefix = topic?.subjectPrefix ?? "Message: ";
-        const subject = `${subjectPrefix}Guardian Feedback`;
+        const topic = subjectOptions.find(t => t.id === selectedTopic);
+        const subjectPrefix = topic?.subjectPrefix ?? (locale === "tr" ? "Mesaj: " : "Message: ");
+        const subject = `${subjectPrefix}${SUBJECT_SUFFIX[locale] ?? SUBJECT_SUFFIX.en}`;
 
         // Prepare mailto link
         const mailtoLink = `mailto:contact@senoldogan.dev?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
@@ -73,10 +147,10 @@ export function ContactForm() {
             {/* Topic Selection */}
             <div className="space-y-3">
                 <label className="text-sm font-medium text-zinc-900 dark:text-zinc-100" id="contact-topic-label">
-                    What can we help you with?
+                    {copy.topicLabel}
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup" aria-labelledby="contact-topic-label">
-                    {SUBJECT_OPTIONS.map((option) => (
+                    {subjectOptions.map((option) => (
                         <button
                             key={option.id}
                             type="button"
@@ -115,7 +189,7 @@ export function ContactForm() {
             {/* Message Input */}
             <div className="space-y-3">
                 <label className="text-sm font-medium text-zinc-900 dark:text-zinc-100" htmlFor="contact-message">
-                    Your Message
+                    {copy.messageLabel}
                 </label>
                 <textarea
                     id="contact-message"
@@ -123,7 +197,7 @@ export function ContactForm() {
                     onChange={(e) => setMessage(e.target.value)}
                     required
                     rows={6}
-                    placeholder="Tell us more about it..."
+                    placeholder={copy.messagePlaceholder}
                     className="w-full p-4 rounded-xl bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white focus:border-transparent transition-all resize-none text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400"
                 />
             </div>
@@ -132,10 +206,10 @@ export function ContactForm() {
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
                     <label className="text-sm font-medium text-zinc-900 dark:text-zinc-100" htmlFor="contact-attachments">
-                        Attachments
+                        {copy.attachmentsLabel}
                     </label>
                     <span className="text-xs text-zinc-500">
-                        Optional
+                        {copy.optional}
                     </span>
                 </div>
 
@@ -147,7 +221,7 @@ export function ContactForm() {
                         className="gap-2 border-dashed border-neutral-400 dark:border-neutral-500 text-neutral-700 dark:text-neutral-200 bg-white dark:bg-neutral-900 hover:bg-neutral-100 dark:hover:bg-neutral-800 hover:text-neutral-900 dark:hover:text-white hover:border-neutral-500 dark:hover:border-neutral-400 transition-colors"
                     >
                         <Paperclip className="w-4 h-4" aria-hidden="true" />
-                        Attach Files
+                        {copy.attachFiles}
                     </Button>
                     <input
                         ref={fileInputRef}
@@ -186,7 +260,7 @@ export function ContactForm() {
                 {/* Technical Limitation Note */}
                 <p className="text-xs text-zinc-400 flex items-center gap-1.5 mt-2">
                     <AlertCircle className="w-3.5 h-3.5" aria-hidden="true" />
-                    Browser security prevents automatic file attachment. You&apos;ll need to drag files into the email manually.
+                    {copy.attachmentNote}
                 </p>
             </div>
 
@@ -201,12 +275,12 @@ export function ContactForm() {
                 {isSending ? (
                     <>
                         <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
-                        Opening Mail Client...
+                        {copy.openingClient}
                     </>
                 ) : (
                     <>
                         <Send className="w-5 h-5" aria-hidden="true" />
-                        Send Message
+                        {copy.submit}
                     </>
                 )}
             </Button>
@@ -223,13 +297,10 @@ export function ContactForm() {
                         <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
                         <div className="space-y-1">
                             <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-                                Almost done!
+                                {copy.warningTitle}
                             </h4>
-                            <p className="text-sm text-amber-700 dark:text-amber-400/90 leading-relaxed">
-                                Your email client has been opened with the message.
-                                <span className="font-semibold block mt-1">
-                                    Please drag your selected {files.length} file(s) into the email manually.
-                                </span>
+                            <p className="text-sm text-amber-700 dark:text-amber-400/90 leading-relaxed whitespace-pre-line">
+                                {copy.warningBody(files.length)}
                             </p>
                         </div>
                         <button

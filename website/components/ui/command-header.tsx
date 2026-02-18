@@ -14,6 +14,7 @@ import {
     Sparkles,
     Mail,
     HelpCircle,
+    Globe,
 } from "lucide-react";
 
 import { DirectDownloadButton } from "./direct-download-button";
@@ -148,18 +149,39 @@ export function CommandHeader({ dict, locale }: { dict: SiteDictionary; locale: 
                     </div>
 
                     {/* Language Toggle */}
-                    <div className="hidden sm:block" role="group" aria-label={dict.language.label}>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                const next = swapLocaleInPath(pathname || withLocale(locale, "/"), locale === "en" ? "tr" : "en");
-                                router.push(next);
-                            }}
-                            className="min-h-10 rounded-full border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/10 px-3 py-2 text-xs font-semibold text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/20 transition-colors"
-                            title={dict.language.label}
-                        >
-                            {locale === "en" ? dict.language.turkish : dict.language.english}
-                        </button>
+                    <div
+                        className="hidden sm:flex items-center gap-1 rounded-full border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/10 px-2 py-1"
+                        role="group"
+                        aria-label={dict.language.label}
+                        title={dict.language.label}
+                    >
+                        <Globe className="w-4 h-4 text-zinc-600 dark:text-zinc-300" aria-hidden="true" />
+                        {(["en", "tr"] as const).map((target) => {
+                            const active = locale === target;
+                            return (
+                                <button
+                                    key={target}
+                                    type="button"
+                                    onClick={() => {
+                                        if (active) return;
+                                        const next = swapLocaleInPath(
+                                            pathname || withLocale(locale, "/"),
+                                            target
+                                        );
+                                        router.push(next);
+                                    }}
+                                    aria-pressed={active}
+                                    className={cn(
+                                        "min-h-9 px-3 py-1 rounded-full text-xs font-bold tracking-widest transition-colors",
+                                        active
+                                            ? "bg-black/10 dark:bg-white/20 text-black dark:text-white"
+                                            : "text-zinc-600 dark:text-zinc-300 hover:bg-black/10 dark:hover:bg-white/20"
+                                    )}
+                                >
+                                    {target.toUpperCase()}
+                                </button>
+                            );
+                        })}
                     </div>
 
                     {/* Mobile Menu Toggle */}
@@ -214,17 +236,45 @@ export function CommandHeader({ dict, locale }: { dict: SiteDictionary; locale: 
                                 <ThemeToggle dict={dict} />
                             </div>
                             <div className="px-4 py-3">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        const next = swapLocaleInPath(pathname || withLocale(locale, "/"), locale === "en" ? "tr" : "en");
-                                        setIsOpen(false);
-                                        router.push(next);
-                                    }}
-                                    className="w-full rounded-xl border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/10 px-4 py-3 text-sm font-semibold text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/20 transition-colors"
-                                >
-                                    {dict.language.label}: {locale === "en" ? dict.language.turkish : dict.language.english}
-                                </button>
+                                <div className="flex items-center justify-between gap-3">
+                                    <span className="text-sm font-semibold text-black dark:text-white">
+                                        {dict.language.label}
+                                    </span>
+                                    <div
+                                        className="flex items-center gap-1 rounded-full border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/10 px-2 py-1"
+                                        role="group"
+                                        aria-label={dict.language.label}
+                                    >
+                                        <Globe className="w-4 h-4 text-zinc-600 dark:text-zinc-300" aria-hidden="true" />
+                                        {(["en", "tr"] as const).map((target) => {
+                                            const active = locale === target;
+                                            return (
+                                                <button
+                                                    key={target}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (active) return;
+                                                        const next = swapLocaleInPath(
+                                                            pathname || withLocale(locale, "/"),
+                                                            target
+                                                        );
+                                                        setIsOpen(false);
+                                                        router.push(next);
+                                                    }}
+                                                    aria-pressed={active}
+                                                    className={cn(
+                                                        "min-h-9 px-3 py-1 rounded-full text-xs font-bold tracking-widest transition-colors",
+                                                        active
+                                                            ? "bg-black/10 dark:bg-white/20 text-black dark:text-white"
+                                                            : "text-zinc-600 dark:text-zinc-300 hover:bg-black/10 dark:hover:bg-white/20"
+                                                    )}
+                                                >
+                                                    {target.toUpperCase()}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             </div>
                         </nav>
                     </motion.div>

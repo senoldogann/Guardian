@@ -120,10 +120,9 @@ export default async function ContactPage({ params }: Props) {
 
         <div className="bg-white dark:bg-zinc-900/20 p-8 md:p-10 rounded-[2.5rem] border border-zinc-200 dark:border-zinc-800 shadow-xl shadow-zinc-200/50 dark:shadow-none lg:sticky lg:top-32 h-fit">
           <h2 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100 mb-8">{formTitle}</h2>
-          <ContactForm />
+          <ContactForm locale={locale} />
         </div>
       </div>
     </div>
   );
 }
-

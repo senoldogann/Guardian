@@ -1,13 +1,35 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Shield } from "lucide-react";
 import { useCookieConsent } from "@/lib/cookie-consent";
 import { Button } from "@/components/ui/button";
 import { CookieSettingsModal } from "./CookieSettingsModal";
+import { withLocale } from "@/lib/locale";
 
 export function CookieBanner() {
     const { showBanner, acceptAll, openSettings } = useCookieConsent();
+    const pathname = usePathname() || "/en";
+    const locale = pathname.startsWith("/tr") ? "tr" : "en";
+    const privacyHref = withLocale(locale, "/privacy-policy");
+    const copy =
+        locale === "tr"
+            ? {
+                title: "Çerez Gizliliği",
+                description: "Cihazınızda yalnızca temel tercihleri saklıyoruz (ör. tema seçimi).",
+                privacy: "Gizlilik Politikası",
+                preferences: "Tercihler",
+                gotIt: "Anladım",
+            }
+            : {
+                title: "Cookie Privacy",
+                description: "We only store essential preferences on your device, like your theme choice.",
+                privacy: "Privacy Policy",
+                preferences: "Preferences",
+                gotIt: "Got it",
+            };
 
     return (
         <>
@@ -30,12 +52,20 @@ export function CookieBanner() {
                             <div className="space-y-2 max-w-2xl">
                                 <h3 id="cookie-banner-title" className="font-bold text-lg text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
                                     <Shield className="w-5 h-5" aria-hidden="true" />
-                                    Cookie Privacy
+                                    {copy.title}
                                 </h3>
                                 <p id="cookie-banner-description" className="text-zinc-600 dark:text-zinc-400 leading-relaxed text-sm md:text-base">
-                                    We only store essential preferences on your device, like your theme choice.
-                                    Learn more in our
-                                    <a href="/privacy-policy" className="text-black dark:text-white underline mx-1 font-medium hover:opacity-80 transition-opacity">Privacy Policy</a>.
+                                    {copy.description}{" "}
+                                    <span className="whitespace-nowrap">
+                                        <span className="mr-1">{locale === "tr" ? "Detaylar:" : "Learn more:"}</span>
+                                        <Link
+                                            href={privacyHref}
+                                            className="text-black dark:text-white underline font-medium hover:opacity-80 transition-opacity"
+                                        >
+                                            {copy.privacy}
+                                        </Link>
+                                        .
+                                    </span>
                                 </p>
                             </div>
 
@@ -44,13 +74,13 @@ export function CookieBanner() {
                                     onClick={openSettings}
                                     className="text-sm font-medium text-zinc-500 hover:text-black dark:hover:text-white underline px-2 py-2 transition-colors"
                                 >
-                                    Preferences
+                                    {copy.preferences}
                                 </button>
                                 <Button
                                     onClick={acceptAll}
                                     className="w-full sm:w-auto bg-black text-white dark:bg-white dark:text-black rounded-xl h-11 px-8 hover:bg-zinc-800 dark:hover:bg-zinc-200 font-medium shadow-lg shadow-zinc-200 dark:shadow-none transition-all"
                                 >
-                                    Got it
+                                    {copy.gotIt}
                                 </Button>
                             </div>
                         </div>
