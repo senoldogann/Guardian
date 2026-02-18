@@ -81,11 +81,10 @@ Guardian arayüzü dört ana bölümden oluşur:
 - [Yapılandırma](/docs/configuration) - Ayarlar ve guardian.lock
 - [Güvenlik](/docs/security) - Güvenlik modeli
 
-## v1.2.2'de neler yeni?
+## v1.2.3'te neler yeni?
 
-v1.2.2, kaliteyi düşürmeden daha iyi maliyet kontrolü ve izleme sırasında daha akıcı etkileşimler üzerine odaklanır.
+v1.2.3, desktop uygulama ve web sitesi genelinde tam EN/TR deneyimine odaklanır. AI çıktıları (Guru + Monitor) seçtiğiniz dile göre gelir.
 
-- **Scan scope profilleri**: `Source` (varsayılan), `Extended` veya `Full` seçerek izleme sırasında hangi dosyaların değerlendirileceğini kontrol edin.
-- **Adaptive AI queue**: Monitor taramaları ve Guru istekleri adil bir şekilde kuyruklanır; aktif tarama varken bile Guru daha responsif kalır.
-- **Web search iyileştirmeleri (Tavily)**: Sorunuz bir URL içeriyorsa, Guru daha iyi bağlam için URL extraction kullanır. Search depth, Settings'ten ayarlanabilir.
-- **Full vs Extended görünürlük**: `Full`, `Extended`'dan daha fazla warning (ve anlamlı info) yüzeye çıkarmak için tasarlanmıştır.
+- **EN/TR arayüz dili**: Dili Settings’ten değiştirin. Monitor, Guru, AI Context, Reviews ve Settings metinleri güncellenir.
+- **Dile göre AI çıktısı**: Guru cevapları ve Monitor bulguları seçilen dilde istenir (severity değerleri doğrulama için sabittir).
+- **SEO locale URL’leri**: Dokümantasyon ve sayfalar `/en/...` ve `/tr/...` altında; header’da dünya ikonuyla seçim yapılır.

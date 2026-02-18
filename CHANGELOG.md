@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.3] - Quality-First: Faster Scans + Project-Aware Audits + One-Click Fixes
 
-Published: TBD
+Published: Feb 18, 2026
 
 ### Highlights
 - Full EN/TR localization: Desktop + website UI now support English and Turkish. Guru + Monitor AI outputs follow your selected language (severity tokens remain stable).
