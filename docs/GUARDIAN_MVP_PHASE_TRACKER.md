@@ -80,6 +80,8 @@ Governance Workspace: `/Users/dogan/Desktop/guardian`
 - [x] Website copy consistency gate'i tum EN/TR docs + home section dosyalarini kapsayacak sekilde genisletildi.
 - [x] Cross-platform release workflow hardening tamamlandi: Windows + macOS artifact build, merged publish ve CHANGELOG tabanli release-note sync (`.github/workflows/release-windows.yml`).
 - [x] Local release orchestrator guclendirildi: GH token auto-resolve + macOS signing identity preflight + optional unsigned local dry-run path (`scripts/release_all_local.sh`).
+- [x] `guardian-distribution` `v1.2.4` release'i yayinlandi (macOS + Windows installer assets + `latest.json` + `releases.json` + CHANGELOG release notes).
+- [x] Publish workflow root-cause notu: `PUBLIC_DIST_REPO_TOKEN` CI secret'i gecersiz; artifact build basarili, distribution publish lokal gecerli token ile tamamlandi.
 
 ## Reality Check (2026-03-15)
 - [x] Tracker'da listelenen Faz 4/5 script artefaktlari workspace'e geri eklendi ve smoke testleri gecti.
