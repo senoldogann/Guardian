@@ -41,7 +41,13 @@ export type SiteDictionary = {
     description: string;
     latestLabel: string;
     recommended: string;
+    recommendedBadge: string;
+    direct: string;
     manual: string;
+    showManual: string;
+    hideManual: string;
+    manualHint: string;
+    noPackageForPlatform: string;
     noMatch: string;
     detecting: string;
     platformLabel: string;
