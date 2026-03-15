@@ -1,6 +1,6 @@
 # Guardian 90 Gunluk Faz 2+4 MVP Takip Defteri
 
-Last Updated: 2026-03-15 16:41:00Z
+Last Updated: 2026-03-15 16:58:00Z
 Owner: Guardian Team
 Code Workspace: `/Users/dogan/Desktop/guardian`
 Governance Workspace: `/Users/dogan/Desktop/guardian`
@@ -632,3 +632,23 @@ Release aninda karar veren gate ve pilot metrik yuzeyi ile scanner'dan governanc
   - Faz 5 exit gate icin aylik trend kapisi henuz 2/4 hafta; product sign-off operasyonel takip gerektiriyor.
 - Next Phase Entry Decision:
   - Haftalik cadence ile ayni script seti uzerinden en az 2 hafta daha trend biriktir; Faz 5 trend gate maddesini kapat.
+
+## Ara Checkpoint Log - 2026-03-15 (Batch Freshness + System Warning UX + Dependency Hardening)
+- Completed Items:
+  - Batch queue dedupe mantigi "ilk gelen" yerine "en guncel degisiklik" olacak sekilde guncellendi (`upsert_batch_item`).
+  - Ayni dosya icin stale snapshot analizi riski azaltildi; batch her path icin latest content/hash ile flush ediliyor.
+  - `guardian:warning` / `guardian:verification` / backend ping warning olaylari bulgu listesine yazilmayip status kanalina alindi; "System Warning" issue satiri gosterim kirliligi temizlendi.
+  - NPM dependency security hardening tamamlandi (`npm audit fix`) ve audit vulnerabilities sifirlandi.
+- Evidence:
+  - `src-tauri/src/watcher.rs` (`upsert_batch_item`, batch loop update + unit test)
+  - `src/hooks/useGuardianEvents.ts` (system warning/verification/backend event handling)
+  - `cargo test --manifest-path src-tauri/Cargo.toml watcher::tests_protocol:: -- --nocapture` (15/15 pass)
+  - `cargo test --manifest-path src-tauri/Cargo.toml ai_client::tests:: -- --nocapture` (9/9 pass)
+  - `npm run lint` (pass)
+  - `npm run test` (12 file / 67 test pass)
+  - `python3 scripts/verify_all.py` (pass)
+  - `npm audit --json` (0 vulnerability)
+- Blockers:
+  - Yok.
+- Next Phase Entry Decision:
+  - Faz 5 rollout metriklerini gercek design-partner verisiyle haftalik toplamaya devam et; 4 haftalik trend gate kapanisina ilerle.
