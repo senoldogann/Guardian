@@ -733,3 +733,30 @@ Release aninda karar veren gate ve pilot metrik yuzeyi ile scanner'dan governanc
   - `--gate-only` dogrulandi; tam distribution publish adimi icin local signing key + `gh` auth + artifact bundle gereklilikleri operasyonel ortamda tamamlanmali.
 - Next Phase Entry Decision:
   - Release artefaktlarini uret (`release_all_local.sh v1.2.4`), distribution repo publish ve website production deploy adimini ayni release penceresinde tamamla.
+
+## Ara Checkpoint Log - 2026-03-15 (v1.2.4 Distribution Publish + Secret/Flow Validation)
+- Completed Items:
+  - `v1.2.4` distribution release yayinlandigi dogrulandi (`guardian-distribution`):
+    - macOS `.dmg` + `.app.tar.gz` + `.sig`
+    - Windows `.exe` + `.msi` + `.sig`
+    - `latest.json` + `releases.json`
+  - Release publish token sorunu sonrasinda `PUBLIC_DIST_REPO_TOKEN` secret'inin guncel timestamp ile yenilendigi dogrulandi.
+  - Guardian repo secret seti release workflow beklentileriyle tekrar kontrol edildi.
+  - Yerel kalite kapilari tekrar calistirildi: `python3 scripts/verify_all.py`, `npm run verify`, `scripts/ci/release_gate_ci_smoke.sh` (hepsi pass).
+  - Weekly dashboard-lite rapor hattinin calistigi dogrulandi (`scripts/pilot_generate_weekly_report.sh`).
+- Evidence:
+  - `gh release view v1.2.4 -R senoldogann/guardian-distribution --json tagName,publishedAt,url,assets`
+  - `gh secret list -R senoldogann/Guardian`
+  - `gh run list -R senoldogann/Guardian --workflow "🚀 Guardian Release (Cross-Platform)" --limit 5 --json ...`
+  - `python3 scripts/verify_all.py`
+  - `npm run verify`
+  - `bash scripts/ci/release_gate_ci_smoke.sh`
+  - `GUARDIAN_PILOT_TEAM=internal GUARDIAN_PILOT_REPO=guardian scripts/pilot_generate_weekly_report.sh /Users/dogan/Desktop/guardian`
+- Blockers:
+  - Tauri updater key alignment warning:
+    - Build log warning: `TAURI_SIGNING_PRIVATE_KEY` ile `plugins.updater.pubkey` eslesmiyor.
+    - Bu durum auto-update signature verify akisini runtime'da etkileyebilir.
+- Next Phase Entry Decision:
+  - Release otomasyonunu "tam production-safe" kapatmadan once updater key pair eslesmesini kesinlestir:
+    - ya mevcut `pubkey`e ait private key secret geri yuklenecek,
+    - ya da yeni key pair ile `pubkey` + secret birlikte rotate edilip bir sonraki release bu eslesmeyle alinacak.
