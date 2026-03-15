@@ -288,6 +288,43 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ env.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
+      - name: 🍎 Notarize and staple macOS DMG
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${APPLE_API_KEY:-}" || -z "${APPLE_API_ISSUER:-}" || -z "${APPLE_API_KEY_P8:-}" ]]; then
+            echo "Error: APPLE_API_KEY, APPLE_API_ISSUER and APPLE_API_KEY_P8 secrets are required for notarization."
+            exit 1
+          fi
+
+          DMG_PATH="$(find src-tauri/target/aarch64-apple-darwin/release/bundle -type f -name '*.dmg' | head -n 1)"
+          if [[ -z "${DMG_PATH:-}" ]]; then
+            echo "Error: no .dmg found to notarize."
+            exit 1
+          fi
+
+          KEY_FILE="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
+          if [[ "$APPLE_API_KEY_P8" == *"BEGIN PRIVATE KEY"* ]]; then
+            printf '%s\n' "$APPLE_API_KEY_P8" > "$KEY_FILE"
+          else
+            echo "$APPLE_API_KEY_P8" | base64 --decode > "$KEY_FILE"
+          fi
+          chmod 600 "$KEY_FILE"
+
+          xcrun notarytool submit "$DMG_PATH" \
+            --key "$KEY_FILE" \
+            --key-id "$APPLE_API_KEY" \
+            --issuer "$APPLE_API_ISSUER" \
+            --wait
+
+          xcrun stapler staple "$DMG_PATH"
+          xcrun stapler validate "$DMG_PATH"
+        env:
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+
       - name: 📦 Collect Artifacts
         run: |
           mkdir -p artifacts/mac
