@@ -762,3 +762,19 @@ Release aninda karar veren gate ve pilot metrik yuzeyi ile scanner'dan governanc
   - Release otomasyonunu "tam production-safe" kapatmadan once updater key pair eslesmesini kesinlestir:
     - ya mevcut `pubkey`e ait private key secret geri yuklenecek,
     - ya da yeni key pair ile `pubkey` + secret birlikte rotate edilip bir sonraki release bu eslesmeyle alinacak.
+
+## Ara Checkpoint Log - 2026-03-15 (Updater Key Rotation Initiated)
+- Completed Items:
+  - Yeni Tauri updater signing key pair lokalde uretildi (`.guardian/keys/updater.key`, `.guardian/keys/updater.key.pub`).
+  - `src-tauri/tauri.conf.json` `plugins.updater.pubkey` yeni public key'e rotate edildi.
+  - Publish pipeline'daki key alignment guard ile birlikte artik signature key-id ve app pubkey key-id zorunlu eslesme modunda.
+- Evidence:
+  - `npm run tauri -- signer generate --ci --password <generated> --write-keys .guardian/keys/updater.key`
+  - `src-tauri/tauri.conf.json` (`plugins.updater.pubkey` updated)
+  - `.github/workflows/release-windows.yml` (`🔐 Verify updater key alignment`)
+- Blockers:
+  - GitHub Actions secret tarafinda yeni private key + password henuz set edilmedi:
+    - `TAURI_SIGNING_PRIVATE_KEY`
+    - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
+- Next Phase Entry Decision:
+  - Secret rotasyonu tamamlanir tamamlanmaz tek workflow-dispatch ile cross-platform release smoke alinip v1.2.5 publish penceresi acilacak.

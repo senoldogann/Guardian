@@ -61,7 +61,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERGMDNFMjVBNEZGQjY1NTMKUldSVFpmdFBXdUlEMzFYbWI4NjluanJjVnc3cU94aWducEFVVUlOUVUreW9qZU1sNGJ2a25iRUoK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZGNUU5MzIzNUMxNEE0RUQKUldUdHBCUmNJNU5lYis1K3VRSXdza0dnNFgyUzVNSDc0UDlGQ2VvZUdwZlUzaU5LRksxNTZnUzYK",
       "endpoints": [
         "https://github.com/senoldogann/guardian-distribution/releases/latest/download/latest.json"
       ]
