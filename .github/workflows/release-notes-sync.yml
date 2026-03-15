@@ -1,0 +1,57 @@
+name: 📝 Release Notes Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to sync (e.g. v1.2.5)"
+        required: true
+        type: string
+      dist_repo:
+        description: "Distribution repo (owner/name). Empty = secret/default."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  sync-release-notes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v6
+
+      - name: 📝 Sync release notes from CHANGELOG
+        env:
+          GH_TOKEN: ${{ secrets.PUBLIC_DIST_REPO_TOKEN }}
+          DIST_REPO_INPUT: ${{ inputs.dist_repo }}
+          DIST_REPO_SECRET: ${{ secrets.PUBLIC_DIST_REPO }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          DIST_REPO="${DIST_REPO_INPUT:-${DIST_REPO_SECRET:-senoldogann/guardian-distribution}}"
+          VERSION="${TAG#v}"
+          NOTES_FILE="$(mktemp)"
+
+          awk -v v="$VERSION" '
+            ($0 ~ "^## \\[" v "\\]") || ($0 ~ "^## " v "([[:space:]]|$|-)") {in_section=1; print; next}
+            in_section && $0 ~ "^## " {exit}
+            in_section {print}
+          ' CHANGELOG.md > "$NOTES_FILE"
+
+          if [[ ! -s "$NOTES_FILE" ]]; then
+            echo "No matching changelog section found for $VERSION in CHANGELOG.md"
+            exit 1
+          fi
+
+          TITLE_LINE="$(head -n 1 "$NOTES_FILE" | sed -E "s/^##[[:space:]]*\\[?(${VERSION})\\]?[[:space:]]*-[[:space:]]*//")"
+          if [[ -z "${TITLE_LINE// }" ]]; then
+            TITLE="$TAG"
+          else
+            TITLE="${TAG} - ${TITLE_LINE}"
+          fi
+
+          gh release edit "$TAG" -R "$DIST_REPO" --title "$TITLE" --notes-file "$NOTES_FILE"
+          echo "Release notes synced for $TAG on $DIST_REPO"
