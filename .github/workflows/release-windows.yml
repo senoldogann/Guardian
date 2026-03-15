@@ -117,19 +117,23 @@ jobs:
               }
             } catch {}
           }
-          let key = normalized.trim();
-          if (key.includes("untrusted comment:")) {
-            const lines = key
+          let keyFile = normalized.trim();
+          if (!keyFile.includes("untrusted comment:")) {
+            const lines = keyFile
               .split(/\r?\n/)
               .map((line) => line.trim())
-              .filter(Boolean)
-              .filter((line) => !line.toLowerCase().startsWith("untrusted comment"));
-            key = lines[0] || "";
+              .filter(Boolean);
+            const payload = lines.find((line) => /^[A-Za-z0-9+/=]+$/.test(line)) || "";
+            if (!payload) {
+              throw new Error("TAURI_SIGNING_PRIVATE_KEY has unsupported format.");
+            }
+            keyFile = `untrusted comment: minisign secret key\n${payload}\n`;
           }
-          if (!/^[A-Za-z0-9+/=]+$/.test(key)) {
-            throw new Error("TAURI_SIGNING_PRIVATE_KEY has unsupported format.");
-          }
-          require("node:fs").appendFileSync(process.env.GITHUB_ENV, `TAURI_SIGNING_PRIVATE_KEY=${key}\n`);
+          const encoded = Buffer.from(
+            keyFile.endsWith("\n") ? keyFile : `${keyFile}\n`,
+            "utf8",
+          ).toString("base64");
+          require("node:fs").appendFileSync(process.env.GITHUB_ENV, `TAURI_SIGNING_PRIVATE_KEY=${encoded}\n`);
         shell: node {0}
         env:
           TAURI_KEY_SECRET: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -209,19 +213,23 @@ jobs:
               }
             } catch {}
           }
-          let key = normalized.trim();
-          if (key.includes("untrusted comment:")) {
-            const lines = key
+          let keyFile = normalized.trim();
+          if (!keyFile.includes("untrusted comment:")) {
+            const lines = keyFile
               .split(/\r?\n/)
               .map((line) => line.trim())
-              .filter(Boolean)
-              .filter((line) => !line.toLowerCase().startsWith("untrusted comment"));
-            key = lines[0] || "";
+              .filter(Boolean);
+            const payload = lines.find((line) => /^[A-Za-z0-9+/=]+$/.test(line)) || "";
+            if (!payload) {
+              throw new Error("TAURI_SIGNING_PRIVATE_KEY has unsupported format.");
+            }
+            keyFile = `untrusted comment: minisign secret key\n${payload}\n`;
           }
-          if (!/^[A-Za-z0-9+/=]+$/.test(key)) {
-            throw new Error("TAURI_SIGNING_PRIVATE_KEY has unsupported format.");
-          }
-          require("node:fs").appendFileSync(process.env.GITHUB_ENV, `TAURI_SIGNING_PRIVATE_KEY=${key}\n`);
+          const encoded = Buffer.from(
+            keyFile.endsWith("\n") ? keyFile : `${keyFile}\n`,
+            "utf8",
+          ).toString("base64");
+          require("node:fs").appendFileSync(process.env.GITHUB_ENV, `TAURI_SIGNING_PRIVATE_KEY=${encoded}\n`);
         shell: node {0}
         env:
           TAURI_KEY_SECRET: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
