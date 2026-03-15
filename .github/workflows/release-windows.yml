@@ -29,6 +29,28 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v6
 
+      - name: 🔎 Verify tag/version alignment
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="${{ inputs.tag }}"
+          expected="${expected#v}"
+
+          pkg_version="$(node -p "require('./package.json').version")"
+          website_version="$(node -p "require('./website/package.json').version")"
+          tauri_version="$(jq -r '.version // \"\"' src-tauri/tauri.conf.json)"
+          cargo_version="$(grep -E '^version[[:space:]]*=[[:space:]]*\"' src-tauri/Cargo.toml | head -n1 | sed -E 's/.*\"([^\"]+)\".*/\1/')"
+
+          if [[ "$pkg_version" != "$expected" || "$website_version" != "$expected" || "$tauri_version" != "$expected" || "$cargo_version" != "$expected" ]]; then
+            echo "Release version mismatch. Tag: v$expected"
+            echo "package.json: $pkg_version"
+            echo "website/package.json: $website_version"
+            echo "src-tauri/tauri.conf.json: $tauri_version"
+            echo "src-tauri/Cargo.toml: $cargo_version"
+            echo "Run: bash scripts/bump_version.sh $expected"
+            exit 1
+          fi
+
       - name: 🦀 Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
