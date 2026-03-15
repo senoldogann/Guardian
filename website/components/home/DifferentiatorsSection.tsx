@@ -102,7 +102,7 @@ export function DifferentiatorsSection({ locale }: { locale: Locale }) {
         locale === "tr" ? "Karar Akışını Dokümanda İncele" : "Review the Governance Workflow";
 
     return (
-        <section className="relative py-24 md:py-32 overflow-hidden bg-white dark:bg-black transition-colors duration-300">
+        <section className="relative py-20 md:py-24 overflow-hidden bg-white dark:bg-black transition-colors duration-300">
             <div className="absolute inset-0">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(15,23,42,0.08),transparent_52%)] dark:bg-[radial-gradient(circle_at_25%_20%,rgba(148,163,184,0.10),transparent_52%)]" />
                 <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(2,6,23,0.03),transparent_30%,rgba(2,6,23,0.02))] dark:bg-[linear-gradient(120deg,rgba(248,250,252,0.05),transparent_30%,rgba(248,250,252,0.02))]" />
@@ -159,9 +159,9 @@ export function DifferentiatorsSection({ locale }: { locale: Locale }) {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, margin: "-30px" }}
                     transition={{ duration: 0.5, delay: 0.1 }}
-                    className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/75 backdrop-blur overflow-hidden"
+                    className="rounded-2xl border border-neutral-200/70 dark:border-neutral-800/60 bg-white/95 dark:bg-neutral-950/75 backdrop-blur overflow-hidden"
                 >
-                    <div className="flex items-center justify-between px-5 md:px-7 py-4 border-b border-neutral-200 dark:border-neutral-800">
+                    <div className="flex items-center justify-between px-5 md:px-7 py-4 border-b border-neutral-200/70 dark:border-neutral-800/60">
                         <div className="inline-flex items-center gap-2 text-sm md:text-base font-medium text-black dark:text-white">
                             <ScanSearch className="w-4 h-4" aria-hidden="true" />
                             {matrixTitle}
@@ -173,25 +173,25 @@ export function DifferentiatorsSection({ locale }: { locale: Locale }) {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr_1fr]">
-                        <div className="hidden md:flex items-center px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-800">
+                        <div className="hidden md:flex items-center px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500 dark:text-neutral-400 border-b border-neutral-200/70 dark:border-neutral-800/60">
                             {locale === "tr" ? "Kriter" : "Criteria"}
                         </div>
-                        <div className="hidden md:flex items-center px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-800 border-l border-neutral-200 dark:border-neutral-800">
+                        <div className="hidden md:flex items-center px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500 dark:text-neutral-400 border-b border-neutral-200/70 dark:border-neutral-800/60 bg-neutral-50/40 dark:bg-neutral-900/20">
                             {leftCol}
                         </div>
-                        <div className="hidden md:flex items-center px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-800 border-l border-neutral-200 dark:border-neutral-800">
+                        <div className="hidden md:flex items-center px-6 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500 dark:text-neutral-400 border-b border-neutral-200/70 dark:border-neutral-800/60 bg-neutral-100/60 dark:bg-neutral-900/35">
                             {rightCol}
                         </div>
 
                         {comparisonRows.map((row, idx) => (
                             <div key={row.label.en} className="contents">
-                                <div className={`px-6 py-4 text-sm font-medium text-neutral-800 dark:text-neutral-200 ${idx !== comparisonRows.length - 1 ? "border-b border-neutral-200 dark:border-neutral-800" : ""}`}>
+                                <div className={`px-6 py-4 text-sm font-medium text-neutral-800 dark:text-neutral-200 ${idx !== comparisonRows.length - 1 ? "border-b border-neutral-200/70 dark:border-neutral-800/60" : ""}`}>
                                     {row.label[locale]}
                                 </div>
-                                <div className={`px-6 py-4 text-sm text-neutral-600 dark:text-neutral-400 border-l border-neutral-200 dark:border-neutral-800 ${idx !== comparisonRows.length - 1 ? "border-b border-neutral-200 dark:border-neutral-800" : ""}`}>
+                                <div className={`px-6 py-4 text-sm text-neutral-600 dark:text-neutral-400 bg-neutral-50/40 dark:bg-neutral-900/20 ${idx !== comparisonRows.length - 1 ? "border-b border-neutral-200/70 dark:border-neutral-800/60" : ""}`}>
                                     {row.generic[locale]}
                                 </div>
-                                <div className={`px-6 py-4 text-sm text-neutral-800 dark:text-neutral-200 border-l border-neutral-200 dark:border-neutral-800 ${idx !== comparisonRows.length - 1 ? "border-b border-neutral-200 dark:border-neutral-800" : ""}`}>
+                                <div className={`px-6 py-4 text-sm text-neutral-800 dark:text-neutral-200 bg-neutral-100/60 dark:bg-neutral-900/35 ${idx !== comparisonRows.length - 1 ? "border-b border-neutral-200/70 dark:border-neutral-800/60" : ""}`}>
                                     <span className="inline-flex items-start gap-2">
                                         <BadgeCheck className="w-4 h-4 mt-0.5 text-neutral-700 dark:text-neutral-300" aria-hidden="true" />
                                         <span>{row.guardian[locale]}</span>

@@ -80,8 +80,8 @@ export function CommandHeader({ dict, locale }: { dict: SiteDictionary; locale: 
             <div
                 className={cn(
                     "relative flex items-center justify-between p-2 rounded-full transition-all duration-300 overflow-hidden",
-                    "bg-white/80 dark:bg-black/60 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-2xl shadow-black/5 dark:shadow-black/30",
-                    scrolled && "border-black/10 dark:border-white/20"
+                    "bg-white/78 dark:bg-black/58 backdrop-blur-xl border border-black/5 dark:border-white/[0.08] shadow-xl shadow-black/5 dark:shadow-black/25",
+                    scrolled && "shadow-lg shadow-black/10 dark:shadow-black/30"
                 )}
             >
                 {/* Logo Area */}
@@ -144,13 +144,13 @@ export function CommandHeader({ dict, locale }: { dict: SiteDictionary; locale: 
                     </Link>
 
                     {/* Theme Toggle */}
-                    <div className="hidden sm:block" role="group" aria-label={dict.common.themeSelection}>
+                    <div className="hidden lg:block" role="group" aria-label={dict.common.themeSelection}>
                         <ThemeToggle dict={dict} />
                     </div>
 
                     {/* Language Toggle */}
                     <div
-                        className="hidden sm:flex items-center gap-1 rounded-full border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/10 px-2 py-1"
+                        className="hidden lg:flex items-center gap-1 rounded-full border border-black/10 dark:border-white/20 bg-black/5 dark:bg-white/10 px-2 py-1"
                         role="group"
                         aria-label={dict.language.label}
                         title={dict.language.label}
@@ -217,7 +217,7 @@ export function CommandHeader({ dict, locale }: { dict: SiteDictionary; locale: 
                         initial={{ opacity: 0, scale: 0.95, y: -20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -20 }}
-                        className="absolute top-full left-0 right-0 mt-4 p-4 rounded-3xl bg-white/95 dark:bg-neutral-950/95 border border-black/5 dark:border-white/15 shadow-2xl overflow-hidden lg:hidden"
+                        className="absolute top-full left-0 right-0 mt-4 p-4 rounded-3xl bg-white/94 dark:bg-neutral-950/92 border border-black/5 dark:border-white/[0.08] shadow-xl overflow-hidden lg:hidden"
                     >
                         <nav aria-label="Mobile navigation" className="flex flex-col gap-2">
                             {navItems.map((item) => (

@@ -26,10 +26,10 @@ export function HomePageView({ dict, locale }: HomePageProps) {
       <div className="flex flex-col min-h-screen pt-16 overflow-x-hidden">
         <HeroSection dict={dict} locale={locale} />
         <DifferentiatorsSection locale={locale} />
-        <AgentObjectionSection locale={locale} />
         <FeaturesSection locale={locale} />
-        <DemoSection dict={dict} locale={locale} />
         <UseCasesSection locale={locale} />
+        <AgentObjectionSection locale={locale} />
+        <DemoSection dict={dict} locale={locale} />
       </div>
     </>
   );

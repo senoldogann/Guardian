@@ -90,7 +90,7 @@ export function FeaturesSection({ locale }: { locale: Locale }) {
     const ctaLabel = locale === "tr" ? "Akışı Dokümanda Gör" : "See the Workflow in Docs";
 
     return (
-        <section className="py-24 md:py-32 relative bg-white dark:bg-black transition-colors duration-300">
+        <section className="py-20 md:py-24 relative bg-white dark:bg-black transition-colors duration-300">
             <div className="absolute inset-0 bg-white dark:bg-black" />
 
             <div className="container px-4 sm:px-6 lg:px-8 mx-auto relative z-10">

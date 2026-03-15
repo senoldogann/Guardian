@@ -85,8 +85,8 @@ export function UseCasesSection({ locale }: { locale: Locale }) {
     const benefits = locale === "tr" ? benefitsTr : benefitsEn;
 
     return (
-        <section className="py-24 md:py-32 relative bg-white dark:bg-black transition-colors duration-300">
-            <div className="absolute inset-0 bg-gradient-to-b from-white via-zinc-50 to-white dark:from-black dark:via-zinc-950 dark:to-black" />
+        <section className="py-20 md:py-24 relative bg-white dark:bg-black transition-colors duration-300">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(15,23,42,0.08),transparent_55%)] dark:bg-[radial-gradient(circle_at_50%_0%,rgba(148,163,184,0.12),transparent_55%)]" />
 
             <div className="container px-4 mx-auto relative max-w-6xl">
                 <motion.div
