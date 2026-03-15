@@ -107,7 +107,7 @@ export default async function ContactPage({ params }: Props) {
                 <Linkedin className="w-5 h-5" />
               </a>
               <a
-                href="https://twitter.com/senoldogann"
+                href="https://twitter.com/senoldoganx"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-12 h-12 rounded-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent transition-all duration-300"

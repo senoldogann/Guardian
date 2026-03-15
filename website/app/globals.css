@@ -252,12 +252,26 @@
     @apply bg-neutral-100 dark:bg-neutral-900 px-1.5 py-0.5 rounded font-mono text-sm text-black dark:text-white;
   }
 
+  .prose .docs-pre-wrap {
+    @apply my-8 max-w-full overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black shadow-sm;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .prose .docs-pre-wrap pre {
+    @apply m-0 border-0 bg-transparent p-0;
+  }
+
+  .prose .docs-pre-wrap pre>code {
+    @apply block p-6 text-sm leading-relaxed text-neutral-700 dark:text-neutral-300 min-w-max whitespace-pre bg-transparent;
+  }
+
   .prose pre {
-    @apply bg-neutral-100 dark:bg-black border border-neutral-200 dark:border-neutral-800 p-4 rounded-lg overflow-x-auto my-6;
+    @apply my-8 max-w-full overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black shadow-sm;
+    -webkit-overflow-scrolling: touch;
   }
 
   .prose pre code {
-    @apply bg-transparent p-0 text-neutral-700 dark:text-neutral-300;
+    @apply block p-6 text-sm leading-relaxed text-neutral-700 dark:text-neutral-300 min-w-max whitespace-pre bg-transparent;
   }
 
   .prose strong {
@@ -273,53 +287,49 @@
   }
 
   /* Professional Table Styling */
-  .prose table {
-    @apply w-full my-8 border-collapse text-sm;
+  .prose .docs-table-wrap {
+    @apply my-8 w-full overflow-x-auto rounded-lg border border-neutral-200 dark:border-neutral-800;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .prose thead {
+  .prose .docs-table-wrap table {
+    @apply w-full min-w-[640px] border-collapse text-sm;
+  }
+
+  .prose .docs-table-wrap thead {
     @apply border-b border-neutral-200 dark:border-neutral-800;
   }
 
-  .prose th {
+  .prose .docs-table-wrap th {
     @apply text-left text-black dark:text-white font-semibold py-3 px-4 bg-neutral-50 dark:bg-neutral-900;
   }
 
-  .prose th:first-child {
+  .prose .docs-table-wrap th:first-child {
     @apply rounded-tl-lg;
   }
 
-  .prose th:last-child {
+  .prose .docs-table-wrap th:last-child {
     @apply rounded-tr-lg;
   }
 
-  .prose td {
+  .prose .docs-table-wrap td {
     @apply py-3 px-4 text-neutral-600 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-800;
   }
 
-  .prose tr:last-child td {
+  .prose .docs-table-wrap tr:last-child td {
     @apply border-b-0;
   }
 
-  .prose tr:hover td {
+  .prose .docs-table-wrap tr:hover td {
     @apply bg-neutral-50 dark:bg-neutral-900/50;
   }
 
-  .prose tbody tr:last-child td:first-child {
+  .prose .docs-table-wrap tbody tr:last-child td:first-child {
     @apply rounded-bl-lg;
   }
 
-  .prose tbody tr:last-child td:last-child {
+  .prose .docs-table-wrap tbody tr:last-child td:last-child {
     @apply rounded-br-lg;
-  }
-
-  /* Enhanced Code Block Styling */
-  .prose pre {
-    @apply bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-lg overflow-hidden my-8 shadow-sm;
-  }
-
-  .prose pre>code {
-    @apply block p-6 text-sm leading-relaxed;
   }
 
   /* Inline code in prose */

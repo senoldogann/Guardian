@@ -78,7 +78,21 @@ export function MarkdownBlock({ value, locale }: { value: string; locale?: Local
             const text = toText(children);
             const id = slugify(text);
             return <h3 id={id}>{children}</h3>;
-          }
+          },
+          pre: ({ children }) => {
+            return (
+              <div className="docs-pre-wrap">
+                <pre>{children}</pre>
+              </div>
+            );
+          },
+          table: ({ children }) => {
+            return (
+              <div className="docs-table-wrap">
+                <table>{children}</table>
+              </div>
+            );
+          },
         }}
       >
         {value}

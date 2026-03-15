@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { ProLayout } from "../../../../components/docs/pro-layout";
+import { LatestReleaseNotes } from "../../../../components/docs/latest-release-notes";
 import { MarkdownBlock } from "../../../../components/markdown-block";
 import { getDoc, getDocs, getDocSections } from "../../../../lib/docs";
 import { buildPageMetadata } from "../../../../lib/seo";
 import { getDictionary } from "../../../../lib/i18n";
 import { normalizeLocale, type Locale, withLocale } from "../../../../lib/locale";
+
+export const revalidate = 60;
 
 type Props = {
   params: Promise<{ locale: string; slug: string }>;
@@ -87,6 +90,8 @@ export default async function DocsDetailPage({ params }: Props) {
       <div className="prose dark:prose-invert max-w-none" data-docs-body>
         <MarkdownBlock value={doc.content} locale={locale} />
       </div>
+
+      {slug === "get-started" ? <LatestReleaseNotes locale={locale} /> : null}
     </ProLayout>
   );
 }

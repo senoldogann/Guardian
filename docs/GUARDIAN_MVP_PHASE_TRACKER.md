@@ -778,3 +778,28 @@ Release aninda karar veren gate ve pilot metrik yuzeyi ile scanner'dan governanc
     - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
 - Next Phase Entry Decision:
   - Secret rotasyonu tamamlanir tamamlanmaz tek workflow-dispatch ile cross-platform release smoke alinip v1.2.5 publish penceresi acilacak.
+
+## Ara Checkpoint Log - 2026-03-16 (Docs Mobile Hardening + Dynamic Get-Started Release Notes)
+- Completed Items:
+  - Dokumantasyondaki mobil tasma sorunlari icin markdown render katmani guclendirildi:
+    - `pre/code` bloklari yatay scroll + touch-scroll destekli hale getirildi.
+    - tablolar responsive wrapper ile mobilde kesilmeden gosterilecek sekilde duzeltildi.
+  - `Getting Started` sayfasindaki statik "What's New v1.2.3" metni kaldirildi (EN/TR).
+  - `Getting Started` artik son release notlarini otomatik cekiyor (latest snapshot -> release highlights).
+  - Yeni unit test eklendi: latest release notes component render/fallback davranisi.
+- Evidence:
+  - `website/components/docs/latest-release-notes.tsx` (new dynamic section)
+  - `website/app/[locale]/docs/[slug]/page.tsx` (`slug === "get-started"` dynamic injection + `revalidate`)
+  - `website/components/markdown-block.tsx` (`docs-pre-wrap` + `docs-table-wrap`)
+  - `website/app/globals.css` (mobile overflow-safe prose styling)
+  - `website/components/docs/latest-release-notes.test.tsx`
+  - `website/content/docs/en/get-started.mdx` / `website/content/docs/tr/get-started.mdx` (static old section removed)
+  - `cd website && npm run lint` (pass)
+  - `cd website && npm run test:run` (pass, 109 tests)
+  - `cd website && npm run build` (pass)
+  - `cd website && npx playwright test e2e/docs.spec.ts` (pass, 19 tests)
+  - `cd website && npm run copy:check` (pass)
+- Blockers:
+  - Yok.
+- Next Phase Entry Decision:
+  - Website deploy penceresinde docs + get-started dynamic notes degisikligini production'da smoke test et; sonra v1.2.5 release notlariyla final yayina alin.
