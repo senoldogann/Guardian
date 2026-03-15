@@ -55,7 +55,7 @@ tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 keyring = "2.3.0"
 semver = "1.0.23"
-jsonschema = "0.29.0"
+jsonschema = "0.45.0"
 secrecy = "0.10"
 ed25519-dalek = "2"
 rand = "0.8"
