@@ -21,6 +21,8 @@ Gate behavior:
   - Optional env for approval/override:
       GUARDIAN_RELEASE_APPROVER
       GUARDIAN_RELEASE_OVERRIDE_REASON
+  - Optional env for unsigned local build (NOT for production):
+      GUARDIAN_RELEASE_NO_SIGN=1
 
 Examples:
   scripts/release_all_local.sh v1.2.0
@@ -38,6 +40,27 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
+
+resolve_github_token() {
+  if [[ -n "${GH_TOKEN:-}" || -n "${GITHUB_TOKEN:-}" ]]; then
+    return 0
+  fi
+
+  if ! command -v git >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local credential_output=""
+  credential_output="$(
+    printf "protocol=https\nhost=github.com\n\n" \
+      | git credential fill 2>/dev/null || true
+  )"
+  local token=""
+  token="$(printf '%s\n' "$credential_output" | sed -n 's/^password=//p' | head -n 1)"
+  if [[ -n "$token" ]]; then
+    export GH_TOKEN="$token"
+  fi
+}
 
 TAG=""
 if [[ $# -gt 0 && "${1:-}" != --* ]]; then
@@ -217,25 +240,42 @@ if ! command -v gh >/dev/null 2>&1; then
   echo "Error: gh CLI is not installed."
   exit 1
 fi
+resolve_github_token
 if ! gh auth status >/dev/null 2>&1; then
   echo "Error: gh is not authenticated. Run: gh auth login"
   exit 1
 fi
 
-KEY_PATH="${TAURI_SIGNING_PRIVATE_KEY_PATH:-$HOME/.tauri/guardian.key}"
-if [[ ! -f "$KEY_PATH" ]]; then
-  echo "Error: Tauri signing key not found: $KEY_PATH"
-  exit 1
-fi
+NO_SIGN="${GUARDIAN_RELEASE_NO_SIGN:-0}"
+if [[ "$NO_SIGN" != "1" ]]; then
+  KEY_PATH="${TAURI_SIGNING_PRIVATE_KEY_PATH:-$HOME/.tauri/guardian.key}"
+  if [[ ! -f "$KEY_PATH" ]]; then
+    echo "Error: Tauri signing key not found: $KEY_PATH"
+    exit 1
+  fi
 
-export TAURI_SIGNING_PRIVATE_KEY
-TAURI_SIGNING_PRIVATE_KEY="$(cat "$KEY_PATH")"
+  export TAURI_SIGNING_PRIVATE_KEY
+  TAURI_SIGNING_PRIVATE_KEY="$(cat "$KEY_PATH")"
 
-if [[ -z "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" ]]; then
-  echo -n "Enter password for TAURI signing key ($KEY_PATH): "
-  read -r -s TAURI_SIGNING_PRIVATE_KEY_PASSWORD
-  echo ""
-  export TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+  if [[ -z "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" ]]; then
+    echo -n "Enter password for TAURI signing key ($KEY_PATH): "
+    read -r -s TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+    echo ""
+    export TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+  fi
+
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    SIGNING_IDENTITY="$(jq -r '.bundle.macOS.signingIdentity // empty' src-tauri/tauri.conf.json)"
+    if [[ -n "$SIGNING_IDENTITY" ]]; then
+      if ! security find-identity -v -p codesigning 2>/dev/null | grep -Fq "$SIGNING_IDENTITY"; then
+        echo "Error: macOS code-sign identity not found in keychain: $SIGNING_IDENTITY"
+        echo "Hint: import the Apple Developer certificate into keychain before release build."
+        exit 1
+      fi
+    fi
+  fi
+else
+  echo "Warning: GUARDIAN_RELEASE_NO_SIGN=1 set; build/update artifacts will be unsigned (not production-safe)."
 fi
 
 ARTIFACTS_DIR="$ROOT_DIR/artifacts/$TAG"
@@ -244,7 +284,11 @@ mkdir -p "$ARTIFACTS_DIR"
 build_target() {
   local target="$1"
   echo "Building Tauri bundle for target: $target"
-  npm run tauri build -- --target "$target"
+  if [[ "$NO_SIGN" == "1" ]]; then
+    npm run tauri build -- --target "$target" --no-sign
+  else
+    npm run tauri build -- --target "$target"
+  fi
 }
 
 copy_bundle_artifacts() {

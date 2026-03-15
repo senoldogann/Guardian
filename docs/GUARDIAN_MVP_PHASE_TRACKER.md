@@ -1,6 +1,6 @@
 # Guardian 90 Gunluk Faz 2+4 MVP Takip Defteri
 
-Last Updated: 2026-03-15 19:20:00Z
+Last Updated: 2026-03-15 19:35:00Z
 Owner: Guardian Team
 Code Workspace: `/Users/dogan/Desktop/guardian`
 Governance Workspace: `/Users/dogan/Desktop/guardian`
@@ -78,6 +78,8 @@ Governance Workspace: `/Users/dogan/Desktop/guardian`
 - [x] Faz A Accuracy Lockdown benchmark paketi eklendi (`benchmarks/review_precision/*`, `scripts/review_precision_benchmark.py`).
 - [x] EN/TR docs tum sayfalarda release-governance diliyle hizalandi (auth/installation/migration/monitoring/reviews/security/troubleshooting/updates).
 - [x] Website copy consistency gate'i tum EN/TR docs + home section dosyalarini kapsayacak sekilde genisletildi.
+- [x] Cross-platform release workflow hardening tamamlandi: Windows + macOS artifact build, merged publish ve CHANGELOG tabanli release-note sync (`.github/workflows/release-windows.yml`).
+- [x] Local release orchestrator guclendirildi: GH token auto-resolve + macOS signing identity preflight + optional unsigned local dry-run path (`scripts/release_all_local.sh`).
 
 ## Reality Check (2026-03-15)
 - [x] Tracker'da listelenen Faz 4/5 script artefaktlari workspace'e geri eklendi ve smoke testleri gecti.
