@@ -150,6 +150,11 @@ Guardian dashboard-lite reports these buckets under `override_reason_quality`.
      - `.guardian/pilot-calibration/<YYYY-MM-DD>/ai_heavy_calibration.json`
      - `.guardian/pilot-calibration/<YYYY-MM-DD>/ai_heavy_calibration.md`
    - Use recommendation as policy-tuning input; apply threshold constant changes only after multi-week stability review.
+8. Evaluate pilot completion gate in one command:
+   - `python3 scripts/pilot_exit_gate_check.py --fail-on-incomplete`
+   - Outputs:
+     - `.guardian/pilot-exit-gate/<YYYY-MM-DD>/exit_gate_status.json`
+     - `.guardian/pilot-exit-gate/<YYYY-MM-DD>/exit_gate_status.md`
 
 ## Exit Gate Evidence (Pilot Completion)
 

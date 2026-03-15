@@ -1,6 +1,6 @@
 # Guardian 90 Gunluk Faz 2+4 MVP Takip Defteri
 
-Last Updated: 2026-03-15 17:12:00Z
+Last Updated: 2026-03-15 17:50:00Z
 Owner: Guardian Team
 Code Workspace: `/Users/dogan/Desktop/guardian`
 Governance Workspace: `/Users/dogan/Desktop/guardian`
@@ -671,3 +671,19 @@ Release aninda karar veren gate ve pilot metrik yuzeyi ile scanner'dan governanc
   - Yok.
 - Next Phase Entry Decision:
   - Faz 5 operasyonuna devam: weekly real design-partner cadence + trend gate kapanisi.
+
+## Ara Checkpoint Log - 2026-03-15 (Pilot Exit-Gate Automation)
+- Completed Items:
+  - Faz 5 pilot kapanis durumunu tek komutla degerlendiren script eklendi: `scripts/pilot_exit_gate_check.py`.
+  - `pilot_weekly_ops.sh` zincirine exit-gate snapshot adimi eklendi (readiness + dry-run + reports + trend + calibration + exit gate).
+  - Playbook dokumani yeni komut ve artefaktlarla guncellendi.
+  - Real datayla exit gate raporu uretildi; mevcut durumda tek acik kapinin "weeks=2/4" oldugu dogrulandi.
+- Evidence:
+  - `python3 scripts/pilot_exit_gate_check.py`
+  - `.guardian/pilot-exit-gate/2026-03-15/exit_gate_status.json`
+  - `bash scripts/pilot_weekly_ops.sh docs/pilot/PILOT_REPO_MANIFEST.real.json docs/pilot/APPROVER_ROSTER.json`
+  - `python3 scripts/verify_all.py`
+- Blockers:
+  - `block_rate_trend_reported` kapisi icin minimum 4 haftalik trend penceresi (su an 2 hafta).
+- Next Phase Entry Decision:
+  - Haftalik cadence'i bozmadan 2 hafta daha trend biriktir; sonra `--fail-on-incomplete` ile pilot complete kararini CI-benzeri strict modda kapat.

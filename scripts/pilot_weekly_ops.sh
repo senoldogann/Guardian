@@ -12,6 +12,7 @@ What it runs:
   3) Per-repo dashboard-lite weekly reports
   4) Cross-repo rollout trend
   5) AI-heavy calibration
+  6) Pilot exit-gate readiness snapshot
 
 Optional env:
   GUARDIAN_PILOT_DRYRUN_SUMMARY_DIR=.guardian/pilot-dryrun-real
@@ -100,5 +101,6 @@ PY
 
 "$SCRIPT_DIR/pilot_generate_rollout_trend.sh" "$MANIFEST_PATH"
 "$SCRIPT_DIR/pilot_generate_ai_heavy_calibration.sh" "$MANIFEST_PATH"
+python3 "$SCRIPT_DIR/pilot_exit_gate_check.py"
 
 echo "[pilot-weekly-ops] completed."
