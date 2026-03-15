@@ -13,15 +13,17 @@ permissions:
 jobs:
   guardian-scan:
     runs-on: ubuntu-latest
-    env:
-      GUARDIAN_REPORT_JSON: ${{ runner.temp }}/guardian-report.json
-      GUARDIAN_SARIF: ${{ runner.temp }}/guardian.sarif
-      GUARDIAN_MANIFEST: ${{ runner.temp }}/guardian-run-manifest.json
-      GUARDIAN_EVIDENCE: ${{ runner.temp }}/guardian-evidence.json
 
     steps:
       - name: "Checkout"
         uses: actions/checkout@v4
+
+      - name: "Prepare runtime artifact paths"
+        run: |
+          echo "GUARDIAN_REPORT_JSON=$RUNNER_TEMP/guardian-report.json" >> "$GITHUB_ENV"
+          echo "GUARDIAN_SARIF=$RUNNER_TEMP/guardian.sarif" >> "$GITHUB_ENV"
+          echo "GUARDIAN_MANIFEST=$RUNNER_TEMP/guardian-run-manifest.json" >> "$GITHUB_ENV"
+          echo "GUARDIAN_EVIDENCE=$RUNNER_TEMP/guardian-evidence.json" >> "$GITHUB_ENV"
 
       - name: "Setup Rust"
         uses: dtolnay/rust-toolchain@stable
