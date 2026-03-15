@@ -166,11 +166,11 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path artifacts\win | Out-Null
           Get-ChildItem -Recurse -Path "src-tauri\target\release\bundle" -Include *.msi, *-setup.exe, *.sig, *.tar.gz, latest.json | Copy-Item -Destination artifacts\win -Force
-          if (!(Test-Path "artifacts\win\latest.json")) {
-            throw "latest.json not found in Windows bundle artifacts."
-          }
           if (-not (Get-ChildItem -Path artifacts\win -Filter *.sig | Select-Object -First 1)) {
             throw "No updater signature (*.sig) found in Windows artifacts."
+          }
+          if (-not (Get-ChildItem -Path artifacts\win -Include *.msi,*-setup.exe -Recurse | Select-Object -First 1)) {
+            throw "No Windows installer asset found (*.msi or *-setup.exe)."
           }
 
       - name: 📤 Upload Artifacts
