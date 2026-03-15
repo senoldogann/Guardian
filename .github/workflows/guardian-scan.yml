@@ -20,10 +20,12 @@ jobs:
 
       - name: "Prepare runtime artifact paths"
         run: |
-          echo "GUARDIAN_REPORT_JSON=$RUNNER_TEMP/guardian-report.json" >> "$GITHUB_ENV"
-          echo "GUARDIAN_SARIF=$RUNNER_TEMP/guardian.sarif" >> "$GITHUB_ENV"
-          echo "GUARDIAN_MANIFEST=$RUNNER_TEMP/guardian-run-manifest.json" >> "$GITHUB_ENV"
-          echo "GUARDIAN_EVIDENCE=$RUNNER_TEMP/guardian-evidence.json" >> "$GITHUB_ENV"
+          {
+            echo "GUARDIAN_REPORT_JSON=$RUNNER_TEMP/guardian-report.json"
+            echo "GUARDIAN_SARIF=$RUNNER_TEMP/guardian.sarif"
+            echo "GUARDIAN_MANIFEST=$RUNNER_TEMP/guardian-run-manifest.json"
+            echo "GUARDIAN_EVIDENCE=$RUNNER_TEMP/guardian-evidence.json"
+          } >> "$GITHUB_ENV"
 
       - name: "Setup Rust"
         uses: dtolnay/rust-toolchain@stable
