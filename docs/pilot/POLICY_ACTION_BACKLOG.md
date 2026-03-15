@@ -1,12 +1,13 @@
 # Pilot Policy Action Backlog
 
-Last Updated: 2026-03-14 23:54:22Z
+Last Updated: 2026-03-15 16:30:00Z
 Scope: Shadow rehearsal + real manifest dry-run (`design-partner-a`, `design-partner-b`, `design-partner-c`, `design-partner-core`)
 
 ## Evidence Inputs
 
 - Dry-run summary: `.guardian/pilot-dryrun/2026-03-14/summary.json`
 - Real dry-run summary: `.guardian/pilot-dryrun-real/2026-03-14/summary.json`
+- AI-heavy calibration: `.guardian/pilot-calibration/2026-03-15/ai_heavy_calibration.json`
 - Repo reports:
   - `.guardian/pilot-shadow-repos/design-partner-a/.guardian/pilot-reports/2026-03-14/dashboard_lite.json`
   - `.guardian/pilot-shadow-repos/design-partner-b/.guardian/pilot-reports/2026-03-14/dashboard_lite.json`
@@ -15,7 +16,8 @@ Scope: Shadow rehearsal + real manifest dry-run (`design-partner-a`, `design-par
 
 ## Priority Backlog
 
-- [ ] Tune `ai_heavy_requires_human_approval` threshold with real pilot PR samples to reduce false positives.
+- [x] AI-heavy threshold calibration recommendation produced from pilot data (action=`increase`, factor=`1.2`).
+- [ ] Apply and validate classifier threshold update after 2 more weekly snapshots (stability gate).
 - [x] Add stronger rule mapping for `override.reason` to classify policy packs/rules beyond fallback `api_backend_guardrail`.
 - [x] Add audit writer in CLI dry-run path so dashboard-lite can read historical override coverage from `release_decisions.jsonl`.
 - [ ] Create weekly owner rotation for reviewing `BLOCK_UNTIL_APPROVED` outcomes and follow-up actions.

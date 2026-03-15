@@ -1,6 +1,6 @@
 # Guardian 90 Gunluk Faz 2+4 MVP Takip Defteri
 
-Last Updated: 2026-03-15 15:29:00Z
+Last Updated: 2026-03-15 16:31:00Z
 Owner: Guardian Team
 Code Workspace: `/Users/dogan/Desktop/guardian`
 Governance Workspace: `/Users/dogan/Desktop/guardian`
@@ -67,6 +67,7 @@ Governance Workspace: `/Users/dogan/Desktop/guardian`
 - [x] Real pilot manifest path'leri mevcut workspace absolute path'lerine duzeltildi (`/Users/dogan/Desktop/guardian/...`).
 - [x] Strict real dry-run + haftalik raporlar 2026-03-15 icin yeniden uretildi (`.guardian/pilot-dryrun-real/2026-03-15`, `.guardian/pilot-reports/2026-03-15`).
 - [x] Cross-repo rollout trend otomasyonu eklendi (`scripts/pilot_rollout_trend.py`, `scripts/pilot_generate_rollout_trend.sh`) ve 2 haftalik trend snapshot uretildi (`.guardian/pilot-rollout-trend/2026-03-15`).
+- [x] AI-heavy threshold calibration otomasyonu eklendi (`scripts/pilot_ai_heavy_calibration.py`, `scripts/pilot_generate_ai_heavy_calibration.sh`) ve ilk öneri raporu uretildi (`.guardian/pilot-calibration/2026-03-15`).
 - [x] Website ana sayfasina rakiplerden ayrisan premium differentiator section'i eklendi (`website/components/home/DifferentiatorsSection.tsx`).
 - [x] Website ana sayfasina "Why not just use agents?" deger section'i eklendi (`website/components/home/AgentObjectionSection.tsx`).
 - [x] FAQ EN/TR icine "Neden sadece ajan review degil?" deger cevabi eklendi (`website/components/faq/faq-page-view.tsx`).
@@ -150,7 +151,8 @@ Policy-driven release decision motorunu desktop+CLI ortak cekirdekte calisan hal
 - [x] Ortak parser/validator: desktop + CLI tarafinda kullanima alinmasi.
 - [x] CLI scan ciktilarina release decision alanlari eklenmesi.
 - [x] Gate mode davranislarinin (`strict|warn|off`) uygulanmasi.
-- [ ] AI-heavy siniflandirma thresholdlerinin pilot verisiyle kalibre edilmesi.
+- [x] AI-heavy threshold kalibrasyon raporu otomasyonu eklendi ve ilk pilot önerisi üretildi.
+- [ ] AI-heavy classifier threshold degisikligi (öneri: 18/1450/10/850) 2 hafta ek trend verisi ile finalleştirilecek.
 
 ### Test Gate
 - [x] Unit: policy parser/validator.
@@ -175,10 +177,11 @@ Policy-driven release decision motorunu desktop+CLI ortak cekirdekte calisan hal
 - Evidence (PR/commit/test output):
   - `cargo test` (`guardian-scan-policy`, `guardian-cli`, `src-tauri`) pass
   - `release_decision::tests::desktop_and_cli_decisions_match_for_ai_heavy_and_override_flows` pass
+  - `scripts/pilot_generate_ai_heavy_calibration.sh docs/pilot/PILOT_REPO_MANIFEST.real.json` (action=`increase`, confidence=`medium`)
 - Web Search Sources (varsa): yok.
 - Blockers:
   - Decision engine davranis dokumani final degil.
-  - AI-heavy threshold kalibrasyonu gercek pilot verisine bagli.
+  - AI-heavy threshold final uygulamasi icin 2 haftalik ek trend verisi gerekiyor.
 - Next Phase Entry Decision:
   - Faz 3/4 akislari aktif; Faz 2 kapanisi icin kalibrasyon + dokumantasyon tamamlanacak.
 

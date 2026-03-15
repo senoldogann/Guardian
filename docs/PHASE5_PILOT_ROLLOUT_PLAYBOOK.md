@@ -136,6 +136,12 @@ Guardian dashboard-lite reports these buckets under `override_reason_quality`.
    - Outputs:
      - `.guardian/pilot-rollout-trend/<YYYY-MM-DD>/rollout_trend.json`
      - `.guardian/pilot-rollout-trend/<YYYY-MM-DD>/rollout_trend.md`
+7. Generate AI-heavy threshold calibration recommendation from pilot evidence:
+   - `scripts/pilot_generate_ai_heavy_calibration.sh docs/pilot/PILOT_REPO_MANIFEST.real.json`
+   - Outputs:
+     - `.guardian/pilot-calibration/<YYYY-MM-DD>/ai_heavy_calibration.json`
+     - `.guardian/pilot-calibration/<YYYY-MM-DD>/ai_heavy_calibration.md`
+   - Use recommendation as policy-tuning input; apply threshold constant changes only after multi-week stability review.
 
 ## Exit Gate Evidence (Pilot Completion)
 
