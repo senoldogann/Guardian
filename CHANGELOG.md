@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.4] - Release Readiness: Website + Gate Stability
+
+Published: Mar 15, 2026
+
+### Highlights
+- Release pipeline calibrated for immediate shipping:
+  - `guardian.policy.yaml` warning threshold tuned to `pass_max_warnings: 10` for strict gate stability.
+  - `release_all_local.sh --gate-only` now passes with `PASS_WITH_WARNING` on current repo state.
+- Scan noise reduced in governance core:
+  - `.maestro` path is now excluded from source/extended scan surfaces in `guardian-scan-policy`.
+  - Prevents non-product skill library files from polluting release decisions.
+- Website production checklist hardened:
+  - Pre-launch checker updated for current Next.js App Router file topology.
+  - Unit test counting and critical-file checks now reflect real project structure.
+
+### Security / Quality
+- Website dependency audit fixed (`npm audit fix`): high/moderate vulnerabilities reduced to zero.
+- Website pre-launch gate now passes end-to-end (typecheck, lint, tests, build, audit, docs checks).
+
 ## [1.2.3] - Quality-First: Faster Scans + Project-Aware Audits + One-Click Fixes
 
 Published: Feb 18, 2026

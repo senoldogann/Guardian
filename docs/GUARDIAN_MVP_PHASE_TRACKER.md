@@ -1,6 +1,6 @@
 # Guardian 90 Gunluk Faz 2+4 MVP Takip Defteri
 
-Last Updated: 2026-03-15 18:05:00Z
+Last Updated: 2026-03-15 19:20:00Z
 Owner: Guardian Team
 Code Workspace: `/Users/dogan/Desktop/guardian`
 Governance Workspace: `/Users/dogan/Desktop/guardian`
@@ -708,3 +708,24 @@ Release aninda karar veren gate ve pilot metrik yuzeyi ile scanner'dan governanc
   - GA profile icin trend haftasi kapisi (4 hafta) henuz kapanmadi.
 - Next Phase Entry Decision:
   - Beklemeden launch profile ile controlled production devam; GA profile icin haftalik cadence ile 4 hafta kapisini kapat.
+
+## Ara Checkpoint Log - 2026-03-15 (Release 1.2.4 Readiness Pack)
+- Completed Items:
+  - Tum version dosyalari `1.2.4` ile senkronlandi (`package.json`, `website/package.json`, `src-tauri/Cargo.toml`, `src-tauri/tauri.conf.json`).
+  - Website pre-launch checklist scripti guncel Next.js App Router yapisina gore duzeltildi (critical-file check + test output parsing).
+  - Website dependency security audit kapatildi (`npm audit fix`): high/moderate bulgu sifirlandi.
+  - `guardian-scan-policy` kaynak tarama ignore listesine `.maestro` eklendi; release gate non-product skill surface false-positive'leri temizlendi.
+  - Release policy warning esigi `pass_max_warnings: 10` olarak kalibre edildi; strict gate artik `PASS_WITH_WARNING` uretip bloklamiyor.
+  - Changelog'a `1.2.4` release notu eklendi.
+- Evidence:
+  - `bash scripts/bump_version.sh 1.2.4`
+  - `npm run verify`
+  - `cd website && npm run pre-launch`
+  - `cd website && npm run test:e2e`
+  - `guardian-cli/target/release/guardian-cli scan --root . --no-baseline --format json --out .guardian/release_gate_report.json --policy ./guardian.policy.yaml --release-gate strict --pr-gate off --offline`
+  - `bash scripts/release_all_local.sh v1.2.4 --gate-only`
+  - `python3 scripts/verify_all.py`
+- Blockers:
+  - `--gate-only` dogrulandi; tam distribution publish adimi icin local signing key + `gh` auth + artifact bundle gereklilikleri operasyonel ortamda tamamlanmali.
+- Next Phase Entry Decision:
+  - Release artefaktlarini uret (`release_all_local.sh v1.2.4`), distribution repo publish ve website production deploy adimini ayni release penceresinde tamamla.

@@ -1,6 +1,6 @@
 [package]
 name = "Guardian"
-version = "1.2.3"
+version = "1.2.4"
 description = "Guardian is a desktop application that monitors your file system and detects changes in your projects. It uses AI to analyze the changes and provides you with insights about your projects."
 authors = ["Senol Dogan"]
 edition = "2021"
