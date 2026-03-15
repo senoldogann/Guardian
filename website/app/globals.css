@@ -380,3 +380,44 @@
     @apply inline-flex items-center justify-center px-2 py-1 bg-neutral-100 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 rounded text-xs font-mono text-neutral-700 dark:text-neutral-300 shadow-sm;
   }
 }
+
+@layer components {
+  .home-section-soft {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .home-section-soft::before,
+  .home-section-soft::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 28px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .home-section-soft::before {
+    top: 0;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0));
+  }
+
+  .home-section-soft::after {
+    bottom: 0;
+    background: linear-gradient(to top, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0));
+  }
+
+  html.dark .home-section-soft::before {
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0));
+  }
+
+  html.dark .home-section-soft::after {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0));
+  }
+
+  .home-section-soft > * {
+    position: relative;
+    z-index: 2;
+  }
+}

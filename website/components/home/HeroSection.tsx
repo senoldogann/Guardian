@@ -37,7 +37,7 @@ export function HeroSection({ dict, locale }: HeroSectionProps) {
     }, []);
 
     return (
-        <section className="relative overflow-x-hidden pt-24 pb-32 md:pt-32 md:pb-48 bg-white dark:bg-black transition-colors duration-300">
+        <section className="home-section-soft relative overflow-x-hidden pt-24 pb-32 md:pt-32 md:pb-48 bg-white dark:bg-black transition-colors duration-300">
             <div className="container px-4 mx-auto text-center z-10 relative max-w-6xl overflow-x-hidden">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}

@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.5] - Cross-Platform Release + UX Polish
+
+Published: Mar 16, 2026
+
+### Highlights
+- Cross-platform release flow stabilized for macOS + Windows with strict release gate enforcement.
+- Distribution publish pipeline hardened with updater key alignment checks before release publication.
+- Website UX polish on homepage section transitions (softer section boundaries in light/dark themes).
+- Documentation release-note sync improved and mobile readability refinements continued.
+
+### CI/CD
+- GitHub Actions core actions upgraded to Node24-compatible majors:
+  - `actions/checkout@v6`
+  - `actions/setup-node@v6`
+  - `actions/upload-artifact@v6`
+  - `actions/download-artifact@v8`
+
+### Governance
+- Release-note synchronization remains changelog-driven; `1.2.5` entry added for deterministic release note rendering.
+
 ## [1.2.4] - Release Readiness: Website + Gate Stability
 
 Published: Mar 15, 2026

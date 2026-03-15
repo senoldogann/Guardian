@@ -93,7 +93,7 @@ export function DemoSection({ dict, locale }: DemoSectionProps) {
     return (
         <>
             {/* Guru Section */}
-            <section className="py-28 bg-white dark:bg-black transition-colors duration-300">
+            <section className="home-section-soft py-28 bg-white dark:bg-black transition-colors duration-300">
                 <div className="container px-4 mx-auto">
                     <div className="flex flex-col md:flex-row items-center gap-16">
                         <motion.div
@@ -150,8 +150,8 @@ export function DemoSection({ dict, locale }: DemoSectionProps) {
             </section>
 
             {/* Approval Section */}
-            <section className="py-28 relative bg-white dark:bg-black transition-colors duration-300">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/5 to-black/5 dark:via-white/5 dark:to-white/5" />
+            <section className="home-section-soft py-28 relative bg-white dark:bg-black transition-colors duration-300">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_20%,rgba(15,23,42,0.06),transparent_56%)] dark:bg-[radial-gradient(circle_at_72%_20%,rgba(148,163,184,0.08),transparent_56%)]" />
                 <div className="container px-4 mx-auto relative">
                     <div className="flex flex-col md:flex-row-reverse items-center gap-16">
                         <motion.div
