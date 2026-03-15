@@ -223,6 +223,9 @@ jobs:
       - name: 📦 Install Dependencies
         run: npm ci
 
+      - name: 🦀 Add macOS Rust targets
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
       - name: 🔐 Prepare Tauri Updater Signing Key
         run: |
           const raw = process.env.TAURI_KEY_SECRET || "";
@@ -288,7 +291,14 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ env.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
-      - name: 🍎 Notarize and staple macOS DMG
+      - name: 🏗️ Build Tauri (macOS x64)
+        run: npm run tauri build -- --target x86_64-apple-darwin
+        env:
+          CI: true
+          TAURI_SIGNING_PRIVATE_KEY: ${{ env.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+      - name: 🍎 Notarize and staple macOS DMGs
         shell: bash
         run: |
           set -euo pipefail
@@ -298,9 +308,9 @@ jobs:
             exit 1
           fi
 
-          DMG_PATH="$(find src-tauri/target/aarch64-apple-darwin/release/bundle -type f -name '*.dmg' | head -n 1)"
-          if [[ -z "${DMG_PATH:-}" ]]; then
-            echo "Error: no .dmg found to notarize."
+          mapfile -t DMG_PATHS < <(find src-tauri/target -type f -path '*/release/bundle/*.dmg')
+          if [[ "${#DMG_PATHS[@]}" -eq 0 ]]; then
+            echo "Error: no .dmg files found to notarize."
             exit 1
           fi
 
@@ -312,14 +322,17 @@ jobs:
           fi
           chmod 600 "$KEY_FILE"
 
-          xcrun notarytool submit "$DMG_PATH" \
-            --key "$KEY_FILE" \
-            --key-id "$APPLE_API_KEY" \
-            --issuer "$APPLE_API_ISSUER" \
-            --wait
+          for DMG_PATH in "${DMG_PATHS[@]}"; do
+            echo "Notarizing: $DMG_PATH"
+            xcrun notarytool submit "$DMG_PATH" \
+              --key "$KEY_FILE" \
+              --key-id "$APPLE_API_KEY" \
+              --issuer "$APPLE_API_ISSUER" \
+              --wait
 
-          xcrun stapler staple "$DMG_PATH"
-          xcrun stapler validate "$DMG_PATH"
+            xcrun stapler staple "$DMG_PATH"
+            xcrun stapler validate "$DMG_PATH"
+          done
         env:
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
@@ -331,6 +344,7 @@ jobs:
           find src-tauri/target/aarch64-apple-darwin/release/bundle -maxdepth 6 -type f \( \
             -name "*.dmg" -o -name "*.tar.gz" -o -name "*.sig" -o -name "latest.json" \
           \) -exec cp -f {} artifacts/mac/ \;
+          find src-tauri/target/x86_64-apple-darwin/release/bundle -maxdepth 6 -type f -name "*.dmg" -exec cp -f {} artifacts/mac/ \;
 
           if ! ls artifacts/mac/*.sig >/dev/null 2>&1; then
             echo "No updater signature (*.sig) found in macOS artifacts."
