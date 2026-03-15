@@ -272,12 +272,12 @@ jobs:
             -name "*.dmg" -o -name "*.tar.gz" -o -name "*.sig" -o -name "latest.json" \
           \) -exec cp -f {} artifacts/mac/ \;
 
-          if [[ ! -f artifacts/mac/latest.json ]]; then
-            echo "latest.json not found in macOS bundle artifacts."
-            exit 1
-          fi
           if ! ls artifacts/mac/*.sig >/dev/null 2>&1; then
             echo "No updater signature (*.sig) found in macOS artifacts."
+            exit 1
+          fi
+          if ! ls artifacts/mac/*.tar.gz >/dev/null 2>&1; then
+            echo "No updater bundle (*.tar.gz) found in macOS artifacts."
             exit 1
           fi
 
@@ -316,6 +316,42 @@ jobs:
       - name: 📦 Publish to Distribution
         run: |
           chmod +x scripts/release_local.sh scripts/merge_latest_json.sh
+
+          if [[ ! -f artifacts/latest.json && ! -f artifacts/mac/latest.json && ! -f artifacts/win/latest.json ]]; then
+            MAC_TAR="$(find artifacts/mac -maxdepth 1 -type f -name '*.tar.gz' | head -n 1)"
+            if [[ -z "$MAC_TAR" ]]; then
+              echo "Error: no latest.json found and no macOS updater tarball available to synthesize one."
+              exit 1
+            fi
+
+            MAC_SIG="${MAC_TAR}.sig"
+            if [[ ! -f "$MAC_SIG" ]]; then
+              echo "Error: missing signature for macOS updater tarball: $MAC_SIG"
+              exit 1
+            fi
+
+            TAG="${{ inputs.tag }}"
+            VERSION="${TAG#v}"
+            PUB_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            DIST_REPO="${PUBLIC_DIST_REPO:-senoldogann/guardian-distribution}"
+            TAR_NAME="$(basename "$MAC_TAR")"
+            SIG_B64="$(base64 "$MAC_SIG" | tr -d '\n')"
+
+            cat > artifacts/latest.json <<EOF
+          {
+            "version": "$VERSION",
+            "notes": "$TAG Release",
+            "pub_date": "$PUB_DATE",
+            "platforms": {
+              "darwin-aarch64": {
+                "signature": "$SIG_B64",
+                "url": "https://github.com/$DIST_REPO/releases/download/$TAG/$TAR_NAME"
+              }
+            }
+          }
+          EOF
+          fi
+
           DIST_REPO="${PUBLIC_DIST_REPO:-senoldogann/guardian-distribution}"
           scripts/release_local.sh "${{ inputs.tag }}" "$(pwd)/artifacts" "$DIST_REPO"
         env:
