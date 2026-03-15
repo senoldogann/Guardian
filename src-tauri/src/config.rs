@@ -26,6 +26,7 @@ const MAX_TIMEOUT_SECS: u64 = 600;
 pub const DEFAULT_MAX_BATCH_SIZE: usize = 3;
 pub const DEFAULT_MAX_CONTENT_CHARS: usize = 6000;
 pub const DEFAULT_MAX_CONTENT_LINES: usize = 220;
+pub const DEFAULT_LAST_AUDITED_CACHE_MAX_ENTRIES: usize = 1200;
 pub const DEFAULT_MIN_BATCH_INTERVAL_SECS: u64 = 2;
 pub const DEFAULT_RATE_LIMIT_RETRIES: u32 = 2;
 pub const DEFAULT_RATE_LIMIT_BACKOFF_SECS: u64 = 2;
@@ -416,6 +417,30 @@ pub fn max_content_lines() -> usize {
             }
         },
         Err(_) => DEFAULT_MAX_CONTENT_LINES,
+    }
+}
+
+pub fn last_audited_cache_max_entries() -> usize {
+    match env::var("GUARDIAN_LAST_AUDITED_CACHE_MAX_ENTRIES") {
+        Ok(val) => match val.parse::<usize>() {
+            Ok(n) if n > 0 => n,
+            Ok(_) => {
+                tracing::warn!(
+                    "Invalid GUARDIAN_LAST_AUDITED_CACHE_MAX_ENTRIES value '{}': must be > 0. Using default.",
+                    val
+                );
+                DEFAULT_LAST_AUDITED_CACHE_MAX_ENTRIES
+            }
+            Err(e) => {
+                tracing::warn!(
+                    "Invalid GUARDIAN_LAST_AUDITED_CACHE_MAX_ENTRIES value '{}': {}. Using default.",
+                    val,
+                    e
+                );
+                DEFAULT_LAST_AUDITED_CACHE_MAX_ENTRIES
+            }
+        },
+        Err(_) => DEFAULT_LAST_AUDITED_CACHE_MAX_ENTRIES,
     }
 }
 

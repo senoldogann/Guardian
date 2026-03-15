@@ -1,6 +1,6 @@
 # Guardian 90 Gunluk Faz 2+4 MVP Takip Defteri
 
-Last Updated: 2026-03-15 16:58:00Z
+Last Updated: 2026-03-15 17:12:00Z
 Owner: Guardian Team
 Code Workspace: `/Users/dogan/Desktop/guardian`
 Governance Workspace: `/Users/dogan/Desktop/guardian`
@@ -652,3 +652,22 @@ Release aninda karar veren gate ve pilot metrik yuzeyi ile scanner'dan governanc
   - Yok.
 - Next Phase Entry Decision:
   - Faz 5 rollout metriklerini gercek design-partner verisiyle haftalik toplamaya devam et; 4 haftalik trend gate kapanisina ilerle.
+
+## Ara Checkpoint Log - 2026-03-15 (Watcher Memory Bound + Concurrency Hygiene)
+- Completed Items:
+  - Uzun sureli watcher oturumlarinda `LAST_AUDITED_CONTENTS` cache'i sinirsiz buyumeyecek sekilde max-entry limiti eklendi.
+  - Cache veri yapisi `content + last_seen_epoch_ms` seklinde guncellendi ve en eski girisler deterministic sekilde evict ediliyor.
+  - Yeni runtime ayari eklendi: `GUARDIAN_LAST_AUDITED_CACHE_MAX_ENTRIES` (default: `1200`).
+  - Env dokumani guncellendi (`.env.example`) ve eviction regression unit testi eklendi.
+- Evidence:
+  - `src-tauri/src/config.rs` (`DEFAULT_LAST_AUDITED_CACHE_MAX_ENTRIES`, `last_audited_cache_max_entries`)
+  - `src-tauri/src/watcher.rs` (`AuditedContentCacheEntry`, `enforce_last_audited_cache_limit`, cache update/read path)
+  - `.env.example` (new watcher cache limit knob)
+  - `cargo test --manifest-path src-tauri/Cargo.toml watcher::tests_protocol::last_audited_cache_limit_eviction_removes_oldest_entries -- --nocapture` (pass)
+  - `cargo test --manifest-path src-tauri/Cargo.toml watcher::tests_protocol::upsert_batch_item_replaces_existing_path_with_latest_content -- --nocapture` (pass)
+  - `npm run lint` (pass)
+  - `python3 scripts/verify_all.py` (pass)
+- Blockers:
+  - Yok.
+- Next Phase Entry Decision:
+  - Faz 5 operasyonuna devam: weekly real design-partner cadence + trend gate kapanisi.

@@ -32,7 +32,14 @@ use tracing::{debug, error, info, warn};
 // OPTIMIZATION: Using RwLock instead of Mutex for better read concurrency
 static ACTIVE_CRITIQUES: Lazy<Arc<RwLock<HashMap<String, crate::ai_client::Critique>>>> =
     Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
-static LAST_AUDITED_CONTENTS: Lazy<Arc<RwLock<HashMap<String, String>>>> =
+
+#[derive(Debug, Clone)]
+struct AuditedContentCacheEntry {
+    content: String,
+    last_seen_epoch_ms: i64,
+}
+
+static LAST_AUDITED_CONTENTS: Lazy<Arc<RwLock<HashMap<String, AuditedContentCacheEntry>>>> =
     Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
 #[derive(Debug, Clone, Serialize)]
@@ -3159,15 +3166,43 @@ fn filter_pii(content: &str) -> String {
     crate::redaction::gate::mask_inline_secrets(content)
 }
 
+fn enforce_last_audited_cache_limit(
+    cache: &mut HashMap<String, AuditedContentCacheEntry>,
+    max_entries: usize,
+) {
+    if max_entries == 0 || cache.len() <= max_entries {
+        return;
+    }
+
+    let remove_count = cache.len().saturating_sub(max_entries);
+    let mut by_age: Vec<(String, i64)> = cache
+        .iter()
+        .map(|(path, entry)| (path.clone(), entry.last_seen_epoch_ms))
+        .collect();
+    by_age.sort_by_key(|(_, ts)| *ts);
+
+    for (path, _) in by_age.into_iter().take(remove_count) {
+        cache.remove(&path);
+    }
+}
+
 fn update_last_audited_contents(items: &[BatchItem]) {
     let Ok(mut lock) = LAST_AUDITED_CONTENTS.write() else {
         return;
     };
+    let now_ms = Utc::now().timestamp_millis();
     for item in items {
         let key = item.path.to_string_lossy().to_string();
         let filtered = filter_pii(&item.content);
-        lock.insert(key, filtered);
+        lock.insert(
+            key,
+            AuditedContentCacheEntry {
+                content: filtered,
+                last_seen_epoch_ms: now_ms,
+            },
+        );
     }
+    enforce_last_audited_cache_limit(&mut lock, config::last_audited_cache_max_entries());
 }
 
 fn last_audited_content(path: &Path) -> Option<String> {
@@ -3175,7 +3210,7 @@ fn last_audited_content(path: &Path) -> Option<String> {
     let Ok(lock) = LAST_AUDITED_CONTENTS.read() else {
         return None;
     };
-    lock.get(&key).cloned()
+    lock.get(&key).map(|entry| entry.content.clone())
 }
 
 fn prepare_ai_context_file(item: &BatchItem) -> AiContextFile {
@@ -3402,6 +3437,38 @@ mod tests_protocol {
         )
         .expect("parse governance summary");
         assert_eq!(parsed["summary"]["critical"], 1);
+    }
+
+    #[test]
+    fn last_audited_cache_limit_eviction_removes_oldest_entries() {
+        let mut cache: HashMap<String, AuditedContentCacheEntry> = HashMap::new();
+        cache.insert(
+            "a.rs".to_string(),
+            AuditedContentCacheEntry {
+                content: "oldest".to_string(),
+                last_seen_epoch_ms: 10,
+            },
+        );
+        cache.insert(
+            "b.rs".to_string(),
+            AuditedContentCacheEntry {
+                content: "middle".to_string(),
+                last_seen_epoch_ms: 20,
+            },
+        );
+        cache.insert(
+            "c.rs".to_string(),
+            AuditedContentCacheEntry {
+                content: "newest".to_string(),
+                last_seen_epoch_ms: 30,
+            },
+        );
+
+        enforce_last_audited_cache_limit(&mut cache, 2);
+        assert_eq!(cache.len(), 2);
+        assert!(!cache.contains_key("a.rs"));
+        assert!(cache.contains_key("b.rs"));
+        assert!(cache.contains_key("c.rs"));
     }
 
     #[test]
