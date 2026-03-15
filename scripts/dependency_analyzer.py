@@ -3,6 +3,8 @@ import os
 import sys
 import subprocess
 import json
+import argparse
+from typing import Optional
 
 # Add scripts dir to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -11,7 +13,28 @@ from common_utils import print_header, print_success, print_fail, print_info, pr
 
 ROOT_DIR = os.getcwd()
 
-def audit_nodejs():
+def parse_node_vulnerabilities(raw_json: str) -> Optional[int]:
+    try:
+        payload = json.loads(raw_json)
+    except json.JSONDecodeError:
+        return None
+
+    metadata = payload.get("metadata", {})
+    vulnerabilities = metadata.get("vulnerabilities", {})
+    if isinstance(vulnerabilities, dict):
+        total = 0
+        for key, value in vulnerabilities.items():
+            if key == "total":
+                continue
+            if isinstance(value, int):
+                total += value
+        if total == 0 and isinstance(vulnerabilities.get("total"), int):
+            total = vulnerabilities["total"]
+        return total
+    return None
+
+
+def audit_nodejs(strict_security: bool):
     if file_exists("package.json"):
         print_info("Analyzing Node.js dependencies...")
         try:
@@ -23,14 +46,35 @@ def audit_nodejs():
                 print_success("Node.js audit: No vulnerabilities found.")
                 return True
             else:
-                print_warning("Node.js audit: Found potential vulnerabilities.")
-                # We don't fail the whole build here unless we want strictly secure CI
+                vuln_count = parse_node_vulnerabilities(result.stdout)
+                if vuln_count is None:
+                    print_warning("Node.js audit: Found potential vulnerabilities (count unavailable).")
+                else:
+                    print_warning(f"Node.js audit: Found potential vulnerabilities (count={vuln_count}).")
+                if strict_security:
+                    print_fail("Node.js audit: strict mode active, failing on vulnerabilities.")
+                    return False
                 return True 
         except FileNotFoundError:
             print_warning("npm command not found. Skipping Node.js audit.")
     return True
 
-def audit_python():
+
+def parse_python_vulnerabilities(raw_output: str) -> int:
+    # pip-audit output generally has one advisory per line after headers.
+    lines = [line.strip() for line in raw_output.splitlines() if line.strip()]
+    # Best effort: if table output exists, first non-header rows are vulnerabilities.
+    # We subtract probable header row when present.
+    if not lines:
+        return 0
+    header_markers = ("name", "version", "id", "fix versions")
+    lowered_first = lines[0].lower()
+    if all(marker in lowered_first for marker in header_markers):
+        return max(0, len(lines) - 1)
+    return len(lines)
+
+
+def audit_python(strict_security: bool):
     if file_exists("requirements.txt"):
         print_info("Analyzing Python dependencies...")
         try:
@@ -40,11 +84,16 @@ def audit_python():
                 print_success("Python audit: No vulnerabilities found.")
                 return True
             else:
-                print_warning("Python audit: Found potential vulnerabilities.")
+                vuln_count = parse_python_vulnerabilities(result.stdout)
+                print_warning(f"Python audit: Found potential vulnerabilities (count~={vuln_count}).")
+                if strict_security:
+                    print_fail("Python audit: strict mode active, failing on vulnerabilities.")
+                    return False
                 return True
         except FileNotFoundError:
             print_warning("pip-audit command not found. Skipping Python audit.")
     return True
+
 
 def audit_go():
     if file_exists("go.mod"):
@@ -91,7 +140,26 @@ def audit_structure():
     return all_ok
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Dependency and structure audit with optional strict security mode."
+    )
+    parser.add_argument(
+        "--strict-security",
+        action="store_true",
+        help="Fail the script when dependency vulnerabilities are detected.",
+    )
+    args = parser.parse_args()
+    strict_security = args.strict_security or os.getenv("MAESTRO_AUDIT_FAIL_ON_VULN", "").strip() in (
+        "1",
+        "true",
+        "TRUE",
+        "yes",
+        "YES",
+    )
+
     print_header("MAESTRO DEPENDENCY & STRUCTURE AUDITOR (v2.3.1)")
+    if strict_security:
+        print_info("Strict security mode: ENABLED (vulnerability findings will fail).")
     
     success = True
     # 1. Structural Audit
@@ -99,8 +167,8 @@ def main():
     
     # 2. Dependency Audit
     print("\n")
-    success &= audit_nodejs()
-    success &= audit_python()
+    success &= audit_nodejs(strict_security)
+    success &= audit_python(strict_security)
     success &= audit_go()
     
     if success:
