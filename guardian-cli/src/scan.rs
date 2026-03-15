@@ -605,7 +605,10 @@ fn collect_files(
             continue;
         }
 
-        let decision = guardian_scan_policy::classify_path(&abs_path, false, profile);
+        // Policy decisions must be based on workspace-relative paths. Using absolute paths can
+        // accidentally match ignored segments from host directories (for example `/tmp` in CI).
+        let decision =
+            guardian_scan_policy::classify_path(Path::new(&rel_path), false, profile);
         if !decision.include {
             if inventory.len() < max_inventory {
                 inventory.push(FileInventoryEntry {
@@ -1201,6 +1204,20 @@ mod tests {
         paths.sort();
 
         assert_eq!(paths, vec!["main.py".to_string(), "src/main.ts".to_string()]);
+    }
+
+    #[test]
+    fn collect_files_does_not_skip_when_workspace_path_contains_tmp_segment() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path().join("tmp").join("repo");
+        fs::create_dir_all(&root).unwrap();
+        write_file(&root, "src/insecure.ts", "const x = eval('1+1');\n");
+
+        let collected =
+            collect_files(&root, ScanProfile::Source, 100, 50_000, &HashSet::new()).unwrap();
+        let paths: Vec<String> = collected.scanned.into_iter().map(|f| f.rel_path).collect();
+
+        assert!(paths.contains(&"src/insecure.ts".to_string()));
     }
 
     #[test]
