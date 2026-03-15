@@ -59,6 +59,7 @@ Governance Workspace: `/Users/dogan/Desktop/guardian`
 - [x] Vitest kapsam duzeltildi: `.maestro/**` ve `.agents/**` testleri app unit gate disina alindi.
 - [x] Positioning closure pass tamamlandi: SEO metadata + FAQ + onboarding copy "AI-generated code governance for small engineering teams" diline cekildi.
 - [x] Website copy gate kapsamı genisletildi: metadata + FAQ + SEO alanlari `copy:check` icine alindi.
+- [x] GitHub Linux CI icin Tauri/GTK sistem bagimliliklari eklendi (`.github/workflows/ci-cd-v1.yml`), `glib-2.0.pc` eksikligi giderildi.
 - [x] `find-skills` skill kullanildi ve query sonuclariyla (positioning/seo/docs-consistency) dis kaynak taramasi yapildi.
 - [x] Missing Faz 4/5 script artefaktlari repo reality ile senkronlandi (`release_all_local`, `generate_dashboard_lite`, `pilot_dryrun`, `pilot_generate_weekly_report`, readiness/leak/ci validators, CI smoke script).
 - [x] Real pilot manifest path'leri mevcut workspace absolute path'lerine duzeltildi (`/Users/dogan/Desktop/guardian/...`).
