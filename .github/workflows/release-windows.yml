@@ -108,6 +108,8 @@ jobs:
       - name: 🔐 Prepare Tauri Updater Signing Key
         run: |
           const fs = require("node:fs");
+          const os = require("node:os");
+          const path = require("node:path");
           const raw = process.env.TAURI_KEY_SECRET || "";
           let normalized = raw;
           if (!raw.includes("untrusted comment:")) {
@@ -118,13 +120,12 @@ jobs:
               }
             } catch {}
           }
-          if (!normalized.includes("untrusted comment:")) {
-            throw new Error("TAURI_SIGNING_PRIVATE_KEY is not a valid minisign key.");
+          if (!normalized.includes("untrusted comment:") && !/^[A-Za-z0-9+/=]+$/.test(normalized.trim())) {
+            throw new Error("TAURI_SIGNING_PRIVATE_KEY has unsupported format.");
           }
-          fs.appendFileSync(
-            process.env.GITHUB_ENV,
-            `TAURI_SIGNING_PRIVATE_KEY<<EOF\n${normalized}\nEOF\n`,
-          );
+          const keyPath = path.join(process.env.RUNNER_TEMP || os.tmpdir(), "tauri.key");
+          fs.writeFileSync(keyPath, normalized.trim() + "\n", { mode: 0o600 });
+          fs.appendFileSync(process.env.GITHUB_ENV, `TAURI_SIGNING_PRIVATE_KEY=${keyPath}\n`);
         shell: node {0}
         env:
           TAURI_KEY_SECRET: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -195,6 +196,8 @@ jobs:
       - name: 🔐 Prepare Tauri Updater Signing Key
         run: |
           const fs = require("node:fs");
+          const os = require("node:os");
+          const path = require("node:path");
           const raw = process.env.TAURI_KEY_SECRET || "";
           let normalized = raw;
           if (!raw.includes("untrusted comment:")) {
@@ -205,13 +208,12 @@ jobs:
               }
             } catch {}
           }
-          if (!normalized.includes("untrusted comment:")) {
-            throw new Error("TAURI_SIGNING_PRIVATE_KEY is not a valid minisign key.");
+          if (!normalized.includes("untrusted comment:") && !/^[A-Za-z0-9+/=]+$/.test(normalized.trim())) {
+            throw new Error("TAURI_SIGNING_PRIVATE_KEY has unsupported format.");
           }
-          fs.appendFileSync(
-            process.env.GITHUB_ENV,
-            `TAURI_SIGNING_PRIVATE_KEY<<EOF\n${normalized}\nEOF\n`,
-          );
+          const keyPath = path.join(process.env.RUNNER_TEMP || os.tmpdir(), "tauri.key");
+          fs.writeFileSync(keyPath, normalized.trim() + "\n", { mode: 0o600 });
+          fs.appendFileSync(process.env.GITHUB_ENV, `TAURI_SIGNING_PRIVATE_KEY=${keyPath}\n`);
         shell: node {0}
         env:
           TAURI_KEY_SECRET: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
