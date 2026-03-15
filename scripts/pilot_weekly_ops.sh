@@ -22,6 +22,10 @@ Optional env:
   GUARDIAN_PILOT_WINDOW_DAYS=30
   GUARDIAN_AI_HEAVY_TARGET_MIN=0.25
   GUARDIAN_AI_HEAVY_TARGET_MAX=0.55
+  # launch/ga threshold overrides (optional)
+  # used by scripts/pilot_exit_gate_check.py
+  # GUARDIAN_LAUNCH_MIN_WEEKS=2
+  # GUARDIAN_GA_MIN_WEEKS=4
 EOF
 }
 
@@ -102,5 +106,6 @@ PY
 "$SCRIPT_DIR/pilot_generate_rollout_trend.sh" "$MANIFEST_PATH"
 "$SCRIPT_DIR/pilot_generate_ai_heavy_calibration.sh" "$MANIFEST_PATH"
 python3 "$SCRIPT_DIR/pilot_exit_gate_check.py"
+python3 "$SCRIPT_DIR/pilot_exit_gate_check.py" --profile ga
 
 echo "[pilot-weekly-ops] completed."

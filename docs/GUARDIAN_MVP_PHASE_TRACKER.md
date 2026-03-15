@@ -1,6 +1,6 @@
 # Guardian 90 Gunluk Faz 2+4 MVP Takip Defteri
 
-Last Updated: 2026-03-15 17:50:00Z
+Last Updated: 2026-03-15 18:05:00Z
 Owner: Guardian Team
 Code Workspace: `/Users/dogan/Desktop/guardian`
 Governance Workspace: `/Users/dogan/Desktop/guardian`
@@ -687,3 +687,24 @@ Release aninda karar veren gate ve pilot metrik yuzeyi ile scanner'dan governanc
   - `block_rate_trend_reported` kapisi icin minimum 4 haftalik trend penceresi (su an 2 hafta).
 - Next Phase Entry Decision:
   - Haftalik cadence'i bozmadan 2 hafta daha trend biriktir; sonra `--fail-on-incomplete` ile pilot complete kararini CI-benzeri strict modda kapat.
+
+## Ara Checkpoint Log - 2026-03-15 (No-Wait Launch Gate + Solid Dual-Profile Exit Criteria)
+- Completed Items:
+  - Exit-gate checker dual-profile modele gecirildi:
+    - Launch profile: hizli production-ready karari (2 hafta + hacim esikleri)
+    - GA profile: tam mezuniyet karari (4 hafta)
+  - Launch/GA icin threshold bazli "trend + decision volume + ai-heavy volume" kapilari eklendi.
+  - `pilot_weekly_ops.sh` artik hem launch hem ga profil durumunu raporluyor.
+  - Real veriyle dogrulama:
+    - launch profile strict mod (`--profile launch --fail-on-incomplete`) PASS
+    - ga profile strict mod (`--profile ga --fail-on-incomplete`) beklenen sekilde FAIL (weeks gate)
+- Evidence:
+  - `python3 scripts/pilot_exit_gate_check.py --profile launch --fail-on-incomplete` (pass)
+  - `python3 scripts/pilot_exit_gate_check.py --profile ga --fail-on-incomplete` (fail, expected)
+  - `.guardian/pilot-exit-gate/2026-03-15/exit_gate_status.json`
+  - `bash scripts/pilot_weekly_ops.sh docs/pilot/PILOT_REPO_MANIFEST.real.json docs/pilot/APPROVER_ROSTER.json`
+  - `python3 scripts/verify_all.py`
+- Blockers:
+  - GA profile icin trend haftasi kapisi (4 hafta) henuz kapanmadi.
+- Next Phase Entry Decision:
+  - Beklemeden launch profile ile controlled production devam; GA profile icin haftalik cadence ile 4 hafta kapisini kapat.

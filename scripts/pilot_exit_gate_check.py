@@ -61,8 +61,15 @@ def build_gate_checks(
     readiness: dict[str, Any] | None,
     leak_cases: dict[str, Any] | None,
     min_prevented_release_cases: int,
-) -> list[GateCheck]:
+    min_weeks: int,
+    min_total_decisions: int,
+    min_ai_heavy_decisions: int,
+) -> tuple[list[GateCheck], dict[str, int]]:
     trend_exit = trend.get("exit_gate", {}) if isinstance(trend.get("exit_gate"), dict) else {}
+    series = trend.get("series", {}) if isinstance(trend.get("series"), dict) else {}
+    weeks = series.get("weeks", [])
+    weekly = series.get("weekly", {}) if isinstance(series.get("weekly"), dict) else {}
+    weeks_available = len(weeks) if isinstance(weeks, list) else 0
 
     strict_stable = boolish(trend_exit.get("strict_gate_active_stable"))
     strict_repos = int(trend_exit.get("strict_gate_active_stable_repos", 0) or 0)
@@ -71,9 +78,15 @@ def build_gate_checks(
     override_cov = float(trend_exit.get("override_reason_coverage", 0.0) or 0.0)
     override_threshold = float(trend_exit.get("override_reason_threshold", 0.95) or 0.95)
 
-    trend_reported = boolish(trend_exit.get("block_rate_trend_reported"))
-    weeks_available = int(trend_exit.get("weeks_available", 0) or 0)
-    weeks_required = int(trend_exit.get("minimum_weeks_required", 4) or 4)
+    total_decisions = 0
+    ai_heavy_decisions = 0
+    if isinstance(weeks, list):
+        for week in weeks:
+            if not isinstance(week, str):
+                continue
+            row = weekly.get(week, {}) if isinstance(weekly.get(week), dict) else {}
+            total_decisions += int(row.get("total_decisions", 0) or 0)
+            ai_heavy_decisions += int(row.get("ai_heavy_pr_count", 0) or 0)
 
     readiness_status = "UNKNOWN"
     readiness_ok = False
@@ -100,9 +113,19 @@ def build_gate_checks(
             detail=f"coverage={override_cov:.4f} threshold={override_threshold:.4f}",
         ),
         GateCheck(
-            name="block_rate_trend_reported",
-            passed=trend_reported,
-            detail=f"weeks={weeks_available}/{weeks_required}",
+            name="trend_window",
+            passed=weeks_available >= min_weeks,
+            detail=f"weeks={weeks_available}/{min_weeks}",
+        ),
+        GateCheck(
+            name="decision_volume",
+            passed=total_decisions >= min_total_decisions,
+            detail=f"total_decisions={total_decisions} required>={min_total_decisions}",
+        ),
+        GateCheck(
+            name="ai_heavy_volume",
+            passed=ai_heavy_decisions >= min_ai_heavy_decisions,
+            detail=f"ai_heavy_decisions={ai_heavy_decisions} required>={min_ai_heavy_decisions}",
         ),
         GateCheck(
             name="pilot_readiness_status",
@@ -114,7 +137,11 @@ def build_gate_checks(
             passed=leak_gate_ok,
             detail=f"prevented_release={prevented_release} required>={min_prevented_release_cases}",
         ),
-    ]
+    ], {
+        "weeks_available": weeks_available,
+        "total_decisions": total_decisions,
+        "ai_heavy_decisions": ai_heavy_decisions,
+    }
 
 
 def next_actions(gates: list[GateCheck]) -> list[str]:
@@ -122,9 +149,17 @@ def next_actions(gates: list[GateCheck]) -> list[str]:
     for gate in gates:
         if gate.passed:
             continue
-        if gate.name == "block_rate_trend_reported":
+        if gate.name == "trend_window":
             actions.append(
                 "Continue weekly real pilot cadence until minimum trend window is met."
+            )
+        elif gate.name == "decision_volume":
+            actions.append(
+                "Increase real pilot decision volume (more strict dry-run cycles across design-partner repos)."
+            )
+        elif gate.name == "ai_heavy_volume":
+            actions.append(
+                "Increase AI-heavy sampled decision count before sign-off."
             )
         elif gate.name == "override_reason_coverage":
             actions.append(
@@ -150,13 +185,15 @@ def markdown_report(payload: dict[str, Any]) -> str:
     lines.append("# Pilot Exit Gate Status")
     lines.append("")
     lines.append(f"- Generated At: {payload.get('generated_at', '')}")
-    lines.append(f"- Pilot Complete: {payload.get('pilot_complete', False)}")
+    lines.append(f"- Launch Ready: {payload.get('pilot_complete', False)}")
+    lines.append(f"- GA Ready: {payload.get('ga_complete', False)}")
+    lines.append(f"- Active Profile: {payload.get('active_profile', 'launch')}")
     lines.append("")
-    lines.append("## Gate Checks")
+    lines.append("## Active Profile Gate Checks")
     lines.append("")
     lines.append("| Gate | Passed | Detail |")
     lines.append("| --- | --- | --- |")
-    for gate in payload.get("gates", []):
+    for gate in payload.get("active_profile_gates", []):
         lines.append(
             "| {name} | {passed} | {detail} |".format(
                 name=gate.get("name", ""),
@@ -203,9 +240,51 @@ def main() -> int:
         help="Minimum prevented_release evidence required for completion gate.",
     )
     parser.add_argument(
+        "--launch-min-weeks",
+        type=int,
+        default=2,
+        help="Minimum trend weeks for launch profile.",
+    )
+    parser.add_argument(
+        "--ga-min-weeks",
+        type=int,
+        default=4,
+        help="Minimum trend weeks for GA profile.",
+    )
+    parser.add_argument(
+        "--launch-min-total-decisions",
+        type=int,
+        default=40,
+        help="Minimum total decisions across trend window for launch profile.",
+    )
+    parser.add_argument(
+        "--launch-min-ai-heavy-decisions",
+        type=int,
+        default=20,
+        help="Minimum AI-heavy decisions across trend window for launch profile.",
+    )
+    parser.add_argument(
+        "--ga-min-total-decisions",
+        type=int,
+        default=40,
+        help="Minimum total decisions across trend window for GA profile.",
+    )
+    parser.add_argument(
+        "--ga-min-ai-heavy-decisions",
+        type=int,
+        default=20,
+        help="Minimum AI-heavy decisions across trend window for GA profile.",
+    )
+    parser.add_argument(
+        "--profile",
+        choices=("launch", "ga"),
+        default="launch",
+        help="Profile used by --fail-on-incomplete gate.",
+    )
+    parser.add_argument(
         "--fail-on-incomplete",
         action="store_true",
-        help="Return non-zero exit code when pilot_complete=false.",
+        help="Return non-zero exit code when selected profile is not ready.",
     )
     args = parser.parse_args()
 
@@ -236,27 +315,74 @@ def main() -> int:
     readiness = load_json(readiness_path) if readiness_path and readiness_path.exists() else None
     leak_cases = load_json(leak_cases_path) if leak_cases_path and leak_cases_path.exists() else None
 
-    gates = build_gate_checks(
+    launch_gates, launch_metrics = build_gate_checks(
         trend=trend,
         readiness=readiness,
         leak_cases=leak_cases,
         min_prevented_release_cases=args.min_prevented_release_cases,
+        min_weeks=args.launch_min_weeks,
+        min_total_decisions=args.launch_min_total_decisions,
+        min_ai_heavy_decisions=args.launch_min_ai_heavy_decisions,
     )
-    pilot_complete = all(gate.passed for gate in gates)
-    actions = next_actions(gates)
+    ga_gates, ga_metrics = build_gate_checks(
+        trend=trend,
+        readiness=readiness,
+        leak_cases=leak_cases,
+        min_prevented_release_cases=args.min_prevented_release_cases,
+        min_weeks=args.ga_min_weeks,
+        min_total_decisions=args.ga_min_total_decisions,
+        min_ai_heavy_decisions=args.ga_min_ai_heavy_decisions,
+    )
+    launch_ready = all(gate.passed for gate in launch_gates)
+    ga_ready = all(gate.passed for gate in ga_gates)
+    active_gates = launch_gates if args.profile == "launch" else ga_gates
+    active_ready = launch_ready if args.profile == "launch" else ga_ready
+    actions = next_actions(active_gates)
 
     payload = {
         "schema_version": 1,
         "generated_at": now_iso(),
+        "active_profile": args.profile,
         "sources": {
             "trend_json": str(trend_path),
             "readiness_json": str(readiness_path) if readiness_path else None,
             "leak_cases_json": str(leak_cases_path) if leak_cases_path else None,
         },
-        "pilot_complete": pilot_complete,
-        "gates": [
+        "pilot_complete": launch_ready,
+        "ga_complete": ga_ready,
+        "profiles": {
+            "launch": {
+                "ready": launch_ready,
+                "thresholds": {
+                    "min_weeks": args.launch_min_weeks,
+                    "min_total_decisions": args.launch_min_total_decisions,
+                    "min_ai_heavy_decisions": args.launch_min_ai_heavy_decisions,
+                    "min_prevented_release_cases": args.min_prevented_release_cases,
+                },
+                "metrics": launch_metrics,
+                "gates": [
+                    {"name": gate.name, "passed": gate.passed, "detail": gate.detail}
+                    for gate in launch_gates
+                ],
+            },
+            "ga": {
+                "ready": ga_ready,
+                "thresholds": {
+                    "min_weeks": args.ga_min_weeks,
+                    "min_total_decisions": args.ga_min_total_decisions,
+                    "min_ai_heavy_decisions": args.ga_min_ai_heavy_decisions,
+                    "min_prevented_release_cases": args.min_prevented_release_cases,
+                },
+                "metrics": ga_metrics,
+                "gates": [
+                    {"name": gate.name, "passed": gate.passed, "detail": gate.detail}
+                    for gate in ga_gates
+                ],
+            },
+        },
+        "active_profile_gates": [
             {"name": gate.name, "passed": gate.passed, "detail": gate.detail}
-            for gate in gates
+            for gate in active_gates
         ],
         "next_actions": actions,
     }
@@ -270,9 +396,11 @@ def main() -> int:
 
     print(f"Pilot exit-gate JSON: {json_path}")
     print(f"Pilot exit-gate MD:   {md_path}")
-    print(f"pilot_complete={pilot_complete}")
+    print(f"pilot_complete={launch_ready}")
+    print(f"ga_complete={ga_ready}")
+    print(f"{args.profile}_ready={active_ready}")
 
-    if args.fail_on_incomplete and not pilot_complete:
+    if args.fail_on_incomplete and not active_ready:
         return 1
     return 0
 
