@@ -143,25 +143,11 @@ export function useGuardianEvents({
     });
 
     void register<string>("guardian:verification", (event) => {
-      setLogs((prev) => ({
-        ...prev,
-        ["System:Verification"]: {
-          file_path: "Verification",
-          severity: "Warning",
-          message: toFriendlySystemMessage(event.payload, "verification", t),
-        },
-      }));
+      setStatus(toFriendlySystemMessage(event.payload, "verification", t));
     });
 
     void register<string>("guardian:warning", (event) => {
-      setLogs((prev) => ({
-        ...prev,
-        ["System:Warning"]: {
-          file_path: "System Warning",
-          severity: "Warning",
-          message: toFriendlySystemMessage(event.payload, "warning", t),
-        },
-      }));
+      setStatus(toFriendlySystemMessage(event.payload, "warning", t));
     });
 
     void register<{ file_path: string; reason: string }>("guardian:stall-requested", (event) => {
@@ -199,18 +185,13 @@ export function useGuardianEvents({
     });
 
     invoke("ping").catch((error) => {
-      setLogs((prev) => ({
-        ...prev,
-        ["System:Backend"]: {
-          file_path: "System",
-          severity: "Warning",
-          message: toFriendlySystemMessage(
-            error instanceof Error ? error.message : String(error),
-            "backend",
-            t,
-          ),
-        },
-      }));
+      setStatus(
+        toFriendlySystemMessage(
+          error instanceof Error ? error.message : String(error),
+          "backend",
+          t,
+        ),
+      );
     });
 
     return () => {

@@ -1743,10 +1743,8 @@ async fn batch_processing_loop(
                 }
             },
             Some(item) = rx.recv() => {
-                // Add to batch
-                if !batch.iter().any(|i| i.path == item.path) { // Dedup
-                     batch.push(item);
-                }
+                // Keep the freshest content per path; do not keep stale pre-debounce snapshots.
+                upsert_batch_item(&mut batch, item);
 
                 let effective_batch_size = std::cmp::min(config::max_batch_size(), scan_profile.max_batch_size());
                 if batch.len() >= effective_batch_size {
@@ -1768,6 +1766,14 @@ async fn batch_processing_loop(
             }
         }
     }
+}
+
+fn upsert_batch_item(batch: &mut Vec<BatchItem>, item: BatchItem) {
+    if let Some(idx) = batch.iter().position(|existing| existing.path == item.path) {
+        batch[idx] = item;
+        return;
+    }
+    batch.push(item);
 }
 
 async fn process_batch(
@@ -3543,6 +3549,43 @@ mod tests_protocol {
         let out = normalize_batch_critique_file_paths(root, &[item], vec![critique]);
         assert_eq!(out.len(), 1);
         assert_eq!(out[0].file_path, abs_str);
+    }
+
+    #[test]
+    fn upsert_batch_item_replaces_existing_path_with_latest_content() {
+        let tmp = TempDir::new().expect("tempdir");
+        let root = tmp.path();
+        let path = root.join("src").join("main.rs");
+
+        let mut batch = vec![BatchItem {
+            path: path.clone(),
+            content: "old-content".to_string(),
+            hash: "old-hash".to_string(),
+            mtime_ms: 1,
+            bytes: 10,
+            triage_risk_score: 1,
+            triage_signals: vec!["signal-old"],
+            triage_kind: triage::FileKind::Source,
+        }];
+
+        upsert_batch_item(
+            &mut batch,
+            BatchItem {
+                path: path.clone(),
+                content: "new-content".to_string(),
+                hash: "new-hash".to_string(),
+                mtime_ms: 2,
+                bytes: 11,
+                triage_risk_score: 2,
+                triage_signals: vec!["signal-new"],
+                triage_kind: triage::FileKind::Source,
+            },
+        );
+
+        assert_eq!(batch.len(), 1, "same path should not duplicate in batch");
+        assert_eq!(batch[0].content, "new-content");
+        assert_eq!(batch[0].hash, "new-hash");
+        assert_eq!(batch[0].mtime_ms, 2);
     }
 
     #[test]
