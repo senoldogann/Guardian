@@ -1,6 +1,6 @@
 # Guardian 90 Gunluk Faz 2+4 MVP Takip Defteri
 
-Last Updated: 2026-03-15 14:53:04Z
+Last Updated: 2026-03-15 15:29:00Z
 Owner: Guardian Team
 Code Workspace: `/Users/dogan/Desktop/guardian`
 Governance Workspace: `/Users/dogan/Desktop/guardian`
@@ -66,6 +66,7 @@ Governance Workspace: `/Users/dogan/Desktop/guardian`
 - [x] Missing Faz 4/5 script artefaktlari repo reality ile senkronlandi (`release_all_local`, `generate_dashboard_lite`, `pilot_dryrun`, `pilot_generate_weekly_report`, readiness/leak/ci validators, CI smoke script).
 - [x] Real pilot manifest path'leri mevcut workspace absolute path'lerine duzeltildi (`/Users/dogan/Desktop/guardian/...`).
 - [x] Strict real dry-run + haftalik raporlar 2026-03-15 icin yeniden uretildi (`.guardian/pilot-dryrun-real/2026-03-15`, `.guardian/pilot-reports/2026-03-15`).
+- [x] Cross-repo rollout trend otomasyonu eklendi (`scripts/pilot_rollout_trend.py`, `scripts/pilot_generate_rollout_trend.sh`) ve 2 haftalik trend snapshot uretildi (`.guardian/pilot-rollout-trend/2026-03-15`).
 - [x] Website ana sayfasina rakiplerden ayrisan premium differentiator section'i eklendi (`website/components/home/DifferentiatorsSection.tsx`).
 - [x] Website ana sayfasina "Why not just use agents?" deger section'i eklendi (`website/components/home/AgentObjectionSection.tsx`).
 - [x] FAQ EN/TR icine "Neden sadece ajan review degil?" deger cevabi eklendi (`website/components/faq/faq-page-view.tsx`).
@@ -296,6 +297,7 @@ Release aninda karar veren gate ve pilot metrik yuzeyi ile scanner'dan governanc
 - [x] Pilot sonu "release leak prevented" vaka listesi cikartildi (shadow rehearsal).
 - [x] Gercek pilotta "release leak prevented" vaka listesi cikartildi.
 - [x] Gercek design-partner repolari manifeste eklenip strict dry-run baslatildi.
+- [x] Cross-repo rollout trend raporu JSON+MD formatinda uretiliyor.
 
 ### Test Gate
 - [x] Unit: dashboard-lite hesaplama scripti regression testleri.
@@ -337,8 +339,10 @@ Release aninda karar veren gate ve pilot metrik yuzeyi ile scanner'dan governanc
   - `python3 scripts/pilot_collect_leak_prevented_cases.py --summary-dir .guardian/pilot-dryrun-real --output-dir .guardian/pilot-leak-cases-real` (pass: prevented_release=1, controlled_override=1)
   - `python3 scripts/pilot_collect_leak_prevented_cases.py --summary-dir .guardian/pilot-dryrun --output-dir .guardian/pilot-leak-cases` (pass)
   - `python3 scripts/pilot_validate_ci_gate_flow.py --ci-workflow .github/workflows/ci-cd-v1.yml --release-workflow .github/workflows/release-windows.yml --output-dir .guardian/pilot-ci-gate-validation` (pass)
+  - `scripts/pilot_generate_rollout_trend.sh docs/pilot/PILOT_REPO_MANIFEST.real.json` (pass; weeks=2, block_rate_direction=decreasing)
   - `.guardian/pilot-dryrun/2026-03-14/summary.json` (`allowed=1 blocked=1 overridden=1 errors=0`)
   - `.guardian/pilot-dryrun-real/2026-03-14/summary.json` (`allowed=2 blocked=1 overridden=1 errors=0`)
+  - `.guardian/pilot-rollout-trend/2026-03-15/rollout_trend.json` (`weeks=2`, `strict_gate_active_stable=true`, `override_reason_coverage_met=true`)
   - `.guardian/pilot-leak-cases-real/2026-03-14/leak_cases.json` (`cases=2 prevented_release=1 controlled_override=1`)
   - `python3 /Users/dogan/Desktop/guardian/scripts/verify_all.py` (pass)
 - Web Search Sources (varsa): yok (yeni dis sistem/pattern secimi yoktu).
@@ -368,9 +372,9 @@ Release aninda karar veren gate ve pilot metrik yuzeyi ile scanner'dan governanc
   - `cargo test e2e_block_then_approve_then_release_gate_passes_with_audit_trail -- --nocapture` (pass)
   - `python3 /Users/dogan/Desktop/guardian/scripts/verify_all.py` (pass)
 - Blockers:
-  - Faz 5 exit gate icin haftalik trend/stability verisi henuz tek hafta.
+  - Faz 5 exit gate icin haftalik trend/stability verisi 2 hafta (2/4); aylik trend kapisi icin en az 2 hafta daha gerekiyor.
 - Next Phase Entry Decision:
-  - Haftalik otomasyon cadence'i ile en az 3-4 hafta veri toplanip exit gate metrikleri kapanacak.
+  - Haftalik otomasyon cadence'i ile en az 2 hafta daha veri toplanip exit gate trend kapisi kapanacak.
 
 ## Ara Checkpoint Log - 2026-03-14
 - Completed Items:
@@ -605,17 +609,19 @@ Release aninda karar veren gate ve pilot metrik yuzeyi ile scanner'dan governanc
   - Silinmis release yardimci scriptleri geri kazandirildi (`verify.sh`, `secret_scan.sh`, `release_local.sh`, `publish_distribution*.sh`, `merge_latest_json.sh`, `collect_macos_artifacts.sh`, `bump_version.sh`, vb.).
   - `docs/pilot/PILOT_REPO_MANIFEST.real.json` path'leri mevcut workspace mutlak path'lerine duzeltildi.
   - Strict real dry-run + haftalik rapor uretimi tekrar calistirildi (2026-03-15 ciktilari).
+  - Cross-repo rollout trend raporu otomasyonu calistirildi (2 haftalik trend snapshot).
 - Evidence:
   - `python3 scripts/pilot_validate_readiness.py --manifest docs/pilot/PILOT_REPO_MANIFEST.real.json --approver-roster docs/pilot/APPROVER_ROSTER.json --output-dir .guardian/pilot-real-readiness` (READY)
   - `python3 scripts/pilot_dryrun.py --manifest docs/pilot/PILOT_REPO_MANIFEST.real.json --cli-bin guardian-cli/target/release/guardian-cli --summary-dir .guardian/pilot-dryrun-real` (pass)
   - `GUARDIAN_PILOT_TEAM=<team> GUARDIAN_PILOT_REPO=<repo> scripts/pilot_generate_weekly_report.sh <repo_path>` (4 repo pass)
   - `python3 scripts/pilot_collect_leak_prevented_cases.py --summary-dir .guardian/pilot-dryrun-real --output-dir .guardian/pilot-leak-cases-real` (pass)
   - `python3 scripts/pilot_validate_ci_gate_flow.py --ci-workflow .github/workflows/ci-cd-v1.yml --release-workflow .github/workflows/release-windows.yml --output-dir .guardian/pilot-ci-gate-validation` (pass)
+  - `scripts/pilot_generate_rollout_trend.sh docs/pilot/PILOT_REPO_MANIFEST.real.json` (pass)
   - `bash scripts/ci/release_gate_ci_smoke.sh` (pass)
   - `GUARDIAN_RELEASE_APPROVER=release-manager GUARDIAN_RELEASE_OVERRIDE_REASON=... bash scripts/release_all_local.sh --gate-only` (pass, decision=`OVERRIDDEN`)
   - `npm run test` / `cargo test -q` / `npm run test:e2e` / `python3 scripts/verify_all.py` (pass)
   - `website: npm run copy:check` / `npm run lint` / `npm run test:run` / `npm run build` (pass)
 - Blockers:
-  - Faz 5 exit gate icin aylik trend verisi ve product sign-off maddeleri hala operasyonel takip gerektiriyor.
+  - Faz 5 exit gate icin aylik trend kapisi henuz 2/4 hafta; product sign-off operasyonel takip gerektiriyor.
 - Next Phase Entry Decision:
-  - Haftalik cadence ile ayni script seti uzerinden en az 3-4 hafta trend biriktir; Faz 5 stability/coverage exit gate maddelerini kapat.
+  - Haftalik cadence ile ayni script seti uzerinden en az 2 hafta daha trend biriktir; Faz 5 trend gate maddesini kapat.

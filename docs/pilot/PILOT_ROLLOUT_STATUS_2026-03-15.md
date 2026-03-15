@@ -13,6 +13,8 @@
   - `scripts/pilot_generate_weekly_report.sh /Users/dogan/Desktop/guardian/.guardian/pilot-shadow-repos/design-partner-b`
   - `scripts/pilot_generate_weekly_report.sh /Users/dogan/Desktop/guardian/.guardian/pilot-shadow-repos/design-partner-c`
   - `scripts/pilot_generate_weekly_report.sh /Users/dogan/Desktop/guardian`
+- Rollout trend aggregation:
+  - `scripts/pilot_generate_rollout_trend.sh docs/pilot/PILOT_REPO_MANIFEST.real.json`
 
 ## Results
 - Readiness: `READY` (blockers=0, warnings=0)
@@ -27,6 +29,13 @@
   - weak=0
   - missing=0
   - override_reason_coverage=1.0
+- Rollout trend snapshot:
+  - weeks=2 (`2026-03-14`, `2026-03-15`)
+  - block_rate_direction=decreasing
+  - ai_heavy_direction=increasing
+  - strict_gate_active_stable=true (repos=4)
+  - override_reason_coverage_met=true (coverage=1.0, threshold=0.95)
+  - block_rate_trend_reported=false (weeks=2/4)
 
 ## Exit Gate Check (Faz 5)
 - [x] En az 2 design-partner repoda strict gate aktif ve stabil
@@ -35,6 +44,6 @@
 - [x] En az 1 kritik kacagin release oncesi engellendigi kanitlandi
 
 ## Remaining
-1. Haftalik cadence ile en az 3-4 hafta trend biriktir.
+1. Haftalik cadence ile en az 2 hafta daha trend biriktir (hedef: 4 hafta).
 2. AI-heavy threshold kalibrasyonunu trend verisiyle finalize et.
 3. Faz 5 final sign-off ve "pilot complete" ilanini yap.

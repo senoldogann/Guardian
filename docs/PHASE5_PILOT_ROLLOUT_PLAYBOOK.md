@@ -129,6 +129,13 @@ Guardian dashboard-lite reports these buckets under `override_reason_quality`.
    - Outputs:
      - `.guardian/pilot-ci-gate-validation/<YYYY-MM-DD>/ci_gate_validation.json`
      - `.guardian/pilot-ci-gate-validation/<YYYY-MM-DD>/ci_gate_validation.md`
+6. Aggregate cross-repo weekly trend for exit-gate evidence:
+   - `scripts/pilot_generate_rollout_trend.sh docs/pilot/PILOT_REPO_MANIFEST.real.json`
+   - Optional strict gate for reporting completeness:
+     - `python3 scripts/pilot_rollout_trend.py --manifest docs/pilot/PILOT_REPO_MANIFEST.real.json --min-weeks 4 --fail-on-exit-gate`
+   - Outputs:
+     - `.guardian/pilot-rollout-trend/<YYYY-MM-DD>/rollout_trend.json`
+     - `.guardian/pilot-rollout-trend/<YYYY-MM-DD>/rollout_trend.md`
 
 ## Exit Gate Evidence (Pilot Completion)
 
