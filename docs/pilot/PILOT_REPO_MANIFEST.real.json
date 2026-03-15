@@ -24,7 +24,8 @@
       "name": "design-partner-core",
       "team": "platform",
       "path": "/Users/dogan/Desktop/guardian",
-      "approver": "release-manager"
+      "approver": "release-manager",
+      "override_reason": "Incident hotfix release approved by release-manager; rollback plan and post-release verification checklist attached."
     }
   ]
 }

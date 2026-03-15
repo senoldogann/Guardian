@@ -60,6 +60,8 @@ Governance Workspace: `/Users/dogan/Desktop/guardian`
 - [x] Positioning closure pass tamamlandi: SEO metadata + FAQ + onboarding copy "AI-generated code governance for small engineering teams" diline cekildi.
 - [x] Website copy gate kapsamı genisletildi: metadata + FAQ + SEO alanlari `copy:check` icine alindi.
 - [x] GitHub Linux CI icin Tauri/GTK sistem bagimliliklari eklendi (`.github/workflows/ci-cd-v1.yml`), `glib-2.0.pc` eksikligi giderildi.
+- [x] Real pilot strict dry-run 2026-03-15 tekrar kosuldu (`repos=4, allowed=3, blocked=0, overridden=1, errors=0`).
+- [x] Override reason coverage hedefi saglandi (`override_reason_coverage=1.0`, core repo weekly dashboard-lite).
 - [x] `find-skills` skill kullanildi ve query sonuclariyla (positioning/seo/docs-consistency) dis kaynak taramasi yapildi.
 - [x] Missing Faz 4/5 script artefaktlari repo reality ile senkronlandi (`release_all_local`, `generate_dashboard_lite`, `pilot_dryrun`, `pilot_generate_weekly_report`, readiness/leak/ci validators, CI smoke script).
 - [x] Real pilot manifest path'leri mevcut workspace absolute path'lerine duzeltildi (`/Users/dogan/Desktop/guardian/...`).
@@ -307,8 +309,8 @@ Release aninda karar veren gate ve pilot metrik yuzeyi ile scanner'dan governanc
 - [x] `python3 scripts/verify_all.py` (ust kok): pass.
 
 ### Exit Gate
-- [ ] En az 2 design-partner repoda strict gate aktif ve stabil.
-- [ ] Override reason coverage >= %95.
+- [x] En az 2 design-partner repoda strict gate aktif ve stabil.
+- [x] Override reason coverage >= %95.
 - [ ] Blocklanan riskli AI degisiklik oraninin trendi raporlandi.
 - [x] Pilot sonunda en az 1 kritik kacagin release oncesi engellendigi kanitlandi.
 

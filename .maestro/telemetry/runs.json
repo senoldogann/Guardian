@@ -1119,6 +1119,24 @@
       "started_at": "2026-03-15T15:10:47.478719+00:00",
       "ended_at": "2026-03-15T15:10:47.483096+00:00",
       "attributes": {}
+    },
+    {
+      "trace_id": "9ad8dbf8edeb4dd29f58b31c540cc12f",
+      "span_id": "0da9310dc0184f05",
+      "script": "build_skill_registry",
+      "status": "ok",
+      "started_at": "2026-03-15T15:18:31.180137+00:00",
+      "ended_at": "2026-03-15T15:18:31.278121+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "ce3772e2f65047078c132a95861f16bf",
+      "span_id": "d48edf14d60d480c",
+      "script": "policy_guard",
+      "status": "ok",
+      "started_at": "2026-03-15T15:18:31.514027+00:00",
+      "ended_at": "2026-03-15T15:18:31.518172+00:00",
+      "attributes": {}
     }
   ]
 }
