@@ -38,7 +38,7 @@ jobs:
 
           pkg_version="$(node -p "require('./package.json').version")"
           website_version="$(node -p "require('./website/package.json').version")"
-          tauri_version="$(jq -r '.version // ""' src-tauri/tauri.conf.json)"
+          tauri_version="$(node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));console.log(j.version||'')")"
           cargo_version="$(grep -E '^version[[:space:]]*=[[:space:]]*\"' src-tauri/Cargo.toml | head -n1 | sed -E 's/.*\"([^\"]+)\".*/\1/')"
 
           if [[ "$pkg_version" != "$expected" || "$website_version" != "$expected" || "$tauri_version" != "$expected" || "$cargo_version" != "$expected" ]]; then
