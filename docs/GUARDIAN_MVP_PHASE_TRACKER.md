@@ -742,9 +742,11 @@ Release aninda karar veren gate ve pilot metrik yuzeyi ile scanner'dan governanc
     - `latest.json` + `releases.json`
   - Release publish token sorunu sonrasinda `PUBLIC_DIST_REPO_TOKEN` secret'inin guncel timestamp ile yenilendigi dogrulandi.
   - Guardian repo secret seti release workflow beklentileriyle tekrar kontrol edildi.
+  - `release-windows` publish job'una updater key alignment guard eklendi; `.sig` key-id ile `tauri.conf` `plugins.updater.pubkey` key-id uyusmazsa publish artik hard-fail olacak.
   - Yerel kalite kapilari tekrar calistirildi: `python3 scripts/verify_all.py`, `npm run verify`, `scripts/ci/release_gate_ci_smoke.sh` (hepsi pass).
   - Weekly dashboard-lite rapor hattinin calistigi dogrulandi (`scripts/pilot_generate_weekly_report.sh`).
 - Evidence:
+  - `.github/workflows/release-windows.yml` (`🔐 Verify updater key alignment` adimi)
   - `gh release view v1.2.4 -R senoldogann/guardian-distribution --json tagName,publishedAt,url,assets`
   - `gh secret list -R senoldogann/Guardian`
   - `gh run list -R senoldogann/Guardian --workflow "🚀 Guardian Release (Cross-Platform)" --limit 5 --json ...`

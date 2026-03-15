@@ -308,6 +308,54 @@ jobs:
           name: guardian-macos-${{ inputs.tag }}
           path: artifacts/mac
 
+      - name: 🔐 Verify updater key alignment
+        run: |
+          python3 - <<'PY'
+          import base64
+          import json
+          from pathlib import Path
+
+          conf = json.loads(Path("src-tauri/tauri.conf.json").read_text(encoding="utf-8"))
+          updater_pubkey_b64 = conf["plugins"]["updater"]["pubkey"]
+          updater_pubkey_text = base64.b64decode(updater_pubkey_b64).decode("utf-8")
+          updater_payload = updater_pubkey_text.splitlines()[1].strip()
+          updater_bytes = base64.b64decode(updater_payload)
+          expected_key_id = int.from_bytes(updater_bytes[2:10], byteorder="little")
+
+          sig_paths = sorted(Path("artifacts").rglob("*.sig"))
+          if not sig_paths:
+              raise SystemExit("No .sig files found in downloaded artifacts.")
+
+          seen_key_ids: set[int] = set()
+          for sig_path in sig_paths:
+              raw = sig_path.read_text(encoding="utf-8").strip()
+              if raw.startswith("untrusted comment:"):
+                  sig_text = raw
+              else:
+                  sig_text = base64.b64decode(raw).decode("utf-8")
+              lines = [line.strip() for line in sig_text.splitlines() if line.strip()]
+              if len(lines) < 2:
+                  raise SystemExit(f"Invalid signature format: {sig_path}")
+              sig_payload = lines[1]
+              sig_bytes = base64.b64decode(sig_payload)
+              key_id = int.from_bytes(sig_bytes[2:10], byteorder="little")
+              seen_key_ids.add(key_id)
+
+          if len(seen_key_ids) != 1:
+              ids = ", ".join(f"{k:016X}" for k in sorted(seen_key_ids))
+              raise SystemExit(f"Signature key mismatch across artifacts: {ids}")
+
+          actual_key_id = next(iter(seen_key_ids))
+          if actual_key_id != expected_key_id:
+              raise SystemExit(
+                  "Updater key mismatch: signatures are produced by key "
+                  f"{actual_key_id:016X}, but tauri.conf pubkey expects {expected_key_id:016X}. "
+                  "Align TAURI_SIGNING_PRIVATE_KEY secret with src-tauri/tauri.conf.json plugins.updater.pubkey."
+              )
+
+          print(f"Updater key alignment OK: {actual_key_id:016X}")
+          PY
+
       - name: 🔑 Setup GitHub CLI
         run: |
           gh auth status
