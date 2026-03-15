@@ -6,6 +6,7 @@ import { ChatView, type AutoPrompt } from "../ChatView";
 import DiagramView from "../DiagramView";
 import { FixProposalsView } from "../FixProposalsView";
 import { AIContextPreview } from "../AIContextPreview";
+import { ReleaseDecisionPanel } from "../ReleaseDecisionPanel";
 import type {
   AiContextSnapshot,
   BaselineFinding,
@@ -15,6 +16,8 @@ import type {
   FixProposalsSnapshot,
   FixHistoryEntry,
   ProjectContext,
+  ReleaseDecisionStatus,
+  ReleaseDecisionView,
 } from "../../types";
 import { critiqueStateKey } from "../../lib/critiqueStateKey";
 import { formatTimestamp } from "../../lib/uiFormat";
@@ -56,6 +59,16 @@ export interface MainWorkspaceProps {
   fixHistoryError: string | null;
   onRefreshFixHistory: () => Promise<void>;
   onUndoFix: (filePath: string) => Promise<void>;
+  releaseDecision: ReleaseDecisionView | null;
+  releaseDecisionLoading: boolean;
+  releaseDecisionError: string | null;
+  onRefreshReleaseDecision: () => Promise<void>;
+  onSetReleaseDecision: (
+    decision: Exclude<ReleaseDecisionStatus, "OVERRIDDEN">,
+    approver: string,
+    reason?: string,
+  ) => Promise<void>;
+  onOverrideReleaseDecision: (approver: string, reason: string) => Promise<void>;
   aiContext: AiContextSnapshot | null;
   aiContextLoading: boolean;
   aiContextError: string | null;
@@ -102,6 +115,12 @@ export function MainWorkspace({
   fixHistoryError,
   onRefreshFixHistory,
   onUndoFix,
+  releaseDecision,
+  releaseDecisionLoading,
+  releaseDecisionError,
+  onRefreshReleaseDecision,
+  onSetReleaseDecision,
+  onOverrideReleaseDecision,
   aiContext,
   aiContextLoading,
   aiContextError,
@@ -377,6 +396,17 @@ export function MainWorkspace({
                   {t("common.refresh")}
                 </button>
               </div>
+            </div>
+
+            <div className="shrink-0 px-6 py-4 border-b border-border-main bg-background/20">
+              <ReleaseDecisionPanel
+                decision={releaseDecision}
+                loading={releaseDecisionLoading}
+                error={releaseDecisionError}
+                onRefresh={onRefreshReleaseDecision}
+                onSetDecision={onSetReleaseDecision}
+                onOverride={onOverrideReleaseDecision}
+              />
             </div>
 
             <div className="shrink-0 px-6 py-4 border-b border-border-main bg-background/20">

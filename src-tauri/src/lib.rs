@@ -12,20 +12,22 @@ mod executor;
 mod history_logger;
 mod kernel;
 mod patcher;
-mod undo;
 mod provider;
 mod rag_lite;
 mod redaction;
+mod release_decision;
 mod semantic_index;
 mod skills;
 mod storage;
 #[cfg(test)]
 mod tests_watcher;
 mod triage;
+mod undo;
 mod updates;
 mod validation;
 
 use anyhow::{Context, Result as AnyhowResult};
+use guardian_scan_policy::{ReleaseDecision, ScanProfile};
 use keyring::{Entry, Error as KeyringError};
 use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
@@ -37,7 +39,6 @@ use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::RwLock;
 use tracing::{error, info, warn};
-use guardian_scan_policy::ScanProfile;
 
 struct WatcherSupervisor {
     shutdown: Arc<AtomicBool>,
@@ -119,11 +120,11 @@ struct ApiKeyStatus {
 
 #[derive(Serialize, Deserialize, Clone)]
 struct EmbeddingRuntimeConfig {
-  mode: String,
-  openai_base_url: Option<String>,
-  ollama_base_url: Option<String>,
-  openai_model: Option<String>,
-  ollama_model: Option<String>,
+    mode: String,
+    openai_base_url: Option<String>,
+    ollama_base_url: Option<String>,
+    openai_model: Option<String>,
+    ollama_model: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -149,11 +150,16 @@ fn load_scan_profile_config(app: &AppHandle) -> Result<ScanProfileConfig, String
     }
     let raw = fs::read_to_string(&path).map_err(|e| e.to_string())?;
     let parsed: ScanProfileConfig = serde_json::from_str(&raw).map_err(|e| e.to_string())?;
-    let profile = normalize_scan_profile(&parsed.profile)?.as_str().to_string();
+    let profile = normalize_scan_profile(&parsed.profile)?
+        .as_str()
+        .to_string();
     Ok(ScanProfileConfig { profile })
 }
 
-fn save_scan_profile_config(app: &AppHandle, cfg: &ScanProfileConfig) -> Result<ScanProfileConfig, String> {
+fn save_scan_profile_config(
+    app: &AppHandle,
+    cfg: &ScanProfileConfig,
+) -> Result<ScanProfileConfig, String> {
     let profile = normalize_scan_profile(&cfg.profile)?.as_str().to_string();
     let normalized = ScanProfileConfig { profile };
     let path = scan_profile_path(app)?;
@@ -171,7 +177,10 @@ async fn get_scan_profile_config(app: AppHandle) -> Result<ScanProfileConfig, St
 }
 
 #[tauri::command]
-async fn set_scan_profile_config(app: AppHandle, config: ScanProfileConfig) -> Result<ScanProfileConfig, String> {
+async fn set_scan_profile_config(
+    app: AppHandle,
+    config: ScanProfileConfig,
+) -> Result<ScanProfileConfig, String> {
     save_scan_profile_config(&app, &config)
 }
 
@@ -552,6 +561,57 @@ async fn set_fix_proposal_status(
     writeln!(file, "{}", encoded).map_err(|e| e.to_string())?;
 
     Ok(watcher::refresh_fix_proposals_for_root(&root))
+}
+
+#[tauri::command]
+async fn get_release_decision(
+    root: String,
+) -> Result<release_decision::ReleaseDecisionView, String> {
+    let root_path = std::path::Path::new(&root);
+    if !root_path.exists() || !root_path.is_dir() {
+        return Err(format!(
+            "Workspace root not accessible: {}. Select the correct folder in Scope.",
+            root
+        ));
+    }
+    release_decision::get_release_decision(&root).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn set_release_decision(
+    root: String,
+    decision: String,
+    approver: String,
+    reason: Option<String>,
+) -> Result<release_decision::ReleaseDecisionView, String> {
+    let root_path = std::path::Path::new(&root);
+    if !root_path.exists() || !root_path.is_dir() {
+        return Err(format!(
+            "Workspace root not accessible: {}. Select the correct folder in Scope.",
+            root
+        ));
+    }
+    let parsed = decision
+        .parse::<ReleaseDecision>()
+        .map_err(|e| format!("Invalid release decision: {}", e))?;
+    release_decision::set_release_decision(&root, parsed, approver, reason)
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn override_release_block(
+    root: String,
+    approver: String,
+    reason: String,
+) -> Result<release_decision::ReleaseDecisionView, String> {
+    let root_path = std::path::Path::new(&root);
+    if !root_path.exists() || !root_path.is_dir() {
+        return Err(format!(
+            "Workspace root not accessible: {}. Select the correct folder in Scope.",
+            root
+        ));
+    }
+    release_decision::override_release_block(&root, approver, reason).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1023,7 +1083,7 @@ async fn ask_guru(
     // We REMOVE the heuristic check to make this behavior 100% deterministic and controllable.
     let ui_enabled = web_search.unwrap_or(false);
     let slash_command = force_web;
-    
+
     if ui_enabled || slash_command {
         let searcher = skills::web_search::WebSearch::new()?;
         let depth = skills::web_search::SearchDepth::from_user_value(web_search_depth.as_deref());
@@ -1034,8 +1094,6 @@ async fn ask_guru(
         guru_context.push_str("\n\n### Web Search (Tavily)\n");
         guru_context.push_str(&results);
     }
-
-
 
     // 2. Init AI Client
     let provider = provider::resolve_provider_config(&app).map_err(|e| e.to_string())?;
@@ -1051,12 +1109,15 @@ async fn ask_guru(
 
     // 3. Ask
     let result = client
-        .ask_question(&guru_context, &clean_query, language.as_deref().unwrap_or("en"))
+        .ask_question(
+            &guru_context,
+            &clean_query,
+            language.as_deref().unwrap_or("en"),
+        )
         .await
         .map_err(|e| e.to_string())?;
 
-    let estimated_tokens =
-        (((guru_context.len() + clean_query.len()) as f64) / 4.0).ceil() as u64;
+    let estimated_tokens = (((guru_context.len() + clean_query.len()) as f64) / 4.0).ceil() as u64;
     app.emit(
         "guardian:usage",
         serde_json::json!({
@@ -1332,7 +1393,10 @@ fn normalize_embedding_mode(mode: &str) -> Result<String, String> {
 }
 
 fn normalize_optional_url(value: Option<String>, field: &str) -> Result<Option<String>, String> {
-    let Some(raw) = value.map(|v| v.trim().to_string()).filter(|v| !v.is_empty()) else {
+    let Some(raw) = value
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty())
+    else {
         return Ok(None);
     };
     let parsed = url::Url::parse(&raw).map_err(|e| format!("Invalid {} URL: {}", field, e))?;
@@ -1344,7 +1408,9 @@ fn normalize_optional_url(value: Option<String>, field: &str) -> Result<Option<S
 }
 
 fn normalize_optional_model(value: Option<String>) -> Option<String> {
-    value.map(|v| v.trim().to_string()).filter(|v| !v.is_empty())
+    value
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty())
 }
 
 #[tauri::command]
@@ -1692,6 +1758,9 @@ pub fn run() -> AnyhowResult<()> {
             get_last_ai_context,
             get_fix_proposals,
             set_fix_proposal_status,
+            get_release_decision,
+            set_release_decision,
+            override_release_block,
             start_github_login,
             complete_github_login,
             logout_github,

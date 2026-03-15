@@ -9,7 +9,14 @@ export default defineConfig({
     css: true,
     clearMocks: true,
     restoreMocks: true,
-    exclude: ["tests/e2e/**", "**/node_modules/**", "website/**"],
+    exclude: [
+      "tests/e2e/**",
+      "**/node_modules/**",
+      "website/**",
+      ".maestro/**",
+      ".agents/**",
+      "scripts/**",
+    ],
     coverage: {
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],

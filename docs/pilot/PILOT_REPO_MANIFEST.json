@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "repos": [
+    {
+      "name": "shadow-design-partner-a",
+      "team": "platform",
+      "path": "../../.guardian/pilot-shadow-repos/design-partner-a",
+      "approver": "release-manager"
+    },
+    {
+      "name": "shadow-design-partner-b",
+      "team": "backend",
+      "path": "../../.guardian/pilot-shadow-repos/design-partner-b"
+    },
+    {
+      "name": "shadow-design-partner-c",
+      "team": "core-services",
+      "path": "../../.guardian/pilot-shadow-repos/design-partner-c",
+      "approver": "incident-commander",
+      "override_reason": "Production incident hotfix approved by incident commander with validated rollback and mitigation plan."
+    }
+  ]
+}

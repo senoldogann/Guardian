@@ -88,8 +88,8 @@ fn read_undo_index(root: &str) -> Result<HashMap<String, UndoIndexEntry>> {
     if !path.exists() {
         return Ok(HashMap::new());
     }
-    let raw =
-        fs::read_to_string(&path).with_context(|| format!("Failed to read undo index: {:?}", path))?;
+    let raw = fs::read_to_string(&path)
+        .with_context(|| format!("Failed to read undo index: {:?}", path))?;
     let parsed = serde_json::from_str::<HashMap<String, UndoIndexEntry>>(&raw).unwrap_or_default();
     Ok(parsed)
 }
@@ -145,7 +145,8 @@ pub fn apply_fix_now(root: &str, file_path: &str, new_content: &str) -> Result<(
     let rel_path = normalize_rel_path(&canonical_target, &canonical_root);
 
     let undo_dir = undo_dir(root);
-    fs::create_dir_all(&undo_dir).with_context(|| format!("Failed to create undo dir {:?}", undo_dir))?;
+    fs::create_dir_all(&undo_dir)
+        .with_context(|| format!("Failed to create undo dir {:?}", undo_dir))?;
 
     let backup_name = format!("{}.bak", sha256_hex(&rel_path));
     let backup_path = undo_dir.join(&backup_name);
@@ -205,8 +206,8 @@ pub fn undo_fix(root: &str, file_path: &str) -> Result<()> {
         anyhow::bail!("Undo backup missing for {}", rel_path);
     }
 
-    let bytes =
-        fs::read(&backup_path).with_context(|| format!("Failed to read backup {:?}", backup_path))?;
+    let bytes = fs::read(&backup_path)
+        .with_context(|| format!("Failed to read backup {:?}", backup_path))?;
     write_atomic_bytes(&canonical_target, &bytes)?;
 
     let _ = fs::remove_file(&backup_path);
@@ -277,18 +278,8 @@ mod tests {
         let file_path = root.join("src").join("main.ts");
         write_file(&file_path, "v0\n");
 
-        apply_fix_now(
-            root.to_str().unwrap(),
-            file_path.to_str().unwrap(),
-            "v1\n",
-        )
-        .unwrap();
-        apply_fix_now(
-            root.to_str().unwrap(),
-            file_path.to_str().unwrap(),
-            "v2\n",
-        )
-        .unwrap();
+        apply_fix_now(root.to_str().unwrap(), file_path.to_str().unwrap(), "v1\n").unwrap();
+        apply_fix_now(root.to_str().unwrap(), file_path.to_str().unwrap(), "v2\n").unwrap();
 
         undo_fix(root.to_str().unwrap(), file_path.to_str().unwrap()).unwrap();
         let restored = fs::read_to_string(&file_path).unwrap();
@@ -336,4 +327,3 @@ mod tests {
         assert!(history.is_empty());
     }
 }
-

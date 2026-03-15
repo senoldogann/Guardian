@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { Button } from "../ui/button";
-import { ChevronRight, ShieldCheck, Zap, RefreshCw, Terminal, type LucideIcon } from "lucide-react";
+import {
+    ChevronRight,
+    ShieldCheck,
+    GitPullRequest,
+    UserCheck,
+    BadgeCheck,
+    type LucideIcon
+} from "lucide-react";
 import { motion } from "framer-motion";
 import type { Locale } from "../../lib/locale";
 import { withLocale } from "../../lib/locale";
@@ -16,68 +23,71 @@ type LocalizedBlock = {
 
 const featureBlocksEn: LocalizedBlock[] = [
     {
-        title: "Live Monitoring",
-        description: "Scans repository changes in real time and safely stalls execution on critical violations.",
-        icon: Terminal,
+        title: "AI-Generated Code Intake",
+        description: "Separates AI-assisted and unusually large code changes into stricter review paths before release.",
+        icon: GitPullRequest,
         link: "/docs/monitoring"
     },
     {
-        title: "Guru Assistance Layer",
-        description: "Provides guided fixes, approval flow, and actionable context without slowing down delivery.",
-        icon: Zap,
-        link: "/docs/guru"
-    },
-    {
-        title: "In-App Updates",
-        description: "Consumes release metadata and executes secure update flow directly inside the desktop app.",
-        icon: RefreshCw,
-        link: "/docs/get-started"
-    },
-    {
-        title: "Release Governance",
-        description: "Supports private source + public distribution architecture for secure delivery.",
+        title: "Policy Enforcement",
+        description: "Applies architecture, security, and quality rules defined by your team to every risky change.",
         icon: ShieldCheck,
-        link: "/docs"
+        link: "/docs/configuration"
+    },
+    {
+        title: "Human Approval Workflow",
+        description: "Captures who approved, who overrode, and why, so release decisions stay accountable and auditable.",
+        icon: UserCheck,
+        link: "/docs/reviews"
+    },
+    {
+        title: "Release Decision Surface",
+        description: "Answers the final question clearly: can this code ship now, and what evidence supports that decision?",
+        icon: BadgeCheck,
+        link: "/docs/get-started"
     }
 ];
 
 const featureBlocksTr: LocalizedBlock[] = [
     {
-        title: "Canlı İzleme",
-        description: "Repo değişikliklerini gerçek zamanlı tarar ve kritik ihlallerde güvenli şekilde akışı durdurur.",
-        icon: Terminal,
+        title: "AI-Generated Code Intake",
+        description: "AI destekli veya alışılmadık büyüklükteki kod değişikliklerini release öncesinde daha sıkı inceleme akışına alır.",
+        icon: GitPullRequest,
         link: "/docs/monitoring"
     },
     {
-        title: "Guru Destek Katmanı",
-        description: "Onay akışı ve bağlamlı önerilerle, teslimatı yavaşlatmadan uygulanabilir çözümler sunar.",
-        icon: Zap,
-        link: "/docs/guru"
-    },
-    {
-        title: "Uygulama İçi Güncellemeler",
-        description: "Release metadatasını kullanır ve güvenli update akışını doğrudan masaüstü uygulamasında çalıştırır.",
-        icon: RefreshCw,
-        link: "/docs/get-started"
-    },
-    {
-        title: "Sürüm Yönetişimi",
-        description: "Güvenli teslim için private source + public distribution mimarisini destekler.",
+        title: "Policy Enforcement",
+        description: "Ekibinizin tanımladığı mimari, güvenlik ve kalite kurallarını riskli değişikliklerde otomatik uygular.",
         icon: ShieldCheck,
-        link: "/docs"
+        link: "/docs/configuration"
+    },
+    {
+        title: "Human Approval Workflow",
+        description: "Kimin onay verdiğini, kimin override ettiğini ve nedenini kayıt altına alarak release kararlarını izlenebilir hale getirir.",
+        icon: UserCheck,
+        link: "/docs/reviews"
+    },
+    {
+        title: "Release Decision Surface",
+        description: "Son kararı netleştirir: Bu kod şimdi release'e çıkabilir mi, neden?",
+        icon: BadgeCheck,
+        link: "/docs/get-started"
     }
 ];
 
 export function FeaturesSection({ locale }: { locale: Locale }) {
     const featureBlocks = locale === "tr" ? featureBlocksTr : featureBlocksEn;
-    const eyebrow = locale === "tr" ? "Yetenekler" : "Capabilities";
-    const title = locale === "tr" ? "Güçlü Özellikler" : "Powerful Features";
+    const eyebrow = locale === "tr" ? "Çekirdek Akış" : "Core Workflow";
+    const title = locale === "tr" ? "Release Öncesi 4 Kritik Kontrol" : "Four Controls That Matter Before Release";
     const desc =
         locale === "tr"
-            ? "Kod kalitesini korumak için ihtiyaç duyduğunuz her şey, tek bir masaüstü uygulamasında."
-            : "Everything you need to maintain code quality, all in one powerful desktop application";
-    const ctaPrompt = locale === "tr" ? "Tüm özellikleri çalışırken görmek ister misiniz?" : "Ready to see all features in action?";
-    const ctaLabel = locale === "tr" ? "Dokümantasyonu Keşfet" : "Explore Documentation";
+            ? "Guardian genel bir assistant/scanner değildir; AI destekli kod için release karar katmanıdır."
+            : "Guardian is not a generic assistant or scanner. It is a release decision layer for AI-assisted code changes.";
+    const ctaPrompt =
+        locale === "tr"
+            ? "Ekibinizin release kararlarını tek bir standartta toplamak ister misiniz?"
+            : "Ready to standardize how your team decides what can ship?";
+    const ctaLabel = locale === "tr" ? "Akışı Dokümanda Gör" : "See the Workflow in Docs";
 
     return (
         <section className="py-24 md:py-32 relative bg-white dark:bg-black transition-colors duration-300">

@@ -1,46 +1,54 @@
 ---
 title: "Getting Started"
-summary: "Understand the product and release model before your first run."
+summary: "Control AI-generated code before release with policy enforcement and human approval."
 section: "General"
 order: 1
 ---
 
 ## What is Guardian?
 
-Guardian is a desktop governance application that evaluates codebases against architecture constraints, security expectations, and release quality standards. It provides real-time feedback on code quality, suggests fixes using the Guru assistant, and integrates with your existing release workflows.
+Guardian helps small engineering teams control AI-generated code before it ships. It is a **desktop + CLI governance layer** focused on risky AI-assisted changes and release decisions.
 
-### Key Capabilities
+Guardian is **not**:
+- A generic AI coding assistant
+- A generic code review tool
+- A generic security scanner
 
-- **Codebase Scanning**: Analyzes your project for architectural violations, security issues, and quality concerns.
-- **Guru AI Assistant**: An intelligent assistant that explains issues in context and provides actionable fix suggestions.
-- **Release Governance**: Manages the release process with built-in update checking and version management.
-- **In-App Updates**: Checks for updates via GitHub Releases and guides you through installing new releases.
+Guardian is the release control layer for AI-heavy code change workflows.
+
+### Core Product Workflow
+
+- **AI-Generated Code Intake**: Detect and isolate AI-assisted or unusually large/refactor changes for stricter handling.
+- **Policy Enforcement**: Apply team architecture, security, and quality policies automatically.
+- **Human Approval Workflow**: Require accountable approval, override owner, and reason when risk is high.
+- **Release Decision Surface**: Answer the final release question with evidence: can this code ship now, and why?
 
 ## Who is it for?
 
-Guardian is designed for teams and individuals who care about code quality:
+Guardian is designed for teams that need release confidence on AI-assisted code:
 
 | Role | Use Case |
 |------|----------|
-| **Technical Leads** | Enforce architectural standards across the team |
-| **Platform/DevOps Teams** | Integrate quality checks into CI/CD pipelines |
-| **Security Teams** | Monitor for security vulnerabilities and compliance |
-| **Individual Developers** | Get instant feedback on code quality |
+| **Engineering Leaders** | Standardize release decisions across AI-heavy PRs |
+| **Platform/DevOps Teams** | Enforce guardrails in local + CI release gates |
+| **Security/Architecture Teams** | Apply non-negotiable policies before merge/release |
+| **Release Managers** | Track approvals, overrides, and decision evidence |
 
 ## How it works
 
-Guardian follows a three-step governance cycle:
+Guardian follows a four-step release governance cycle:
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│    SCAN     │────▶│   ANALYZE   │────▶│    ACT      │
-│ Codebase    │     │ Findings    │     │ Fix/Approve │
-└─────────────┘     └─────────────┘     └─────────────┘
+┌─────────────┐     ┌──────────────┐     ┌──────────────┐     ┌─────────────┐
+│   INTAKE    │────▶│   ENFORCE    │────▶│   APPROVE    │────▶│   DECIDE    │
+│ AI-heavy PR │     │ Team Policy  │     │ Human Gate   │     │ Ship/Block  │
+└─────────────┘     └──────────────┘     └──────────────┘     └─────────────┘
 ```
 
-1. **Scan**: Guardian scans your codebase and classifies findings by type (security, architecture, quality).
-2. **Analyze**: Issues are prioritized by severity, and the Guru assistant provides context and explanations.
-3. **Act**: Review findings, apply fixes when appropriate, and use baselines to track what is new vs. already-known.
+1. **Intake**: Guardian identifies risky AI-assisted or unusually large changes.
+2. **Enforce**: Team policies are evaluated across architecture, security, and quality rules.
+3. **Approve**: Human reviewers validate fixes and document approval or override reasons.
+4. **Decide**: A release readiness signal is generated with explainable evidence.
 
 ## First 10 Minutes
 
@@ -51,16 +59,16 @@ Download the installer from the Download page. macOS builds are available now; W
 
 ### 2. Configure Provider Settings
 
-Navigate to **Settings > Provider** and configure your AI provider credentials. Guardian supports multiple AI providers including cloud-based and local options.
+Navigate to **Settings > Provider** and configure your AI provider credentials. Guardian supports both cloud and local models.
 
-### 3. Start Your First Scan
+### 3. Start Monitoring Your Workspace
 Click the **Scope** field (or drag and drop a folder onto the app) to select your workspace, then choose **Launch Guardian** to start monitoring.
 
-### 4. Review Findings
+### 4. Review Findings as a Release Decision
 Once the scan completes:
-- Click on any finding to see details
-- Use the Guru chat to ask questions about the issue
-- Apply suggested fixes or set a baseline to track the current state
+- Focus first on AI-heavy and architecture-sensitive changes
+- Use Guru to understand why each risky change matters
+- Apply policy-aligned fixes and record decision context for your release flow
 
 ## Application Layout
 
@@ -68,18 +76,18 @@ The Guardian interface consists of four main areas:
 
 | Area | Purpose |
 |------|---------|
-| **Sidebar** | Navigate between scans, settings, and history |
-| **Main Panel** | View findings, code, and analysis results |
-| **Guru Chat** | Interactive AI assistant for getting help |
-| **Status Bar** | Connection status, version info, and quick actions |
+| **Sidebar** | Navigate monitoring, reviews, settings, and history |
+| **Main Panel** | Inspect findings, policy evidence, and fix proposals |
+| **Guru Chat** | Explain risky changes and propose policy-aligned fixes |
+| **Status Bar** | Track provider status, version, and workflow state |
 
 ## Next Steps
 
 - [Installation Guide](/docs/installation) - Detailed setup instructions
-- [Guru Assistant](/docs/guru) - Learn how to use the AI architect
-- [Reviews & Fix Proposals](/docs/reviews) - Manage suggested code fixes
-- [Configuration](/docs/configuration) - Customize settings and guardian.lock
-- [Security](/docs/security) - Understand the security model
+- [Guru](/docs/guru) - Explain risky findings and generate fix proposals
+- [Reviews & Fix Proposals](/docs/reviews) - Manage approvals and controlled apply flow
+- [Configuration](/docs/configuration) - Configure policies, scan scope, and guardian.lock
+- [Security](/docs/security) - Understand the local-first security model
 
 ## What's New in v1.2.3
 

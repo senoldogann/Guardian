@@ -192,6 +192,29 @@ export interface FixHistoryEntry {
   applied_at: string;
 }
 
+export type ReleaseDecisionStatus =
+  | "PASS"
+  | "PASS_WITH_WARNING"
+  | "BLOCK_UNTIL_APPROVED"
+  | "OVERRIDDEN";
+
+export interface ReleaseDecisionView {
+  schema_version: number;
+  root: string;
+  policy_path: string;
+  decision: ReleaseDecisionStatus;
+  requires_human_approval: boolean;
+  ai_heavy_change: boolean;
+  critical_findings: number;
+  warning_findings: number;
+  approver?: string | null;
+  reason?: string | null;
+  override_reason?: string | null;
+  decided_at?: string | null;
+  audit_path: string;
+  decision_reasons: string[];
+}
+
 // Provider options
 export interface ProviderOption {
   id: string;

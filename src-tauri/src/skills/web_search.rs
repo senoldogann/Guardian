@@ -135,7 +135,8 @@ impl WebSearch {
     }
 
     pub async fn search(&self, query: &str) -> Result<String, String> {
-        self.search_with_options(query, WebSearchOptions::default()).await
+        self.search_with_options(query, WebSearchOptions::default())
+            .await
     }
 
     pub async fn search_with_options(
@@ -296,14 +297,14 @@ impl WebSearch {
                             let mut scored: Vec<(&serde_json::Value, f64)> = results
                                 .iter()
                                 .map(|res| {
-                                    let score = res
-                                        .get("score")
-                                        .and_then(|s| s.as_f64())
-                                        .unwrap_or(0.0);
+                                    let score =
+                                        res.get("score").and_then(|s| s.as_f64()).unwrap_or(0.0);
                                     (res, score)
                                 })
                                 .collect();
-                            scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+                            scored.sort_by(|a, b| {
+                                b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
+                            });
 
                             let filtered: Vec<&serde_json::Value> = scored
                                 .iter()
@@ -396,9 +397,9 @@ fn extract_include_domains(query: &str) -> Vec<String> {
 
     for token in query.split_whitespace() {
         if let Some(rest) = token.strip_prefix("site:") {
-            let cleaned = rest
-                .trim()
-                .trim_matches(|c: char| matches!(c, '"' | '\'' | '(' | ')' | '[' | ']' | '{' | '}' | ','));
+            let cleaned = rest.trim().trim_matches(|c: char| {
+                matches!(c, '"' | '\'' | '(' | ')' | '[' | ']' | '{' | '}' | ',')
+            });
             let cleaned = cleaned.trim_end_matches('/');
             if !cleaned.is_empty() {
                 domains.push(cleaned.to_string());
@@ -409,7 +410,9 @@ fn extract_include_domains(query: &str) -> Vec<String> {
     for token in query.split_whitespace() {
         let cleaned = token
             .trim_start_matches(|c: char| matches!(c, '(' | '[' | '{' | '"' | '\''))
-            .trim_end_matches(|c: char| matches!(c, ')' | ']' | '}' | '.' | ',' | '"' | '\'' | ';' | ':'));
+            .trim_end_matches(|c: char| {
+                matches!(c, ')' | ']' | '}' | '.' | ',' | '"' | '\'' | ';' | ':')
+            });
         if !(cleaned.starts_with("http://") || cleaned.starts_with("https://")) {
             continue;
         }
@@ -433,7 +436,9 @@ fn extract_urls(query: &str) -> Vec<String> {
     for token in query.split_whitespace() {
         let cleaned = token
             .trim_start_matches(|c: char| matches!(c, '(' | '[' | '{' | '"' | '\''))
-            .trim_end_matches(|c: char| matches!(c, ')' | ']' | '}' | '.' | ',' | '"' | '\'' | ';' | ':'));
+            .trim_end_matches(|c: char| {
+                matches!(c, ')' | ']' | '}' | '.' | ',' | '"' | '\'' | ';' | ':')
+            });
 
         if !(cleaned.starts_with("http://") || cleaned.starts_with("https://")) {
             continue;
@@ -460,7 +465,9 @@ fn strip_urls(query: &str) -> String {
             }
             let cleaned = trimmed
                 .trim_start_matches(|c: char| matches!(c, '(' | '[' | '{' | '"' | '\''))
-                .trim_end_matches(|c: char| matches!(c, ')' | ']' | '}' | '.' | ',' | '"' | '\'' | ';' | ':'));
+                .trim_end_matches(|c: char| {
+                    matches!(c, ')' | ']' | '}' | '.' | ',' | '"' | '\'' | ';' | ':')
+                });
             !(cleaned.starts_with("http://") || cleaned.starts_with("https://"))
         })
         .collect::<Vec<_>>()
@@ -572,14 +579,29 @@ mod tests {
 
     #[test]
     fn search_depth_parses_user_values() {
-        assert_eq!(SearchDepth::from_user_value(Some("basic")), SearchDepth::Basic);
-        assert_eq!(SearchDepth::from_user_value(Some("advanced")), SearchDepth::Advanced);
-        assert_eq!(SearchDepth::from_user_value(Some("fast")), SearchDepth::Fast);
+        assert_eq!(
+            SearchDepth::from_user_value(Some("basic")),
+            SearchDepth::Basic
+        );
+        assert_eq!(
+            SearchDepth::from_user_value(Some("advanced")),
+            SearchDepth::Advanced
+        );
+        assert_eq!(
+            SearchDepth::from_user_value(Some("fast")),
+            SearchDepth::Fast
+        );
         assert_eq!(
             SearchDepth::from_user_value(Some("ultra-fast")),
             SearchDepth::UltraFast
         );
-        assert_eq!(SearchDepth::from_user_value(Some("auto")), SearchDepth::Auto);
-        assert_eq!(SearchDepth::from_user_value(Some("invalid")), SearchDepth::Basic);
+        assert_eq!(
+            SearchDepth::from_user_value(Some("auto")),
+            SearchDepth::Auto
+        );
+        assert_eq!(
+            SearchDepth::from_user_value(Some("invalid")),
+            SearchDepth::Basic
+        );
     }
 }

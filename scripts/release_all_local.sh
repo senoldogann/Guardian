@@ -4,26 +4,29 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/release_all_local.sh [tag] [--bump patch|minor|major|<semver>] [--dist-repo owner/repo] [--mac-both] [--windows-installer /path/to/file]
+  scripts/release_all_local.sh [tag] [--bump patch|minor|major|<semver>] [--dist-repo owner/repo] [--mac-both] [--windows-installer /path/to/file] [--gate-only]
 
 What it does:
   0) Auto-syncs version files (if tag is omitted or out-of-sync)
   1) Runs the local verification gate (npm run verify)
-  2) Builds Tauri bundles (macOS)
-  3) Collects artifacts into ./artifacts/<tag>/
-  4) Publishes/updates the release in the public distribution repo
-  5) Updates distribution release notes from CHANGELOG.md
+  2) Runs Guardian release gate (guardian-cli scan + guardian.policy.yaml)
+  3) Builds Tauri bundles (macOS) unless --gate-only is set
+  4) Collects artifacts into ./artifacts/<tag>/
+  5) Publishes/updates the release in the public distribution repo
+  6) Updates distribution release notes from CHANGELOG.md
 
-Notes:
-  - This script intentionally prompts for secrets (passwords) instead of storing them anywhere.
-  - For notarization, you may need to export Apple env vars before running (see docs/LOCAL_RELEASE_RUNBOOK.md).
+Gate behavior:
+  - Writes report to .guardian/release_gate_report.json
+  - Uses --release-gate strict and --no-baseline
+  - Optional env for approval/override:
+      GUARDIAN_RELEASE_APPROVER
+      GUARDIAN_RELEASE_OVERRIDE_REASON
 
 Examples:
   scripts/release_all_local.sh v1.2.0
   scripts/release_all_local.sh            # auto patch bump + release
   scripts/release_all_local.sh --bump minor
-  scripts/release_all_local.sh v1.2.0 --mac-both
-  scripts/release_all_local.sh v1.2.0 --dist-repo senoldogann/guardian-distribution
+  scripts/release_all_local.sh v1.2.0 --gate-only
 EOF
 }
 
@@ -46,6 +49,7 @@ DIST_REPO="senoldogann/guardian-distribution"
 MAC_BOTH="0"
 WINDOWS_INSTALLER=""
 BUMP_SPEC=""
+GATE_ONLY="0"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -65,6 +69,10 @@ while [[ $# -gt 0 ]]; do
       BUMP_SPEC="${2:-}"
       shift 2
       ;;
+    --gate-only)
+      GATE_ONLY="1"
+      shift 1
+      ;;
     -h|--help)
       usage
       exit 0
@@ -82,23 +90,8 @@ if [[ -n "$TAG" && -n "$BUMP_SPEC" ]]; then
   exit 1
 fi
 
-if ! command -v gh >/dev/null 2>&1; then
-  echo "Error: gh CLI is not installed."
-  exit 1
-fi
-
 if ! command -v jq >/dev/null 2>&1; then
   echo "Error: jq is not installed."
-  exit 1
-fi
-
-if ! gh auth status >/dev/null 2>&1; then
-  echo "Error: gh is not authenticated. Run: gh auth login"
-  exit 1
-fi
-
-if ! command -v rustup >/dev/null 2>&1; then
-  echo "Error: rustup is not installed."
   exit 1
 fi
 
@@ -110,6 +103,17 @@ fi
 if ! command -v npm >/dev/null 2>&1; then
   echo "Error: npm is not installed."
   exit 1
+fi
+
+if ! command -v cargo >/dev/null 2>&1; then
+  echo "Error: cargo is not installed."
+  exit 1
+fi
+
+RUSTUP_AVAILABLE="1"
+if ! command -v rustup >/dev/null 2>&1; then
+  RUSTUP_AVAILABLE="0"
+  echo "Warning: rustup not found, skipping automatic target installation."
 fi
 
 if [[ -z "$TAG" ]]; then
@@ -146,6 +150,78 @@ fi
 echo "Running verification gate (npm run verify) ..."
 npm run verify
 
+echo "Running Guardian release gate (strict) ..."
+mkdir -p .guardian
+REPORT_PATH="$ROOT_DIR/.guardian/release_gate_report.json"
+
+CLI_BIN="${GUARDIAN_CLI_BIN:-$ROOT_DIR/guardian-cli/target/release/guardian-cli}"
+if [[ ! -x "$CLI_BIN" ]]; then
+  echo "guardian-cli binary missing, building release binary ..."
+  cargo build --release --manifest-path guardian-cli/Cargo.toml >/dev/null
+fi
+
+GATE_ARGS=(
+  scan
+  --root "$ROOT_DIR"
+  --no-baseline
+  --format json
+  --out "$REPORT_PATH"
+  --policy "$ROOT_DIR/guardian.policy.yaml"
+  --release-gate strict
+  --pr-gate off
+)
+
+if [[ "${GUARDIAN_RELEASE_OFFLINE:-1}" == "1" ]]; then
+  GATE_ARGS+=(--offline)
+fi
+
+if [[ -n "${GUARDIAN_RELEASE_APPROVER:-}" ]]; then
+  GATE_ARGS+=(--approver "$GUARDIAN_RELEASE_APPROVER")
+fi
+if [[ -n "${GUARDIAN_RELEASE_OVERRIDE_REASON:-}" ]]; then
+  GATE_ARGS+=(--override-reason "$GUARDIAN_RELEASE_OVERRIDE_REASON")
+fi
+
+set +e
+"$CLI_BIN" "${GATE_ARGS[@]}"
+GATE_EXIT=$?
+set -e
+
+if [[ ! -f "$REPORT_PATH" ]]; then
+  echo "Error: release gate report not produced at $REPORT_PATH"
+  exit 1
+fi
+
+DECISION="$(python3 - <<'PY' "$REPORT_PATH"
+import json, sys
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+print(data.get("release_decision", "UNKNOWN"))
+PY
+)"
+
+echo "Release gate decision: $DECISION (exit=$GATE_EXIT)"
+if [[ "$GATE_EXIT" -ne 0 || "$DECISION" == "BLOCK_UNTIL_APPROVED" ]]; then
+  echo "Release gate blocked publish."
+  exit 1
+fi
+
+if [[ "$GATE_ONLY" == "1" ]]; then
+  echo "Gate-only mode complete."
+  echo "Report: $REPORT_PATH"
+  exit 0
+fi
+
+if ! command -v gh >/dev/null 2>&1; then
+  echo "Error: gh CLI is not installed."
+  exit 1
+fi
+if ! gh auth status >/dev/null 2>&1; then
+  echo "Error: gh is not authenticated. Run: gh auth login"
+  exit 1
+fi
+
 KEY_PATH="${TAURI_SIGNING_PRIVATE_KEY_PATH:-$HOME/.tauri/guardian.key}"
 if [[ ! -f "$KEY_PATH" ]]; then
   echo "Error: Tauri signing key not found: $KEY_PATH"
@@ -178,78 +254,34 @@ copy_bundle_artifacts() {
     exit 1
   fi
 
-  local latest
-  latest="$(find "$bundle_dir" -type f -name latest.json -print -quit || true)"
-
   echo "Collecting artifacts from: $bundle_dir"
   find "$bundle_dir" -maxdepth 5 -type f \( \
     -name "*.dmg" -o -name "*.tar.gz" -o -name "*.sig" -o -name "latest.json" \
     \) -print0 | while IFS= read -r -d '' file; do
       cp -f "$file" "$ARTIFACTS_DIR/"
     done
-
-  if [[ -z "$latest" ]]; then
-    local updater_tar updater_sig platform_key
-    updater_tar="$(find "$bundle_dir" -type f -name '*.app.tar.gz' -print -quit || true)"
-    updater_sig="$(find "$bundle_dir" -type f -name '*.app.tar.gz.sig' -print -quit || true)"
-
-    if [[ -z "$updater_tar" || -z "$updater_sig" ]]; then
-      echo "Error: latest.json is missing and updater artifacts (.app.tar.gz + .sig) were not found."
-      exit 1
-    fi
-
-    if [[ "$bundle_dir" == *"aarch64-apple-darwin"* ]]; then
-      platform_key="darwin-aarch64"
-    elif [[ "$bundle_dir" == *"x86_64-apple-darwin"* ]]; then
-      platform_key="darwin-x86_64"
-    else
-      platform_key="darwin-aarch64"
-    fi
-
-    local sig_content updater_name
-    sig_content="$(cat "$updater_sig")"
-    updater_name="$(basename "$updater_tar")"
-
-    jq -n \
-      --arg version "$VERSION" \
-      --arg notes "$TAG Release" \
-      --arg pub_date "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
-      --arg platform "$platform_key" \
-      --arg signature "$sig_content" \
-      --arg url "$updater_name" \
-      '{
-        version: $version,
-        notes: $notes,
-        pub_date: $pub_date,
-        platforms: {
-          ($platform): {
-            signature: $signature,
-            url: $url
-          }
-        }
-      }' > "$ARTIFACTS_DIR/latest.json"
-
-    echo "Generated latest.json from updater artifacts for platform: $platform_key"
-  fi
 }
 
 if [[ "$MAC_BOTH" == "1" ]]; then
-  rustup target add aarch64-apple-darwin x86_64-apple-darwin >/dev/null 2>&1 || true
-
+  if [[ "$RUSTUP_AVAILABLE" == "1" ]]; then
+    rustup target add aarch64-apple-darwin x86_64-apple-darwin >/dev/null 2>&1 || true
+  fi
   build_target aarch64-apple-darwin
   build_target x86_64-apple-darwin
-
-  echo "Collecting multi-arch macOS artifacts ..."
   "$SCRIPT_DIR/collect_macos_artifacts.sh" "$TAG" "$ARTIFACTS_DIR" \
     "$ROOT_DIR/src-tauri/target/aarch64-apple-darwin/release/bundle" \
     "$ROOT_DIR/src-tauri/target/x86_64-apple-darwin/release/bundle"
 else
   if [[ "$(uname -m)" == "arm64" ]]; then
-    rustup target add aarch64-apple-darwin >/dev/null 2>&1 || true
+    if [[ "$RUSTUP_AVAILABLE" == "1" ]]; then
+      rustup target add aarch64-apple-darwin >/dev/null 2>&1 || true
+    fi
     build_target aarch64-apple-darwin
     copy_bundle_artifacts "$ROOT_DIR/src-tauri/target/aarch64-apple-darwin/release/bundle"
   else
-    rustup target add x86_64-apple-darwin >/dev/null 2>&1 || true
+    if [[ "$RUSTUP_AVAILABLE" == "1" ]]; then
+      rustup target add x86_64-apple-darwin >/dev/null 2>&1 || true
+    fi
     build_target x86_64-apple-darwin
     copy_bundle_artifacts "$ROOT_DIR/src-tauri/target/x86_64-apple-darwin/release/bundle"
   fi
@@ -260,7 +292,6 @@ if [[ -n "$WINDOWS_INSTALLER" ]]; then
     echo "Error: Windows installer not found: $WINDOWS_INSTALLER"
     exit 1
   fi
-  echo "Adding Windows installer: $WINDOWS_INSTALLER"
   cp -f "$WINDOWS_INSTALLER" "$ARTIFACTS_DIR/"
 fi
 
@@ -276,43 +307,10 @@ awk -v v="$VERSION" '
   in_section {print}
 ' CHANGELOG.md > "$NOTES_FILE"
 
-if [[ ! -s "$NOTES_FILE" ]]; then
-  echo "Warning: could not extract release notes for $VERSION from CHANGELOG.md; leaving distribution notes as-is."
-else
+if [[ -s "$NOTES_FILE" ]]; then
   TITLE_LINE="$(head -n 1 "$NOTES_FILE" | sed -E 's/^## \\[([0-9.]+)\\] - //')"
   TITLE="${TAG} - ${TITLE_LINE}"
-  echo "Updating distribution release notes/title ..."
   gh release edit "$TAG" -R "$DIST_REPO" --title "$TITLE" --notes-file "$NOTES_FILE" >/dev/null
 fi
-
-echo "Regenerating releases.json snapshot (post-notes) ..."
-GENERATED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-gh api "repos/${DIST_REPO}/releases?per_page=60" > "$ARTIFACTS_DIR/dist-releases.raw.json"
-jq --arg generated_at "$GENERATED_AT" --arg repo "$DIST_REPO" '{
-  generated_at: $generated_at,
-  repo: $repo,
-  releases: (map({
-    id,
-    tag_name,
-    name,
-    body,
-    html_url,
-    published_at,
-    prerelease,
-    draft,
-    assets: ((.assets // []) | map({
-      id,
-      name,
-      browser_download_url,
-      size,
-      updated_at,
-      download_count,
-      content_type
-    }))
-  }) // [])
-}' "$ARTIFACTS_DIR/dist-releases.raw.json" > "$ARTIFACTS_DIR/releases.json"
-
-gh release upload "$TAG" "$ARTIFACTS_DIR/releases.json" -R "$DIST_REPO" --clobber >/dev/null
-echo "Updated releases.json snapshot."
 
 echo "Done."

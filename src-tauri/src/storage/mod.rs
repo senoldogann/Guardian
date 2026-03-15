@@ -294,9 +294,9 @@ impl StorageManager {
             return Ok(false);
         }
 
-        let mut stmt = self.conn.prepare(
-            "SELECT mtime_ms, bytes FROM file_fingerprints WHERE path = ?1",
-        )?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT mtime_ms, bytes FROM file_fingerprints WHERE path = ?1")?;
 
         let stored: Option<(Option<i64>, Option<i64>)> = stmt
             .query_row(params![path], |row| Ok((row.get(0)?, row.get(1)?)))
@@ -333,8 +333,10 @@ impl StorageManager {
     }
 
     pub fn remove_file_fingerprint(&self, path: &str) -> Result<()> {
-        self.conn
-            .execute("DELETE FROM file_fingerprints WHERE path = ?1", params![path])?;
+        self.conn.execute(
+            "DELETE FROM file_fingerprints WHERE path = ?1",
+            params![path],
+        )?;
         Ok(())
     }
 

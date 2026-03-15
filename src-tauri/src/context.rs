@@ -133,7 +133,9 @@ impl ProjectContext {
             }
         }
 
-        if !self.intent_summary.trim().is_empty() && self.intent_summary != "No explicit intent found." {
+        if !self.intent_summary.trim().is_empty()
+            && self.intent_summary != "No explicit intent found."
+        {
             out.push_str("\nINTENT / ARCHITECTURE NOTES (redacted)\n");
             out.push_str(self.intent_summary.trim());
             out.push('\n');
@@ -246,7 +248,11 @@ fn list_top_level(root: &Path, limit: usize) -> Vec<String> {
             if name == ".git" || name == "node_modules" || name == "target" {
                 return None;
             }
-            Some(if path.is_dir() { format!("{}/", name) } else { name })
+            Some(if path.is_dir() {
+                format!("{}/", name)
+            } else {
+                name
+            })
         })
         .collect();
 
@@ -338,7 +344,10 @@ fn extract_cargo_deps(raw: &str) -> Vec<String> {
         if dep.is_empty() || dep.contains(' ') {
             continue;
         }
-        if dep.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+        if dep
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+        {
             out.push(format!("rust:{}", dep));
         }
     }
@@ -358,7 +367,11 @@ fn discover_intent_summary(root: &Path) -> String {
     ));
 
     // Human docs
-    parts.push(("ARCHITECTURE.md".to_string(), root.join("ARCHITECTURE.md"), 1200));
+    parts.push((
+        "ARCHITECTURE.md".to_string(),
+        root.join("ARCHITECTURE.md"),
+        1200,
+    ));
     parts.push(("CODEBASE.md".to_string(), root.join("CODEBASE.md"), 1200));
     parts.push((
         "USAGE_GUIDE.md".to_string(),

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "approvers": [
+    {
+      "id": "release-manager",
+      "name": "Shadow Release Manager",
+      "teams": ["platform", "backend"],
+      "can_override": true
+    },
+    {
+      "id": "incident-commander",
+      "name": "Shadow Incident Commander",
+      "teams": ["core-services", "backend"],
+      "can_override": true
+    }
+  ]
+}

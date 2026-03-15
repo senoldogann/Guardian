@@ -71,7 +71,8 @@ export function buildSoftwareApplicationJsonLd(): Record<string, unknown> {
       price: "0",
       priceCurrency: "USD"
     },
-    description: "Guardian is a desktop app for architecture governance and release quality.",
+    description:
+      "Guardian helps small engineering teams control AI-generated code before release with policy enforcement and human approval.",
     url: SITE_URL
   };
 }

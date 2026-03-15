@@ -1,12 +1,15 @@
 use crate::baseline::{load_baseline, resolve_baseline_path, Baseline};
 use crate::evidence::{EvidenceFinding, EvidenceReport};
 use crate::guardian_lock::{self, LockMode};
-use crate::output::{render_report, write_report, Finding, ReportFormat, ScanReport};
+use crate::output::{render_report, write_report, Finding, ReleaseOverride, ReportFormat, ScanReport};
 use crate::redaction::{is_sensitive_file, mask_inline_secrets};
 use crate::run_manifest::{FileInventoryEntry, ManifestLimits, RunManifest};
 use crate::rules_hash::get_rules_fingerprint;
 use anyhow::{Context, Result};
-use guardian_scan_policy::ScanProfile;
+use guardian_scan_policy::{
+    classify_ai_heavy_change, evaluate_release_decision, load_policy_for_root, DecisionInputs,
+    IntakeMetrics, ReleaseDecision, ScanProfile,
+};
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -20,6 +23,7 @@ pub struct ScanConfig {
     pub format: ReportFormat,
     pub out: Option<PathBuf>,
     pub baseline_path: Option<PathBuf>,
+    pub disable_baseline: bool,
     pub max_files: usize,
     pub max_file_bytes: u64,
     pub scan_profile: Option<ScanProfile>,
@@ -34,12 +38,23 @@ pub struct ScanConfig {
     pub emit_manifest_path: Option<PathBuf>,
     pub emit_evidence_path: Option<PathBuf>,
     pub pr_gate: PrGateMode,
+    pub policy_path: Option<PathBuf>,
+    pub release_gate: ReleaseGateMode,
+    pub approver: Option<String>,
+    pub override_reason: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum PrGateMode {
     CriticalOnly,
     NewOnly,
+    Off,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum ReleaseGateMode {
+    Strict,
+    Warn,
     Off,
 }
 
@@ -79,6 +94,12 @@ pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
     if !root.exists() || !root.is_dir() {
         anyhow::bail!("Root is not a directory: {}", root.display());
     }
+    if cfg.override_reason.is_some() && cfg.approver.as_deref().unwrap_or("").trim().is_empty() {
+        anyhow::bail!("--override-reason requires --approver.");
+    }
+
+    let (policy, policy_path) = load_policy_for_root(&root, cfg.policy_path.as_deref())
+        .map_err(anyhow::Error::msg)?;
 
     let rules_hash = get_rules_fingerprint(&root);
     if rules_hash.is_empty() {
@@ -88,7 +109,11 @@ pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
         );
     }
 
-    let baseline_path = resolve_baseline_path(&root, cfg.baseline_path.clone());
+    let baseline_path = if cfg.disable_baseline {
+        None
+    } else {
+        resolve_baseline_path(&root, cfg.baseline_path.clone())
+    };
     let baseline = match baseline_path.as_deref() {
         Some(path) => Some(load_and_validate_baseline(path, &rules_hash)?),
         None => None,
@@ -105,6 +130,7 @@ pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
             .as_ref()
             .map(|p| p.to_string_lossy().to_string()),
     );
+    report.policy_path = Some(policy_path.to_string_lossy().to_string());
 
     let scan_profile = resolve_scan_profile(&cfg)?;
     report.scan_profile = Some(scan_profile.as_str().to_string());
@@ -142,6 +168,10 @@ pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
         &exclude_rel_paths,
     )?;
     report.summary.files_scanned = collected.scanned.len();
+
+    let intake_metrics = derive_intake_metrics(&root, &collected.scanned);
+    let ai_heavy = classify_ai_heavy_change(intake_metrics);
+    report.ai_heavy_change = ai_heavy.ai_heavy_change;
 
     let manifest = RunManifest::new(
         root.to_string_lossy().to_string(),
@@ -186,6 +216,42 @@ pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
         .filter(|f| f.is_new && f.severity.eq_ignore_ascii_case("Critical"))
         .count();
 
+    let critical_findings = report
+        .findings
+        .iter()
+        .filter(|f| f.severity.eq_ignore_ascii_case("Critical"))
+        .count();
+    let warning_findings = report
+        .findings
+        .iter()
+        .filter(|f| f.severity.eq_ignore_ascii_case("Warning"))
+        .count();
+
+    let release_decision = evaluate_release_decision(
+        &policy,
+        DecisionInputs {
+            critical_findings,
+            warning_findings,
+            ai_heavy_change: ai_heavy.ai_heavy_change,
+            human_approved: cfg.approver.is_some() && cfg.override_reason.is_none(),
+            override_reason: cfg.override_reason.clone(),
+        },
+    );
+    report.release_decision = release_decision.decision;
+    report.requires_human_approval = release_decision.requires_human_approval;
+    report.decision_reasons = {
+        let mut reasons = release_decision.reasons.clone();
+        reasons.push(ai_heavy.reason.clone());
+        reasons
+    };
+    if cfg.approver.is_some() || cfg.override_reason.is_some() {
+        report.override_info = Some(ReleaseOverride {
+            applied: release_decision.override_applied,
+            approver: cfg.approver.clone(),
+            reason: cfg.override_reason.clone(),
+        });
+    }
+
     if let Some(path) = cfg.emit_evidence_path.as_deref() {
         let mut content_by_path: std::collections::HashMap<&str, &str> =
             std::collections::HashMap::new();
@@ -226,7 +292,7 @@ pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
     let payload = render_report(&report, cfg.format)?;
     write_report(&payload, cfg.out.as_deref())?;
 
-    let exit_code = match cfg.pr_gate {
+    let pr_exit_code = match cfg.pr_gate {
         PrGateMode::CriticalOnly => {
             if report.summary.new_critical > 0 {
                 1
@@ -244,7 +310,30 @@ pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
         PrGateMode::Off => 0,
     };
 
-    Ok(exit_code)
+    let release_exit_code = match cfg.release_gate {
+        ReleaseGateMode::Strict => {
+            if report.release_decision == ReleaseDecision::BlockUntilApproved {
+                1
+            } else {
+                0
+            }
+        }
+        ReleaseGateMode::Warn => {
+            if report.release_decision == ReleaseDecision::BlockUntilApproved {
+                eprintln!(
+                    "guardian-cli: warning: release decision is BLOCK_UNTIL_APPROVED (release-gate=warn)."
+                );
+            }
+            0
+        }
+        ReleaseGateMode::Off => 0,
+    };
+
+    Ok(if pr_exit_code != 0 || release_exit_code != 0 {
+        1
+    } else {
+        0
+    })
 }
 
 fn load_and_validate_baseline(path: &Path, rules_hash: &str) -> Result<Baseline> {
@@ -337,6 +426,110 @@ fn resolve_scan_profile(cfg: &ScanConfig) -> Result<ScanProfile> {
         }
     }
     Ok(ScanProfile::Source)
+}
+
+fn derive_intake_metrics(root: &Path, files: &[ScannedFile]) -> IntakeMetrics {
+    if let Some(metrics) = derive_git_intake_metrics(root) {
+        return metrics;
+    }
+
+    let changed_files = files.len();
+    let estimated_changed_lines = files
+        .iter()
+        .map(|file| file.content.lines().count())
+        .sum::<usize>();
+    let refactor_signal = files.iter().any(|file| {
+        let lower = file.rel_path.to_lowercase();
+        lower.contains("refactor")
+            || lower.contains("migrat")
+            || lower.contains("rewrite")
+            || lower.contains("cleanup")
+            || lower.contains("renam")
+    });
+
+    IntakeMetrics {
+        changed_files,
+        estimated_changed_lines,
+        refactor_signal,
+    }
+}
+
+fn derive_git_intake_metrics(root: &Path) -> Option<IntakeMetrics> {
+    use std::process::Command;
+    let diff_output = Command::new("git")
+        .arg("-C")
+        .arg(root)
+        .arg("diff")
+        .arg("--numstat")
+        .arg("HEAD")
+        .output()
+        .ok()?;
+    if !diff_output.status.success() {
+        return None;
+    }
+
+    let mut changed_paths: HashSet<String> = HashSet::new();
+    let mut estimated_changed_lines: usize = 0;
+    let mut refactor_signal = false;
+
+    let diff_text = String::from_utf8_lossy(&diff_output.stdout);
+    for line in diff_text.lines() {
+        let mut parts = line.split('\t');
+        let added = parts.next().unwrap_or_default().trim();
+        let deleted = parts.next().unwrap_or_default().trim();
+        let path = parts.next().unwrap_or_default().trim();
+        if path.is_empty() {
+            continue;
+        }
+        changed_paths.insert(path.to_string());
+        estimated_changed_lines += added.parse::<usize>().unwrap_or(0);
+        estimated_changed_lines += deleted.parse::<usize>().unwrap_or(0);
+        let lowered = path.to_lowercase();
+        if lowered.contains("refactor")
+            || lowered.contains("migrat")
+            || lowered.contains("rewrite")
+            || lowered.contains("cleanup")
+            || lowered.contains("renam")
+        {
+            refactor_signal = true;
+        }
+    }
+
+    if changed_paths.is_empty() {
+        let status_output = Command::new("git")
+            .arg("-C")
+            .arg(root)
+            .arg("status")
+            .arg("--porcelain")
+            .output()
+            .ok()?;
+        if !status_output.status.success() {
+            return None;
+        }
+        let status_text = String::from_utf8_lossy(&status_output.stdout);
+        for line in status_text.lines() {
+            let path = line.get(3..).unwrap_or_default().trim();
+            if path.is_empty() {
+                continue;
+            }
+            changed_paths.insert(path.to_string());
+            let lowered = path.to_lowercase();
+            if lowered.contains("refactor")
+                || lowered.contains("migrat")
+                || lowered.contains("rewrite")
+                || lowered.contains("cleanup")
+                || lowered.contains("renam")
+            {
+                refactor_signal = true;
+            }
+        }
+    }
+
+    Some(IntakeMetrics {
+        changed_files: changed_paths.len(),
+        estimated_changed_lines,
+        refactor_signal,
+    })
 }
 
 fn collect_files(
@@ -1110,6 +1303,7 @@ mod tests {
             format: ReportFormat::Json,
             out: Some(report_path),
             baseline_path: None,
+            disable_baseline: false,
             max_files: 50,
             max_file_bytes: 50_000,
             scan_profile: None,
@@ -1124,6 +1318,10 @@ mod tests {
             emit_manifest_path: None,
             emit_evidence_path: Some(evidence_path.clone()),
             pr_gate: PrGateMode::Off,
+            policy_path: None,
+            release_gate: ReleaseGateMode::Off,
+            approver: None,
+            override_reason: None,
         })
         .unwrap();
 
@@ -1152,6 +1350,7 @@ mod tests {
             format: ReportFormat::Json,
             out: Some(report_path),
             baseline_path: None,
+            disable_baseline: false,
             max_files: 50,
             max_file_bytes: 50_000,
             scan_profile: None,
@@ -1166,6 +1365,10 @@ mod tests {
             emit_manifest_path: None,
             emit_evidence_path: None,
             pr_gate: PrGateMode::CriticalOnly,
+            policy_path: None,
+            release_gate: ReleaseGateMode::Off,
+            approver: None,
+            override_reason: None,
         })
         .unwrap();
 
@@ -1184,6 +1387,7 @@ mod tests {
             format: ReportFormat::Json,
             out: Some(report_path),
             baseline_path: None,
+            disable_baseline: false,
             max_files: 50,
             max_file_bytes: 50_000,
             scan_profile: None,
@@ -1198,6 +1402,10 @@ mod tests {
             emit_manifest_path: None,
             emit_evidence_path: None,
             pr_gate: PrGateMode::CriticalOnly,
+            policy_path: None,
+            release_gate: ReleaseGateMode::Off,
+            approver: None,
+            override_reason: None,
         })
         .unwrap();
 
@@ -1216,6 +1424,7 @@ mod tests {
             format: ReportFormat::Json,
             out: Some(report_path.clone()),
             baseline_path: None,
+            disable_baseline: false,
             max_files: 50,
             max_file_bytes: 50_000,
             scan_profile: None,
@@ -1230,6 +1439,10 @@ mod tests {
             emit_manifest_path: None,
             emit_evidence_path: None,
             pr_gate: PrGateMode::CriticalOnly,
+            policy_path: None,
+            release_gate: ReleaseGateMode::Off,
+            approver: None,
+            override_reason: None,
         })
         .unwrap();
 
@@ -1259,6 +1472,7 @@ mod tests {
             format: ReportFormat::Json,
             out: Some(report_path_2),
             baseline_path: Some(baseline_path),
+            disable_baseline: false,
             max_files: 50,
             max_file_bytes: 50_000,
             scan_profile: None,
@@ -1273,6 +1487,10 @@ mod tests {
             emit_manifest_path: None,
             emit_evidence_path: None,
             pr_gate: PrGateMode::CriticalOnly,
+            policy_path: None,
+            release_gate: ReleaseGateMode::Off,
+            approver: None,
+            override_reason: None,
         })
         .unwrap();
 
@@ -1291,6 +1509,7 @@ mod tests {
             format: ReportFormat::Json,
             out: Some(first_report),
             baseline_path: None,
+            disable_baseline: false,
             max_files: 50,
             max_file_bytes: 50_000,
             scan_profile: None,
@@ -1305,6 +1524,10 @@ mod tests {
             emit_manifest_path: None,
             emit_evidence_path: None,
             pr_gate: PrGateMode::CriticalOnly,
+            policy_path: None,
+            release_gate: ReleaseGateMode::Off,
+            approver: None,
+            override_reason: None,
         })
         .unwrap();
 
@@ -1324,6 +1547,7 @@ mod tests {
             format: ReportFormat::Json,
             out: Some(second_report),
             baseline_path: None,
+            disable_baseline: false,
             max_files: 50,
             max_file_bytes: 50_000,
             scan_profile: None,
@@ -1338,8 +1562,157 @@ mod tests {
             emit_manifest_path: None,
             emit_evidence_path: None,
             pr_gate: PrGateMode::CriticalOnly,
+            policy_path: None,
+            release_gate: ReleaseGateMode::Off,
+            approver: None,
+            override_reason: None,
         });
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn no_baseline_flag_ignores_stale_default_baseline_file() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        write_file(root, "src/a.ts", "const x = 1;\n");
+
+        let guardian_dir = root.join(".guardian");
+        fs::create_dir_all(&guardian_dir).unwrap();
+        let stale_baseline = Baseline {
+            schema_version: 2,
+            created_at: "2026-03-14T00:00:00Z".to_string(),
+            workspace_id: "ws".to_string(),
+            rules_hash: "stale-hash".to_string(),
+            finding_ids: vec![],
+            findings: vec![],
+        };
+        fs::write(
+            guardian_dir.join("baseline.json"),
+            serde_json::to_string_pretty(&stale_baseline).unwrap(),
+        )
+        .unwrap();
+
+        let report_path = root.join("report.json");
+        let result = run_scan(ScanConfig {
+            root: root.to_path_buf(),
+            format: ReportFormat::Json,
+            out: Some(report_path),
+            baseline_path: None,
+            disable_baseline: true,
+            max_files: 50,
+            max_file_bytes: 50_000,
+            scan_profile: None,
+            offline: true,
+            mock: false,
+            provider: None,
+            model: None,
+            base_url: None,
+            api_key: None,
+            lock_path: None,
+            lock_mode: LockMode::Warn,
+            emit_manifest_path: None,
+            emit_evidence_path: None,
+            pr_gate: PrGateMode::Off,
+            policy_path: None,
+            release_gate: ReleaseGateMode::Off,
+            approver: None,
+            override_reason: None,
+        });
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn release_gate_strict_blocks_ai_heavy_without_approval() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        for idx in 0..16 {
+            write_file(
+                root,
+                &format!("src/file_{idx}.ts"),
+                "export const value = 1;\n",
+            );
+        }
+
+        let report_path = root.join("report.json");
+        let code = run_scan(ScanConfig {
+            root: root.to_path_buf(),
+            format: ReportFormat::Json,
+            out: Some(report_path.clone()),
+            baseline_path: None,
+            disable_baseline: false,
+            max_files: 200,
+            max_file_bytes: 50_000,
+            scan_profile: None,
+            offline: true,
+            mock: false,
+            provider: None,
+            model: None,
+            base_url: None,
+            api_key: None,
+            lock_path: None,
+            lock_mode: LockMode::Warn,
+            emit_manifest_path: None,
+            emit_evidence_path: None,
+            pr_gate: PrGateMode::Off,
+            policy_path: None,
+            release_gate: ReleaseGateMode::Strict,
+            approver: None,
+            override_reason: None,
+        })
+        .unwrap();
+
+        assert_eq!(code, 1);
+        let raw = fs::read_to_string(&report_path).unwrap();
+        let report: ScanReport = serde_json::from_str(&raw).unwrap();
+        assert_eq!(report.release_decision, ReleaseDecision::BlockUntilApproved);
+        assert!(report.requires_human_approval);
+        assert!(report.ai_heavy_change);
+    }
+
+    #[test]
+    fn release_gate_override_with_reason_sets_overridden() {
+        let dir = TempDir::new().unwrap();
+        let root = dir.path();
+        write_file(root, "src/a.ts", "const x = eval('1+1');\n");
+
+        let report_path = root.join("report.json");
+        let code = run_scan(ScanConfig {
+            root: root.to_path_buf(),
+            format: ReportFormat::Json,
+            out: Some(report_path.clone()),
+            baseline_path: None,
+            disable_baseline: false,
+            max_files: 50,
+            max_file_bytes: 50_000,
+            scan_profile: None,
+            offline: true,
+            mock: false,
+            provider: None,
+            model: None,
+            base_url: None,
+            api_key: None,
+            lock_path: None,
+            lock_mode: LockMode::Warn,
+            emit_manifest_path: None,
+            emit_evidence_path: None,
+            pr_gate: PrGateMode::Off,
+            policy_path: None,
+            release_gate: ReleaseGateMode::Strict,
+            approver: Some("release-manager".to_string()),
+            override_reason: Some("Hotfix for production incident".to_string()),
+        })
+        .unwrap();
+
+        assert_eq!(code, 0);
+        let raw = fs::read_to_string(&report_path).unwrap();
+        let report: ScanReport = serde_json::from_str(&raw).unwrap();
+        assert_eq!(report.release_decision, ReleaseDecision::Overridden);
+        assert!(report
+            .override_info
+            .as_ref()
+            .expect("override info")
+            .applied);
     }
 }

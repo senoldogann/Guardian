@@ -1,22 +1,31 @@
 ---
-title: "Guru: AI Asistanı"
-summary: "Kod analizi, açıklamalar ve fix önerileri için AI asistanını nasıl kullanacağınızı öğrenin."
+title: "Guru: Release Decision Asistanı"
+summary: "AI-generated kod risklerini açıklamak ve insan onaylı release kararını desteklemek için Guru'yu kullanın."
 section: "Özellikler"
 order: 3
 ---
 
 ## Guru nedir?
 
-Guru, Guardian'ın yerleşik AI asistanıdır. Kod sorunlarını bağlamıyla açıklar, fix önerileri sunar ve kod tabanınızı daha iyi anlamanıza yardımcı olur.
+Guru, Guardian'ın **release öncesi AI-generated code control** odaklı yerleşik asistanıdır. Riskli değişiklikleri açıklar, fix önerir ve insan onay/override kararını destekler.
 
 ### Temel özellikler
 
 | Özellik | Açıklama |
 |---------|----------|
-| **Bağlam odaklı analiz** | Kod tabanınızın yapısını dikkate alır |
-| **Fix önerileri** | Uygulanabilir kod değişiklikleri önerir |
-| **Açıklamalar** | Bir bulgunun neden önemli olduğunu anlatır |
-| **Web Search** | Güncel bilgi için web'den bağlam çekebilir |
+| **Risk açıklaması** | Bir değişikliğin release riski nedenini anlatır |
+| **Policy uyumlu yönlendirme** | Mimari/güvenlik/kalite policy'lerine göre öneri verir |
+| **Fix önerileri** | Uygulanabilir kod değişiklikleri üretir |
+| **Human approval context** | Approver için karar gerekçesi oluşturur |
+
+## Release decision akışı
+
+Guru'yu generic copilot gibi değil, şu akışla kullanın:
+
+1. AI-assisted veya şüpheli büyük refactor değişikliği analiz et.
+2. Policy riskini ve fix önerisini netleştir.
+3. Human approval veya override reason kaydet.
+4. "Bu kod release'e çıkabilir mi?" sorusunu cevapla.
 
 ## Guru'yu kullanma
 
@@ -199,4 +208,3 @@ GUARDIAN_OFFLINE=1  # Local hash fallback'i zorlar
 | Genel cevaplar | Sorunuza daha fazla bağlam ekleyin |
 | Yavaş yanıt | Daha hızlı bir model deneyin |
 | Yanlış öneriler | Daha spesifik prompt yazın |
-

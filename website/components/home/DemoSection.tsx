@@ -65,14 +65,30 @@ function VideoWithLoading({ src, poster }: { src: string; poster: string }) {
 export function DemoSection({ dict, locale }: DemoSectionProps) {
     const guruBullets =
         locale === "tr"
-            ? ["Bağlam farkında analiz", "Anında fix önerileri", "Açıklayıcı raporlar"]
-            : ["Context-Aware Analysis", "Instant Fix Suggestions", "Explanatory Reports"];
+            ? [
+                "AI-heavy değişikliklerde mimari drift’i işaretler",
+                "Riskleri reviewer için açık ve kısa anlatır",
+                "Takım politikasına uyumlu fix önerileri sunar"
+            ]
+            : [
+                "Flags architectural drift in AI-heavy changes",
+                "Explains risk clearly for human reviewers",
+                "Suggests fixes aligned with team policies"
+            ];
     const authBullets =
         locale === "tr"
-            ? ["Platform-native güvenli saklama", "Çoklu sağlayıcı desteği", "GitHub cihaz doğrulaması"]
-            : ["Platform-Native Secure Storage", "Multi-Provider Support", "GitHub Device Authorization"];
-    const guruCta = locale === "tr" ? "Guru'yu Keşfet" : "Learn About Guru";
-    const securityCta = locale === "tr" ? "Güvenliği Keşfet" : "Learn About Security";
+            ? [
+                "Pass / Pass with warning / Block karar akışı",
+                "Override için sorumlu kişi ve gerekçe zorunluluğu",
+                "Her release kararı için tam denetim izi"
+            ]
+            : [
+                "Pass / Pass with warning / Block decision flow",
+                "Override requires owner and explicit reason",
+                "Complete audit trail for each release decision"
+            ];
+    const guruCta = locale === "tr" ? "Risk Açıklamalarını Gör" : "See Risk Explanations";
+    const securityCta = locale === "tr" ? "Onay Akışını Gör" : "See Approval Workflow";
 
     return (
         <>
@@ -133,7 +149,7 @@ export function DemoSection({ dict, locale }: DemoSectionProps) {
                 </div>
             </section>
 
-            {/* Auth Section */}
+            {/* Approval Section */}
             <section className="py-28 relative bg-white dark:bg-black transition-colors duration-300">
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/5 to-black/5 dark:via-white/5 dark:to-white/5" />
                 <div className="container px-4 mx-auto relative">
@@ -164,7 +180,7 @@ export function DemoSection({ dict, locale }: DemoSectionProps) {
                                 ))}
                             </ul>
                             <Button asChild variant="outline" className="mt-4 rounded-full px-6 h-12 gap-2 border border-black/20 dark:border-white/20 text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10 cursor-pointer">
-                                <Link href={withLocale(locale, "/docs/auth")}>
+                                <Link href={withLocale(locale, "/docs/reviews")}>
                                     {securityCta}
                                 </Link>
                             </Button>

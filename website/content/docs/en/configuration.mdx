@@ -1,13 +1,32 @@
 ---
 title: "Configuration"
-summary: "Customize Guardian settings and application preferences."
+summary: "Configure policy, gate, and approval settings for AI-generated code control."
 section: "Operations"
 order: 4
 ---
 
 ## Overview
 
-Guardian offers configuration options to tailor the application to your workflow. This guide covers all configurable settings.
+Guardian configuration is focused on one goal: **control AI-generated code before it ships**. This guide covers policy, gate, and runtime settings.
+
+## Policy Source of Truth
+
+Guardian uses a version-controlled policy file in your repository root:
+
+```yaml
+guardian.policy.yaml
+```
+
+Minimum gate fields:
+
+- `schema_version`
+- `packs[]`
+- `gate.pass_max_warnings`
+- `gate.block_on_critical`
+- `gate.require_human_approval_on_ai_heavy`
+- `gate.require_override_reason`
+
+Use this file as the single source of truth for desktop, CLI, and CI release decisions.
 
 ## Accessing Settings
 

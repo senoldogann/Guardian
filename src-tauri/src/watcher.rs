@@ -132,6 +132,24 @@ fn is_send_failure_error(err: &str) -> bool {
         || e.contains("failed to send github models request")
 }
 
+fn is_timeout_error(err: &str) -> bool {
+    let e = err.to_lowercase();
+    e.contains("timed out") || e.contains("timeout") || e.contains("deadline exceeded")
+}
+
+fn is_transient_send_failure(err: &str) -> bool {
+    if !is_send_failure_error(err) {
+        return false;
+    }
+    let e = err.to_lowercase();
+    is_timeout_error(&e)
+        || e.contains("connection reset")
+        || e.contains("connection refused")
+        || e.contains("network is unreachable")
+        || e.contains("temporary failure")
+        || e.contains("temporarily unavailable")
+}
+
 fn is_auth_error(err: &str) -> bool {
     let e = err.to_lowercase();
     e.contains("unauthorized")
@@ -177,12 +195,14 @@ fn bump_audit_backoff(root: &str, err: &str) -> (Duration, bool) {
     let backoff_secs;
 
     if let Ok(mut lock) = AUDIT_BACKOFF_BY_ROOT.write() {
-        let entry = lock.entry(root.to_string()).or_insert_with(|| AuditBackoffState {
-            consecutive_failures: 0,
-            cooldown_until: now,
-            last_error: String::new(),
-            last_notice_at: now - Duration::from_secs(3600),
-        });
+        let entry = lock
+            .entry(root.to_string())
+            .or_insert_with(|| AuditBackoffState {
+                consecutive_failures: 0,
+                cooldown_until: now,
+                last_error: String::new(),
+                last_notice_at: now - Duration::from_secs(3600),
+            });
 
         entry.consecutive_failures = entry.consecutive_failures.saturating_add(1);
         backoff_secs = compute_audit_backoff_secs(entry.consecutive_failures);
@@ -248,10 +268,7 @@ fn is_significant_warning(critique: &crate::ai_client::Critique) -> bool {
     keywords.iter().any(|k| combined.contains(k))
 }
 
-fn should_surface_critique(
-    critique: &crate::ai_client::Critique,
-    profile: ScanProfile,
-) -> bool {
+fn should_surface_critique(critique: &crate::ai_client::Critique, profile: ScanProfile) -> bool {
     let severity = critique.severity.trim().to_lowercase();
     // Critical is always shown.
     if severity == "critical" {
@@ -513,7 +530,9 @@ pub(crate) fn critiques_from_snapshot_for_root(root: &str) -> Vec<crate::ai_clie
         return Vec::new();
     }
 
-    parsed.critiques.retain(|critique| !critique.file_path.trim().is_empty());
+    parsed
+        .critiques
+        .retain(|critique| !critique.file_path.trim().is_empty());
     for critique in &mut parsed.critiques {
         critique.file_path = absolutize_snapshot_path(root_path, &critique.file_path);
     }
@@ -672,7 +691,11 @@ pub(crate) fn should_skip_path(path: &Path, is_chat: bool) -> bool {
     should_skip_path_with_profile(path, is_chat, ScanProfile::Source)
 }
 
-pub(crate) fn should_skip_path_with_profile(path: &Path, is_chat: bool, profile: ScanProfile) -> bool {
+pub(crate) fn should_skip_path_with_profile(
+    path: &Path,
+    is_chat: bool,
+    profile: ScanProfile,
+) -> bool {
     // Centralized policy: used by watcher and (now) shared with CLI.
     !classify_path(path, is_chat, profile).include
 }
@@ -682,7 +705,12 @@ fn skip_reason_label(path: &Path, is_chat: bool, profile: ScanProfile) -> Option
     if decision.include {
         return None;
     }
-    Some(decision.reason.unwrap_or(SkipReason::IgnoredPathSegment).as_str())
+    Some(
+        decision
+            .reason
+            .unwrap_or(SkipReason::IgnoredPathSegment)
+            .as_str(),
+    )
 }
 
 #[allow(dead_code)]
@@ -736,7 +764,7 @@ pub async fn start_watching(
                     err
                 ),
             )
-                .ok();
+            .ok();
             return;
         }
     };
@@ -1278,7 +1306,10 @@ impl BatchPathResolver {
             self.root.join(&cleaned)
         };
         let canonical = dunce::canonicalize(&candidate).unwrap_or(candidate);
-        if let Some(abs) = self.canonical_to_abs.get(canonical.to_string_lossy().as_ref()) {
+        if let Some(abs) = self
+            .canonical_to_abs
+            .get(canonical.to_string_lossy().as_ref())
+        {
             return Some(abs.clone());
         }
 
@@ -1431,6 +1462,42 @@ async fn process_batch(
     emit_ai_context(app, root, client, estimated_tokens, &context_files);
     append_ai_request_history(root, client, estimated_tokens, &context_files);
 
+    let max_batch_prompt_tokens = config::max_batch_prompt_tokens();
+    if estimated_tokens > max_batch_prompt_tokens && items.len() > 1 {
+        app.emit(
+            "guardian:warning",
+            format!(
+                "{} {} > {}. {}",
+                ui_text(
+                    language,
+                    "Batch prompt is heavy (estimated tokens). Falling back to per-file audit.",
+                    "Batch prompt agir (tahmini token). Dosya bazli audit'e dusuluyor.",
+                ),
+                estimated_tokens,
+                max_batch_prompt_tokens,
+                ui_text(
+                    language,
+                    "Tune with GUARDIAN_MAX_BATCH_PROMPT_TOKENS / GUARDIAN_MAX_CONTENT_CHARS if needed.",
+                    "Gerekirse GUARDIAN_MAX_BATCH_PROMPT_TOKENS / GUARDIAN_MAX_CONTENT_CHARS ile ayarlayin.",
+                )
+            ),
+        )
+        .ok();
+        process_items_per_file_fallback(
+            items,
+            app,
+            client,
+            project_intent_pack,
+            root,
+            auto_verify_enabled,
+            scan_profile,
+            language,
+            last_request,
+        )
+        .await;
+        return;
+    }
+
     let mut attempt = 0;
     loop {
         let call = client
@@ -1493,13 +1560,37 @@ async fn process_batch(
                         config::rate_limit_backoff_secs().saturating_mul((attempt + 1) as u64),
                     );
                     let notice = if is_turkish(language) {
-                        format!("Rate limit. {}sn sonra tekrar deneniyor...", backoff.as_secs())
+                        format!(
+                            "Rate limit. {}sn sonra tekrar deneniyor...",
+                            backoff.as_secs()
+                        )
                     } else {
                         format!("Rate limited. Retrying in {}s...", backoff.as_secs())
                     };
+                    app.emit("guardian:warning", notice).ok();
+                    sleep(backoff).await;
+                    attempt += 1;
+                    continue;
+                }
+
+                if is_transient_send_failure(&err) && attempt < config::send_failure_retries() {
+                    let multiplier = 1u64 << attempt.min(6);
+                    let backoff = Duration::from_secs(
+                        config::send_failure_backoff_secs().saturating_mul(multiplier),
+                    );
                     app.emit(
                         "guardian:warning",
-                        notice,
+                        format!(
+                            "{} {}s ({}/{})",
+                            ui_text(
+                                language,
+                                "Transient provider/network failure. Retrying in",
+                                "Gecici provider/ag hatasi. Tekrar deneme",
+                            ),
+                            backoff.as_secs(),
+                            attempt + 1,
+                            config::send_failure_retries()
+                        ),
                     )
                     .ok();
                     sleep(backoff).await;
@@ -1507,81 +1598,41 @@ async fn process_batch(
                     continue;
                 }
 
-                if is_token_limit_error(&err) && items.len() > 1 {
+                if (is_token_limit_error(&err)
+                    || (is_timeout_error(&err) && is_send_failure_error(&err)))
+                    && items.len() > 1
+                {
                     app.emit(
                         "guardian:warning",
-                        ui_text(
-                            language,
-                            "Batch too large. Falling back to per-file audit.",
-                            "Batch çok büyük. Dosya bazlı audit'e düşülüyor.",
-                        )
-                        .to_string(),
+                        if is_token_limit_error(&err) {
+                            ui_text(
+                                language,
+                                "Batch too large. Falling back to per-file audit.",
+                                "Batch çok büyük. Dosya bazlı audit'e düşülüyor.",
+                            )
+                            .to_string()
+                        } else {
+                            ui_text(
+                                language,
+                                "Batch request timed out. Falling back to per-file audit.",
+                                "Batch isteği zaman aşımına uğradı. Dosya bazlı audit'e düşülüyor.",
+                            )
+                            .to_string()
+                        },
                     )
                     .ok();
-                    for item in items {
-                        let single_items = vec![item.clone()];
-                        let (single_prompt, single_tokens, single_hash, single_context) =
-                            build_prompt_data(&single_items);
-                        emit_ai_context(app, root, client, single_tokens, &single_context);
-                        append_ai_request_history(root, client, single_tokens, &single_context);
-                        match client
-                            .analyze_batch_with_intent(project_intent_pack, language, single_prompt)
-                            .await
-                        {
-                            Ok(result) => {
-                                let queue_wait_ms = result.queue_wait_ms;
-                                let critiques = normalize_batch_critique_file_paths(
-                                    Path::new(root),
-                                    &single_items,
-                                    result.value,
-                                );
-                                let critiques_for_semantic = critiques.clone();
-                                handle_critiques(
-                                    app,
-                                    root,
-                                    language,
-                                    &single_items,
-                                    &single_hash,
-                                    critiques,
-                                    single_tokens,
-                                    1,
-                                    single_items.len(),
-                                    auto_verify_enabled,
-                                    scan_profile,
-                                    queue_wait_ms,
-                                );
-                                schedule_semantic_indexing(
-                                    app.clone(),
-                                    root.to_string(),
-                                    &single_items,
-                                    &single_hash,
-                                    critiques_for_semantic,
-                                );
-                                update_last_audited_contents(&single_items);
-                            }
-                            Err(err) => {
-                                app.emit(
-                                    "guardian:warning",
-                                    format!(
-                                        "{} {}",
-                                        ui_text(
-                                            language,
-                                            "Single-file audit failed.",
-                                            "Tek dosya audit'i başarısız.",
-                                        ),
-                                        err
-                                    ),
-                                )
-                                .ok();
-                                app.emit(
-                                    "guardian:usage",
-                                    json!({ "tokens": single_tokens, "calls": 1, "files": 1, "queue_wait_ms": 0 }),
-                                )
-                                .ok();
-                            }
-                        }
-                        *last_request = Instant::now();
-                    }
+                    process_items_per_file_fallback(
+                        items,
+                        app,
+                        client,
+                        project_intent_pack,
+                        root,
+                        auto_verify_enabled,
+                        scan_profile,
+                        language,
+                        last_request,
+                    )
+                    .await;
                     return;
                 }
 
@@ -1589,12 +1640,23 @@ async fn process_batch(
                 if should_notice {
                     let provider = client.provider_id();
                     let base_url = client.base_url();
-                    let lowered = err.to_lowercase();
-                    let hint = if provider == "ollama" && is_send_failure_error(&err) && lowered.contains("timed out") {
+                    let hint = if provider == "ollama"
+                        && is_send_failure_error(&err)
+                        && is_timeout_error(&err)
+                    {
                         ui_text(
                             language,
                             "Ollama request timed out. Try a smaller model or increase the timeout (GUARDIAN_TIMEOUT_OLLAMA).",
                             "Ollama isteği zaman aşımına uğradı. Daha küçük bir model deneyin veya timeout'u artırın (GUARDIAN_TIMEOUT_OLLAMA).",
+                        )
+                    } else if provider == "openai"
+                        && is_send_failure_error(&err)
+                        && is_timeout_error(&err)
+                    {
+                        ui_text(
+                            language,
+                            "OpenAI request timed out. Reduce batch size/context (GUARDIAN_MAX_BATCH_SIZE, GUARDIAN_MAX_CONTENT_CHARS, GUARDIAN_MAX_BATCH_PROMPT_TOKENS) or increase timeout (GUARDIAN_TIMEOUT_OPENAI).",
+                            "OpenAI isteği zaman aşımına uğradı. Batch/context boyutunu azaltın (GUARDIAN_MAX_BATCH_SIZE, GUARDIAN_MAX_CONTENT_CHARS, GUARDIAN_MAX_BATCH_PROMPT_TOKENS) veya timeout'u artırın (GUARDIAN_TIMEOUT_OPENAI).",
                         )
                     } else if provider == "ollama" && is_send_failure_error(&err) {
                         ui_text(
@@ -1645,11 +1707,7 @@ async fn process_batch(
                             base_url
                         )
                     };
-                    app.emit(
-                        "guardian:warning",
-                        notice,
-                    )
-                    .ok();
+                    app.emit("guardian:warning", notice).ok();
                 } else {
                     debug!(target: "guardian::watcher", "Batch audit failed (debounced): {}", err);
                 }
@@ -1667,6 +1725,83 @@ async fn process_batch(
                 return;
             }
         }
+    }
+}
+
+async fn process_items_per_file_fallback(
+    items: Vec<BatchItem>,
+    app: &AppHandle,
+    client: &Arc<AiClient>,
+    project_intent_pack: Option<&str>,
+    root: &str,
+    auto_verify_enabled: bool,
+    scan_profile: ScanProfile,
+    language: &str,
+    last_request: &mut Instant,
+) {
+    for item in items {
+        let single_items = vec![item];
+        let (single_prompt, single_tokens, single_hash, single_context) =
+            build_prompt_data(&single_items);
+        emit_ai_context(app, root, client, single_tokens, &single_context);
+        append_ai_request_history(root, client, single_tokens, &single_context);
+        match client
+            .analyze_batch_with_intent(project_intent_pack, language, single_prompt)
+            .await
+        {
+            Ok(result) => {
+                let queue_wait_ms = result.queue_wait_ms;
+                let critiques = normalize_batch_critique_file_paths(
+                    Path::new(root),
+                    &single_items,
+                    result.value,
+                );
+                let critiques_for_semantic = critiques.clone();
+                handle_critiques(
+                    app,
+                    root,
+                    language,
+                    &single_items,
+                    &single_hash,
+                    critiques,
+                    single_tokens,
+                    1,
+                    single_items.len(),
+                    auto_verify_enabled,
+                    scan_profile,
+                    queue_wait_ms,
+                );
+                schedule_semantic_indexing(
+                    app.clone(),
+                    root.to_string(),
+                    &single_items,
+                    &single_hash,
+                    critiques_for_semantic,
+                );
+                update_last_audited_contents(&single_items);
+            }
+            Err(err) => {
+                app.emit(
+                    "guardian:warning",
+                    format!(
+                        "{} {}",
+                        ui_text(
+                            language,
+                            "Single-file audit failed.",
+                            "Tek dosya audit'i başarısız.",
+                        ),
+                        err
+                    ),
+                )
+                .ok();
+                app.emit(
+                    "guardian:usage",
+                    json!({ "tokens": single_tokens, "calls": 1, "files": 1, "queue_wait_ms": 0 }),
+                )
+                .ok();
+            }
+        }
+        *last_request = Instant::now();
     }
 }
 
@@ -2179,7 +2314,10 @@ async fn audit_file_logic(
             );
             app.emit(
                 "guardian:info",
-                format!("Skipped (Unchanged): {:?}", path.file_name().unwrap_or_default()),
+                format!(
+                    "Skipped (Unchanged): {:?}",
+                    path.file_name().unwrap_or_default()
+                ),
             )
             .ok();
             return;
@@ -2685,6 +2823,30 @@ mod tests_protocol {
     use tempfile::TempDir;
 
     #[test]
+    fn timeout_error_detection_variants() {
+        assert!(is_timeout_error(
+            "Failed to send OpenAI request: error sending request: operation timed out"
+        ));
+        assert!(is_timeout_error(
+            "request timeout while connecting upstream"
+        ));
+        assert!(!is_timeout_error("authentication failed: invalid api key"));
+    }
+
+    #[test]
+    fn transient_send_failure_detects_timeout_and_connection_reset() {
+        assert!(is_transient_send_failure(
+            "Failed to send OpenAI request: operation timed out"
+        ));
+        assert!(is_transient_send_failure(
+            "Failed to send request to AI provider: connection reset by peer"
+        ));
+        assert!(!is_transient_send_failure(
+            "OpenAI request failed: 401 unauthorized"
+        ));
+    }
+
+    #[test]
     fn agent_queue_rotates_and_prunes() {
         let tmp = TempDir::new().expect("tempdir");
         let root = tmp.path();
@@ -2873,8 +3035,11 @@ mod tests_protocol {
             ]
         });
         let snapshot_path = guardian_dir.join("critiques.json");
-        fs::write(&snapshot_path, serde_json::to_string_pretty(&payload).expect("serialize payload"))
-            .expect("write snapshot");
+        fs::write(
+            &snapshot_path,
+            serde_json::to_string_pretty(&payload).expect("serialize payload"),
+        )
+        .expect("write snapshot");
 
         let critiques = critiques_from_snapshot_for_root(root.to_string_lossy().as_ref());
         assert_eq!(critiques.len(), 1);

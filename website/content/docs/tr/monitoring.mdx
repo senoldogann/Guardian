@@ -1,13 +1,13 @@
 ---
 title: "Proje İzleme"
-summary: "Gerçek zamanlı kod tabanı taraması ve AI destekli analiz."
+summary: "AI-generated kod riskini izleyin ve release kararını policy gate ile yönetin."
 section: "Özellikler"
 order: 4
 ---
 
 ## Genel bakış
 
-Guardian'ın Project Monitoring özelliği, kod tabanınızı gerçek zamanlı izler ve siz çalışırken AI destekli analizle bulguları üretir.
+Guardian'ın Project Monitoring özelliği, **release öncesi AI-generated code intake** yüzeyidir. Değişiklik riskini analiz eder, policy'leri uygular ve release kararına veri sağlar.
 
 ## Monitoring'i başlatma
 
@@ -33,7 +33,18 @@ Guardian, dosya değişikliklerini izler ve seçili AI provider ile analiz eder:
 1. **Dosya tespiti**: Projede kaydedilen değişiklikleri yakalar
 2. **Batch işleme**: Verimli analiz için değişiklikleri gruplar
 3. **AI analizi**: Kod bağlamını provider'a gönderip bulgu üretir
-4. **Sonuç gösterimi**: Bulguları panelde listeler
+4. **Sonuç gösterimi**: Bulguları ve release etkisini panelde gösterir
+
+## Release decision yüzeyi
+
+Guardian bulguları release odaklı karara çevirir:
+
+- `PASS`
+- `PASS_WITH_WARNING`
+- `BLOCK_UNTIL_APPROVED`
+- `OVERRIDDEN` (reason zorunlu)
+
+Bu sayede "fix önerdim" tek başına release izni sayılmaz.
 
 ## Snapshot hydration
 
@@ -126,4 +137,3 @@ Activity panelde şunlar görünür:
 3. **Guru kullanın**: Net olmayan bulgular için açıklama isteyin
 4. **Maliyeti izleyin**: Ücretli API'lerde usage takip edin
 5. **Önce kritikler**: Önce high-severity bulgulara odaklanın
-

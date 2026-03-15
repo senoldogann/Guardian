@@ -1,205 +1,159 @@
 "use client";
 
-import { Code2, Lock, GitBranch, Building2, type LucideIcon } from "lucide-react";
+import {
+    GitPullRequest,
+    ShieldAlert,
+    UserCheck,
+    Rocket,
+    type LucideIcon
+} from "lucide-react";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
 import type { Locale } from "../../lib/locale";
 
-type UseCase = {
-    title: string;
-    description: string;
+type ScenarioStep = {
+    title: { en: string; tr: string };
+    description: { en: string; tr: string };
     icon: LucideIcon;
-    scenarios: string[];
 };
 
-const useCases: UseCase[] = [
+const scenarioSteps: ScenarioStep[] = [
     {
-        title: "Architecture Enforcement",
-        description: "Ensure your codebase follows established architectural patterns and standards across the entire team.",
-        icon: Code2,
-        scenarios: [
-            "Detect dependency violations between layers",
-            "Enforce coding standards automatically",
-            "Prevent architectural drift over time"
-        ]
+        title: {
+            en: "AI-Heavy PR Intake",
+            tr: "AI-Heavy PR Intake"
+        },
+        description: {
+            en: "Guardian detects AI-assisted or unusually large refactor pull requests and routes them to stricter evaluation.",
+            tr: "Guardian, AI destekli veya alışılmadık büyüklükte refactor PR'larını tespit eder ve daha sıkı değerlendirmeye alır."
+        },
+        icon: GitPullRequest
     },
     {
-        title: "Security Compliance",
-        description: "Continuously audit code for security vulnerabilities and compliance with industry standards.",
-        icon: Lock,
-        scenarios: [
-            "Identify OWASP Top 10 vulnerabilities",
-            "Detect exposed secrets and credentials",
-            "Ensure compliance with security policies"
-        ]
+        title: {
+            en: "Policy Drift Detection",
+            tr: "Policy Drift Tespiti"
+        },
+        description: {
+            en: "Architecture and security policy violations are surfaced with plain-language explanations of why they matter.",
+            tr: "Mimari ve güvenlik politika ihlalleri, neden önemli olduğunu açıkça anlatan açıklamalarla görünür hale getirilir."
+        },
+        icon: ShieldAlert
     },
     {
-        title: "Release Quality Gates",
-        description: "Implement automated quality checks that prevent poor-quality code from reaching production.",
-        icon: GitBranch,
-        scenarios: [
-            "Block releases with critical issues",
-            "Automated pre-deployment checks",
-            "Quality metrics and reporting"
-        ]
+        title: {
+            en: "Human Approval Workflow",
+            tr: "İnsan Onay Akışı"
+        },
+        description: {
+            en: "Suggested fixes are reviewed by humans. Blocks and overrides require a named approver and reason.",
+            tr: "Önerilen düzeltmeler insanlar tarafından gözden geçirilir. Blok ve override kararları sorumlu kişi ve gerekçe gerektirir."
+        },
+        icon: UserCheck
     },
     {
-        title: "Enterprise Governance",
-        description: "Scale code quality practices across large organizations with centralized governance.",
-        icon: Building2,
-        scenarios: [
-            "Standardize practices across teams",
-            "Centralized policy management",
-            "Audit trails and compliance reporting"
-        ]
+        title: {
+            en: "Release Decision Surface",
+            tr: "Release Decision Surface"
+        },
+        description: {
+            en: "Final output is explicit: pass, pass with warning, or block before release, backed by an audit trail.",
+            tr: "Nihai çıktı nettir: release öncesi pass, pass with warning veya block ve her karar denetim izi ile kaydedilir."
+        },
+        icon: Rocket
     }
 ];
 
-const useCasesTr: UseCase[] = [
-    {
-        title: "Mimari Standartlar",
-        description: "Kod tabanınızın ekip genelinde belirlenen mimari desenlere ve standartlara uymasını sağlayın.",
-        icon: Code2,
-        scenarios: [
-            "Katmanlar arası bağımlılık ihlallerini tespit edin",
-            "Kod standartlarını otomatik zorunlu kılın",
-            "Zamanla mimari drift’i önleyin"
-        ]
-    },
-    {
-        title: "Güvenlik Uyumluluğu",
-        description: "Kodunuzu güvenlik açıkları ve standart uyumluluğu için sürekli denetleyin.",
-        icon: Lock,
-        scenarios: [
-            "OWASP Top 10 zafiyetlerini belirleyin",
-            "Sızan secret/token/credential’ları tespit edin",
-            "Güvenlik politikalarına uyumu doğrulayın"
-        ]
-    },
-    {
-        title: "Release Quality Gates",
-        description: "Düşük kaliteli kodun prod’a çıkmasını engelleyen otomatik kalite kontrolleri uygulayın.",
-        icon: GitBranch,
-        scenarios: [
-            "Kritik sorunlarda release’i bloklayın",
-            "Otomatik pre-deploy kontroller",
-            "Kalite metrikleri ve raporlama"
-        ]
-    },
-    {
-        title: "Kurumsal Yönetişim",
-        description: "Merkezi yönetişim ile büyük organizasyonlarda kalite pratiklerini ölçekleyin.",
-        icon: Building2,
-        scenarios: [
-            "Ekipler arası standartlaştırma",
-            "Merkezi politika yönetimi",
-            "Denetim izi ve uyumluluk raporları"
-        ]
-    }
+const benefitsEn = [
+    "Catch risky AI changes early",
+    "Enforce team policies automatically",
+    "Approve releases with an audit trail"
+];
+
+const benefitsTr = [
+    "Riskli AI değişikliklerini erken yakalayın",
+    "Takım politikalarını otomatik uygulatın",
+    "Release onaylarını denetim iziyle verin"
 ];
 
 export function UseCasesSection({ locale }: { locale: Locale }) {
-    const items = locale === "tr" ? useCasesTr : useCases;
-    const heading = locale === "tr" ? "Gerçek Dünya İçin" : "Built for Real-World Challenges";
-    const sub = locale === "tr"
-        ? "Mühendislik ekipleri kaliteyi ölçeklerken Guardian'ı nasıl kullanıyor?"
-        : "How engineering teams use Guardian to maintain quality at scale";
-    return (
-        <section className="py-32 relative bg-white dark:bg-black transition-colors duration-300">
-            <div className="absolute inset-0 bg-gradient-to-b from-white via-zinc-50 to-white dark:from-black dark:via-zinc-950 dark:to-black" />
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-32 bg-gradient-to-b from-transparent via-black/20 dark:via-white/20 to-transparent" />
+    const heading = locale === "tr" ? "Tek Kahraman Senaryo" : "Single Hero Use Case";
+    const sub =
+        locale === "tr"
+            ? "Bir geliştirici Copilot/Claude/Cursor ile büyük bir PR hazırlıyor. Guardian bu değişikliği release öncesi nasıl kontrol ediyor?"
+            : "A developer uses Copilot/Claude/Cursor to build a large PR. Here is how Guardian controls that change before release.";
+    const outcomeTitle = locale === "tr" ? "Sonuç" : "Outcome";
+    const benefits = locale === "tr" ? benefitsTr : benefitsEn;
 
-            <div className="container px-4 mx-auto relative max-w-5xl">
+    return (
+        <section className="py-24 md:py-32 relative bg-white dark:bg-black transition-colors duration-300">
+            <div className="absolute inset-0 bg-gradient-to-b from-white via-zinc-50 to-white dark:from-black dark:via-zinc-950 dark:to-black" />
+
+            <div className="container px-4 mx-auto relative max-w-6xl">
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 24 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    className="text-center mb-24"
+                    transition={{ duration: 0.5 }}
+                    className="text-center mb-12 md:mb-16"
                 >
                     <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4 text-black dark:text-white">
                         {heading}
                     </h2>
-                    <p className="text-zinc-500 max-w-xl mx-auto">
+                    <p className="text-zinc-600 dark:text-zinc-400 max-w-3xl mx-auto text-base md:text-lg leading-relaxed">
                         {sub}
                     </p>
                 </motion.div>
 
-                <div className="relative">
-                    <div className="absolute left-1/2 top-0 bottom-0 w-px bg-black/5 dark:bg-white/5 -translate-x-1/2 hidden md:block" />
-
-                    {items.map((useCase, idx) => {
-                        const Icon = useCase.icon;
-                        const isEven = idx % 2 === 0;
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-10">
+                    {scenarioSteps.map((step, idx) => {
+                        const Icon = step.icon;
                         return (
-                            <motion.div
-                                key={useCase.title}
-                                initial={{ opacity: 0, x: isEven ? -30 : 30 }}
-                                whileInView={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.6, delay: idx * 0.15 }}
-                                viewport={{ once: true, margin: "-50px" }}
-                                className="relative mb-20 last:mb-0"
+                            <motion.article
+                                key={step.title.en}
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true, margin: "-30px" }}
+                                transition={{ duration: 0.45, delay: idx * 0.08 }}
+                                className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black p-6 md:p-7 shadow-sm"
                             >
-                                <div className={cn(
-                                    "flex items-center gap-8 md:gap-16",
-                                    isEven ? "md:flex-row" : "md:flex-row-reverse"
-                                )}>
-                                    <div className={cn(
-                                        "flex-1 md:text-right",
-                                        isEven ? "md:text-right" : "md:text-left"
-                                    )}>
-                                        <div className="group">
-                                            <div className={cn(
-                                                "inline-flex items-center gap-3 mb-4",
-                                                isEven ? "md:flex-row-reverse" : ""
-                                            )}>
-                                                <span className="text-xs font-mono text-zinc-400 dark:text-zinc-600">
-                                                    0{idx + 1}
-                                                </span>
-                                                <h3 className="text-xl font-semibold text-black dark:text-white group-hover:text-zinc-700 dark:group-hover:text-zinc-200 transition-colors">
-                                                    {useCase.title}
-                                                </h3>
-                                            </div>
-                                            <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed mb-4 text-sm md:text-base">
-                                                {useCase.description}
-                                            </p>
-                                            <ul className={cn(
-                                                "space-y-2",
-                                                isEven ? "md:items-end" : "md:items-start"
-                                            )}>
-                                                {useCase.scenarios.slice(0, 2).map((scenario, sIdx) => (
-                                                    <li
-                                                        key={sIdx}
-                                                        className={cn(
-                                                            "flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-600",
-                                                            isEven ? "md:flex-row-reverse" : ""
-                                                        )}
-                                                    >
-                                                        <span className="w-1 h-1 rounded-full bg-black/20 dark:bg-white/20" />
-                                                        {scenario}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-900 flex items-center justify-center">
+                                        <Icon className="w-5 h-5 text-black dark:text-white" aria-hidden="true" />
                                     </div>
-
-                                    <div className="hidden md:flex shrink-0 relative">
-                                        <div className="w-12 h-12 rounded-full border border-black/10 dark:border-white/10 bg-white dark:bg-black flex items-center justify-center relative z-10 group-hover:border-black/20 dark:group-hover:border-white/20 transition-colors">
-                                            <Icon className="w-5 h-5 text-black/60 dark:text-white/60" aria-hidden="true" />
-                                        </div>
-                                        <div className="absolute inset-0 rounded-full bg-black/5 dark:bg-white/5 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    </div>
-
-                                    <div className="hidden md:block flex-1" />
+                                    <span className="text-xs font-mono tracking-wider text-neutral-500 dark:text-neutral-400">
+                                        {locale === "tr" ? `ADIM 0${idx + 1}` : `STEP 0${idx + 1}`}
+                                    </span>
                                 </div>
-
-                                <div className="md:hidden absolute left-0 top-0 -translate-x-full pr-4">
-                                    <span className="text-xs font-mono text-zinc-400 dark:text-zinc-700">0{idx + 1}</span>
-                                </div>
-                            </motion.div>
+                                <h3 className="text-lg md:text-xl font-semibold text-black dark:text-white mb-2">
+                                    {step.title[locale]}
+                                </h3>
+                                <p className="text-sm md:text-base text-neutral-600 dark:text-neutral-400 leading-relaxed">
+                                    {step.description[locale]}
+                                </p>
+                            </motion.article>
                         );
                     })}
                 </div>
+
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.45, delay: 0.2 }}
+                    className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/40 p-6 md:p-8"
+                >
+                    <h3 className="text-lg md:text-xl font-semibold text-black dark:text-white mb-4">{outcomeTitle}</h3>
+                    <ul className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+                        {benefits.map((item) => (
+                            <li
+                                key={item}
+                                className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black px-4 py-3 text-sm md:text-base text-neutral-700 dark:text-neutral-300"
+                            >
+                                {item}
+                            </li>
+                        ))}
+                    </ul>
+                </motion.div>
             </div>
         </section>
     );

@@ -1,0 +1,247 @@
+{
+  "version": 1,
+  "skills": {
+    "azure-platform-master": {
+      "tags": [
+        "azure",
+        "cloud",
+        "architecture",
+        "security",
+        "ci-cd",
+        "observability"
+      ],
+      "phase": [
+        "plan",
+        "implement",
+        "verify",
+        "operate"
+      ],
+      "risk": "high",
+      "aliases": [
+        "azure platform",
+        "platform engineering",
+        "landing zone"
+      ],
+      "routing_boost": 18
+    },
+    "enterprise-azure-fullstack-readiness": {
+      "tags": [
+        "azure",
+        "react",
+        "typescript",
+        "react-native",
+        "python",
+        "rust",
+        "go",
+        "security",
+        "testing",
+        "architecture",
+        "ci-cd",
+        "observability"
+      ],
+      "phase": [
+        "plan",
+        "implement",
+        "verify",
+        "operate"
+      ],
+      "risk": "high",
+      "aliases": [
+        "azure fullstack",
+        "enterprise delivery",
+        "consulting readiness"
+      ],
+      "routing_boost": 16
+    },
+    "frontend-design": {
+      "tags": [
+        "architecture",
+        "design",
+        "frontend",
+        "react",
+        "typescript"
+      ],
+      "phase": [
+        "design",
+        "implement"
+      ],
+      "aliases": [
+        "frontend ui",
+        "ui design",
+        "design system",
+        "react ui"
+      ],
+      "routing_boost": 22
+    },
+    "react-best-practices": {
+      "tags": [
+        "react",
+        "frontend",
+        "typescript",
+        "performance"
+      ],
+      "phase": [
+        "implement",
+        "verify"
+      ],
+      "aliases": [
+        "react performance",
+        "react optimization",
+        "vercel react"
+      ],
+      "routing_boost": 18
+    },
+    "typescript-expert": {
+      "tags": [
+        "typescript",
+        "frontend",
+        "backend",
+        "design"
+      ],
+      "stack": [
+        "typescript",
+        "react",
+        "frontend"
+      ],
+      "phase": [
+        "design",
+        "implement",
+        "verify"
+      ],
+      "aliases": [
+        "type system",
+        "typescript architecture",
+        "ts",
+        "react typescript",
+        "frontend typescript",
+        "typed frontend"
+      ],
+      "routing_boost": 34
+    },
+    "azure-deployment-preflight": {
+      "tags": [
+        "azure",
+        "ci-cd",
+        "cloud",
+        "deployment",
+        "security",
+        "infrastructure"
+      ],
+      "phase": [
+        "plan",
+        "verify",
+        "operate"
+      ],
+      "aliases": [
+        "azure what-if",
+        "deployment validation",
+        "bicep preflight",
+        "azure deployment"
+      ],
+      "routing_boost": 20
+    },
+    "react-native-architecture": {
+      "tags": [
+        "react-native",
+        "mobile",
+        "frontend",
+        "architecture"
+      ]
+    },
+    "security-review": {
+      "tags": [
+        "security",
+        "review",
+        "api"
+      ],
+      "phase": [
+        "verify"
+      ],
+      "risk": "high"
+    },
+    "vulnerability-scanner": {
+      "tags": [
+        "security",
+        "testing",
+        "review"
+      ],
+      "phase": [
+        "verify"
+      ],
+      "risk": "high"
+    },
+    "testing-qa": {
+      "tags": [
+        "testing",
+        "qa",
+        "verification"
+      ],
+      "phase": [
+        "verify"
+      ]
+    },
+    "gstack": {
+      "tags": [
+        "workflow",
+        "review",
+        "planning"
+      ],
+      "phase": [
+        "plan",
+        "verify"
+      ]
+    },
+    "plan-ceo-review": {
+      "tags": [
+        "planning",
+        "product",
+        "architecture"
+      ],
+      "phase": [
+        "plan"
+      ]
+    },
+    "plan-eng-review": {
+      "tags": [
+        "planning",
+        "architecture",
+        "testing"
+      ],
+      "phase": [
+        "plan",
+        "verify"
+      ]
+    },
+    "review": {
+      "tags": [
+        "review",
+        "security",
+        "testing"
+      ],
+      "phase": [
+        "verify"
+      ]
+    },
+    "ship": {
+      "tags": [
+        "deployment",
+        "ci-cd",
+        "release"
+      ],
+      "phase": [
+        "operate"
+      ],
+      "risk": "high"
+    },
+    "retro": {
+      "tags": [
+        "retrospective",
+        "quality",
+        "operations"
+      ],
+      "phase": [
+        "operate"
+      ]
+    }
+  }
+}

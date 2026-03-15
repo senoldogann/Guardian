@@ -16,7 +16,8 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report",
     "lighthouse": "bash scripts/lighthouse-audit.sh",
-    "pre-launch": "bash scripts/pre-launch-check.sh"
+    "pre-launch": "bash scripts/pre-launch-check.sh",
+    "copy:check": "node scripts/check-copy-consistency.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

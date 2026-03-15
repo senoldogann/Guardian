@@ -15,8 +15,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = "Guardian";
   const description =
     locale === "tr"
-      ? "Kalite ve güvenlik standartlarını sürüm hızında zorunlu kılın."
-      : "Keep quality and security standards enforced at release speed.";
+      ? "Guardian, küçük mühendislik ekipleri için AI ile üretilen kodu release öncesi politika ve insan onayıyla kontrol eder."
+      : "Guardian helps small engineering teams control AI-generated code before release with policy enforcement and human approval.";
 
   return buildPageMetadata({
     title,

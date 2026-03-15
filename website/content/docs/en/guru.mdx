@@ -1,22 +1,31 @@
 ---
-title: "Guru: AI Assistant"
-summary: "How to use the AI assistant for code analysis, explanations, and fix suggestions."
+title: "Guru: Release Decision Assistant"
+summary: "Use Guru to explain risky AI-generated changes and support human release decisions."
 section: "Features"
 order: 3
 ---
 
 ## What is Guru?
 
-Guru is Guardian's built-in AI assistant. It provides context-aware explanations of code issues, suggests fixes, and helps you understand your codebase better.
+Guru is Guardian's built-in assistant for **AI-generated code control before release**. It explains risky changes, suggests fixes, and supports human approval and override workflows.
 
 ### Key Features
 
 | Feature | Description |
 |---------|-------------|
-| **Context-Aware Analysis** | Understands your codebase structure |
+| **Risk Explanations** | Explains why a change is risky for release |
+| **Policy-Aware Guidance** | Aligns suggestions with architecture/security/quality policy |
 | **Fix Suggestions** | Provides actionable code changes |
-| **Explanations** | Describes why an issue matters |
-| **Web Search** | Can search the web for additional context |
+| **Human Approval Context** | Produces rationale approvers can use in release decisions |
+
+## Release Decision Workflow
+
+Guru is not a generic coding copilot. Use it in this order:
+
+1. Analyze AI-assisted or suspiciously large refactor changes.
+2. Understand policy risk and proposed fixes.
+3. Record human approval or override reason.
+4. Decide whether code can ship now.
 
 ## Using Guru
 

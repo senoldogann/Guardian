@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "providers": [
+    {
+      "id": "codex",
+      "docs": [
+        {
+          "name": "Codex config basics",
+          "url": "https://developers.openai.com/codex/config-basic",
+          "official_domain": "developers.openai.com"
+        },
+        {
+          "name": "OpenAI evals guide",
+          "url": "https://developers.openai.com/api/docs/guides/evals",
+          "official_domain": "developers.openai.com"
+        }
+      ]
+    },
+    {
+      "id": "copilot",
+      "docs": [
+        {
+          "name": "VS Code customization overview",
+          "url": "https://code.visualstudio.com/docs/copilot/customization/overview",
+          "official_domain": "code.visualstudio.com"
+        },
+        {
+          "name": "VS Code custom instructions",
+          "url": "https://code.visualstudio.com/docs/copilot/customization/custom-instructions",
+          "official_domain": "code.visualstudio.com"
+        },
+        {
+          "name": "VS Code custom agents",
+          "url": "https://code.visualstudio.com/docs/copilot/customization/custom-agents",
+          "official_domain": "code.visualstudio.com"
+        },
+        {
+          "name": "GitHub custom instructions",
+          "url": "https://docs.github.com/en/copilot/concepts/response-customization",
+          "official_domain": "docs.github.com"
+        },
+        {
+          "name": "GitHub custom agents",
+          "url": "https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-custom-agents",
+          "official_domain": "docs.github.com"
+        },
+        {
+          "name": "GitHub prompt files",
+          "url": "https://docs.github.com/en/copilot/tutorials/customization-library/prompt-files",
+          "official_domain": "docs.github.com"
+        }
+      ]
+    },
+    {
+      "id": "claude",
+      "docs": [
+        {
+          "name": "Claude Code overview",
+          "url": "https://docs.anthropic.com/en/docs/claude-code/overview",
+          "official_domain": "docs.anthropic.com"
+        },
+        {
+          "name": "Claude Code memory",
+          "url": "https://docs.anthropic.com/en/docs/claude-code/memory",
+          "official_domain": "docs.anthropic.com"
+        }
+      ]
+    },
+    {
+      "id": "opencode",
+      "docs": [
+        {
+          "name": "OpenCode config",
+          "url": "https://opencode.ai/docs/config/",
+          "official_domain": "opencode.ai"
+        },
+        {
+          "name": "OpenCode commands",
+          "url": "https://opencode.ai/docs/commands/",
+          "official_domain": "opencode.ai"
+        },
+        {
+          "name": "OpenCode skills",
+          "url": "https://opencode.ai/docs/skills/",
+          "official_domain": "opencode.ai"
+        }
+      ]
+    }
+  ]
+}
+

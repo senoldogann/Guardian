@@ -44,6 +44,10 @@ struct ScanArgs {
     #[arg(long)]
     baseline: Option<PathBuf>,
 
+    /// Disable baseline usage even if .guardian/baseline.json exists.
+    #[arg(long)]
+    no_baseline: bool,
+
     /// Max files to scan (safety + cost guardrail).
     #[arg(long, default_value_t = 200)]
     max_files: usize,
@@ -99,6 +103,22 @@ struct ScanArgs {
     /// PR/CI gate mode. Default: fail only on new Critical findings.
     #[arg(long, value_enum, default_value_t = PrGateArg::CriticalOnly)]
     pr_gate: PrGateArg,
+
+    /// Policy file path. Default: <root>/guardian.policy.yaml
+    #[arg(long)]
+    policy: Option<PathBuf>,
+
+    /// Release gate mode.
+    #[arg(long, value_enum, default_value_t = ReleaseGateArg::Strict)]
+    release_gate: ReleaseGateArg,
+
+    /// Human approver identity for manual approval/override flows.
+    #[arg(long)]
+    approver: Option<String>,
+
+    /// Override reason (required for override flow).
+    #[arg(long)]
+    override_reason: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
@@ -139,6 +159,13 @@ enum PrGateArg {
     Off,
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
+enum ReleaseGateArg {
+    Strict,
+    Warn,
+    Off,
+}
+
 fn main() {
     let cli = Cli::parse();
 
@@ -152,6 +179,7 @@ fn main() {
             },
             out: args.out,
             baseline_path: args.baseline,
+            disable_baseline: args.no_baseline,
             max_files: args.max_files,
             max_file_bytes: args.max_file_bytes,
             scan_profile: args.scan_profile.map(|p| p.to_profile()),
@@ -174,6 +202,14 @@ fn main() {
                 PrGateArg::NewOnly => scan::PrGateMode::NewOnly,
                 PrGateArg::Off => scan::PrGateMode::Off,
             },
+            policy_path: args.policy,
+            release_gate: match args.release_gate {
+                ReleaseGateArg::Strict => scan::ReleaseGateMode::Strict,
+                ReleaseGateArg::Warn => scan::ReleaseGateMode::Warn,
+                ReleaseGateArg::Off => scan::ReleaseGateMode::Off,
+            },
+            approver: args.approver,
+            override_reason: args.override_reason,
         }) {
             Ok(exit_code) => exit_code,
             Err(err) => {

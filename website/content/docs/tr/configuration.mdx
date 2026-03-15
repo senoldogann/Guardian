@@ -1,13 +1,32 @@
 ---
 title: "Yapılandırma"
-summary: "Guardian ayarlarını ve uygulama tercihlerini özelleştirin."
+summary: "AI-generated code control için policy, gate ve approval ayarlarını yönetin."
 section: "Operasyonlar"
 order: 4
 ---
 
 ## Genel bakış
 
-Guardian, iş akışınıza göre uygulamayı uyarlamak için çeşitli ayarlar sunar. Bu sayfa, yapılandırılabilir seçenekleri özetler.
+Guardian yapılandırması tek hedefe odaklanır: **AI-generated code'u release öncesi kontrol etmek**. Bu sayfa policy, gate ve runtime ayarlarını özetler.
+
+## Policy tek kaynak doğrusu
+
+Guardian, repo kökündeki version-controlled policy dosyasını kullanır:
+
+```yaml
+guardian.policy.yaml
+```
+
+Minimum gate alanları:
+
+- `schema_version`
+- `packs[]`
+- `gate.pass_max_warnings`
+- `gate.block_on_critical`
+- `gate.require_human_approval_on_ai_heavy`
+- `gate.require_override_reason`
+
+Desktop, CLI ve CI release kararları için bu dosyayı tek source of truth kabul edin.
 
 ## Ayarlara erişim
 

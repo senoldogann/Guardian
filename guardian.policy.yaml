@@ -1,0 +1,12 @@
+schema_version: 1
+packs:
+  - clean_architecture
+  - api_backend_guardrails
+  - secrets_security_hygiene
+  - test_coverage_expectations
+  - ai_generated_code_strict_mode
+gate:
+  pass_max_warnings: 5
+  block_on_critical: true
+  require_human_approval_on_ai_heavy: true
+  require_override_reason: true

@@ -60,49 +60,194 @@ const CRITIQUE_SCHEMA_JSON: &str = r#"{
     }
 }"#;
 
-/// JSON Schema for batch critique responses (array of critiques)
+/// JSON Schema for batch critique responses.
+///
+/// Accepts:
+/// - Raw array form: `[ { ...critique... } ]`
+/// - Wrapped form: `{ "critique": [ ... ] }` or `{ "critiques": [ ... ] }`
 const BATCH_CRITIQUE_SCHEMA_JSON: &str = r#"{
     "$schema": "http://json-schema.org/draft-07/schema#",
-    "type": "array",
-    "minItems": 0,
-    "maxItems": 100,
-    "items": {
-        "type": "object",
-        "required": ["file_path", "severity", "message"],
-        "additionalProperties": false,
-        "properties": {
-            "file_path": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 4096
-            },
-            "severity": {
-                "type": "string",
-                "enum": ["Info", "Warning", "Critical", "LGTM"]
-            },
-            "message": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 10000
-            },
-            "suggestion": {
-                "type": ["string", "null"],
-                "maxLength": 20000
-            },
-            "chat_message": {
-                "type": ["string", "null"],
-                "maxLength": 5000
-            },
-            "suggested_diff": {
-                "type": ["string", "null"],
-                "maxLength": 50000
-            },
-            "why": {
-                "type": ["string", "null"],
-                "maxLength": 5000
+    "oneOf": [
+        {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 100,
+            "items": {
+                "type": "object",
+                "required": ["file_path", "severity", "message"],
+                "additionalProperties": false,
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4096
+                    },
+                    "severity": {
+                        "type": "string",
+                        "enum": ["Info", "Warning", "Critical", "LGTM"]
+                    },
+                    "message": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 10000
+                    },
+                    "suggestion": {
+                        "type": ["string", "null"],
+                        "maxLength": 20000
+                    },
+                    "chat_message": {
+                        "type": ["string", "null"],
+                        "maxLength": 5000
+                    },
+                    "suggested_diff": {
+                        "type": ["string", "null"],
+                        "maxLength": 50000
+                    },
+                    "why": {
+                        "type": ["string", "null"],
+                        "maxLength": 5000
+                    }
+                }
             }
+        },
+        {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "critique": {
+                    "type": "array",
+                    "minItems": 0,
+                    "maxItems": 100,
+                    "items": {
+                        "type": "object",
+                        "required": ["file_path", "severity", "message"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "file_path": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 4096
+                            },
+                            "severity": {
+                                "type": "string",
+                                "enum": ["Info", "Warning", "Critical", "LGTM"]
+                            },
+                            "message": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 10000
+                            },
+                            "suggestion": {
+                                "type": ["string", "null"],
+                                "maxLength": 20000
+                            },
+                            "chat_message": {
+                                "type": ["string", "null"],
+                                "maxLength": 5000
+                            },
+                            "suggested_diff": {
+                                "type": ["string", "null"],
+                                "maxLength": 50000
+                            },
+                            "why": {
+                                "type": ["string", "null"],
+                                "maxLength": 5000
+                            }
+                        }
+                    }
+                },
+                "critiques": {
+                    "type": "array",
+                    "minItems": 0,
+                    "maxItems": 100,
+                    "items": {
+                        "type": "object",
+                        "required": ["file_path", "severity", "message"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "file_path": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 4096
+                            },
+                            "severity": {
+                                "type": "string",
+                                "enum": ["Info", "Warning", "Critical", "LGTM"]
+                            },
+                            "message": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 10000
+                            },
+                            "suggestion": {
+                                "type": ["string", "null"],
+                                "maxLength": 20000
+                            },
+                            "chat_message": {
+                                "type": ["string", "null"],
+                                "maxLength": 5000
+                            },
+                            "suggested_diff": {
+                                "type": ["string", "null"],
+                                "maxLength": 50000
+                            },
+                            "why": {
+                                "type": ["string", "null"],
+                                "maxLength": 5000
+                            }
+                        }
+                    }
+                },
+                "results": {
+                    "type": "array",
+                    "minItems": 0,
+                    "maxItems": 100,
+                    "items": {
+                        "type": "object",
+                        "required": ["file_path", "severity", "message"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "file_path": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 4096
+                            },
+                            "severity": {
+                                "type": "string",
+                                "enum": ["Info", "Warning", "Critical", "LGTM"]
+                            },
+                            "message": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 10000
+                            },
+                            "suggestion": {
+                                "type": ["string", "null"],
+                                "maxLength": 20000
+                            },
+                            "chat_message": {
+                                "type": ["string", "null"],
+                                "maxLength": 5000
+                            },
+                            "suggested_diff": {
+                                "type": ["string", "null"],
+                                "maxLength": 50000
+                            },
+                            "why": {
+                                "type": ["string", "null"],
+                                "maxLength": 5000
+                            }
+                        }
+                    }
+                }
+            },
+            "oneOf": [
+                { "required": ["critique"] },
+                { "required": ["critiques"] },
+                { "required": ["results"] }
+            ]
         }
-    }
+    ]
 }"#;
 
 /// Pre-compiled schema for single critique validation
@@ -190,9 +335,14 @@ pub fn validate_batch_critiques(json_str: &str) -> ValidationResult {
     validate_against_schema(&value, &BATCH_CRITIQUE_SCHEMA)?;
 
     let mut errors: Vec<String> = Vec::new();
-    let items = match value.as_array() {
+    let items = match batch_items(&value) {
         Some(items) => items,
-        None => return Err(vec!["Batch payload is not a JSON array".to_string()]),
+        None => {
+            return Err(vec![
+                "Batch payload must be an array or an object with `critique`/`critiques` array."
+                    .to_string(),
+            ])
+        }
     };
 
     for (idx, item) in items.iter().enumerate() {
@@ -211,6 +361,24 @@ pub fn validate_batch_critiques(json_str: &str) -> ValidationResult {
     } else {
         Err(errors)
     }
+}
+
+fn batch_items(value: &Value) -> Option<&Vec<Value>> {
+    if let Some(items) = value.as_array() {
+        return Some(items);
+    }
+    if let Some(obj) = value.as_object() {
+        if let Some(items) = obj.get("critique").and_then(Value::as_array) {
+            return Some(items);
+        }
+        if let Some(items) = obj.get("critiques").and_then(Value::as_array) {
+            return Some(items);
+        }
+        if let Some(items) = obj.get("results").and_then(Value::as_array) {
+            return Some(items);
+        }
+    }
+    None
 }
 
 /// Validates a Value against a pre-compiled schema
@@ -471,6 +639,80 @@ mod tests {
 
         let result = validate_batch_critiques(empty_batch);
         assert!(result.is_ok(), "Empty batch should pass validation");
+    }
+
+    #[test]
+    fn test_wrapped_batch_with_critique_key_passes() {
+        let wrapped_batch = r#"{
+            "critique": [
+                {
+                    "file_path": "/path/file1.rs",
+                    "severity": "Warning",
+                    "message": "Issue found"
+                }
+            ]
+        }"#;
+
+        let result = validate_batch_critiques(wrapped_batch);
+        assert!(
+            result.is_ok(),
+            "Wrapped batch with `critique` should pass validation: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_wrapped_batch_with_critiques_key_passes() {
+        let wrapped_batch = r#"{
+            "critiques": [
+                {
+                    "file_path": "/path/file2.rs",
+                    "severity": "Critical",
+                    "message": "Critical issue found"
+                }
+            ]
+        }"#;
+
+        let result = validate_batch_critiques(wrapped_batch);
+        assert!(
+            result.is_ok(),
+            "Wrapped batch with `critiques` should pass validation: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_wrapped_batch_with_results_key_passes() {
+        let wrapped_batch = r#"{
+            "results": [
+                {
+                    "file_path": "/path/file3.rs",
+                    "severity": "Warning",
+                    "message": "Issue from results wrapper"
+                }
+            ]
+        }"#;
+
+        let result = validate_batch_critiques(wrapped_batch);
+        assert!(
+            result.is_ok(),
+            "Wrapped batch with `results` should pass validation: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_wrapped_batch_with_unexpected_property_fails() {
+        let invalid_wrapped_batch = r#"{
+            "critique": [],
+            "extra": "not-allowed"
+        }"#;
+
+        let result = validate_batch_critiques(invalid_wrapped_batch);
+        assert!(
+            result.is_err(),
+            "Wrapped batch with extra properties must fail validation"
+        );
     }
 
     #[test]

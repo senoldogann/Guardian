@@ -237,7 +237,7 @@ const MESSAGES: Record<AppLocale, Messages> = {
       cancel: "Cancel",
       signInTitle: "GitHub Sign In",
       signInNote:
-        "Sign in with GitHub to unlock monitoring, model access, and real-time governance.",
+        "Sign in with GitHub to unlock monitoring, model access, and release approval workflows.",
       signInButton: "Sign In With GitHub",
       desktopRequired: "Desktop app required to authenticate.",
     },
@@ -249,7 +249,7 @@ const MESSAGES: Record<AppLocale, Messages> = {
         welcome: {
           title: "Welcome to Guardian",
           description:
-            "Your AI-powered code governance agent. Guardian monitors your codebase in real-time, catching security issues, bugs, and anti-patterns before they become problems.",
+            "Guardian is a local-first governance layer for small engineering teams. It reviews AI-generated and risky code changes before release against your team policies.",
           highlight: "Protect your code. Elevate your standards.",
         },
         neural: {
@@ -261,7 +261,7 @@ const MESSAGES: Record<AppLocale, Messages> = {
         realtime: {
           title: "Real-time Monitoring",
           description:
-            "Guardian watches your files as you code. Every save triggers an intelligent review. Critical issues can stall your workflow until resolved.",
+            "Guardian watches your files as you code. Each save can trigger policy checks, and critical findings can block release until a human approves.",
           highlight: "No issue goes unnoticed.",
         },
         ready: {
@@ -778,7 +778,7 @@ const MESSAGES: Record<AppLocale, Messages> = {
       cancel: "İptal",
       signInTitle: "GitHub ile Giriş",
       signInNote:
-        "Monitoring, model erişimi ve gerçek zamanlı yönetişimi açmak için GitHub ile giriş yapın.",
+        "Monitoring, model erişimi ve release onay akışlarını açmak için GitHub ile giriş yapın.",
       signInButton: "GitHub ile Giriş Yap",
       desktopRequired: "Kimlik doğrulama için desktop uygulama gerekli.",
     },
@@ -790,7 +790,7 @@ const MESSAGES: Record<AppLocale, Messages> = {
         welcome: {
           title: "Guardian'a Hoş Geldiniz",
           description:
-            "AI destekli kod yönetişimi. Guardian kod tabanınızı gerçek zamanlı izler; güvenlik sorunlarını, bug'ları ve anti-pattern'leri erken yakalar.",
+            "Guardian, küçük mühendislik ekipleri için local-first bir yönetişim katmanıdır. AI ile üretilen ve riskli kod değişikliklerini release öncesinde takım politikalarına göre denetler.",
           highlight: "Kodunuzu koruyun. Standartlarınızı yükseltin.",
         },
         neural: {
@@ -802,7 +802,7 @@ const MESSAGES: Record<AppLocale, Messages> = {
         realtime: {
           title: "Gerçek Zamanlı İzleme",
           description:
-            "Guardian kod yazarken dosyalarınızı izler. Her kaydetme akıllı bir inceleme tetikler. Kritik bulgular çözülene kadar akışınızı durdurabilir.",
+            "Guardian kod yazarken dosyalarınızı izler. Her kaydetme politika kontrolü tetikleyebilir; kritik bulgular, insan onayı gelene kadar release'i durdurabilir.",
           highlight: "Hiçbir bulgu gözden kaçmaz.",
         },
         ready: {

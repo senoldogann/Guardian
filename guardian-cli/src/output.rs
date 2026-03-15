@@ -1,6 +1,7 @@
 use crate::guardian_lock::GuardianLockSummary;
 use anyhow::{Context, Result};
 use chrono::Utc;
+use guardian_scan_policy::ReleaseDecision;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{self, Write};
@@ -35,6 +36,15 @@ pub struct ScanSummary {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseOverride {
+    pub applied: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approver: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanReport {
     pub schema_version: u32,
     pub scanned_at: String,
@@ -52,6 +62,15 @@ pub struct ScanReport {
     pub baseline_path: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub guardian_lock: Option<GuardianLockSummary>,
+    pub release_decision: ReleaseDecision,
+    pub requires_human_approval: bool,
+    pub ai_heavy_change: bool,
+    #[serde(rename = "override", default, skip_serializing_if = "Option::is_none")]
+    pub override_info: Option<ReleaseOverride>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub decision_reasons: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub policy_path: Option<String>,
     pub summary: ScanSummary,
     pub findings: Vec<Finding>,
 }
@@ -59,7 +78,7 @@ pub struct ScanReport {
 impl ScanReport {
     pub fn new(root: String, rules_hash: String, baseline_path: Option<String>) -> Self {
         Self {
-            schema_version: 1,
+            schema_version: 2,
             scanned_at: Utc::now().to_rfc3339(),
             root,
             rules_hash,
@@ -69,6 +88,12 @@ impl ScanReport {
             evidence_path: None,
             baseline_path,
             guardian_lock: None,
+            release_decision: ReleaseDecision::Pass,
+            requires_human_approval: false,
+            ai_heavy_change: false,
+            override_info: None,
+            decision_reasons: Vec::new(),
+            policy_path: None,
             summary: ScanSummary {
                 files_scanned: 0,
                 findings: 0,
@@ -140,6 +165,35 @@ fn render_markdown(report: &ScanReport) -> String {
             lock.path, lock.status, lock.mode
         ));
     }
+    if let Some(policy_path) = &report.policy_path {
+        out.push_str(&format!("- Policy: `{}`\n", policy_path));
+    }
+    out.push_str(&format!(
+        "- Release decision: `{}`\n",
+        report.release_decision.as_str()
+    ));
+    out.push_str(&format!(
+        "- Requires human approval: `{}`\n",
+        report.requires_human_approval
+    ));
+    out.push_str(&format!("- AI-heavy change: `{}`\n", report.ai_heavy_change));
+    if let Some(override_info) = &report.override_info {
+        let approver = override_info
+            .approver
+            .as_deref()
+            .unwrap_or("not provided");
+        let reason = override_info.reason.as_deref().unwrap_or("not provided");
+        out.push_str(&format!(
+            "- Override: applied={}, approver=`{}`, reason=`{}`\n",
+            override_info.applied, approver, reason
+        ));
+    }
+    if !report.decision_reasons.is_empty() {
+        out.push_str("- Decision reasons:\n");
+        for reason in &report.decision_reasons {
+            out.push_str(&format!("  - {}\n", reason));
+        }
+    }
     out.push('\n');
 
     out.push_str("## Summary\n\n");
@@ -204,7 +258,10 @@ fn render_sarif(report: &ScanReport) -> Result<String> {
             "properties": {
                 "guardian_manifest_hash": report.manifest_hash.clone(),
                 "scan_profile": report.scan_profile.clone(),
-                "rules_hash": report.rules_hash.clone()
+                "rules_hash": report.rules_hash.clone(),
+                "release_decision": report.release_decision.as_str(),
+                "requires_human_approval": report.requires_human_approval,
+                "ai_heavy_change": report.ai_heavy_change
             },
             "results": results
         }]
@@ -230,5 +287,8 @@ mod tests {
         assert_eq!(props["guardian_manifest_hash"], "manifesthash");
         assert_eq!(props["scan_profile"], "source");
         assert_eq!(props["rules_hash"], "ruleshash");
+        assert_eq!(props["release_decision"], "PASS");
+        assert_eq!(props["requires_human_approval"], false);
+        assert_eq!(props["ai_heavy_change"], false);
     }
 }

@@ -1,6 +1,6 @@
 {
   "localeLabel": "EN",
-  "brandTagline": "Code assurance and release governance",
+  "brandTagline": "Control AI-generated code before it ships",
   "nav": {
     "home": "Home",
     "download": "Download",
@@ -11,23 +11,23 @@
     "privacy": "Privacy Policy"
   },
   "home": {
-    "eyebrow": "Desktop Governance Platform",
-    "title": "Keep engineering quality enforced at release speed.",
-    "description": "Guardian audits your codebase through architecture and security guardrails. Download and changelog content stay synchronized automatically.",
+    "eyebrow": "AI Code Release Control",
+    "title": "Control AI-generated code before it ships.",
+    "description": "Guardian enforces architecture, security, and release policies on AI-assisted code changes locally when needed, with human approval built in.",
     "ctaPrimary": "Download Guardian",
     "ctaSecondaryDocs": "Open Documentation",
     "ctaSecondaryChangelog": "View Changelog",
-    "trustRelease": "Release-driven content",
-    "trustUpdates": "In-app updates ready",
-    "trustSecurity": "Signed distribution artifacts",
+    "trustRelease": "Release decision clarity",
+    "trustUpdates": "Local/private-first workflows",
+    "trustSecurity": "Approval audit trail",
     "sections": {
       "guru": {
-        "title": "Guru: The AI Architect",
-        "description": "Analyzes your code as you work, explains issues with context, and suggests fixes."
+        "title": "Explain Risky AI Changes",
+        "description": "Guardian highlights architectural drift and risky patterns in AI-heavy pull requests, then suggests policy-aligned fixes."
       },
       "auth": {
-        "title": "Secure Identity Management",
-        "description": "Sign in with GitHub device authorization to unlock monitoring and secure workflows."
+        "title": "Human Approval Before Release",
+        "description": "Choose pass, pass with warning, block, or override with reason, and keep a complete audit trail."
       }
     }
   },
@@ -78,7 +78,7 @@
       "guru": "Guru AI",
       "monitoring": "Monitoring"
     },
-    "tagline": "Release-driven governance platform for engineering teams. Maintain code quality and security at scale.",
+    "tagline": "AI-generated code governance for small engineering teams. Enforce team policies and approve releases with confidence.",
     "rights": "All rights reserved.",
     "builtBy": "Designed & Developed by"
   },

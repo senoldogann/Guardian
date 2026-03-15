@@ -646,11 +646,11 @@ export function ChatView({
 
                 {chatLoading && (
                     <div className="flex gap-4 max-w-3xl mt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                        <div className="w-8 h-8 rounded-lg bg-white dark:bg-[var(--accent-200)] text-[var(--accent-500)] flex items-center justify-center shrink-0 animate-pulse shadow-sm">
+                        <div className="w-8 h-8 rounded-lg bg-[var(--accent-200)] text-[var(--accent-500)] flex items-center justify-center shrink-0 animate-pulse shadow-sm border border-border-main">
                             <Bot className="w-4 h-4" />
                         </div>
-                        <div className="p-4 rounded-2xl !bg-white dark:!bg-white/5 border border-zinc-200 dark:border-white/5 text-xs font-mono text-zinc-600 dark:text-zinc-400 flex items-center gap-2 shadow-sm min-w-[280px]">
-                            <Activity className="w-3 h-3 animate-spin shrink-0 text-zinc-400 dark:text-zinc-500" />
+                        <div className="p-4 rounded-2xl !bg-surface border border-border-main text-xs font-mono text-text-muted flex items-center gap-2 shadow-sm min-w-[280px]">
+                            <Activity className="w-3 h-3 animate-spin shrink-0 text-text-muted" />
                             <span className="inline-flex items-center gap-0.5">
                                     <span className="transition-opacity duration-300">
                                     {thinkingMessages[thinkingMessageIndex]}
@@ -904,11 +904,11 @@ function ChatMessageRow({
     return (
         <div className={clsx("flex w-full", msg.role === "user" ? "justify-end" : "justify-start")}>
             <div className={clsx("flex gap-4 max-w-[90%] md:max-w-[80%]", msg.role === "user" ? "flex-row-reverse" : "")}>
-                <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-black/5 dark:border-white/5", msg.role === "user" ? "bg-zinc-100 dark:bg-white/10 text-zinc-600 dark:text-white/80" : "bg-white dark:bg-[var(--accent-200)] text-[var(--accent-500)]")}>
+                <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-border-main", msg.role === "user" ? "bg-surface text-text-muted" : "bg-[var(--accent-200)] text-[var(--accent-500)]")}>
                     {msg.role === "user" ? <UserIcon className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
                 </div>
                 <div className="flex flex-col gap-3 min-w-0">
-                    <div className={clsx("p-5 rounded-2xl text-sm leading-relaxed font-sans shadow-sm min-w-0 break-words", msg.role === "user" ? "bg-white dark:bg-white/5 text-text-main" : "bg-white dark:bg-white/5 text-text-main")}>
+                    <div className={clsx("p-5 rounded-2xl text-sm leading-relaxed font-sans shadow-sm min-w-0 break-words border border-border-main", msg.role === "user" ? "bg-[var(--accent-200)] text-text-main" : "bg-surface text-text-main")}>
                         <div className="guardian-markdown">
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}

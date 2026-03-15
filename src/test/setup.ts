@@ -66,7 +66,63 @@ window.alert = vi.fn();
 
 Element.prototype.scrollIntoView = vi.fn();
 
+// Node.js runtimes can expose a non-browser `localStorage` shim.
+// Force a Storage-like implementation so tests are deterministic.
+const createMemoryStorage = (): Storage => {
+  const store = new Map<string, string>();
+  return {
+    getItem(key: string) {
+      return store.has(key) ? store.get(key)! : null;
+    },
+    setItem(key: string, value: string) {
+      store.set(key, String(value));
+    },
+    removeItem(key: string) {
+      store.delete(key);
+    },
+    clear() {
+      store.clear();
+    },
+    key(index: number) {
+      return Array.from(store.keys())[index] ?? null;
+    },
+    get length() {
+      return store.size;
+    },
+  } as Storage;
+};
+
+const installStableLocalStorage = () => {
+  const current = (globalThis as Record<string, unknown>).localStorage as
+    | Storage
+    | undefined;
+  const needsPolyfill =
+    !current ||
+    typeof current.getItem !== "function" ||
+    typeof current.setItem !== "function" ||
+    typeof current.removeItem !== "function";
+
+  const storage = needsPolyfill ? createMemoryStorage() : current;
+
+  Object.defineProperty(window, "localStorage", {
+    value: storage,
+    configurable: true,
+    writable: true,
+  });
+  Object.defineProperty(globalThis, "localStorage", {
+    value: storage,
+    configurable: true,
+    writable: true,
+  });
+};
+
+installStableLocalStorage();
+
 beforeEach(() => {
   vi.clearAllMocks();
   clearTauriListeners();
+  installStableLocalStorage();
+  if (typeof window?.localStorage?.clear === "function") {
+    window.localStorage.clear();
+  }
 });

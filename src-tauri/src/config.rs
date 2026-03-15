@@ -29,6 +29,9 @@ pub const DEFAULT_MAX_CONTENT_LINES: usize = 220;
 pub const DEFAULT_MIN_BATCH_INTERVAL_SECS: u64 = 2;
 pub const DEFAULT_RATE_LIMIT_RETRIES: u32 = 2;
 pub const DEFAULT_RATE_LIMIT_BACKOFF_SECS: u64 = 2;
+pub const DEFAULT_SEND_FAILURE_RETRIES: u32 = 2;
+pub const DEFAULT_SEND_FAILURE_BACKOFF_SECS: u64 = 2;
+pub const DEFAULT_MAX_BATCH_PROMPT_TOKENS: u64 = 5000;
 pub const DEFAULT_MAX_FILE_BYTES: u64 = 512 * 1024; // 512KB
 
 pub fn is_production() -> bool {
@@ -302,9 +305,7 @@ pub fn tavily_keys() -> Result<Vec<SecretString>> {
                 continue;
             }
 
-            let already = keys
-                .iter()
-                .any(|k| k.expose_secret().trim() == candidate);
+            let already = keys.iter().any(|k| k.expose_secret().trim() == candidate);
             if !already {
                 keys.push(SecretString::new(candidate.to_string().into()));
             }
@@ -466,6 +467,57 @@ pub fn rate_limit_backoff_secs() -> u64 {
             }
         },
         Err(_) => DEFAULT_RATE_LIMIT_BACKOFF_SECS,
+    }
+}
+
+pub fn send_failure_retries() -> u32 {
+    match env::var("GUARDIAN_SEND_FAILURE_RETRIES") {
+        Ok(val) => match val.parse::<u32>() {
+            Ok(n) => n,
+            Err(e) => {
+                tracing::warn!(
+                    "Invalid GUARDIAN_SEND_FAILURE_RETRIES value '{}': {}. Using default.",
+                    val,
+                    e
+                );
+                DEFAULT_SEND_FAILURE_RETRIES
+            }
+        },
+        Err(_) => DEFAULT_SEND_FAILURE_RETRIES,
+    }
+}
+
+pub fn send_failure_backoff_secs() -> u64 {
+    match env::var("GUARDIAN_SEND_FAILURE_BACKOFF_SECS") {
+        Ok(val) => match val.parse::<u64>() {
+            Ok(n) => n,
+            Err(e) => {
+                tracing::warn!(
+                    "Invalid GUARDIAN_SEND_FAILURE_BACKOFF_SECS value '{}': {}. Using default.",
+                    val,
+                    e
+                );
+                DEFAULT_SEND_FAILURE_BACKOFF_SECS
+            }
+        },
+        Err(_) => DEFAULT_SEND_FAILURE_BACKOFF_SECS,
+    }
+}
+
+pub fn max_batch_prompt_tokens() -> u64 {
+    match env::var("GUARDIAN_MAX_BATCH_PROMPT_TOKENS") {
+        Ok(val) => match val.parse::<u64>() {
+            Ok(n) => n,
+            Err(e) => {
+                tracing::warn!(
+                    "Invalid GUARDIAN_MAX_BATCH_PROMPT_TOKENS value '{}': {}. Using default.",
+                    val,
+                    e
+                );
+                DEFAULT_MAX_BATCH_PROMPT_TOKENS
+            }
+        },
+        Err(_) => DEFAULT_MAX_BATCH_PROMPT_TOKENS,
     }
 }
 

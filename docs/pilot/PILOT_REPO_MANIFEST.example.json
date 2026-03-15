@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "repos": [
+    {
+      "name": "design-partner-a",
+      "team": "platform",
+      "path": "/absolute/path/to/design-partner-a-repo",
+      "approver": "release-manager"
+    },
+    {
+      "name": "design-partner-b",
+      "team": "backend",
+      "path": "/absolute/path/to/design-partner-b-repo"
+    },
+    {
+      "name": "design-partner-c",
+      "team": "core-services",
+      "path": "/absolute/path/to/design-partner-c-repo",
+      "approver": "incident-commander",
+      "override_reason": "Production incident hotfix approved by incident commander with validated rollback and mitigation plan."
+    }
+  ]
+}

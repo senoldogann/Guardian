@@ -7,6 +7,8 @@ import { defineConfig, devices } from "@playwright/test";
  * Includes mobile viewport testing and accessibility checks.
  */
 
+const fullMatrix = process.env.PLAYWRIGHT_FULL_MATRIX === "1" || !!process.env.CI;
+
 export default defineConfig({
   testDir: "./e2e",
   
@@ -45,45 +47,45 @@ export default defineConfig({
   },
   
   // Test projects for different browsers and devices
-  projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-    },
-    
-    {
-      name: "firefox",
-      use: { ...devices["Desktop Firefox"] },
-    },
-    
-    {
-      name: "webkit",
-      use: { ...devices["Desktop Safari"] },
-    },
-    
-    // Mobile viewports
-    {
-      name: "mobile-chrome",
-      use: { ...devices["Pixel 5"] },
-    },
-    
-    {
-      name: "mobile-safari",
-      use: { ...devices["iPhone 13"] },
-    },
-    
-    // Tablet
-    {
-      name: "tablet",
-      use: { ...devices["iPad Pro"] },
-    },
-  ],
+  projects: fullMatrix
+    ? [
+        {
+          name: "chromium",
+          use: { ...devices["Desktop Chrome"] },
+        },
+        {
+          name: "firefox",
+          use: { ...devices["Desktop Firefox"] },
+        },
+        {
+          name: "webkit",
+          use: { ...devices["Desktop Safari"] },
+        },
+        {
+          name: "mobile-chrome",
+          use: { ...devices["Pixel 5"] },
+        },
+        {
+          name: "mobile-safari",
+          use: { ...devices["iPhone 13"] },
+        },
+        {
+          name: "tablet",
+          use: { ...devices["iPad Pro"] },
+        },
+      ]
+    : [
+        {
+          name: "chromium",
+          use: { ...devices["Desktop Chrome"] },
+        },
+      ],
   
   // Run local dev server before starting tests
   webServer: {
-    command: "npm run dev",
+    command: "npm run build && npm run start",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
-    timeout: 120000,
+    timeout: 240000,
   },
 });

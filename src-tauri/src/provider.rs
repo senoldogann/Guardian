@@ -182,11 +182,7 @@ pub async fn list_ollama_models(base_url: &str) -> Result<Vec<String>, String> {
     let client = Client::new();
     let base = normalize_ollama_base_url(base_url);
     let url = format!("{}/api/tags", base.trim_end_matches('/'));
-    let response = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| e.to_string())?;
+    let response = client.get(url).send().await.map_err(|e| e.to_string())?;
 
     if !response.status().is_success() {
         return Err(format!("Model list failed: {}", response.status()));

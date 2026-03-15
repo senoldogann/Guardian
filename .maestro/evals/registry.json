@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "tasks": [
+    {
+      "id": "verify-foundation",
+      "description": "Core verification chain stays green.",
+      "category": "foundation",
+      "command": [
+        "python3",
+        "scripts/verify_all.py"
+      ],
+      "expected_exit_code": 0,
+      "required_output_contains": [
+        "FINAL VERIFICATION: SUCCESS"
+      ]
+    },
+    {
+      "id": "smoke-provider-matrix",
+      "description": "Representative provider profiles still generate cleanly.",
+      "category": "providers",
+      "command": [
+        "python3",
+        "scripts/provider_smoke_matrix.py",
+        "--profiles",
+        "codex-only,mixed-workbench,full"
+      ],
+      "expected_exit_code": 0,
+      "required_output_contains": [
+        "Provider smoke matrix passed."
+      ]
+    },
+    {
+      "id": "router-react-stack",
+      "description": "Router prioritizes frontend React/TypeScript skills for frontend work.",
+      "category": "routing",
+      "command": [
+        "python3",
+        "scripts/skill_router_cli.py",
+        "--query",
+        "react typescript frontend design",
+        "--limit",
+        "8",
+        "--require",
+        "react-best-practices,typescript-expert,frontend-design"
+      ],
+      "expected_exit_code": 0
+    },
+    {
+      "id": "router-azure-stack",
+      "description": "Router surfaces Azure delivery and platform skills for Azure-heavy work.",
+      "category": "routing",
+      "command": [
+        "python3",
+        "scripts/skill_router_cli.py",
+        "--query",
+        "azure ci/cd platform security observability",
+        "--limit",
+        "8",
+        "--require",
+        "azure-platform-master,enterprise-azure-fullstack-readiness,azure-deployment-preflight"
+      ],
+      "expected_exit_code": 0
+    },
+    {
+      "id": "policy-guard",
+      "description": "Executable policy remains enforced.",
+      "category": "policy",
+      "command": [
+        "python3",
+        "scripts/policy_guard.py"
+      ],
+      "expected_exit_code": 0,
+      "required_output_contains": [
+        "Policy guard passed."
+      ]
+    },
+    {
+      "id": "provider-radar-fresh",
+      "description": "Official provider doc snapshots remain fresh enough to trust.",
+      "category": "radar",
+      "command": [
+        "python3",
+        "scripts/provider_radar_validator.py"
+      ],
+      "expected_exit_code": 0
+    }
+  ]
+}
+

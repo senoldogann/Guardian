@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "supported_provider_ids": [
+    "antigravity",
+    "claude",
+    "codex",
+    "copilot",
+    "opencode"
+  ],
+  "always_on_doc_max_bytes": {
+    "AGENTS.md": 8192,
+    ".maestro/SYSTEM.md": 16384,
+    "CLAUDE.md": 4096,
+    ".github/copilot-instructions.md": 4096
+  },
+  "provider_radar_max_age_days": 45,
+  "max_active_skills": 400,
+  "skill_symlink_paths": [
+    ".agent/skills",
+    ".agents/skills",
+    ".claude/skills",
+    ".github/skills",
+    ".opencode/skills"
+  ],
+  "claude_required_denies": [
+    "Bash(curl *)",
+    "Bash(wget *)",
+    "Bash(sudo *)",
+    "Bash(rm -rf *)",
+    "Bash(git reset --hard)",
+    "Bash(git reset --hard *)",
+    "Bash(git clean -fd)",
+    "Bash(git clean -fd *)",
+    "Read(./.env)",
+    "Read(./.env.*)",
+    "Read(./secrets/**)",
+    "Read(./config/credentials.json)",
+    "Read(./*.pem)",
+    "Read(./*.key)"
+  ],
+  "opencode_required_bash_denies": [
+    "rm *",
+    "sudo *"
+  ],
+  "opencode_required_read_denies": [
+    ".env",
+    ".env.*",
+    "secrets/**",
+    "*.pem",
+    "*.key",
+    "config/credentials.json"
+  ]
+}
+

@@ -1,6 +1,6 @@
 {
   "localeLabel": "TR",
-  "brandTagline": "Kod güvencesi ve sürüm yönetişimi",
+  "brandTagline": "AI ile üretilen kodu release öncesi kontrol edin",
   "nav": {
     "home": "Ana Sayfa",
     "download": "İndir",
@@ -11,23 +11,23 @@
     "privacy": "Gizlilik Politikası"
   },
   "home": {
-    "eyebrow": "Masaüstü Yönetişim Platformu",
-    "title": "Kaliteyi, sürüm hızında zorunlu kılın.",
-    "description": "Guardian kod tabanınızı mimari ve güvenlik kurallarıyla denetler. İndirme ve changelog içerikleri sürümlerle otomatik senkron kalır.",
+    "eyebrow": "AI Kod Release Kontrolü",
+    "title": "AI ile üretilen kodu release öncesi kontrol edin.",
+    "description": "Guardian, AI destekli kod değişikliklerinde mimari, güvenlik ve release politikalarını uygular; gerektiğinde lokal çalışır ve insan onayını merkeze alır.",
     "ctaPrimary": "Guardian'ı İndir",
     "ctaSecondaryDocs": "Dokümantasyonu Aç",
     "ctaSecondaryChangelog": "Changelog'u Gör",
-    "trustRelease": "Sürüme dayalı içerik",
-    "trustUpdates": "Uygulama içi güncellemeler hazır",
-    "trustSecurity": "İmzalı dağıtım paketleri",
+    "trustRelease": "Release kararında netlik",
+    "trustUpdates": "Lokal/private-first çalışma",
+    "trustSecurity": "Onay denetim izi",
     "sections": {
       "guru": {
-        "title": "Guru: AI Mimar",
-        "description": "Kodunuzu çalışırken analiz eder, bulguları bağlamıyla açıklar ve çözüm önerileri sunar."
+        "title": "Riskli AI Değişikliklerini Açıkla",
+        "description": "Guardian, AI-heavy PR’larda mimari drift ve riskli kalıpları işaretler; politika uyumlu düzeltme önerileri sunar."
       },
       "auth": {
-        "title": "Güvenli Kimlik Yönetimi",
-        "description": "İzleme ve güvenli akışları açmak için GitHub cihaz doğrulamasıyla giriş yapın."
+        "title": "Release Öncesi İnsan Onayı",
+        "description": "pass, pass with warning, block veya reason ile override kararlarını kaydeder ve tam bir denetim izi oluşturur."
       }
     }
   },
@@ -78,7 +78,7 @@
       "guru": "Guru AI",
       "monitoring": "İzleme"
     },
-    "tagline": "Mühendislik ekipleri için sürüme dayalı yönetişim. Kalite ve güvenliği ölçekleyin.",
+    "tagline": "Küçük mühendislik ekipleri için AI-generated code governance katmanı. Politikaları otomatik uygulatın, release kararlarını güvenle verin.",
     "rights": "Tüm hakları saklıdır.",
     "builtBy": "Tasarım ve geliştirme"
   },

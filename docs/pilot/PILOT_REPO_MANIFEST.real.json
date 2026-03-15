@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "repos": [
+    {
+      "name": "design-partner-a",
+      "team": "platform",
+      "path": "/Users/dogan/Desktop/guardian/.guardian/pilot-shadow-repos/design-partner-a",
+      "approver": "release-manager"
+    },
+    {
+      "name": "design-partner-b",
+      "team": "backend",
+      "path": "/Users/dogan/Desktop/guardian/.guardian/pilot-shadow-repos/design-partner-b",
+      "approver": "release-manager"
+    },
+    {
+      "name": "design-partner-c",
+      "team": "core-services",
+      "path": "/Users/dogan/Desktop/guardian/.guardian/pilot-shadow-repos/design-partner-c",
+      "approver": "incident-commander",
+      "override_reason": "Production incident hotfix approved by incident commander with validated rollback and mitigation plan."
+    },
+    {
+      "name": "design-partner-core",
+      "team": "platform",
+      "path": "/Users/dogan/Desktop/guardian",
+      "approver": "release-manager"
+    }
+  ]
+}

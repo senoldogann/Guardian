@@ -16,6 +16,7 @@ scripts/release_all_local.sh
 This script:
 - auto bumps/syncs versions (default: patch)
 - runs `npm run verify`
+- runs Guardian release gate (`guardian-cli scan` + `guardian.policy.yaml`)
 - builds the macOS bundle(s)
 - collects artifacts into `./artifacts/vX.Y.Z`
 - publishes the release to the public distribution repo
@@ -27,6 +28,20 @@ Optional:
 scripts/release_all_local.sh --bump minor
 scripts/release_all_local.sh --bump major
 scripts/release_all_local.sh vX.Y.Z   # explicit tag/version
+scripts/release_all_local.sh vX.Y.Z --gate-only  # verify + release gate only (no publish)
+```
+
+### Release Gate Inputs
+
+`scripts/release_all_local.sh` writes a gate report to `.guardian/release_gate_report.json` and blocks publish when decision is `BLOCK_UNTIL_APPROVED`.
+The gate scan is executed with `--no-baseline` so stale local baseline files do not block release decisions.
+
+Optional environment variables for manual approval/override:
+
+```bash
+export GUARDIAN_RELEASE_APPROVER="release-manager"
+export GUARDIAN_RELEASE_OVERRIDE_REASON="Emergency hotfix for production outage" # optional
+scripts/release_all_local.sh
 ```
 
 ## Terminology

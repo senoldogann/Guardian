@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "approvers": [
+    {
+      "id": "release-manager",
+      "name": "Release Manager",
+      "teams": ["platform", "backend"],
+      "can_override": true
+    },
+    {
+      "id": "incident-commander",
+      "name": "Incident Commander",
+      "teams": ["*"],
+      "can_override": true
+    }
+  ]
+}

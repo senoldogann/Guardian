@@ -11,6 +11,22 @@ on:
   workflow_dispatch:
 
 jobs:
+  release-gate-ci-smoke:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🦀 Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: 🏗️ Build guardian-cli (release)
+        run: cargo build --release --manifest-path guardian-cli/Cargo.toml
+
+      - name: 🚦 Run Release Gate CI Smoke
+        run: bash scripts/ci/release_gate_ci_smoke.sh
+
   test-and-build:
     runs-on: ubuntu-latest
     strategy:
@@ -118,6 +134,11 @@ jobs:
         run: |
           cd website
           npm ci
+
+      - name: 🧭 Website Copy Consistency Gate
+        run: |
+          cd website
+          npm run copy:check
 
       - name: 🧪 Run Website Tests
         run: |

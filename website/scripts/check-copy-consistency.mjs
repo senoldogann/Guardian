@@ -1,0 +1,115 @@
+#!/usr/bin/env node
+
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+
+const targets = [
+  "app/layout.tsx",
+  "app/[locale]/page.tsx",
+  "components/faq/faq-page-view.tsx",
+  "content/docs/en/get-started.mdx",
+  "content/docs/en/guru.mdx",
+  "content/docs/en/monitoring.mdx",
+  "content/docs/en/configuration.mdx",
+  "content/docs/tr/get-started.mdx",
+  "content/docs/tr/guru.mdx",
+  "content/docs/tr/monitoring.mdx",
+  "content/docs/tr/configuration.mdx",
+  "content/i18n/en.json",
+  "content/i18n/tr.json",
+  "lib/seo.ts",
+];
+
+const bannedPhrases = [
+  "ai coding assistant",
+  "code review tool",
+  "security scanner",
+  "quality checker",
+  "developer productivity tool",
+  "enterprise-grade",
+  "release-driven governance",
+];
+
+const requiredSignals = [
+  {
+    relPath: "content/i18n/en.json",
+    phrases: ["control ai-generated code before it ships", "small engineering teams"],
+  },
+  {
+    relPath: "content/i18n/tr.json",
+    phrases: ["ai ile üretilen kodu release öncesi kontrol edin", "küçük mühendislik ekipleri"],
+  },
+];
+
+async function main() {
+  const root = process.cwd();
+  const violations = [];
+
+  for (const relPath of targets) {
+    const absPath = resolve(root, relPath);
+    let content = "";
+    try {
+      content = await readFile(absPath, "utf8");
+    } catch {
+      continue;
+    }
+    const lines = content.split("\n");
+    for (const phrase of bannedPhrases) {
+      for (let i = 0; i < lines.length; i += 1) {
+        const loweredLine = lines[i].toLowerCase();
+        if (!loweredLine.includes(phrase)) continue;
+        const contextWindow = lines
+          .slice(Math.max(0, i - 3), i + 1)
+          .join(" ")
+          .toLowerCase();
+        const isNegated =
+          contextWindow.includes(" is not") ||
+          contextWindow.includes("not:") ||
+          contextWindow.includes("**not**") ||
+          contextWindow.includes("not**:") ||
+          contextWindow.includes("değildir") ||
+          contextWindow.includes("şunlar değildir");
+        if (!isNegated) {
+          violations.push({ relPath, phrase });
+        }
+      }
+    }
+  }
+
+  for (const signal of requiredSignals) {
+    const absPath = resolve(root, signal.relPath);
+    let content = "";
+    try {
+      content = (await readFile(absPath, "utf8")).toLowerCase();
+    } catch {
+      violations.push({
+        relPath: signal.relPath,
+        phrase: "missing file for required signal check",
+      });
+      continue;
+    }
+    for (const phrase of signal.phrases) {
+      if (!content.includes(phrase)) {
+        violations.push({
+          relPath: signal.relPath,
+          phrase: `missing required signal "${phrase}"`,
+        });
+      }
+    }
+  }
+
+  if (violations.length > 0) {
+    console.error("Copy consistency check failed:");
+    for (const violation of violations) {
+      console.error(`- ${violation.relPath}: banned phrase "${violation.phrase}"`);
+    }
+    process.exit(1);
+  }
+
+  console.log("Copy consistency check passed.");
+}
+
+main().catch((error) => {
+  console.error("Copy consistency check errored:", error);
+  process.exit(1);
+});

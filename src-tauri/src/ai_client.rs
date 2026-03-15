@@ -8,8 +8,8 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::fs;
 use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
-use std::sync::Mutex;
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::time::Duration;
 use std::time::Instant;
 use tokio::sync::{OwnedSemaphorePermit, Semaphore};
@@ -81,15 +81,15 @@ impl QueueManager {
         let start = Instant::now();
 
         let audit_permit = if class == AiRequestClass::Audit {
-                    Some(
-                        tokio::time::timeout(
-                            Duration::from_secs(AI_QUEUE_WAIT_TIMEOUT_AUDIT_SECS),
-                            self.audit_lane.clone().acquire_owned(),
-                        )
-                        .await
-                        .context("AI audit lane queue timeout. Another audit is still in progress.")?
-                        .context("AI audit lane queue is closed")?,
-                    )
+            Some(
+                tokio::time::timeout(
+                    Duration::from_secs(AI_QUEUE_WAIT_TIMEOUT_AUDIT_SECS),
+                    self.audit_lane.clone().acquire_owned(),
+                )
+                .await
+                .context("AI audit lane queue timeout. Another audit is still in progress.")?
+                .context("AI audit lane queue is closed")?,
+            )
         } else {
             None
         };
@@ -125,8 +125,7 @@ static INVALID_ESCAPES_REPAIR_WARNED: AtomicBool = AtomicBool::new(false);
 static INVALID_ESCAPES_REPAIR_BATCH_WARNED: AtomicBool = AtomicBool::new(false);
 
 fn provider_effective_concurrency(provider_id: &str, _base_url: &str) -> usize {
-    let is_local = provider_id == "mock"
-        || provider_id == "ollama";
+    let is_local = provider_id == "mock" || provider_id == "ollama";
 
     if is_local {
         DEFAULT_AI_REQUEST_CONCURRENCY_LOCAL
@@ -162,11 +161,30 @@ fn normalize_ollama_base_url(value: &str) -> String {
         return base;
     };
     let port = url.port_or_known_default();
-    if url.scheme().starts_with("http") && url.host_str() == Some("127.0.0.1") && port == Some(11434) {
+    if url.scheme().starts_with("http")
+        && url.host_str() == Some("127.0.0.1")
+        && port == Some(11434)
+    {
         let _ = url.set_host(Some("localhost"));
         return url.to_string().trim_end_matches('/').to_string();
     }
     base
+}
+
+fn looks_like_low_confidence_suggested_diff(diff: &str) -> bool {
+    let lower = diff.to_lowercase();
+    let markers = [
+        "todo: implement",
+        "implementation needed",
+        "placeholder",
+        "add schema validation functions here",
+        "existing functions remain unchanged",
+        "similar changes should be made",
+        "additional validation logic here",
+        "insert your",
+        "your code here",
+    ];
+    markers.iter().any(|marker| lower.contains(marker))
 }
 
 impl AiClient {
@@ -415,11 +433,9 @@ impl AiClient {
                     request = request.bearer_auth(token);
                 }
 
-                let response = request
-                    .json(&payload)
-                    .send()
-                    .await
-                    .with_context(|| format!("Failed to send request to AI provider (url={})", url))?;
+                let response = request.json(&payload).send().await.with_context(|| {
+                    format!("Failed to send request to AI provider (url={})", url)
+                })?;
 
                 if !response.status().is_success() {
                     let error_text = response.text().await.unwrap_or_default();
@@ -611,7 +627,8 @@ GUIDELINES:
 3. EXPLAIN THE 'WHY': The 'message' field MUST include a short WHY statement (risk/impact).
 4. CHAT BRIDGE: If the code is dangerously wrong, use 'chat_message' to send a direct, urgent warning to the user.
 5. FACT CHECKING: If you see a suspicious import or pattern that might be deprecated (e.g., 'moment.js' in 2026), you can request verify by outputting: "[WEB_SEARCH: requires verification for moment.js status]".
-6. LGTM: Only if the code is truly production-ready by 2026 standards.
+6. NO PLACEHOLDERS: Never produce pseudo-code, TODO stubs, or "implementation needed" suggestions.
+7. LGTM: Only if the code is truly production-ready by 2026 standards.
 
 JSON MODE:
 {
@@ -638,7 +655,10 @@ JSON MODE:
 
         let mut repaired_json: Option<String> = None;
         if let Err(validation_errors) = crate::validation::validate_critique(clean_json) {
-            if validation_errors.iter().any(|e| e.contains("Invalid JSON syntax")) {
+            if validation_errors
+                .iter()
+                .any(|e| e.contains("Invalid JSON syntax"))
+            {
                 if let Some(repaired) = Self::repair_invalid_json_escapes(clean_json) {
                     if crate::validation::validate_critique(&repaired).is_ok() {
                         if !INVALID_ESCAPES_REPAIR_WARNED.swap(true, AtomicOrdering::Relaxed) {
@@ -705,6 +725,13 @@ JSON MODE:
             if let Err(e) = crate::validation::sanitize_code_content(diff, "suggested_diff") {
                 error!(target: "guardian::ai", "Clearing dangerous suggested_diff: {}", e);
                 critique.suggested_diff = None;
+            } else if looks_like_low_confidence_suggested_diff(diff) {
+                warn!(
+                    target: "guardian::ai",
+                    "Clearing low-confidence suggested_diff for single critique (file={})",
+                    file_path
+                );
+                critique.suggested_diff = None;
             }
         }
 
@@ -743,7 +770,8 @@ GUIDELINES:
 3. BE STRICT: Catch SPAP v2.2 violations.
 4. You MAY receive a `PROJECT INTENT PACK` section describing the workspace intent/architecture and constraints. Align findings and suggestions to it.
 5. OUTPUT: A JSON Array of Critique objects. Each 'message' MUST include a WHY statement (risk/impact).
-6. If a file looks good, you CAN skip it in the output OR return a "LGTM" message.
+6. NO PLACEHOLDERS: Do not return placeholder TODO snippets, pseudo-code, or "remaining logic unchanged" templates.
+7. If a file looks good, you CAN skip it in the output OR return a "LGTM" message.
 
 JSON ARRAY MODE:
 [
@@ -767,7 +795,9 @@ JSON ARRAY MODE:
         system_prompt.push_str("- Write `message`, `suggestion`, and `chat_message` in ");
         system_prompt.push_str(language_name);
         system_prompt.push_str(".\n");
-        system_prompt.push_str("- Keep `severity` strictly as: Info | Warning | Critical (English tokens only).\n");
+        system_prompt.push_str(
+            "- Keep `severity` strictly as: Info | Warning | Critical (English tokens only).\n",
+        );
         system_prompt.push_str("- Do not translate code, file paths, or identifiers.\n");
 
         let mut user_prompt = String::from("Batch Analysis Request:\n\n");
@@ -800,10 +830,14 @@ JSON ARRAY MODE:
         // SECURITY: JSON Schema validation for batch response
         let mut repaired_json: Option<String> = None;
         if let Err(validation_errors) = crate::validation::validate_batch_critiques(clean_json) {
-            if validation_errors.iter().any(|e| e.contains("Invalid JSON syntax")) {
+            if validation_errors
+                .iter()
+                .any(|e| e.contains("Invalid JSON syntax"))
+            {
                 if let Some(repaired) = Self::repair_invalid_json_escapes(clean_json) {
                     if crate::validation::validate_batch_critiques(&repaired).is_ok() {
-                        if !INVALID_ESCAPES_REPAIR_BATCH_WARNED.swap(true, AtomicOrdering::Relaxed) {
+                        if !INVALID_ESCAPES_REPAIR_BATCH_WARNED.swap(true, AtomicOrdering::Relaxed)
+                        {
                             warn!(
                                 target: "guardian::ai",
                                 "AI batch JSON had invalid escapes; repaired for parsing."
@@ -861,6 +895,13 @@ JSON ARRAY MODE:
                 if let Some(ref diff) = critique.suggested_diff {
                     if let Err(e) = crate::validation::sanitize_code_content(diff, "suggested_diff") {
                         error!(target: "guardian::ai", "Clearing dangerous suggested_diff: {}", e);
+                        critique.suggested_diff = None;
+                    } else if looks_like_low_confidence_suggested_diff(diff) {
+                        warn!(
+                            target: "guardian::ai",
+                            "Clearing low-confidence suggested_diff for batch critique (file={})",
+                            critique.file_path
+                        );
                         critique.suggested_diff = None;
                     }
                 }
@@ -987,6 +1028,17 @@ fn critiques_from_value(value: &serde_json::Value) -> Option<Vec<Critique>> {
                 return Some(items);
             }
         }
+        if let Some(arr) = obj.get("results").and_then(|v| v.as_array()) {
+            let mut items = Vec::new();
+            for entry in arr {
+                if let Ok(c) = serde_json::from_value::<Critique>(entry.clone()) {
+                    items.push(c);
+                }
+            }
+            if !items.is_empty() {
+                return Some(items);
+            }
+        }
     }
 
     None
@@ -1004,6 +1056,8 @@ fn extract_json_window(content: &str, open: char, close: char) -> Option<&str> {
 
 #[cfg(test)]
 mod tests {
+    use super::looks_like_low_confidence_suggested_diff;
+    use super::parse_batch_json;
     use super::AiClient;
     use super::{AiRequestClass, QueueManager};
     use std::time::Duration;
@@ -1038,18 +1092,37 @@ mod tests {
         let slot1 = queue.acquire(AiRequestClass::Audit).await.unwrap();
 
         // Guru can still proceed because global has a second permit and Guru does not use the audit lane.
-        let guru = tokio::time::timeout(Duration::from_millis(200), queue.acquire(AiRequestClass::Guru)).await;
-        assert!(guru.is_ok(), "Guru should not be blocked by an audit on local concurrency=2");
+        let guru = tokio::time::timeout(
+            Duration::from_millis(200),
+            queue.acquire(AiRequestClass::Guru),
+        )
+        .await;
+        assert!(
+            guru.is_ok(),
+            "Guru should not be blocked by an audit on local concurrency=2"
+        );
 
         // A second audit should be blocked by the audit lane.
-        let audit2 =
-            tokio::time::timeout(Duration::from_millis(200), queue.acquire(AiRequestClass::Audit)).await;
-        assert!(audit2.is_err(), "Second audit must wait for audit lane permit");
+        let audit2 = tokio::time::timeout(
+            Duration::from_millis(200),
+            queue.acquire(AiRequestClass::Audit),
+        )
+        .await;
+        assert!(
+            audit2.is_err(),
+            "Second audit must wait for audit lane permit"
+        );
 
         drop(slot1);
-        let audit2 =
-            tokio::time::timeout(Duration::from_millis(200), queue.acquire(AiRequestClass::Audit)).await;
-        assert!(audit2.is_ok(), "Audit should proceed after first audit slot is released");
+        let audit2 = tokio::time::timeout(
+            Duration::from_millis(200),
+            queue.acquire(AiRequestClass::Audit),
+        )
+        .await;
+        assert!(
+            audit2.is_ok(),
+            "Audit should proceed after first audit slot is released"
+        );
     }
 
     #[tokio::test]
@@ -1057,19 +1130,55 @@ mod tests {
         let queue = QueueManager::new(1);
         let slot1 = queue.acquire(AiRequestClass::Audit).await.unwrap();
 
-        let guru =
-            tokio::time::timeout(Duration::from_millis(200), queue.acquire(AiRequestClass::Guru)).await;
+        let guru = tokio::time::timeout(
+            Duration::from_millis(200),
+            queue.acquire(AiRequestClass::Guru),
+        )
+        .await;
         assert!(
             guru.is_err(),
             "Guru must wait when global concurrency=1 and an audit is in flight"
         );
 
         drop(slot1);
-        let guru =
-            tokio::time::timeout(Duration::from_millis(200), queue.acquire(AiRequestClass::Guru)).await;
+        let guru = tokio::time::timeout(
+            Duration::from_millis(200),
+            queue.acquire(AiRequestClass::Guru),
+        )
+        .await;
         assert!(
             guru.is_ok(),
             "Guru should proceed once the audit releases the global permit"
         );
+    }
+
+    #[test]
+    fn parse_batch_json_accepts_results_wrapper() {
+        let payload = r#"{
+            "results": [
+                {
+                    "file_path": "/tmp/example.rs",
+                    "severity": "Warning",
+                    "message": "Example warning from results wrapper"
+                }
+            ]
+        }"#;
+
+        let parsed = parse_batch_json(payload, payload).expect("results wrapper should parse");
+        assert_eq!(parsed.len(), 1);
+        assert_eq!(parsed[0].file_path, "/tmp/example.rs");
+        assert_eq!(parsed[0].severity, "Warning");
+    }
+
+    #[test]
+    fn low_confidence_suggested_diff_detector_flags_placeholder_patterns() {
+        let placeholder = "TODO: Implement signature verification here";
+        assert!(looks_like_low_confidence_suggested_diff(placeholder));
+    }
+
+    #[test]
+    fn low_confidence_suggested_diff_detector_allows_concrete_code() {
+        let concrete = "def load_json(path):\n    with open(path, 'r', encoding='utf-8') as f:\n        return json.load(f)\n";
+        assert!(!looks_like_low_confidence_suggested_diff(concrete));
     }
 }

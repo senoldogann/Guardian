@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::path::Path;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -55,6 +56,319 @@ impl FromStr for ScanProfile {
                 other
             )),
         }
+    }
+}
+
+pub const DEFAULT_POLICY_FILE: &str = "guardian.policy.yaml";
+const POLICY_SCHEMA_VERSION: u32 = 1;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GuardianPolicy {
+    #[serde(default = "default_policy_schema_version")]
+    pub schema_version: u32,
+    #[serde(default)]
+    pub packs: Vec<String>,
+    #[serde(default)]
+    pub gate: GuardianGatePolicy,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GuardianGatePolicy {
+    #[serde(default = "default_pass_max_warnings")]
+    pub pass_max_warnings: usize,
+    #[serde(default = "default_block_on_critical")]
+    pub block_on_critical: bool,
+    #[serde(default = "default_require_human_approval_on_ai_heavy")]
+    pub require_human_approval_on_ai_heavy: bool,
+    #[serde(default = "default_require_override_reason")]
+    pub require_override_reason: bool,
+}
+
+impl Default for GuardianGatePolicy {
+    fn default() -> Self {
+        Self {
+            pass_max_warnings: default_pass_max_warnings(),
+            block_on_critical: default_block_on_critical(),
+            require_human_approval_on_ai_heavy: default_require_human_approval_on_ai_heavy(),
+            require_override_reason: default_require_override_reason(),
+        }
+    }
+}
+
+impl Default for GuardianPolicy {
+    fn default() -> Self {
+        Self {
+            schema_version: default_policy_schema_version(),
+            packs: vec![
+                "clean_architecture".to_string(),
+                "api_backend_guardrails".to_string(),
+                "secrets_security_hygiene".to_string(),
+                "test_coverage_expectations".to_string(),
+                "ai_generated_code_strict_mode".to_string(),
+            ],
+            gate: GuardianGatePolicy::default(),
+        }
+    }
+}
+
+impl GuardianPolicy {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.schema_version == 0 {
+            return Err("guardian.policy.yaml: schema_version must be >= 1".to_string());
+        }
+        if self.schema_version != POLICY_SCHEMA_VERSION {
+            return Err(format!(
+                "guardian.policy.yaml: unsupported schema_version {} (expected {}).",
+                self.schema_version, POLICY_SCHEMA_VERSION
+            ));
+        }
+        Ok(())
+    }
+}
+
+fn default_policy_schema_version() -> u32 {
+    POLICY_SCHEMA_VERSION
+}
+
+fn default_pass_max_warnings() -> usize {
+    5
+}
+
+fn default_block_on_critical() -> bool {
+    true
+}
+
+fn default_require_human_approval_on_ai_heavy() -> bool {
+    true
+}
+
+fn default_require_override_reason() -> bool {
+    true
+}
+
+pub fn default_policy_path(root: &Path) -> PathBuf {
+    root.join(DEFAULT_POLICY_FILE)
+}
+
+pub fn load_policy_for_root(
+    root: &Path,
+    explicit_path: Option<&Path>,
+) -> Result<(GuardianPolicy, PathBuf), String> {
+    let path = explicit_path
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| default_policy_path(root));
+    if !path.exists() {
+        let policy = GuardianPolicy::default();
+        policy.validate()?;
+        return Ok((policy, path));
+    }
+
+    let raw = fs::read_to_string(&path).map_err(|err| {
+        format!(
+            "Failed to read policy file {}: {}",
+            path.to_string_lossy(),
+            err
+        )
+    })?;
+    let policy: GuardianPolicy = serde_yaml::from_str(&raw).map_err(|err| {
+        format!(
+            "Invalid policy YAML {}: {}",
+            path.to_string_lossy(),
+            err
+        )
+    })?;
+    policy.validate()?;
+    Ok((policy, path))
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ReleaseDecision {
+    Pass,
+    PassWithWarning,
+    BlockUntilApproved,
+    Overridden,
+}
+
+impl ReleaseDecision {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Pass => "PASS",
+            Self::PassWithWarning => "PASS_WITH_WARNING",
+            Self::BlockUntilApproved => "BLOCK_UNTIL_APPROVED",
+            Self::Overridden => "OVERRIDDEN",
+        }
+    }
+}
+
+impl Default for ReleaseDecision {
+    fn default() -> Self {
+        Self::Pass
+    }
+}
+
+impl FromStr for ReleaseDecision {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value.trim().to_uppercase().as_str() {
+            "PASS" => Ok(Self::Pass),
+            "PASS_WITH_WARNING" => Ok(Self::PassWithWarning),
+            "BLOCK_UNTIL_APPROVED" => Ok(Self::BlockUntilApproved),
+            "OVERRIDDEN" => Ok(Self::Overridden),
+            other => Err(format!(
+                "Unsupported release decision '{}'. Use PASS|PASS_WITH_WARNING|BLOCK_UNTIL_APPROVED|OVERRIDDEN.",
+                other
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct IntakeMetrics {
+    pub changed_files: usize,
+    pub estimated_changed_lines: usize,
+    pub refactor_signal: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AiHeavyClassification {
+    pub ai_heavy_change: bool,
+    pub reason: String,
+}
+
+pub fn classify_ai_heavy_change(metrics: IntakeMetrics) -> AiHeavyClassification {
+    let file_heavy = metrics.changed_files >= 15;
+    let line_heavy = metrics.estimated_changed_lines >= 1200;
+    let mixed_heavy = metrics.changed_files >= 8 && metrics.estimated_changed_lines >= 700;
+
+    if metrics.refactor_signal || file_heavy || line_heavy || mixed_heavy {
+        let reason = if metrics.refactor_signal {
+            "Refactor-like signal detected in file paths or findings.".to_string()
+        } else if file_heavy {
+            format!(
+                "Large intake: changed_files={} exceeds threshold 15.",
+                metrics.changed_files
+            )
+        } else if line_heavy {
+            format!(
+                "Large intake: estimated_changed_lines={} exceeds threshold 1200.",
+                metrics.estimated_changed_lines
+            )
+        } else {
+            format!(
+                "Large mixed intake: changed_files={} and estimated_changed_lines={}.",
+                metrics.changed_files, metrics.estimated_changed_lines
+            )
+        };
+        return AiHeavyClassification {
+            ai_heavy_change: true,
+            reason,
+        };
+    }
+
+    AiHeavyClassification {
+        ai_heavy_change: false,
+        reason: "Intake size is below AI-heavy thresholds.".to_string(),
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DecisionInputs {
+    pub critical_findings: usize,
+    pub warning_findings: usize,
+    pub ai_heavy_change: bool,
+    pub human_approved: bool,
+    pub override_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReleaseDecisionResult {
+    pub decision: ReleaseDecision,
+    pub requires_human_approval: bool,
+    pub override_applied: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub override_reason: Option<String>,
+    #[serde(default)]
+    pub reasons: Vec<String>,
+}
+
+pub fn evaluate_release_decision(
+    policy: &GuardianPolicy,
+    inputs: DecisionInputs,
+) -> ReleaseDecisionResult {
+    let requires_human_approval =
+        policy.gate.require_human_approval_on_ai_heavy && inputs.ai_heavy_change;
+    let normalized_override_reason = inputs
+        .override_reason
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned);
+
+    let mut blockers: Vec<String> = Vec::new();
+    if policy.gate.block_on_critical && inputs.critical_findings > 0 {
+        blockers.push(format!(
+            "{} critical finding(s) violate block_on_critical policy.",
+            inputs.critical_findings
+        ));
+    }
+    if inputs.warning_findings > policy.gate.pass_max_warnings {
+        blockers.push(format!(
+            "{} warning(s) exceed pass_max_warnings={}.",
+            inputs.warning_findings, policy.gate.pass_max_warnings
+        ));
+    }
+    if requires_human_approval && !inputs.human_approved {
+        blockers.push(
+            "AI-heavy intake requires human approval before release.".to_string(),
+        );
+    }
+
+    if blockers.is_empty() {
+        let decision = if inputs.warning_findings > 0 || requires_human_approval {
+            ReleaseDecision::PassWithWarning
+        } else {
+            ReleaseDecision::Pass
+        };
+        let mut reasons = vec!["Policy gate checks passed.".to_string()];
+        if decision == ReleaseDecision::PassWithWarning && inputs.warning_findings > 0 {
+            reasons.push(format!(
+                "Release allowed with warning: {} warning finding(s).",
+                inputs.warning_findings
+            ));
+        }
+        return ReleaseDecisionResult {
+            decision,
+            requires_human_approval,
+            override_applied: false,
+            override_reason: None,
+            reasons,
+        };
+    }
+
+    if let Some(reason) = normalized_override_reason.clone() {
+        if !policy.gate.require_override_reason || !reason.trim().is_empty() {
+            let mut reasons = blockers;
+            reasons.push("Release block was overridden by an approver.".to_string());
+            return ReleaseDecisionResult {
+                decision: ReleaseDecision::Overridden,
+                requires_human_approval,
+                override_applied: true,
+                override_reason: Some(reason),
+                reasons,
+            };
+        }
+    } else if policy.gate.require_override_reason && inputs.override_reason.is_some() {
+        blockers.push("Override attempted without a reason.".to_string());
+    }
+
+    ReleaseDecisionResult {
+        decision: ReleaseDecision::BlockUntilApproved,
+        requires_human_approval,
+        override_applied: false,
+        override_reason: None,
+        reasons: blockers,
     }
 }
 
@@ -416,5 +730,79 @@ mod tests {
         assert_eq!(ScanProfile::from_str("extended").unwrap(), ScanProfile::Extended);
         assert_eq!(ScanProfile::from_str("full").unwrap(), ScanProfile::Full);
         assert!(ScanProfile::from_str("invalid").is_err());
+    }
+
+    #[test]
+    fn default_policy_is_valid() {
+        let policy = GuardianPolicy::default();
+        assert_eq!(policy.schema_version, 1);
+        assert!(policy.validate().is_ok());
+    }
+
+    #[test]
+    fn ai_heavy_classifier_marks_large_refactor() {
+        let out = classify_ai_heavy_change(IntakeMetrics {
+            changed_files: 5,
+            estimated_changed_lines: 320,
+            refactor_signal: true,
+        });
+        assert!(out.ai_heavy_change);
+        assert!(out.reason.to_lowercase().contains("refactor"));
+    }
+
+    #[test]
+    fn decision_engine_blocks_until_approved_for_ai_heavy_intake() {
+        let policy = GuardianPolicy::default();
+        let result = evaluate_release_decision(
+            &policy,
+            DecisionInputs {
+                critical_findings: 0,
+                warning_findings: 1,
+                ai_heavy_change: true,
+                human_approved: false,
+                override_reason: None,
+            },
+        );
+        assert_eq!(result.decision, ReleaseDecision::BlockUntilApproved);
+        assert!(result.requires_human_approval);
+    }
+
+    #[test]
+    fn decision_engine_requires_override_reason_when_policy_requires_it() {
+        let mut policy = GuardianPolicy::default();
+        policy.gate.pass_max_warnings = 0;
+        let result = evaluate_release_decision(
+            &policy,
+            DecisionInputs {
+                critical_findings: 0,
+                warning_findings: 2,
+                ai_heavy_change: false,
+                human_approved: false,
+                override_reason: Some("   ".to_string()),
+            },
+        );
+        assert_eq!(result.decision, ReleaseDecision::BlockUntilApproved);
+        assert!(!result.override_applied);
+    }
+
+    #[test]
+    fn decision_engine_allows_override_with_reason() {
+        let policy = GuardianPolicy::default();
+        let result = evaluate_release_decision(
+            &policy,
+            DecisionInputs {
+                critical_findings: 1,
+                warning_findings: 0,
+                ai_heavy_change: false,
+                human_approved: false,
+                override_reason: Some("Emergency release for hotfix".to_string()),
+            },
+        );
+        assert_eq!(result.decision, ReleaseDecision::Overridden);
+        assert!(result.override_applied);
+        assert_eq!(
+            result.override_reason.as_deref(),
+            Some("Emergency release for hotfix")
+        );
     }
 }

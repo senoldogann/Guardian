@@ -29,11 +29,11 @@ const faqCategoriesEn: FaqCategory[] = [
     questions: [
       {
         q: "What is Guardian?",
-        a: "Guardian is a desktop governance application that helps engineering teams maintain code quality and security standards. It provides real-time monitoring of a selected workspace, architecture and quality audits, and an AI assistant (Guru) that can explain findings and suggest fixes.",
+        a: "Guardian is a local-first desktop + CLI governance layer for small engineering teams that control AI-generated or AI-assisted code before it ships. It isolates risky changes, enforces team policies, and keeps human approval decisions with an audit trail.",
       },
       {
         q: "Who is Guardian for?",
-        a: "Guardian is designed for engineering teams of all sizes who want to enforce code quality standards without slowing down development. Whether you're a solo developer, a startup, or an enterprise team, Guardian scales to your needs.",
+        a: "Guardian is designed for small engineering teams that need policy-backed release confidence on AI-assisted changes. It is not a generic chatbot, coding assistant, or scanner.",
       },
       {
         q: "Is Guardian open source?",
@@ -97,11 +97,11 @@ const faqCategoriesTr: FaqCategory[] = [
     questions: [
       {
         q: "Guardian nedir?",
-        a: "Guardian, ekiplerin kod kalitesi ve güvenlik standartlarını korumasına yardımcı olan bir masaüstü yönetişim uygulamasıdır. Seçilen workspace üzerinde gerçek zamanlı izleme yapar, mimari/kalite denetimleri çalıştırır ve bulguları açıklayıp çözüm öneren bir AI asistanı (Guru) sunar.",
+        a: "Guardian, küçük mühendislik ekiplerinin AI ile üretilen veya AI destekli kodu release öncesi kontrol etmesi için tasarlanmış local-first bir desktop + CLI yönetişim katmanıdır. Riskli değişiklikleri ayırır, takım politikalarını uygular ve insan onay kararlarını denetim iziyle kaydeder.",
       },
       {
         q: "Guardian kimler için?",
-        a: "Guardian, geliştirmeyi yavaşlatmadan kalite standartlarını zorunlu kılmak isteyen her ölçekte ekip için tasarlanmıştır. Tek geliştirici, startup veya kurumsal ekiplerde aynı prensiplerle çalışır.",
+        a: "Guardian, AI destekli değişikliklerde politika temelli release güveni isteyen küçük mühendislik ekipleri için tasarlanmıştır. Genel bir chatbot, coding assistant veya scanner değildir.",
       },
       {
         q: "Guardian açık kaynak mı?",
@@ -327,4 +327,3 @@ export function FAQPageView({ dict, locale }: { dict: SiteDictionary; locale: Lo
     </div>
   );
 }
-

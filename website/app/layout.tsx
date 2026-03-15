@@ -32,11 +32,11 @@ const THEME_INIT_SCRIPT = `(() => {
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Guardian | Release-Driven Governance Platform",
+    default: "Guardian | AI-Generated Code Governance",
     template: "%s | Guardian"
   },
   description:
-    "Guardian is a desktop governance app for architecture quality, secure release operations, and in-app update management.",
+    "Guardian is a local-first desktop product for small engineering teams to control AI-generated code before release with policy enforcement and human approval.",
   alternates: {
     canonical: `${SITE_URL}/en`,
     languages: {
@@ -45,27 +45,28 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Guardian | Release-Driven Governance Platform",
+    title: "Guardian | AI-Generated Code Governance",
     description:
-      "Architecture and security governance with release-driven desktop operations.",
+      "Control AI-generated code before release with policy enforcement, human approval, and an auditable decision trail.",
     type: "website",
     url: SITE_URL,
     siteName: "Guardian",
     locale: "en_US",
     images: [
       {
-        url: `${SITE_URL}/og?title=Guardian&description=Release-Driven Governance Platform`,
+        url: `${SITE_URL}/og?title=Guardian&description=AI-Generated%20Code%20Governance`,
         width: 1200,
         height: 630,
-        alt: "Guardian - Release-Driven Governance Platform",
+        alt: "Guardian - AI-Generated Code Governance",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Guardian | Release-Driven Governance Platform",
-    description: "Release-driven architecture governance for production engineering teams.",
-    images: [`${SITE_URL}/og?title=Guardian&description=Release-Driven Governance Platform`],
+    title: "Guardian | AI-Generated Code Governance",
+    description:
+      "Local-first release governance for small engineering teams working with AI-generated code.",
+    images: [`${SITE_URL}/og?title=Guardian&description=AI-Generated%20Code%20Governance`],
   },
   verification: {
     google: "X7Ebs2nZd78TDzrvFYP_2txP8qS_LeEqJqitJlIj-rs"

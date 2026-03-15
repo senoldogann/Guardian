@@ -96,8 +96,7 @@ pub fn triage(path: &Path, content: &str) -> TriageResult {
         Lazy::new(|| Regex::new(r"\b(?:ghp|gho|ghu|ghs)_[A-Za-z0-9]{36}\b").unwrap());
     static GITHUB_PAT: Lazy<Regex> =
         Lazy::new(|| Regex::new(r"\bgithub_pat_[A-Za-z0-9_]{30,}\b").unwrap());
-    static AWS_ACCESS_KEY: Lazy<Regex> =
-        Lazy::new(|| Regex::new(r"\bAKIA[0-9A-Z]{16}\b").unwrap());
+    static AWS_ACCESS_KEY: Lazy<Regex> = Lazy::new(|| Regex::new(r"\bAKIA[0-9A-Z]{16}\b").unwrap());
     static PRIVATE_KEY_BLOCK: Lazy<Regex> = Lazy::new(|| {
         Regex::new(
             r"(?s)-----BEGIN[ A-Z0-9_-]*PRIVATE KEY-----.*?-----END[ A-Z0-9_-]*PRIVATE KEY-----",
@@ -208,7 +207,10 @@ fn is_doc_like_path(normalized: &str, file_name: &str, path: &Path) -> bool {
     }
 
     matches!(
-        path.extension().and_then(|e| e.to_str()).map(|e| e.to_lowercase()).as_deref(),
+        path.extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_lowercase())
+            .as_deref(),
         Some("md") | Some("rst") | Some("txt")
     )
 }
@@ -273,11 +275,7 @@ mod tests {
         assert!(should_audit(ScanProfile::Source, FileKind::Doc, 0));
 
         // Extended: non-source needs risk.
-        assert!(should_audit(
-            ScanProfile::Extended,
-            FileKind::Source,
-            0
-        ));
+        assert!(should_audit(ScanProfile::Extended, FileKind::Source, 0));
         assert!(!should_audit(
             ScanProfile::Extended,
             FileKind::Infra,
@@ -312,4 +310,3 @@ mod tests {
         ));
     }
 }
-

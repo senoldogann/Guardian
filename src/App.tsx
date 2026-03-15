@@ -25,6 +25,8 @@ import type {
   FixProposalsSnapshot,
   FixProposal,
   FixHistoryEntry,
+  ReleaseDecisionStatus,
+  ReleaseDecisionView,
 } from "./types";
 import { STORAGE_KEYS } from "./constants";
 import { critiqueStateKey } from "./lib/critiqueStateKey";
@@ -102,6 +104,9 @@ function App(): ReactElement {
   const [fixHistory, setFixHistory] = useState<FixHistoryEntry[]>([]);
   const [fixHistoryLoading, setFixHistoryLoading] = useState(false);
   const [fixHistoryError, setFixHistoryError] = useState<string | null>(null);
+  const [releaseDecision, setReleaseDecision] = useState<ReleaseDecisionView | null>(null);
+  const [releaseDecisionLoading, setReleaseDecisionLoading] = useState(false);
+  const [releaseDecisionError, setReleaseDecisionError] = useState<string | null>(null);
   const [view, setView] = useState<"monitor" | "chat" | "diagram" | "ai-context" | "reviews">("monitor");
   const viewRef = useRef(view);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -220,6 +225,8 @@ function App(): ReactElement {
         setAiContextError(null);
         setFixProposals(null);
         setFixProposalsError(null);
+        setReleaseDecision(null);
+        setReleaseDecisionError(null);
         setFilter("");
         setPath(selected);
       }
@@ -356,6 +363,27 @@ function App(): ReactElement {
     }
   }, [path]);
 
+  const refreshReleaseDecision = useCallback(async (): Promise<void> => {
+    if (!path) {
+      setReleaseDecision(null);
+      setReleaseDecisionError(null);
+      return;
+    }
+
+    setReleaseDecisionLoading(true);
+    setReleaseDecisionError(null);
+    try {
+      const value = await invoke<ReleaseDecisionView>("get_release_decision", { root: path });
+      setReleaseDecision(value ?? null);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      setReleaseDecision(null);
+      setReleaseDecisionError(message);
+    } finally {
+      setReleaseDecisionLoading(false);
+    }
+  }, [path]);
+
   useGuardianEvents({
     setLogs,
     setStatus,
@@ -391,7 +419,8 @@ function App(): ReactElement {
     if (view !== "reviews") return;
     void refreshFixProposals();
     void refreshFixHistory();
-  }, [view, refreshFixProposals, refreshFixHistory]);
+    void refreshReleaseDecision();
+  }, [view, refreshFixProposals, refreshFixHistory, refreshReleaseDecision]);
 
   // Keep Undo availability in sync across tabs (Monitor/Reviews/Guru).
   useEffect(() => {
@@ -505,6 +534,59 @@ function App(): ReactElement {
       toast.showError(`Failed to undo fix: ${e instanceof Error ? e.message : String(e)}`);
     }
   }, [path, refreshFixHistory, toast]);
+
+  const setReleaseDecisionFromUi = useCallback(
+    async (
+      decision: Exclude<ReleaseDecisionStatus, "OVERRIDDEN">,
+      approver: string,
+      reason?: string,
+    ): Promise<void> => {
+      if (!path) {
+        toast.showWarning("Select a workspace scope first.");
+        return;
+      }
+      try {
+        const value = await invoke<ReleaseDecisionView>("set_release_decision", {
+          root: path,
+          decision,
+          approver,
+          reason: reason ?? null,
+        });
+        setReleaseDecision(value ?? null);
+        setReleaseDecisionError(null);
+        toast.showSuccess("Release decision updated.");
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        setReleaseDecisionError(message);
+        toast.showError(`Failed to set release decision: ${message}`);
+      }
+    },
+    [path, toast],
+  );
+
+  const overrideReleaseDecision = useCallback(
+    async (approver: string, reason: string): Promise<void> => {
+      if (!path) {
+        toast.showWarning("Select a workspace scope first.");
+        return;
+      }
+      try {
+        const value = await invoke<ReleaseDecisionView>("override_release_block", {
+          root: path,
+          approver,
+          reason,
+        });
+        setReleaseDecision(value ?? null);
+        setReleaseDecisionError(null);
+        toast.showSuccess("Release block overridden with reason.");
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e);
+        setReleaseDecisionError(message);
+        toast.showError(`Failed to override release block: ${message}`);
+      }
+    },
+    [path, toast],
+  );
 
   const visibleLogs = useMemo((): Critique[] => {
     const entries = Object.values(logs);
@@ -887,6 +969,12 @@ function App(): ReactElement {
           fixHistoryError={fixHistoryError}
           onRefreshFixHistory={refreshFixHistory}
           onUndoFix={undoAppliedFix}
+          releaseDecision={releaseDecision}
+          releaseDecisionLoading={releaseDecisionLoading}
+          releaseDecisionError={releaseDecisionError}
+          onRefreshReleaseDecision={refreshReleaseDecision}
+          onSetReleaseDecision={setReleaseDecisionFromUi}
+          onOverrideReleaseDecision={overrideReleaseDecision}
           aiContext={aiContext}
           aiContextLoading={aiContextLoading}
           aiContextError={aiContextError}

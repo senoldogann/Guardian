@@ -7,10 +7,83 @@ on:
         description: "Release tag (e.g. v1.0.0)"
         required: true
         type: string
+      approver:
+        description: "Human approver identity for release gate override/approval flows"
+        required: false
+        type: string
+      override_reason:
+        description: "Override reason (required only when overriding a release block)"
+        required: false
+        type: string
 
 jobs:
+  release-gate:
+    runs-on: ubuntu-latest
+    outputs:
+      decision: ${{ steps.gate.outputs.decision }}
+      exit_code: ${{ steps.gate.outputs.exit_code }}
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🦀 Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: 🏗️ Build guardian-cli
+        run: cargo build --release --manifest-path guardian-cli/Cargo.toml
+
+      - name: 🚦 Run release gate (strict)
+        id: gate
+        shell: bash
+        run: |
+          set +e
+          report="$RUNNER_TEMP/release-gate-report.json"
+          args=()
+          if [[ -n "${{ inputs.approver }}" ]]; then
+            args+=(--approver "${{ inputs.approver }}")
+          fi
+          if [[ -n "${{ inputs.override_reason }}" ]]; then
+            args+=(--override-reason "${{ inputs.override_reason }}")
+          fi
+
+          guardian-cli/target/release/guardian-cli scan \
+            --root . \
+            --offline \
+            --no-baseline \
+            --format json \
+            --out "$report" \
+            --policy "$(pwd)/guardian.policy.yaml" \
+            --release-gate strict \
+            --pr-gate off \
+            "${args[@]}"
+          exit_code=$?
+          set -e
+
+          decision="$(grep -oE '"release_decision"[[:space:]]*:[[:space:]]*"[^"]+"' "$report" | head -n1 | cut -d'"' -f4)"
+          decision="${decision:-UNKNOWN}"
+
+          echo "decision=$decision" >> "$GITHUB_OUTPUT"
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          cp -f "$report" release-gate-report.json
+          echo "Release gate decision: $decision (exit=$exit_code)"
+
+      - name: 📤 Upload release gate report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guardian-release-gate-${{ inputs.tag }}
+          path: release-gate-report.json
+          retention-days: 7
+
+      - name: ❌ Stop release when gate blocks
+        if: steps.gate.outputs.exit_code != '0'
+        run: |
+          echo "Release gate blocked the distribution publish flow."
+          exit 1
+
   build-windows:
     runs-on: windows-latest
+    needs: release-gate
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
@@ -71,7 +144,7 @@ jobs:
 
   publish-distribution:
     runs-on: ubuntu-latest
-    needs: build-windows
+    needs: [release-gate, build-windows]
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
