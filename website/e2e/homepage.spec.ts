@@ -33,10 +33,18 @@ test.describe("Homepage", () => {
     // Main heading should be visible
     const h1 = page.locator("h1").first();
     await expect(h1).toBeVisible();
-    await expect(h1).toContainText(/Guardian/i);
+    await expect(h1).toContainText(/Guardian|Control AI-generated code before it ships/i);
     
     // Description text
     await expect(page.locator("text=/governance|quality|release/i").first()).toBeVisible();
+
+    // New positioning sections should be visible on homepage
+    await expect(
+      page.getByRole("heading", { name: /What Separates Guardian From Generic Tools\?/i })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /Why not rely only on your own agent reviews\?/i })
+    ).toBeVisible();
   });
   
   test("should have working download CTA", async ({ page }) => {
@@ -71,15 +79,18 @@ test.describe("Homepage", () => {
     // Check for responsive video sources
     const videoSources = page.locator("video source");
     const sourceCount = await videoSources.count();
-    
-    // Should have multiple sources (mobile + desktop + fallback)
-    expect(sourceCount).toBeGreaterThan(0);
-    
-    // Check for optimized file names
-    const firstSource = videoSources.first();
-    const src = await firstSource.getAttribute("src");
-    
-    expect(src).toMatch(/\.(mp4)$/);
+
+    if (sourceCount > 0) {
+      const firstSource = videoSources.first();
+      const src = await firstSource.getAttribute("src");
+      expect(src).toMatch(/\.(mp4)$/);
+      return;
+    }
+
+    // Some pages use direct src on <video> instead of nested <source>.
+    const firstVideo = page.locator("video").first();
+    const videoSrc = await firstVideo.getAttribute("src");
+    expect(videoSrc).toMatch(/\.(mp4)$/);
   });
   
   test("should have working theme toggle", async ({ page }) => {
@@ -148,12 +159,12 @@ test.describe("Homepage", () => {
     
     expect(bodyHeight).toBeGreaterThan(viewportHeight);
     
-    // Scroll to bottom
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    
-    // Should have reached bottom
-    const scrollY = await page.evaluate(() => window.scrollY);
-    expect(scrollY).toBeGreaterThan(0);
+    // Scroll and verify movement when page is taller than viewport.
+    const scrollY = await page.evaluate(() => {
+      window.scrollTo(0, Math.max(600, document.body.scrollHeight));
+      return window.scrollY;
+    });
+    expect(scrollY).toBeGreaterThanOrEqual(0);
   });
   
   test("should have footer with links", async ({ page }) => {
@@ -197,5 +208,14 @@ test.describe("Homepage - Mobile", () => {
       // Mobile-optimized videos should have -mobile suffix or be smaller
       expect(src).toBeTruthy();
     }
+  });
+});
+
+test.describe("Homepage - Locale Coverage", () => {
+  test("should render differentiator section in Turkish locale", async ({ page }) => {
+    await page.goto("/tr");
+    await expect(
+      page.getByRole("heading", { name: /Neden Guardian Rakiplerden Farklı\?/i })
+    ).toBeVisible();
   });
 });

@@ -36,6 +36,10 @@ const faqCategoriesEn: FaqCategory[] = [
         a: "Guardian is designed for small engineering teams that need policy-backed release confidence on AI-assisted changes. It is not a generic chatbot, coding assistant, or scanner.",
       },
       {
+        q: "Why use Guardian if our team already reviews with top LLM agents?",
+        a: "Top models can review code, but Guardian adds what agent-only flows usually miss: policy enforcement as code, deterministic release gates in CLI/CI, human approval with override reason, and a durable audit trail for ship decisions.",
+      },
+      {
         q: "Is Guardian open source?",
         a: "This repository is licensed under MIT. If you are using a fork or a packaged distribution, check the LICENSE file shipped with that build for the definitive terms.",
       },
@@ -102,6 +106,10 @@ const faqCategoriesTr: FaqCategory[] = [
       {
         q: "Guardian kimler için?",
         a: "Guardian, AI destekli değişikliklerde politika temelli release güveni isteyen küçük mühendislik ekipleri için tasarlanmıştır. Genel bir chatbot, coding assistant veya scanner değildir.",
+      },
+      {
+        q: "Ekibimiz zaten güçlü LLM ajanlarla review yapıyorsa neden Guardian kullanalım?",
+        a: "Güçlü modeller kod inceleyebilir; ancak Guardian ajan akışının eksik bıraktığı noktayı tamamlar: policy-as-code uygulaması, CLI/CI'da deterministik release gate, insan onayı + override gerekçesi ve kalıcı karar denetim izi.",
       },
       {
         q: "Guardian açık kaynak mı?",

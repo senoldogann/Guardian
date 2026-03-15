@@ -141,7 +141,7 @@ export function DemoSection({ dict, locale }: DemoSectionProps) {
                                     width={800}
                                     height={450}
                                     className="w-full h-auto"
-                                    layout="responsive"
+                                    sizes="(max-width: 768px) 100vw, 50vw"
                                 />
                             </div>
                         </motion.div>

@@ -4,6 +4,8 @@ import { StructuredData } from "./structured-data";
 import type { SiteDictionary } from "../lib/i18n";
 import { buildOrganizationJsonLd, buildSoftwareApplicationJsonLd, buildWebsiteJsonLd } from "../lib/seo";
 import { HeroSection } from "./home/HeroSection";
+import { DifferentiatorsSection } from "./home/DifferentiatorsSection";
+import { AgentObjectionSection } from "./home/AgentObjectionSection";
 import { FeaturesSection } from "./home/FeaturesSection";
 import { DemoSection } from "./home/DemoSection";
 import { UseCasesSection } from "./home/UseCasesSection";
@@ -23,6 +25,8 @@ export function HomePageView({ dict, locale }: HomePageProps) {
 
       <div className="flex flex-col min-h-screen pt-16 overflow-x-hidden">
         <HeroSection dict={dict} locale={locale} />
+        <DifferentiatorsSection locale={locale} />
+        <AgentObjectionSection locale={locale} />
         <FeaturesSection locale={locale} />
         <DemoSection dict={dict} locale={locale} />
         <UseCasesSection locale={locale} />

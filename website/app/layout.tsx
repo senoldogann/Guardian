@@ -91,7 +91,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const lang = localeHeader.toLowerCase().startsWith("tr") ? "tr" : "en";
 
   return (
-    <html lang={lang} className="scroll-smooth">
+    <html lang={lang} className="scroll-smooth" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>

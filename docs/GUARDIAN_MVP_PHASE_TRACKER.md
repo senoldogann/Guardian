@@ -1,6 +1,6 @@
 # Guardian 90 Gunluk Faz 2+4 MVP Takip Defteri
 
-Last Updated: 2026-03-15 01:12:00Z
+Last Updated: 2026-03-15 14:53:04Z
 Owner: Guardian Team
 Code Workspace: `/Users/dogan/Desktop/guardian`
 Governance Workspace: `/Users/dogan/Desktop/guardian`
@@ -13,6 +13,9 @@ Governance Workspace: `/Users/dogan/Desktop/guardian`
 - [x] Yeni sistem, kutuphane veya pattern seciminde gerekirse Web Search yapilir; kaynaklar Completion Log'a yazilir.
 
 ## Guncel Durum Ozeti (Yapilanlar)
+- [x] Audit precision hardening basladi: low-signal warning suppression + weak critical downgrade + context-aware suggestion shaping (`src-tauri/src/watcher.rs`).
+- [x] Runtime output contract eklendi: `.guardian/governance_summary.json` + `.guardian/governance_summary.md` (IDE/CLI/LLM agent rehberi ile).
+- [x] Moat temelleri eklendi: `scripts/governance_replay.py` ve `scripts/override_debt_ledger.py`; haftalik pilot rapor pipeline'ina baglandi.
 - [x] Policy source of truth eklendi: `guardian.policy.yaml`.
 - [x] Ortak policy parser/validator + AI-heavy classifier + decision engine eklendi.
 - [x] CLI gate parametreleri eklendi (`--policy`, `--release-gate`, `--approver`, `--override-reason`) ve rapor `schema_version: 2` alanlari eklendi.
@@ -60,6 +63,14 @@ Governance Workspace: `/Users/dogan/Desktop/guardian`
 - [x] Missing Faz 4/5 script artefaktlari repo reality ile senkronlandi (`release_all_local`, `generate_dashboard_lite`, `pilot_dryrun`, `pilot_generate_weekly_report`, readiness/leak/ci validators, CI smoke script).
 - [x] Real pilot manifest path'leri mevcut workspace absolute path'lerine duzeltildi (`/Users/dogan/Desktop/guardian/...`).
 - [x] Strict real dry-run + haftalik raporlar 2026-03-15 icin yeniden uretildi (`.guardian/pilot-dryrun-real/2026-03-15`, `.guardian/pilot-reports/2026-03-15`).
+- [x] Website ana sayfasina rakiplerden ayrisan premium differentiator section'i eklendi (`website/components/home/DifferentiatorsSection.tsx`).
+- [x] Website ana sayfasina "Why not just use agents?" deger section'i eklendi (`website/components/home/AgentObjectionSection.tsx`).
+- [x] FAQ EN/TR icine "Neden sadece ajan review degil?" deger cevabi eklendi (`website/components/faq/faq-page-view.tsx`).
+- [x] Website hydration mismatch sertlestirmesi uygulandi (`website/app/layout.tsx` -> `suppressHydrationWarning`), Next Image legacy `layout` kullanimindan cikarildi (`website/components/home/DemoSection.tsx`).
+- [x] Homepage yeni section gorunurlugu EN/TR tarafinda browser-level dogrulandi (Playwright DOM check: `/en` ve `/tr`).
+- [x] Faz A Accuracy Lockdown benchmark paketi eklendi (`benchmarks/review_precision/*`, `scripts/review_precision_benchmark.py`).
+- [x] EN/TR docs tum sayfalarda release-governance diliyle hizalandi (auth/installation/migration/monitoring/reviews/security/troubleshooting/updates).
+- [x] Website copy consistency gate'i tum EN/TR docs + home section dosyalarini kapsayacak sekilde genisletildi.
 
 ## Reality Check (2026-03-15)
 - [x] Tracker'da listelenen Faz 4/5 script artefaktlari workspace'e geri eklendi ve smoke testleri gecti.
