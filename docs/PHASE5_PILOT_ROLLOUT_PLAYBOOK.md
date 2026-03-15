@@ -43,8 +43,16 @@ Latest real dry-run snapshot (2026-03-14):
    - Use:
      - `GUARDIAN_PILOT_TEAM=<team> GUARDIAN_PILOT_REPO=<repo> scripts/pilot_generate_weekly_report.sh /abs/repo/path`
    - Outputs:
-     - `.guardian/pilot-reports/<YYYY-MM-DD>/dashboard_lite.json`
-     - `.guardian/pilot-reports/<YYYY-MM-DD>/dashboard_lite.md`
+    - `.guardian/pilot-reports/<YYYY-MM-DD>/dashboard_lite.json`
+    - `.guardian/pilot-reports/<YYYY-MM-DD>/dashboard_lite.md`
+
+## Single-Command Weekly Ops
+
+For real pilot cadence, use one entrypoint instead of running each script manually:
+
+- `scripts/pilot_weekly_ops.sh docs/pilot/PILOT_REPO_MANIFEST.real.json docs/pilot/APPROVER_ROSTER.json`
+
+This command runs readiness + strict dry-run + per-repo weekly reports + rollout trend + AI-heavy calibration in sequence.
 
 ## Multi-Repo Dry-Run (Orchestration)
 

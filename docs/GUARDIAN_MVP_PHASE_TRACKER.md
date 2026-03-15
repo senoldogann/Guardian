@@ -1,6 +1,6 @@
 # Guardian 90 Gunluk Faz 2+4 MVP Takip Defteri
 
-Last Updated: 2026-03-15 16:31:00Z
+Last Updated: 2026-03-15 16:41:00Z
 Owner: Guardian Team
 Code Workspace: `/Users/dogan/Desktop/guardian`
 Governance Workspace: `/Users/dogan/Desktop/guardian`
@@ -68,6 +68,8 @@ Governance Workspace: `/Users/dogan/Desktop/guardian`
 - [x] Strict real dry-run + haftalik raporlar 2026-03-15 icin yeniden uretildi (`.guardian/pilot-dryrun-real/2026-03-15`, `.guardian/pilot-reports/2026-03-15`).
 - [x] Cross-repo rollout trend otomasyonu eklendi (`scripts/pilot_rollout_trend.py`, `scripts/pilot_generate_rollout_trend.sh`) ve 2 haftalik trend snapshot uretildi (`.guardian/pilot-rollout-trend/2026-03-15`).
 - [x] AI-heavy threshold calibration otomasyonu eklendi (`scripts/pilot_ai_heavy_calibration.py`, `scripts/pilot_generate_ai_heavy_calibration.sh`) ve ilk öneri raporu uretildi (`.guardian/pilot-calibration/2026-03-15`).
+- [x] Pilot haftalik operasyon tek komutta orkestre edildi (`scripts/pilot_weekly_ops.sh`) ve readiness+drryrun+report+trend+calibration zinciri doğrulandı.
+- [x] AI batch JSON parse dayanıklılığı artırıldı (`src-tauri/src/ai_client.rs` balanced JSON extraction + noisy wrapper testleri).
 - [x] Website ana sayfasina rakiplerden ayrisan premium differentiator section'i eklendi (`website/components/home/DifferentiatorsSection.tsx`).
 - [x] Website ana sayfasina "Why not just use agents?" deger section'i eklendi (`website/components/home/AgentObjectionSection.tsx`).
 - [x] FAQ EN/TR icine "Neden sadece ajan review degil?" deger cevabi eklendi (`website/components/faq/faq-page-view.tsx`).
@@ -178,6 +180,8 @@ Policy-driven release decision motorunu desktop+CLI ortak cekirdekte calisan hal
   - `cargo test` (`guardian-scan-policy`, `guardian-cli`, `src-tauri`) pass
   - `release_decision::tests::desktop_and_cli_decisions_match_for_ai_heavy_and_override_flows` pass
   - `scripts/pilot_generate_ai_heavy_calibration.sh docs/pilot/PILOT_REPO_MANIFEST.real.json` (action=`increase`, confidence=`medium`)
+  - `scripts/pilot_weekly_ops.sh docs/pilot/PILOT_REPO_MANIFEST.real.json docs/pilot/APPROVER_ROSTER.json` (pass)
+  - `cargo test --manifest-path src-tauri/Cargo.toml ai_client::tests -- --nocapture` (9/9 pass)
 - Web Search Sources (varsa): yok.
 - Blockers:
   - Decision engine davranis dokumani final degil.

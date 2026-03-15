@@ -17,6 +17,8 @@
   - `scripts/pilot_generate_rollout_trend.sh docs/pilot/PILOT_REPO_MANIFEST.real.json`
 - AI-heavy threshold calibration:
   - `scripts/pilot_generate_ai_heavy_calibration.sh docs/pilot/PILOT_REPO_MANIFEST.real.json`
+- One-command weekly ops:
+  - `scripts/pilot_weekly_ops.sh docs/pilot/PILOT_REPO_MANIFEST.real.json docs/pilot/APPROVER_ROSTER.json`
 
 ## Results
 - Readiness: `READY` (blockers=0, warnings=0)
@@ -39,7 +41,7 @@
   - override_reason_coverage_met=true (coverage=1.0, threshold=0.95)
   - block_rate_trend_reported=false (weeks=2/4)
 - AI-heavy calibration snapshot (30-day window):
-  - total_decisions=31, ai_heavy_decisions=23, ai_heavy_rate=0.7419
+  - total_decisions=35, ai_heavy_decisions=23, ai_heavy_rate=0.6571
   - ai_heavy_low_signal_rate=0.9
   - recommendation.action=increase (confidence=medium, factor=1.2)
   - suggested thresholds: files=18, lines=1450, mixed_files=10, mixed_lines=850

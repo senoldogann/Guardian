@@ -272,33 +272,10 @@ impl AiClient {
         self.queue.acquire(class).await
     }
 
-    // Helper to strip Markdown code blocks
+    // Extract the first balanced JSON object/array from noisy model output.
+    // This is safer than naive first/last brace slicing and handles markdown wrappers.
     fn sanitize_json_response(content: &str) -> &str {
-        let start_brace = content.find('{');
-        let start_bracket = content.find('[');
-
-        let start = match (start_brace, start_bracket) {
-            (Some(a), Some(b)) => std::cmp::min(a, b),
-            (Some(a), None) => a,
-            (None, Some(b)) => b,
-            (None, None) => return content.trim(),
-        };
-
-        let end_brace = content.rfind('}');
-        let end_bracket = content.rfind(']');
-
-        let end = match (end_brace, end_bracket) {
-            (Some(a), Some(b)) => std::cmp::max(a, b),
-            (Some(a), None) => a,
-            (None, Some(b)) => b,
-            (None, None) => return content.trim(),
-        };
-
-        if start <= end {
-            &content[start..=end]
-        } else {
-            content.trim()
-        }
+        extract_first_balanced_json_slice(content).unwrap_or_else(|| content.trim())
     }
 
     fn repair_invalid_json_escapes(content: &str) -> Option<String> {
@@ -1048,13 +1025,112 @@ fn critiques_from_value(value: &serde_json::Value) -> Option<Vec<Critique>> {
 }
 
 fn extract_json_window(content: &str, open: char, close: char) -> Option<&str> {
-    let start = content.find(open)?;
-    let end = content.rfind(close)?;
-    if start <= end {
-        Some(&content[start..=end])
-    } else {
-        None
+    let mut start_idx: Option<usize> = None;
+    let mut depth = 0usize;
+    let mut in_string = false;
+    let mut escaped = false;
+
+    for (idx, ch) in content.char_indices() {
+        if in_string {
+            if escaped {
+                escaped = false;
+                continue;
+            }
+            if ch == '\\' {
+                escaped = true;
+                continue;
+            }
+            if ch == '"' {
+                in_string = false;
+            }
+            continue;
+        }
+
+        if ch == '"' {
+            in_string = true;
+            continue;
+        }
+
+        if ch == open {
+            if start_idx.is_none() {
+                start_idx = Some(idx);
+            }
+            depth += 1;
+            continue;
+        }
+
+        if ch == close && depth > 0 {
+            depth -= 1;
+            if depth == 0 {
+                if let Some(start) = start_idx {
+                    return Some(&content[start..=idx]);
+                }
+            }
+        }
     }
+
+    None
+}
+
+fn extract_first_balanced_json_slice(content: &str) -> Option<&str> {
+    let mut start_idx: Option<usize> = None;
+    let mut stack: Vec<char> = Vec::new();
+    let mut in_string = false;
+    let mut escaped = false;
+
+    for (idx, ch) in content.char_indices() {
+        if in_string {
+            if escaped {
+                escaped = false;
+                continue;
+            }
+            if ch == '\\' {
+                escaped = true;
+                continue;
+            }
+            if ch == '"' {
+                in_string = false;
+            }
+            continue;
+        }
+
+        if ch == '"' {
+            in_string = true;
+            continue;
+        }
+
+        match ch {
+            '{' => {
+                if start_idx.is_none() {
+                    start_idx = Some(idx);
+                }
+                stack.push('}');
+            }
+            '[' => {
+                if start_idx.is_none() {
+                    start_idx = Some(idx);
+                }
+                stack.push(']');
+            }
+            '}' | ']' => {
+                if let Some(expected) = stack.pop() {
+                    if ch != expected {
+                        return None;
+                    }
+                    if stack.is_empty() {
+                        if let Some(start) = start_idx {
+                            return Some(content[start..=idx].trim());
+                        }
+                    }
+                } else if start_idx.is_some() {
+                    return None;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    None
 }
 
 #[cfg(test)]
@@ -1171,6 +1247,25 @@ mod tests {
         assert_eq!(parsed.len(), 1);
         assert_eq!(parsed[0].file_path, "/tmp/example.rs");
         assert_eq!(parsed[0].severity, "Warning");
+    }
+
+    #[test]
+    fn sanitize_json_response_extracts_balanced_payload_from_markdown() {
+        let raw = "```json\n{\"results\":[{\"file_path\":\"a.ts\",\"severity\":\"Info\",\"message\":\"ok\"}]}\n```\nnotes";
+        let sanitized = AiClient::sanitize_json_response(raw);
+        assert_eq!(
+            sanitized,
+            "{\"results\":[{\"file_path\":\"a.ts\",\"severity\":\"Info\",\"message\":\"ok\"}]}"
+        );
+    }
+
+    #[test]
+    fn parse_batch_json_ignores_noisy_prefix_suffix() {
+        let raw = "some heading\n{\"results\":[{\"file_path\":\"/tmp/a.rs\",\"severity\":\"Warning\",\"message\":\"x\"}]}\nfooter";
+        let parsed = parse_batch_json(raw, AiClient::sanitize_json_response(raw))
+            .expect("should parse balanced wrapped payload");
+        assert_eq!(parsed.len(), 1);
+        assert_eq!(parsed[0].file_path, "/tmp/a.rs");
     }
 
     #[test]
