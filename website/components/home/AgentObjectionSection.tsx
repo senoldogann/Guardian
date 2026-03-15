@@ -69,7 +69,7 @@ export function AgentObjectionSection({ locale }: { locale: Locale }) {
 
   return (
     <section className="home-section-soft relative py-20 md:py-24 bg-white dark:bg-black transition-colors duration-300 overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_12%,rgba(15,23,42,0.08),transparent_48%)] dark:bg-[radial-gradient(circle_at_70%_12%,rgba(148,163,184,0.12),transparent_48%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_34%,rgba(15,23,42,0.04),transparent_58%)] dark:bg-[radial-gradient(circle_at_70%_34%,rgba(148,163,184,0.06),transparent_58%)]" />
       <div className="container relative z-10 px-4 sm:px-6 lg:px-8 mx-auto max-w-6xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

@@ -151,7 +151,7 @@ export function DemoSection({ dict, locale }: DemoSectionProps) {
 
             {/* Approval Section */}
             <section className="home-section-soft py-28 relative bg-white dark:bg-black transition-colors duration-300">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_20%,rgba(15,23,42,0.06),transparent_56%)] dark:bg-[radial-gradient(circle_at_72%_20%,rgba(148,163,184,0.08),transparent_56%)]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_34%,rgba(15,23,42,0.03),transparent_62%)] dark:bg-[radial-gradient(circle_at_72%_34%,rgba(148,163,184,0.05),transparent_62%)]" />
                 <div className="container px-4 mx-auto relative">
                     <div className="flex flex-col md:flex-row-reverse items-center gap-16">
                         <motion.div

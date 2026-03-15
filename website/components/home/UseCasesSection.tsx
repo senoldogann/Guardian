@@ -86,7 +86,7 @@ export function UseCasesSection({ locale }: { locale: Locale }) {
 
     return (
         <section className="home-section-soft py-20 md:py-24 relative bg-white dark:bg-black transition-colors duration-300">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(15,23,42,0.08),transparent_55%)] dark:bg-[radial-gradient(circle_at_50%_0%,rgba(148,163,184,0.12),transparent_55%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_34%,rgba(15,23,42,0.04),transparent_62%)] dark:bg-[radial-gradient(circle_at_50%_34%,rgba(148,163,184,0.06),transparent_62%)]" />
 
             <div className="container px-4 mx-auto relative max-w-6xl">
                 <motion.div

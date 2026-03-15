@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   pull-requests: write
   security-events: write
@@ -52,10 +53,14 @@ jobs:
             --pr-gate off
 
       - name: "Upload SARIF"
-        if: github.event_name == 'pull_request'
-        uses: github/codeql-action/upload-sarif@v3
+        if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]' && (github.event.pull_request.head.repo.fork == false || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: ${{ env.GUARDIAN_SARIF }}
+
+      - name: "Skip SARIF upload for restricted PR token"
+        if: github.event_name == 'pull_request' && (github.actor == 'dependabot[bot]' || (github.event.pull_request.head.repo.fork == true && github.event.pull_request.head.repo.full_name != github.repository))
+        run: echo "Skipping SARIF upload for restricted pull_request token context."
 
       - name: "Run guardian-cli scan (JSON)"
         id: scan

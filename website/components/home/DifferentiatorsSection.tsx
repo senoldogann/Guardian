@@ -104,8 +104,8 @@ export function DifferentiatorsSection({ locale }: { locale: Locale }) {
     return (
         <section className="home-section-soft relative py-20 md:py-24 overflow-hidden bg-white dark:bg-black transition-colors duration-300">
             <div className="absolute inset-0">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(15,23,42,0.08),transparent_52%)] dark:bg-[radial-gradient(circle_at_25%_20%,rgba(148,163,184,0.10),transparent_52%)]" />
-                <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(2,6,23,0.03),transparent_30%,rgba(2,6,23,0.02))] dark:bg-[linear-gradient(120deg,rgba(248,250,252,0.05),transparent_30%,rgba(248,250,252,0.02))]" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_34%,rgba(15,23,42,0.04),transparent_60%)] dark:bg-[radial-gradient(circle_at_25%_34%,rgba(148,163,184,0.06),transparent_60%)]" />
+                <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(2,6,23,0.015),transparent_36%,rgba(2,6,23,0.01))] dark:bg-[linear-gradient(120deg,rgba(248,250,252,0.03),transparent_36%,rgba(248,250,252,0.012))]" />
             </div>
 
             <div className="container relative z-10 px-4 sm:px-6 lg:px-8 mx-auto max-w-6xl">
