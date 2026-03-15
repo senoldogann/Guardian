@@ -1,8 +1,9 @@
-import { type Dispatch, type MutableRefObject, type SetStateAction, useEffect } from "react";
+import { type Dispatch, type MutableRefObject, type SetStateAction, useEffect, useMemo } from "react";
 import { invoke, listen, type UnlistenFn } from "../lib/tauri";
 import { handleError } from "../lib/error";
 import { critiqueStateKey } from "../lib/critiqueStateKey";
 import type { AiContextSnapshot, Critique, FixProposalsSnapshot } from "../types";
+import { createTranslator, useI18n } from "../i18n";
 
 interface UseGuardianEventsArgs {
   setLogs: Dispatch<SetStateAction<Record<string, Critique>>>;
@@ -17,6 +18,57 @@ interface UseGuardianEventsArgs {
   setFixProposalsError: Dispatch<SetStateAction<string | null>>;
 }
 
+function normalizeSystemMessage(raw: string): string {
+  return raw.replace(/\s+/g, " ").trim();
+}
+
+function toFriendlySystemMessage(
+  raw: string,
+  kind: "warning" | "error" | "verification" | "backend",
+  t: (key: string) => string,
+): string {
+  const normalized = normalizeSystemMessage(raw);
+  const lower = normalized.toLowerCase();
+
+  if (
+    lower.includes("json schema validation failed")
+    || lower.includes("invalid json syntax")
+    || lower.includes("raw content preview")
+    || lower.includes("oneof")
+    || lower.includes("is not valid under any of the schemas")
+  ) {
+    return t("systemUi.aiResponseInvalidFormat");
+  }
+
+  if (
+    lower.includes("batch prompt is heavy")
+    || lower.includes("estimated tokens")
+    || lower.includes("max_batch_prompt_tokens")
+    || lower.includes("falling back to per-file audit")
+  ) {
+    return t("systemUi.batchPromptHeavy");
+  }
+
+  if (
+    lower.includes("timed out")
+    || lower.includes("timeout")
+    || lower.includes("failed to send openai request")
+    || lower.includes("error sending request for url")
+  ) {
+    return t("systemUi.providerTimeout");
+  }
+
+  if (kind === "backend") {
+    return t("systemUi.backendUnavailable");
+  }
+
+  if (normalized.length > 220) {
+    return kind === "error" ? t("systemUi.internalError") : t("systemUi.internalWarning");
+  }
+
+  return normalized;
+}
+
 export function useGuardianEvents({
   setLogs,
   setStatus,
@@ -29,6 +81,9 @@ export function useGuardianEvents({
   setFixProposals,
   setFixProposalsError,
 }: UseGuardianEventsArgs): void {
+  const { locale } = useI18n();
+  const t = useMemo(() => createTranslator(locale), [locale]);
+
   useEffect(() => {
     let disposed = false;
     const unlisteners: UnlistenFn[] = [];
@@ -79,7 +134,11 @@ export function useGuardianEvents({
     void register<string>("guardian:error", (event) => {
       setLogs((prev) => ({
         ...prev,
-        ["System"]: { file_path: "System Error", severity: "Critical", message: event.payload },
+        ["System"]: {
+          file_path: "System Error",
+          severity: "Critical",
+          message: toFriendlySystemMessage(event.payload, "error", t),
+        },
       }));
     });
 
@@ -89,7 +148,7 @@ export function useGuardianEvents({
         ["System:Verification"]: {
           file_path: "Verification",
           severity: "Warning",
-          message: event.payload,
+          message: toFriendlySystemMessage(event.payload, "verification", t),
         },
       }));
     });
@@ -100,7 +159,7 @@ export function useGuardianEvents({
         ["System:Warning"]: {
           file_path: "System Warning",
           severity: "Warning",
-          message: event.payload,
+          message: toFriendlySystemMessage(event.payload, "warning", t),
         },
       }));
     });
@@ -145,7 +204,11 @@ export function useGuardianEvents({
         ["System:Backend"]: {
           file_path: "System",
           severity: "Warning",
-          message: `Backend Vitality: FAILED (${error instanceof Error ? error.message : String(error)})`,
+          message: toFriendlySystemMessage(
+            error instanceof Error ? error.message : String(error),
+            "backend",
+            t,
+          ),
         },
       }));
     });
@@ -165,5 +228,6 @@ export function useGuardianEvents({
     setStatus,
     setUsage,
     stallSignatureRef,
+    t,
   ]);
 }

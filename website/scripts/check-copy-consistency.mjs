@@ -1,20 +1,13 @@
 #!/usr/bin/env node
 
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
-const targets = [
+const staticTargets = [
   "app/layout.tsx",
   "app/[locale]/page.tsx",
+  "components/home-page.tsx",
   "components/faq/faq-page-view.tsx",
-  "content/docs/en/get-started.mdx",
-  "content/docs/en/guru.mdx",
-  "content/docs/en/monitoring.mdx",
-  "content/docs/en/configuration.mdx",
-  "content/docs/tr/get-started.mdx",
-  "content/docs/tr/guru.mdx",
-  "content/docs/tr/monitoring.mdx",
-  "content/docs/tr/configuration.mdx",
   "content/i18n/en.json",
   "content/i18n/tr.json",
   "lib/seo.ts",
@@ -41,8 +34,34 @@ const requiredSignals = [
   },
 ];
 
+async function collectTargets(root) {
+  const targetSet = new Set(staticTargets);
+  const dynamicDirs = [
+    { relDir: "components/home", ext: ".tsx" },
+    { relDir: "content/docs/en", ext: ".mdx" },
+    { relDir: "content/docs/tr", ext: ".mdx" },
+  ];
+
+  for (const { relDir, ext } of dynamicDirs) {
+    const absDir = resolve(root, relDir);
+    try {
+      const entries = await readdir(absDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isFile() && entry.name.endsWith(ext)) {
+          targetSet.add(`${relDir}/${entry.name}`);
+        }
+      }
+    } catch {
+      // Ignore missing optional directories.
+    }
+  }
+
+  return [...targetSet];
+}
+
 async function main() {
   const root = process.cwd();
+  const targets = await collectTargets(root);
   const violations = [];
 
   for (const relPath of targets) {

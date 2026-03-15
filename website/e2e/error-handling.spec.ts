@@ -48,7 +48,7 @@ test.describe("Error Pages", () => {
       
       // Click should navigate home
       await homeLink.first().click();
-      await expect(page).toHaveURL("/");
+      await expect(page).toHaveURL(/\/(en|tr)?\/?$/);
     }
   });
 });
@@ -298,7 +298,7 @@ test.describe("Error Pages - SEO", () => {
     const robots = page.locator('meta[name="robots"]');
     
     if (await robots.count() > 0) {
-      const content = await robots.getAttribute("content");
+      const content = await robots.first().getAttribute("content");
       // Should have noindex if meta exists
       if (content) {
         expect(content.toLowerCase()).toContain("noindex");

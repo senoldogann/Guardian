@@ -32,6 +32,15 @@ Guardian, birden fazla katmandan oluşan defense-in-depth güvenlik modeli uygul
 └──────────────────────────────────────────────┘
 ```
 
+## Governance güvenlik garantileri
+
+Guardian'ın güvenlik modeli yalnızca static scan'e değil, release kararına hizalanır:
+
+- Policy kuralları repo içinde versiyonlu tutulur (`guardian.policy.yaml`) ve desktop + CLI + CI tarafında tutarlı değerlendirilir.
+- İnsan onayı ve override kararları `.guardian/release_decisions.jsonl` ile denetlenebilir şekilde kaydedilir.
+- Local-first çalışma modeli sayesinde kaynak bağlam, harici provider'ları özellikle açmadıkça workspace içinde kalır.
+- Release gate çıktıları (`PASS`, `PASS_WITH_WARNING`, `BLOCK_UNTIL_APPROVED`, `OVERRIDDEN`) yayın öncesinde açık sorumluluk zinciri kurar.
+
 ## Repo stratejisi
 
 Guardian, maksimum güvenlik için dual-repository yaklaşımı kullanır:
@@ -152,4 +161,3 @@ Kurumsal kullanım öncesi:
 - [ ] Security patch'leri için auto-update stratejinizi belirleyin
 - [ ] Network erişim gereksinimlerini security ekibiyle doğrulayın
 - [ ] İstisna/override süreçlerini dokümante edin
-

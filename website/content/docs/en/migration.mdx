@@ -1,17 +1,19 @@
 ---
 title: "Migration Guide"
-summary: "Upgrade safely across Guardian versions, baselines, and guardian.lock changes."
+summary: "Upgrade safely across Guardian versions, policy gates, baselines, and release-decision artifacts."
 section: "Operations"
 order: 6
 ---
 
 ## Overview
 
-Guardian is designed to be backward compatible, but a few features introduce new local files that you should account for when upgrading:
+Guardian is designed to be backward compatible, but release governance introduces local artifacts you should account for when upgrading:
 
 - `guardian.lock` (reproducible scans + drift control)
 - `.guardian/baseline.json` (baseline tracking)
 - `.guardian/critiques.json` (monitor snapshot hydration)
+- `.guardian/release_decisions.jsonl` (human approval + override audit trail)
+- `.guardian/governance_summary.json` (governance status snapshot for IDE/CLI/automation)
 
 This guide covers a safe upgrade flow that preserves your workflow and avoids confusing "all findings are new" situations.
 

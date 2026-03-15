@@ -1,17 +1,17 @@
 ---
 title: "Kimlik Doğrulama"
-summary: "AI provider'ları yapılandırın, API key yönetin ve kimlik bilgisi saklamasını güvenceye alın."
+summary: "Release governance taramaları için AI provider yapılandırın, API key yönetin ve kimlik bilgisi saklamasını güvenceye alın."
 section: "Operasyonlar"
 order: 3
 ---
 
 ## Genel bakış
 
-Guardian, monitoring'i açmak için GitHub device authorization kullanır. AI provider ayarları ise Settings üzerinden ayrı olarak yapılandırılır.
+Guardian kimlik doğrulaması, release governance hattının bir parçasıdır. GitHub device authorization monitoring'i açar; provider kimlik bilgileri ise AI ile üretilen değişikliklerin release öncesi nasıl değerlendirileceğini belirler.
 
 ## Desteklenen provider'lar
 
-Guardian kod analizi için birden fazla AI provider destekler:
+Guardian, governance odaklı kod analizi için birden fazla AI provider destekler:
 
 | Provider | Açıklama | En iyi kullanım |
 |----------|-------------|----------|
@@ -117,4 +117,3 @@ Kaydedilmiş kimlik bilgilerini temizlemek için:
 3. **Düzenli rotate edin**: Örn. 3 ayda bir
 4. **Scope sınırlayın**: Provider kısıtları varsa kullanın
 5. **Asla commit etmeyin**: Key'leri version control'e sokmayın
-

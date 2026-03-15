@@ -42,6 +42,23 @@ python3 "$SCRIPT_DIR/generate_dashboard_lite.py" \
   --team "$TEAM" \
   --repo "$REPO"
 
+python3 "$SCRIPT_DIR/generate_governance_summary.py" \
+  --root "$REPO_ROOT"
+
+python3 "$SCRIPT_DIR/governance_replay.py" \
+  --reports-root "$REPO_ROOT/.guardian/pilot-dryrun-real" \
+  --policy "$REPO_ROOT/guardian.policy.yaml" \
+  --output-dir "$REPO_ROOT/.guardian/governance-replay" \
+  --window-days "$WINDOW_DAYS"
+
+python3 "$SCRIPT_DIR/override_debt_ledger.py" \
+  --audit-path "$REPO_ROOT/.guardian/release_decisions.jsonl" \
+  --output-dir "$REPO_ROOT/.guardian" \
+  --sla-days 7
+
 echo "Weekly dashboard-lite report generated:"
 echo "  JSON: $JSON_OUT"
 echo "  MD:   $MD_OUT"
+echo "  Governance Summary: $REPO_ROOT/.guardian/governance_summary.{json,md}"
+echo "  Replay: $REPO_ROOT/.guardian/governance-replay/$RUN_DATE/replay_summary.{json,md}"
+echo "  Override Debt: $REPO_ROOT/.guardian/override_debt_ledger.{json,md}"

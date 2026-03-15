@@ -32,6 +32,15 @@ Guardian implements a defense-in-depth security model with multiple layers of pr
 └──────────────────────────────────────────────┘
 ```
 
+## Governance Security Guarantees
+
+Guardian's security model is aligned to release decisions, not only static scanning:
+
+- Policy rules are versioned in-repo (`guardian.policy.yaml`) and evaluated consistently across desktop + CLI + CI.
+- Human approvals and overrides are auditable via `.guardian/release_decisions.jsonl`.
+- Local-first operation keeps source context in your workspace unless you explicitly configure external providers.
+- Release gate outcomes (`PASS`, `PASS_WITH_WARNING`, `BLOCK_UNTIL_APPROVED`, `OVERRIDDEN`) enforce explicit accountability before shipping.
+
 ## Repository Strategy
 
 Guardian uses a dual-repository model for maximum security:

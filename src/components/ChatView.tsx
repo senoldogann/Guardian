@@ -443,7 +443,7 @@ export function ChatView({
             if (!path) {
                 appendMessage({
                     role: "guardian",
-                    content: "Cannot apply fix: workspace path is missing.",
+                    content: t("chat.fix.cannotApplyMissingWorkspace"),
                     timestamp: nowIso(),
                 });
                 return;
@@ -453,34 +453,44 @@ export function ChatView({
             void Promise.resolve(onFixHistoryRefresh?.()).catch(() => { });
             const fileName = filePath.split("/").pop() || "file";
             toast.showSuccess(
-                `Applied fix to ${fileName}.`,
+                t("chat.fix.appliedFixToast", { file: fileName }),
                 6000,
                 {
-                    label: "Undo",
+                    label: t("common.undo"),
                     onClick: () => {
                         invoke("undo_fix", { filePath, root: path })
                             .then(async () => {
-                                toast.showSuccess(`Undo complete for ${fileName}.`, 3000);
+                                toast.showSuccess(t("chat.fix.undoCompleteToast", { file: fileName }), 3000);
                                 await Promise.resolve(onFixHistoryRefresh?.());
                             })
-                            .catch((e) => toast.showError(`Undo failed: ${String(e)}`, 6000));
+                            .catch((e) =>
+                                toast.showError(t("chat.fix.undoFailedToast", { error: String(e) }), 6000),
+                            );
                     }
                 }
             );
-            appendMessage({ role: "guru", content: `Applied fix to ${fileName} successfully.`, timestamp: nowIso() });
+            appendMessage({
+                role: "guru",
+                content: t("chat.fix.appliedFixConfirmation", { file: fileName }),
+                timestamp: nowIso(),
+            });
         } catch (e) {
-            appendMessage({ role: "guru", content: `Failed to apply fix: ${e}`, timestamp: nowIso() });
+            appendMessage({
+                role: "guru",
+                content: t("chat.fix.applyFailedToast", { error: String(e) }),
+                timestamp: nowIso(),
+            });
         }
-    }, [path, appendMessage, nowIso, toast, onFixHistoryRefresh]);
+    }, [appendMessage, nowIso, onFixHistoryRefresh, path, t, toast]);
 
     const rejectFix = useCallback((index: number, filePath: string): void => {
         setRejectedFixes(prev => new Set(prev).add(index));
         appendMessage({
             role: "guardian",
-            content: `Rejected proposed fix for ${filePath.split('/').pop()}.`,
+            content: t("chat.fix.rejectedFixToast", { file: filePath.split("/").pop() ?? "file" }),
             timestamp: nowIso(),
         });
-    }, [appendMessage, nowIso]);
+    }, [appendMessage, nowIso, t]);
 
     const renderedMessages = useMemo(() => {
         const MAX_RENDERED = 120;
@@ -523,20 +533,22 @@ export function ChatView({
             {/* Header with Guide Button */}
             <div className="guardian-topbar justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                    <Bot className="w-5 h-5 text-text-muted dark:text-[var(--accent-500)]" />
+                    <div className="guardian-elevated-card rounded-xl p-2">
+                        <Bot className="w-4 h-4 text-[var(--accent-500)]" />
+                    </div>
                     <h2 className="guardian-topbar-text">{t("chat.title")}</h2>
                 </div>
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => setGuideOpen(true)}
-                        className="p-2 rounded-lg transition-all active:scale-95 cursor-pointer hover:bg-white/5 group"
+                        className="p-2 rounded-lg transition-all active:scale-95 cursor-pointer hover:bg-[var(--panel-muted)] group"
                         title={t("chat.openGuide")}
                     >
                         <HelpCircle className="w-4 h-4 text-[var(--accent-500)] group-hover:scale-110 transition-transform" />
                     </button>
                     <button
                         onClick={() => setClearConfirmOpen(true)}
-                        className="p-2 rounded-lg transition-all active:scale-95 cursor-pointer hover:bg-white/5 group disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
+                        className="p-2 rounded-lg transition-all active:scale-95 cursor-pointer hover:bg-[var(--panel-muted)] group disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
                         disabled={chatHistory.length === 0}
                         title={t("chat.clearHistory")}
                     >
@@ -559,7 +571,7 @@ export function ChatView({
                         aria-modal="true"
                         aria-labelledby="guardian-clear-chat-title"
                         aria-describedby="guardian-clear-chat-desc"
-                        className="max-w-sm w-[90%] bg-surface border border-border-main rounded-2xl p-5 shadow-2xl"
+                        className="guardian-elevated-card max-w-sm w-[90%] rounded-2xl p-5 shadow-2xl"
                     >
                         <div
                             id="guardian-clear-chat-title"
@@ -573,14 +585,14 @@ export function ChatView({
                         <div className="mt-4 flex justify-end gap-2">
                             <button
                                 onClick={() => setClearConfirmOpen(false)}
-                                className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-text-main rounded-md transition-colors cursor-pointer"
+                                className="guardian-focus-ring px-3 py-1.5 text-xs font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-main rounded-md transition-colors cursor-pointer"
                                 ref={clearCancelRef}
                             >
                                 {t("common.cancel")}
                             </button>
                             <button
                                 onClick={handleClearChat}
-                                className="px-3 py-1.5 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer"
+                                className="guardian-focus-ring px-3 py-1.5 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer"
                             >
                                 {t("common.delete")}
                             </button>
@@ -604,19 +616,19 @@ export function ChatView({
                 )}
                 {chatHistory.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center gap-6 animate-in fade-in zoom-in duration-700">
-                        <Bot className="w-16 h-16 text-zinc-600 dark:text-text-muted dark:opacity-20" />
+                        <Bot className="w-16 h-16 text-text-muted opacity-35" />
                         <div className="text-center space-y-2">
-                            <p className="text-sm font-bold uppercase tracking-tighter text-zinc-900 dark:text-text-muted">
+                            <p className="text-sm font-bold uppercase tracking-tighter text-text-main">
                                 {t("chat.emptyTitle")}
                             </p>
-                            <p className="text-xs font-mono max-w-xs leading-relaxed text-zinc-600 dark:text-text-muted/60 whitespace-pre-line">
+                            <p className="text-xs font-mono max-w-xs leading-relaxed text-text-muted whitespace-pre-line">
                                 {t("chat.emptyDescription")}
                             </p>
                         </div>
-                        <div className="guru-placeholder opacity-100 dark:opacity-20" aria-hidden="true">
-                            <div className="guru-placeholder-bar bg-zinc-600 dark:bg-current" />
-                            <div className="guru-placeholder-bar medium bg-zinc-600 dark:bg-current" />
-                            <div className="guru-placeholder-bar short bg-zinc-600 dark:bg-current" />
+                        <div className="guru-placeholder opacity-30" aria-hidden="true">
+                            <div className="guru-placeholder-bar" />
+                            <div className="guru-placeholder-bar medium" />
+                            <div className="guru-placeholder-bar short" />
                         </div>
                     </div>
                 )}
@@ -649,7 +661,7 @@ export function ChatView({
                         <div className="w-8 h-8 rounded-lg bg-[var(--accent-200)] text-[var(--accent-500)] flex items-center justify-center shrink-0 animate-pulse shadow-sm border border-border-main">
                             <Bot className="w-4 h-4" />
                         </div>
-                        <div className="p-4 rounded-2xl !bg-surface border border-border-main text-xs font-mono text-text-muted flex items-center gap-2 shadow-sm min-w-[280px]">
+                        <div className="guardian-chat-bubble p-4 rounded-2xl text-xs font-mono text-text-muted flex items-center gap-2 shadow-sm min-w-[280px]">
                             <Activity className="w-3 h-3 animate-spin shrink-0 text-text-muted" />
                             <span className="inline-flex items-center gap-0.5">
                                     <span className="transition-opacity duration-300">
@@ -680,7 +692,7 @@ export function ChatView({
                             initial={{ scale: 0.95, opacity: 0, y: 30 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 30 }}
-                            className="bg-surface border border-border-main w-full max-w-lg rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.3)] relative overflow-hidden flex flex-col"
+                            className="guardian-elevated-card w-full max-w-lg rounded-[2rem] relative overflow-hidden flex flex-col"
                         >
                             {/* Aurora Mesh Gradient Accents */}
                             <div className="absolute -top-32 -left-32 w-80 h-80 bg-[var(--accent-200)] blur-[100px] rounded-full opacity-70" />
@@ -739,20 +751,20 @@ export function ChatView({
                                 </div>
 
                                 {/* Steps / Usage */}
-                                <div className="bg-zinc-50 dark:bg-white/5 p-6 rounded-2xl border border-black/5 dark:border-white/5 space-y-4">
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{t("chat.guide.stepsTitle")}</h4>
+                                <div className="guardian-subtle-card p-6 rounded-2xl space-y-4">
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">{t("chat.guide.stepsTitle")}</h4>
                                     <div className="grid grid-cols-1 gap-3">
                                         <div className="flex items-start gap-4 text-xs">
                                             <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[9px] font-black shrink-0 shadow-lg shadow-black/20">1</div>
-                                            <p className="font-medium text-zinc-600 dark:text-zinc-400">{t("chat.guide.step1")}</p>
+                                            <p className="font-medium text-text-muted">{t("chat.guide.step1")}</p>
                                         </div>
                                         <div className="flex items-start gap-4 text-xs">
                                             <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[9px] font-black shrink-0 shadow-lg shadow-black/20">2</div>
-                                            <p className="font-medium text-zinc-600 dark:text-zinc-400">{t("chat.guide.step2")}</p>
+                                            <p className="font-medium text-text-muted">{t("chat.guide.step2")}</p>
                                         </div>
                                         <div className="flex items-start gap-4 text-xs">
                                             <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[9px] font-black shrink-0 shadow-lg shadow-black/20">3</div>
-                                            <p className="font-medium text-zinc-600 dark:text-zinc-400">{t("chat.guide.step3")}</p>
+                                            <p className="font-medium text-text-muted">{t("chat.guide.step3")}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -770,16 +782,16 @@ export function ChatView({
             </AnimatePresence>
 
             {/* Input Area */}
-            <div className="p-6 border-t border-border-main bg-background space-y-2">
+            <div className="p-6 border-t border-border-main bg-background/85 backdrop-blur-sm space-y-2">
                 <div className="relative">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10" ref={plusMenuRef}>
                         <button
                             onClick={() => setPlusMenuOpen(!plusMenuOpen)}
                             className={clsx(
-                                "p-2 rounded-lg transition-all active:scale-95 cursor-pointer",
+                                "guardian-focus-ring p-2 rounded-lg transition-all active:scale-95 cursor-pointer",
                                 plusMenuOpen
-                                    ? "bg-white/10 text-text-main"
-                                    : "text-text-muted hover:text-text-main hover:bg-white/5"
+                                    ? "bg-[var(--panel-muted)] text-text-main"
+                                    : "text-text-muted hover:text-text-main hover:bg-[var(--panel-muted)]"
                             )}
                             title={t("chat.actionsTitle")}
                         >
@@ -791,7 +803,7 @@ export function ChatView({
                                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    className="absolute bottom-full left-0 mb-2 w-48 bg-surface border border-border-main rounded-xl shadow-2xl overflow-hidden py-1 z-50"
+                                    className="absolute bottom-full left-0 mb-2 w-52 guardian-elevated-card rounded-xl shadow-2xl overflow-hidden py-1 z-50"
                                 >
                                     <button
                                         onClick={() => {
@@ -802,7 +814,7 @@ export function ChatView({
                                         }}
                                         disabled={!webSearchReady}
                                         className={clsx(
-                                            "w-full px-4 py-2.5 flex items-center gap-3 text-sm transition-colors hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed",
+                                            "w-full px-4 py-2.5 flex items-center gap-3 text-sm transition-colors hover:bg-[var(--panel-muted)] disabled:opacity-50 disabled:cursor-not-allowed",
                                             webSearchEnabled ? "text-[var(--accent-500)]" : "text-text-main"
                                         )}
                                     >
@@ -820,12 +832,12 @@ export function ChatView({
                         onChange={(e) => setChatInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && askGuru()}
                         placeholder={t("chat.inputPlaceholder")}
-                        className="w-full bg-background border border-border-main rounded-2xl py-5 pl-14 pr-16 text-sm font-sans outline-none focus:border-[var(--focus-border)] transition-all placeholder:opacity-30 shadow-inner"
+                        className="guru-input w-full bg-background border border-border-main rounded-2xl py-5 pl-14 pr-16 text-sm font-sans outline-none focus:border-[var(--focus-border)] transition-all shadow-inner"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                         <button
                             onClick={chatLoading ? cancelPending : askGuru}
-                            className="p-2 bg-[var(--accent-500)] hover:opacity-90 text-background rounded-xl transition-colors shadow-lg shadow-black/30 cursor-pointer icon-button"
+                            className="guardian-focus-ring p-2 bg-[var(--accent-500)] hover:opacity-90 text-background rounded-xl transition-colors shadow-lg shadow-black/30 cursor-pointer icon-button"
                             disabled={!chatInput.trim() && !chatLoading}
                             aria-label={chatLoading ? t("chat.cancel") : t("chat.send")}
                         >
@@ -854,20 +866,20 @@ interface GuideOptionProps {
 function GuideOption({ icon: Icon, title, desc, color, onClick }: GuideOptionProps): ReactElement {
     const colorStyles = {
         sky: "bg-[var(--accent-200)] text-[var(--accent-500)] group-hover:bg-[var(--accent-500)] group-hover:text-background",
-        rose: "bg-rose-600/10 text-rose-600 dark:text-rose-400 group-hover:bg-rose-600 dark:group-hover:text-white",
-        amber: "bg-amber-600/10 text-amber-600 dark:text-amber-400 group-hover:bg-amber-600 dark:group-hover:text-white",
+        rose: "bg-rose-500/10 text-rose-400 group-hover:bg-rose-500/15",
+        amber: "bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/15",
     };
 
     return (
         <div className="flex gap-4 group p-1 cursor-pointer" onClick={onClick}>
             <div className={clsx(
-                "shrink-0 w-12 h-12 rounded-xl flex items-center justify-center border border-black/5 dark:border-white/5 transition-all duration-500 shadow-sm",
+                "shrink-0 w-12 h-12 rounded-xl flex items-center justify-center border border-border-main transition-all duration-500 shadow-sm",
                 colorStyles[color]
             )}>
                 <Icon className="w-5 h-5" />
             </div>
             <div className="space-y-1 py-0.5">
-                <h5 className="text-sm font-black text-zinc-900 dark:text-white group-hover:translate-x-1 transition-transform duration-300">{title}</h5>
+                <h5 className="text-sm font-black text-text-main group-hover:translate-x-1 transition-transform duration-300">{title}</h5>
                 <p className="text-[11px] leading-relaxed text-text-muted font-semibold">{desc}</p>
             </div>
         </div>
@@ -904,11 +916,19 @@ function ChatMessageRow({
     return (
         <div className={clsx("flex w-full", msg.role === "user" ? "justify-end" : "justify-start")}>
             <div className={clsx("flex gap-4 max-w-[90%] md:max-w-[80%]", msg.role === "user" ? "flex-row-reverse" : "")}>
-                <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-border-main", msg.role === "user" ? "bg-surface text-text-muted" : "bg-[var(--accent-200)] text-[var(--accent-500)]")}>
+                <div className={clsx(
+                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm border",
+                    msg.role === "user"
+                        ? "guardian-subtle-card text-text-muted"
+                        : "border-[var(--panel-border-strong)] bg-[var(--accent-200)] text-[var(--accent-500)]",
+                )}>
                     {msg.role === "user" ? <UserIcon className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
                 </div>
                 <div className="flex flex-col gap-3 min-w-0">
-                    <div className={clsx("p-5 rounded-2xl text-sm leading-relaxed font-sans shadow-sm min-w-0 break-words border border-border-main", msg.role === "user" ? "bg-[var(--accent-200)] text-text-main" : "bg-surface text-text-main")}>
+                    <div className={clsx(
+                        "p-5 rounded-2xl text-sm leading-relaxed font-sans shadow-sm min-w-0 break-words",
+                        msg.role === "user" ? "guardian-chat-bubble-user" : "guardian-chat-bubble",
+                    )}>
                         <div className="guardian-markdown">
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
@@ -962,7 +982,7 @@ function ChatMessageRow({
                     </div>
 
                     {msg.action && (
-                        <div className="flex flex-col items-center justify-center p-6 bg-[var(--guide-bg)] border border-white/5 rounded-[var(--guide-radius)] text-center space-y-5 animate-in fade-in zoom-in duration-500">
+                        <div className="guardian-chat-action-card flex flex-col items-center justify-center p-6 rounded-[var(--guide-radius)] text-center space-y-5 animate-in fade-in zoom-in duration-500">
                             <div className="flex items-center gap-2 mb-2">
                                     {msg.action.status === "MODIFIED" ? (
                                         <AlertTriangle className="w-4 h-4 text-amber-500" />
@@ -974,7 +994,7 @@ function ChatMessageRow({
                                     </span>
                                 </div>
 
-                            <div className="bg-black/10 dark:bg-black/30 rounded p-2 mb-2 max-h-40 overflow-y-auto border border-border-main w-full">
+                            <div className="bg-background/55 rounded p-2 mb-2 max-h-40 overflow-y-auto border border-border-main w-full">
                                 <pre className="text-[10px] font-mono text-[color:var(--text-main)] opacity-80 whitespace-pre-wrap">
                                     {msg.action.diff}
                                 </pre>
@@ -987,21 +1007,21 @@ function ChatMessageRow({
                                     </div>
                                 ) : rejectedFixes.has(index) ? (
                                     <div className="flex items-center gap-2 text-xs text-rose-400 font-bold bg-rose-500/10 px-3 py-1.5 rounded-md border border-rose-500/20">
-                                        <XCircle className="w-3 h-3" /> Rejected
+                                        <XCircle className="w-3 h-3" /> {t("chat.fix.rejected")}
                                     </div>
                                 ) : (
                                     <>
                                         <button
                                             onClick={() => onConfirmFix(index, msg.action!.file_path, msg.action!.diff)}
-                                            className="px-3 py-1.5 bg-[var(--accent-500)] hover:opacity-90 text-background text-xs rounded-md shadow-lg shadow-black/30 transition-colors flex items-center gap-1.5 cursor-pointer"
+                                            className="guardian-focus-ring px-3 py-1.5 bg-[var(--accent-500)] hover:opacity-90 text-background text-xs rounded-md shadow-lg shadow-black/30 transition-colors flex items-center gap-1.5 cursor-pointer"
                                         >
-                                            <CheckCircle className="w-3 h-3" /> Confirm & Apply
+                                            <CheckCircle className="w-3 h-3" /> {t("chat.fix.confirmAndApply")}
                                         </button>
                                         <button
                                             onClick={() => onRejectFix(index, msg.action!.file_path)}
-                                            className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white/70 text-xs rounded-md transition-colors flex items-center gap-1.5 cursor-pointer"
+                                            className="guardian-focus-ring px-3 py-1.5 bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-muted text-xs rounded-md transition-colors flex items-center gap-1.5 cursor-pointer"
                                         >
-                                            <XCircle className="w-3 h-3" /> Reject
+                                            <XCircle className="w-3 h-3" /> {t("chat.fix.reject")}
                                         </button>
                                     </>
                                 )}

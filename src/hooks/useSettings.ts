@@ -159,6 +159,7 @@ export interface UseSettingsReturn {
 
   // Safety
   autoVerifyEnabled: boolean;
+  guruReplySoundEnabled: boolean;
   scanProfile: ScanProfile;
   scanProfileSaving: boolean;
   scanProfileError: string | null;
@@ -212,6 +213,8 @@ export interface UseSettingsReturn {
   onWebSearchDepthChange: (value: WebSearchDepth) => void;
   setAutoVerifyEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   onAutoVerifyToggle: () => void;
+  setGuruReplySoundEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+  onGuruReplySoundToggle: () => void;
   setScanProfile: React.Dispatch<React.SetStateAction<ScanProfile>>;
   saveScanProfile: () => Promise<void>;
   onExportPDF: (logs: Record<string, Critique>, path: string) => void;
@@ -305,6 +308,15 @@ export function useSettings(
     return false;
   });
 
+  const [guruReplySoundEnabled, setGuruReplySoundEnabled] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem(STORAGE_KEYS.GURU_REPLY_SOUND_ENABLED);
+      if (stored === null) return true;
+      return stored === "true";
+    }
+    return true;
+  });
+
   // Scan profile state (desktop persisted)
   const [scanProfile, setScanProfile] = useState<ScanProfile>("source");
   const [scanProfileSaving, setScanProfileSaving] = useState(false);
@@ -358,6 +370,11 @@ export function useSettings(
     if (typeof window === "undefined") return;
     localStorage.setItem(STORAGE_KEYS.AUTO_VERIFY_ENABLED, String(autoVerifyEnabled));
   }, [autoVerifyEnabled]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(STORAGE_KEYS.GURU_REPLY_SOUND_ENABLED, String(guruReplySoundEnabled));
+  }, [guruReplySoundEnabled]);
 
   // Load scan profile config when settings opens
   useEffect(() => {
@@ -1015,6 +1032,10 @@ export function useSettings(
     setAutoVerifyEnabled(prev => !prev);
   }, [autoVerifyEnabled, t]);
 
+  const onGuruReplySoundToggle = useCallback((): void => {
+    setGuruReplySoundEnabled((prev) => !prev);
+  }, []);
+
   const onExportPDF = useCallback((logs: Record<string, Critique>, path: string): void => {
     if (exportPdfInProgress) return;
 
@@ -1165,6 +1186,7 @@ export function useSettings(
     webSearchEnabled,
     webSearchDepth,
     autoVerifyEnabled,
+    guruReplySoundEnabled,
     scanProfile,
     scanProfileSaving,
     scanProfileError,
@@ -1207,6 +1229,8 @@ export function useSettings(
     onWebSearchDepthChange,
     setAutoVerifyEnabled,
     onAutoVerifyToggle,
+    setGuruReplySoundEnabled,
+    onGuruReplySoundToggle,
     setScanProfile,
     saveScanProfile,
     onExportPDF,

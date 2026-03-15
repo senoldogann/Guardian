@@ -32,7 +32,7 @@ describe("CritiqueAccordionRow", () => {
     );
 
     expect(screen.getByText("a/b/...")).toBeInTheDocument();
-    expect(screen.getByText("Critical")).toBeInTheDocument();
+    expect(screen.getByText("CRITICAL")).toBeInTheDocument();
 
     await user.click(screen.getByTitle("Quick Fix: Apply this patch immediately"));
 

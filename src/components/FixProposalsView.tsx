@@ -20,10 +20,10 @@ type ProposalFilter = "pending" | "review_requested" | "done" | "all";
 const statusBadgeClass = (status: string): string => {
   const s = (status || "pending").toLowerCase();
   if (s === "pending") return "bg-amber-500/10 text-amber-200 border-amber-500/20";
-  if (s === "review_requested") return "bg-white/5 text-text-muted border-border-main";
+  if (s === "review_requested") return "bg-[var(--panel-muted)] text-text-muted border-border-main";
   if (s === "applied") return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
   if (s === "rejected") return "bg-rose-500/10 text-rose-400 border-rose-500/20";
-  return "bg-white/5 text-text-muted border-border-main";
+  return "bg-[var(--panel-muted)] text-text-muted border-border-main";
 };
 
 export function FixProposalsView({
@@ -148,7 +148,7 @@ export function FixProposalsView({
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="shrink-0 flex items-start justify-between gap-4 px-6 py-4 border-b border-border-main bg-surface/30">
+      <div className="shrink-0 flex items-start justify-between gap-4 px-6 py-4 border-b border-border-main bg-surface/20">
         <div className="space-y-1 min-w-0">
           <h2 className="text-xs font-bold uppercase tracking-widest text-text-muted">
             {t("fixProposals.title")}
@@ -183,12 +183,12 @@ export function FixProposalsView({
             <div className="w-[360px] shrink-0 border-r border-border-main bg-background/20 flex flex-col">
               <div className="p-3 border-b border-border-main space-y-2">
                 <div className="group relative flex items-center gap-2 rounded-xl border border-border-main bg-background/60 px-3 py-2">
-                  <Search className="w-3.5 h-3.5 text-zinc-500 group-focus-within:text-text-main transition-colors" />
+                  <Search className="w-3.5 h-3.5 text-text-muted group-focus-within:text-text-main transition-colors" />
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder={t("fixProposals.searchPlaceholder")}
-                    className="w-full bg-transparent text-xs outline-none placeholder:opacity-50"
+                    className="guardian-focus-ring w-full bg-transparent text-xs outline-none placeholder:opacity-50"
                   />
                 </div>
 
@@ -239,7 +239,7 @@ export function FixProposalsView({
                         type="button"
                         onClick={() => setSelectedProposalId(p.proposal_id)}
                         className={clsx(
-                          "w-full text-left rounded-xl border px-3 py-2 transition-colors",
+                          "guardian-focus-ring w-full text-left rounded-xl border px-3 py-2 transition-colors",
                           selected
                             ? "bg-surface/30 border-border-main shadow-sm"
                             : "bg-background/40 border-border-main hover:bg-surface/20"
@@ -309,7 +309,7 @@ export function FixProposalsView({
                           onClick={onCopyProposedContent}
                           disabled={!selectedHasContent}
                           className={clsx(
-                            "px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer",
+                            "guardian-focus-ring px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer",
                             "bg-background/60 text-text-muted border-border-main hover:bg-border-main",
                             !selectedHasContent && "opacity-50 cursor-not-allowed"
                           )}
@@ -321,7 +321,7 @@ export function FixProposalsView({
                         <button
                           type="button"
                           onClick={onCopyProposalJson}
-                          className="px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer bg-background/60 text-text-muted border-border-main hover:bg-border-main"
+                          className="guardian-focus-ring px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer bg-background/60 text-text-muted border-border-main hover:bg-border-main"
                           title={t("fixProposals.copyProposalJsonTitle")}
                         >
                           <Copy className="w-3 h-3" />
@@ -370,7 +370,7 @@ export function FixProposalsView({
                           onClick={() => selectedProposal && onRequestReview(selectedProposal)}
                           disabled={!selectedHasContent}
                           className={clsx(
-                            "px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
+                            "guardian-focus-ring px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
                             "bg-[var(--accent-200)] text-[var(--accent-500)] border-[var(--accent-400)] hover:opacity-90",
                             !selectedHasContent && "opacity-50 cursor-not-allowed"
                           )}
@@ -383,7 +383,7 @@ export function FixProposalsView({
                       {onSetStatus && selectedStatus !== "rejected" && (
                         <button
                           onClick={() => selectedProposal && onSetStatus(selectedProposal.proposal_id, "rejected")}
-                          className="px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors cursor-pointer bg-rose-500/10 text-rose-300 border-rose-500/20 hover:bg-rose-500/20"
+                          className="guardian-focus-ring px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors cursor-pointer bg-rose-500/10 text-rose-300 border-rose-500/20 hover:bg-rose-500/20"
                           title={t("fixProposals.rejectTitle")}
                         >
                           {t("fixProposals.reject")}
@@ -393,7 +393,7 @@ export function FixProposalsView({
                       {onSetStatus && selectedStatus !== "applied" && (
                         <button
                           onClick={() => selectedProposal && onSetStatus(selectedProposal.proposal_id, "applied")}
-                          className="px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors cursor-pointer bg-emerald-500/10 text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/20"
+                          className="guardian-focus-ring px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors cursor-pointer bg-emerald-500/10 text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/20"
                           title={t("fixProposals.markAppliedTitle")}
                         >
                           {t("fixProposals.markApplied")}

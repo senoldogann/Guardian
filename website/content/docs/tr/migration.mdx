@@ -1,17 +1,19 @@
 ---
 title: "Geçiş Rehberi"
-summary: "Guardian sürümleri arasında güvenli yükseltme, baseline ve guardian.lock uyumu."
+summary: "Guardian sürümleri arasında güvenli yükseltme; policy gate, baseline ve release-decision artefact uyumu."
 section: "Operasyonlar"
 order: 6
 ---
 
 ## Genel bakış
 
-Guardian geriye dönük uyumluluk hedefler; ancak bazı özellikler yükseltmelerde dikkate almanız gereken yeni lokal dosyalar oluşturur:
+Guardian geriye dönük uyumluluk hedefler; ancak release governance akışı yükseltmelerde dikkate almanız gereken bazı lokal artefact'lar üretir:
 
 - `guardian.lock` (tekrar üretilebilir tarama + drift kontrolü)
 - `.guardian/baseline.json` (baseline takibi)
 - `.guardian/critiques.json` (monitor snapshot hydration)
+- `.guardian/release_decisions.jsonl` (insan onayı + override denetim izi)
+- `.guardian/governance_summary.json` (IDE/CLI/otomasyon için governance durum özeti)
 
 Bu rehber, yükseltme sonrası “her şey yeni görünüyor” gibi durumları önleyecek güvenli bir akış önerir.
 

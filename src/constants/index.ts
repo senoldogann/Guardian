@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
   CHAT_PREFIX: "guardian_chat_",
   ONBOARDING_COMPLETED: "guardian_onboarding_completed",
   AUTO_VERIFY_ENABLED: "guardian_auto_verify_enabled",
+  GURU_REPLY_SOUND_ENABLED: "guardian_guru_reply_sound_enabled",
   EMBEDDING_MODE: "guardian_embedding_mode",
   EMBEDDING_OPENAI_BASE_URL: "guardian_embedding_openai_base_url",
   EMBEDDING_OLLAMA_BASE_URL: "guardian_embedding_ollama_base_url",

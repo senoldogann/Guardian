@@ -86,8 +86,8 @@ const CollapsibleNode = ({ data }: { data: FileNodeData }): ReactElement => {
             <Handle type="target" position={Position.Left} className="!bg-[var(--accent-500)] !w-1.5 !h-1.5" />
 
             {data.type === 'folder' && (
-                <div className="p-0.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
-                    {data.expanded ? <ChevronDown className="w-4 h-4 text-[var(--accent-500)]" /> : <ChevronRight className="w-4 h-4 text-zinc-400" />}
+                <div className="p-0.5 rounded-full hover:bg-[var(--panel-muted)] transition-colors">
+                    {data.expanded ? <ChevronDown className="w-4 h-4 text-[var(--accent-500)]" /> : <ChevronRight className="w-4 h-4 text-[var(--text-muted)]" />}
                 </div>
             )}
 
@@ -97,7 +97,7 @@ const CollapsibleNode = ({ data }: { data: FileNodeData }): ReactElement => {
                 {data.label}
             </span>
             {data.type === 'folder' && typeof data.count === 'number' && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10 text-[var(--map-node-text)]">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--panel-muted)] text-[var(--map-node-text)]">
                     {data.count}
                 </span>
             )}
@@ -380,7 +380,7 @@ const DiagramContent = ({
             onNodeClick={onNodeClick}
             nodeTypes={nodeTypes}
             fitView
-            className="bg-zinc-50 dark:bg-black"
+            className="bg-background"
         >
             <Background gap={12} size={1} />
             <Controls />

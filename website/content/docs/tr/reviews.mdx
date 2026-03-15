@@ -1,13 +1,15 @@
 ---
 title: "Reviews ve Fix Proposals"
-summary: "Önerilen fix'leri review kuyruğundan yönetin."
+summary: "Önerilen fix'leri insan onayı, override sorumluluğu ve release kararı izlenebilirliğiyle yönetin."
 section: "Özellikler"
 order: 4
 ---
 
 ## Genel bakış
 
-Reviews & Fix Proposals, fix'leri kontrollü şekilde önizleyip uygulamak için hafif bir kuyruk sağlar. Guardian, workspace'inizdeki şu dosyadan proposal okur:
+Reviews & Fix Proposals, Guardian'ın release governance akışındaki insan onay katmanıdır. Fix'leri kontrollü şekilde önizler/uygular, ardından release kararını onaylayan kişi bağlamıyla izlenebilir hale getirirsiniz.
+
+Guardian, workspace'inizdeki şu dosyadan proposal okur:
 
 ```
 .guardian-proposals/fix_proposals.jsonl
@@ -15,12 +17,19 @@ Reviews & Fix Proposals, fix'leri kontrollü şekilde önizleyip uygulamak için
 
 Bir proposal, **dosyanın TAM güncel içeriğini** (patch/diff değil) içeren bir JSONL kaydıdır. Proposal'ları kendi tooling'inizle üretebilir veya Guru çıktısını kopyalayıp bir proposal kaydı olarak ekleyebilirsiniz.
 
+Release kararları ve override kayıtları ayrı olarak şurada tutulur:
+
+```
+.guardian/release_decisions.jsonl
+```
+
 ## Nasıl çalışır?
 
 1. `.guardian-proposals/fix_proposals.jsonl` dosyasına proposal kayıtları ekleyin
 2. **Reviews** sekmesinden proposal'ları listeleyip önizleyin
 3. **Request Review** ile dosyaya yazdırın ve Guru ile doğrulayın
 4. Sonucu **Applied** veya **Rejected** olarak işaretleyin
+5. Release decision durumunu doğrulayın (`PASS`, `PASS_WITH_WARNING`, `BLOCK_UNTIL_APPROVED`, `OVERRIDDEN`)
 
 ## Reviews'e erişim
 
@@ -133,4 +142,3 @@ Fix proposals workspace içinde saklanır:
 
 - Batch operasyonlar: birden fazla proposal apply/reject
 - Review template'leri: sık kullanılan rejection nedenlerini kaydetme
-

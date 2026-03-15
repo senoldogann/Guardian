@@ -74,13 +74,13 @@ You can change this in **Settings > General > Scan Scope**. Profile changes appl
 | **Warning** | Important issue or risky pattern | Address soon |
 | **Info** | Informational or low-signal note | Optional |
 
-### Finding Categories
+### Governance-Oriented Categories
 
-Guardian can identify:
-- **Security Issues**: Vulnerabilities, exposed secrets
-- **Code Quality**: Anti-patterns, complexity
-- **Performance**: Inefficient patterns
-- **Best Practices**: Style and convention violations
+Guardian prioritizes categories that affect release safety:
+- **Security Hygiene**: Vulnerabilities, exposed secrets, unsafe auth/data handling
+- **Architecture Drift**: Boundary violations, layering breaks, coupling regressions
+- **Quality Guardrails**: Missing tests around risky changes, unsafe refactor patterns
+- **AI-Heavy Risk Signals**: Large/suspicious AI-assisted changes requiring stricter human gate
 
 ## Working with Findings
 

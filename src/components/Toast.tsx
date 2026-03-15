@@ -72,7 +72,7 @@ function ToastItem({
       )}
       <button
         onClick={() => removeToast(id)}
-        className="ml-2 p-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+        className="ml-2 p-1 rounded-lg hover:bg-[var(--panel-muted)] transition-colors"
       >
         <X className="w-4 h-4" />
       </button>

@@ -1,17 +1,17 @@
 ---
 title: "Authentication"
-summary: "Configure AI providers, manage API keys, and secure credential storage."
+summary: "Configure AI providers for release-governance scans, manage API keys, and secure credential storage."
 section: "Operations"
 order: 3
 ---
 
 ## Overview
 
-Guardian uses GitHub device authorization to unlock monitoring. AI providers are configured separately in Settings.
+Guardian authentication is part of the release-governance pipeline. GitHub device authorization unlocks monitoring, and provider credentials determine how Guardian evaluates AI-generated changes before release.
 
 ## Supported Providers
 
-Guardian supports multiple AI providers for code analysis:
+Guardian supports multiple AI providers for governance-oriented code analysis:
 
 | Provider | Description | Best For |
 |----------|-------------|----------|

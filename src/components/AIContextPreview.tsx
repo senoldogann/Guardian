@@ -104,13 +104,13 @@ export function AIContextPreview({
 
   if (!context && !loading && !error) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-4 py-12">
+      <div className="h-full flex flex-col items-center justify-center text-text-muted gap-4 py-12">
         <div className="w-16 h-16 rounded-2xl border border-border-main bg-background/40 flex items-center justify-center">
           <EyeOff className="w-7 h-7 text-text-muted/80" />
         </div>
         <div className="text-center space-y-1">
-          <h3 className="font-bold text-sm text-zinc-500">{t("aiContext.noCapturedTitle")}</h3>
-          <p className="text-[10px] text-zinc-500 font-mono italic">
+          <h3 className="font-bold text-sm text-text-muted">{t("aiContext.noCapturedTitle")}</h3>
+          <p className="text-[10px] text-text-muted font-mono italic">
             {t("aiContext.noCapturedNote")}
           </p>
         </div>
@@ -120,7 +120,7 @@ export function AIContextPreview({
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <div className="shrink-0 flex items-start justify-between gap-4 px-6 py-4 border-b border-border-main bg-surface/30">
+      <div className="shrink-0 flex items-start justify-between gap-4 px-6 py-4 border-b border-border-main bg-surface/20">
         <div className="space-y-1 min-w-0">
           <h2 className="text-xs font-bold uppercase tracking-widest text-text-muted">
             {t("aiContext.title")}
@@ -157,7 +157,7 @@ export function AIContextPreview({
             onClick={() => void onRefreshClick()}
             disabled={loading}
             className={clsx(
-              "px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer",
+              "guardian-focus-ring px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer",
               "bg-background/60 text-text-muted border-border-main hover:bg-border-main",
               loading && "opacity-50 cursor-not-allowed"
             )}
@@ -172,7 +172,7 @@ export function AIContextPreview({
       <div className="flex-1 overflow-hidden">
         <div className="h-full flex flex-col px-6 py-4 gap-3">
           {(redactedCount > 0 || truncatedCount > 0) && (
-            <div className="rounded-xl border border-border-main bg-background/60 px-4 py-3 text-[10px] font-mono text-text-muted flex items-start gap-3">
+          <div className="guardian-subtle-card rounded-xl px-4 py-3 text-[10px] font-mono text-text-muted flex items-start gap-3">
               <div className="shrink-0 mt-0.5">
                 <EyeOff className="w-4 h-4 text-[var(--accent-500)]" />
               </div>
@@ -194,12 +194,12 @@ export function AIContextPreview({
             <div className="w-[320px] shrink-0 border-r border-border-main bg-background/20 flex flex-col">
               <div className="p-3 border-b border-border-main space-y-2">
                 <div className="group relative flex items-center gap-2 rounded-xl border border-border-main bg-background/60 px-3 py-2">
-                  <Search className="w-3.5 h-3.5 text-zinc-500 group-focus-within:text-text-main transition-colors" />
+                  <Search className="w-3.5 h-3.5 text-text-muted group-focus-within:text-text-main transition-colors" />
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder={t("aiContext.searchFilesPlaceholder")}
-                    className="w-full bg-transparent text-xs outline-none placeholder:opacity-50"
+                    className="guardian-focus-ring w-full bg-transparent text-xs outline-none placeholder:opacity-50"
                   />
                 </div>
 
@@ -245,7 +245,7 @@ export function AIContextPreview({
                         type="button"
                         onClick={() => setSelectedFilePath(file.file_path)}
                         className={clsx(
-                          "w-full text-left rounded-xl border px-3 py-2 transition-colors",
+                          "guardian-focus-ring w-full text-left rounded-xl border px-3 py-2 transition-colors",
                           selected
                             ? "bg-surface/30 border-border-main shadow-sm"
                             : "bg-background/40 border-border-main hover:bg-surface/20"
@@ -271,7 +271,7 @@ export function AIContextPreview({
                                 </span>
                               )}
                               {file.truncated && (
-                                <span className="px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-widest border bg-white/5 text-text-muted border-border-main">
+                                <span className="px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-widest border bg-[var(--panel-muted)] text-text-muted border-border-main">
                                   T
                                 </span>
                               )}
@@ -337,7 +337,7 @@ export function AIContextPreview({
                         </span>
                       )}
                       {selectedFile.truncated && (
-                        <span className="px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-white/5 text-text-muted border-border-main">
+                        <span className="px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-[var(--panel-muted)] text-text-muted border-border-main">
                           {t("aiContext.badgeTruncated")}
                         </span>
                       )}

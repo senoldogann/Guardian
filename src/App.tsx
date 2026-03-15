@@ -18,6 +18,7 @@ import { useMonitoringController } from "./hooks/useMonitoringController";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { ControlSidebar } from "./components/layout/ControlSidebar";
 import { MainWorkspace } from "./components/layout/MainWorkspace";
+import { useI18n } from "./i18n";
 import type {
   ProjectContext,
   Critique,
@@ -68,7 +69,10 @@ function parseThemeStorage(raw: string): "dark" | "light" {
   return parsed === "light" ? "light" : "dark";
 }
 
+type WindowWithLegacyAudio = Window & { webkitAudioContext?: typeof AudioContext };
+
 function App(): ReactElement {
+  const { t } = useI18n();
   // Core state
   const [onboardingCompleted, setOnboardingCompleted, onboardingHydrated] = useLocalStorage<boolean>(
     STORAGE_KEYS.ONBOARDING_COMPLETED,
@@ -109,6 +113,7 @@ function App(): ReactElement {
   const [releaseDecisionError, setReleaseDecisionError] = useState<string | null>(null);
   const [view, setView] = useState<"monitor" | "chat" | "diagram" | "ai-context" | "reviews">("monitor");
   const viewRef = useRef(view);
+  const guruReplyAudioRef = useRef<AudioContext | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Theme state
@@ -438,6 +443,65 @@ function App(): ReactElement {
     viewRef.current = view;
   }, [view]);
 
+  useEffect(() => {
+    return () => {
+      const ctx = guruReplyAudioRef.current;
+      if (!ctx) return;
+      void ctx.close().catch(() => {
+        // Ignore audio teardown errors.
+      });
+      guruReplyAudioRef.current = null;
+    };
+  }, []);
+
+  const playGuruReplyChime = useCallback((): void => {
+    if (typeof window === "undefined") return;
+    try {
+      const audioCtor =
+        window.AudioContext || (window as WindowWithLegacyAudio).webkitAudioContext;
+      if (!audioCtor) return;
+      const context = guruReplyAudioRef.current ?? new audioCtor();
+      guruReplyAudioRef.current = context;
+
+      const schedule = (): void => {
+        const start = context.currentTime;
+
+        const masterGain = context.createGain();
+        masterGain.gain.setValueAtTime(0.0001, start);
+        masterGain.gain.exponentialRampToValueAtTime(0.13, start + 0.02);
+        masterGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.5);
+        masterGain.connect(context.destination);
+
+        const playTone = (frequency: number, offset: number, duration: number): void => {
+          const toneStart = start + offset;
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(frequency, toneStart);
+          gain.gain.setValueAtTime(0.0001, toneStart);
+          gain.gain.exponentialRampToValueAtTime(0.15, toneStart + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, toneStart + duration);
+          oscillator.connect(gain);
+          gain.connect(masterGain);
+          oscillator.start(toneStart);
+          oscillator.stop(toneStart + duration + 0.02);
+        };
+
+        playTone(900, 0, 0.18);
+        playTone(1320, 0.12, 0.2);
+      };
+
+      if (context.state === "suspended") {
+        void context.resume().then(schedule).catch(() => {
+          // Ignore playback resume failures.
+        });
+        return;
+      }
+      schedule();
+    } catch {
+      // Ignore audio availability/runtime issues.
+    }
+  }, []);
 
   const openGuruForStall = useCallback((): void => {
     const prompt = stalled
@@ -457,8 +521,11 @@ function App(): ReactElement {
   const handleGuruReply = useCallback((): void => {
     if (viewRef.current === "chat") return;
     setGuruUnreadCount((prev) => Math.min(prev + 1, 99));
-    toast.showToast("Guru reply ready.", "info", 3500);
-  }, [toast]);
+    toast.showToast(t("app.guruReplyReady"), "info", 3500);
+    if (settings.guruReplySoundEnabled) {
+      playGuruReplyChime();
+    }
+  }, [playGuruReplyChime, settings.guruReplySoundEnabled, t, toast]);
 
   const toAbsoluteWorkspacePath = useCallback((filePath: string): string => {
     const trimmed = (filePath ?? "").trim();
@@ -476,12 +543,12 @@ function App(): ReactElement {
 
   const requestReviewForProposal = useCallback(async (proposal: FixProposal): Promise<void> => {
     if (!path) {
-      toast.showWarning("Select a workspace scope first.");
+      toast.showWarning(t("app.selectWorkspaceFirst"));
       return;
     }
     const content = proposal.proposed_content ?? "";
     if (!content.trim()) {
-      toast.showError("Proposal is missing proposed_content.");
+      toast.showError(t("app.proposalMissingContent"));
       return;
     }
 
@@ -495,16 +562,16 @@ function App(): ReactElement {
         note: null,
       });
       setFixProposals(updated ?? null);
-      toast.showSuccess("Review requested. Check Guru for the approval result.");
+      toast.showSuccess(t("app.reviewRequested"));
       setView("chat");
     } catch (e) {
-      toast.showError(`Failed to request review: ${e instanceof Error ? e.message : String(e)}`);
+      toast.showError(t("app.requestReviewFailed", { error: e instanceof Error ? e.message : String(e) }));
     }
-  }, [path, toast, toAbsoluteWorkspacePath]);
+  }, [path, t, toast, toAbsoluteWorkspacePath]);
 
   const setProposalStatus = useCallback(async (proposalId: string, status: string): Promise<void> => {
     if (!path) {
-      toast.showWarning("Select a workspace scope first.");
+      toast.showWarning(t("app.selectWorkspaceFirst"));
       return;
     }
     try {
@@ -515,25 +582,25 @@ function App(): ReactElement {
         note: null,
       });
       setFixProposals(updated ?? null);
-      toast.showSuccess(`Proposal marked: ${status}`);
+      toast.showSuccess(t("app.proposalMarked", { status }));
     } catch (e) {
-      toast.showError(`Failed to update proposal: ${e instanceof Error ? e.message : String(e)}`);
+      toast.showError(t("app.updateProposalFailed", { error: e instanceof Error ? e.message : String(e) }));
     }
-  }, [path, toast]);
+  }, [path, t, toast]);
 
   const undoAppliedFix = useCallback(async (filePath: string): Promise<void> => {
     if (!path) {
-      toast.showWarning("Select a workspace scope first.");
+      toast.showWarning(t("app.selectWorkspaceFirst"));
       return;
     }
     try {
       await invoke("undo_fix", { filePath, root: path });
-      toast.showSuccess("Undo complete.", 3000);
+      toast.showSuccess(t("app.undoComplete"), 3000);
       void refreshFixHistory();
     } catch (e) {
-      toast.showError(`Failed to undo fix: ${e instanceof Error ? e.message : String(e)}`);
+      toast.showError(t("app.undoFailed", { error: e instanceof Error ? e.message : String(e) }));
     }
-  }, [path, refreshFixHistory, toast]);
+  }, [path, refreshFixHistory, t, toast]);
 
   const setReleaseDecisionFromUi = useCallback(
     async (
@@ -542,7 +609,7 @@ function App(): ReactElement {
       reason?: string,
     ): Promise<void> => {
       if (!path) {
-        toast.showWarning("Select a workspace scope first.");
+        toast.showWarning(t("app.selectWorkspaceFirst"));
         return;
       }
       try {
@@ -554,20 +621,20 @@ function App(): ReactElement {
         });
         setReleaseDecision(value ?? null);
         setReleaseDecisionError(null);
-        toast.showSuccess("Release decision updated.");
+        toast.showSuccess(t("app.releaseDecisionUpdated"));
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
         setReleaseDecisionError(message);
-        toast.showError(`Failed to set release decision: ${message}`);
+        toast.showError(t("app.releaseDecisionUpdateFailed", { error: message }));
       }
     },
-    [path, toast],
+    [path, t, toast],
   );
 
   const overrideReleaseDecision = useCallback(
     async (approver: string, reason: string): Promise<void> => {
       if (!path) {
-        toast.showWarning("Select a workspace scope first.");
+        toast.showWarning(t("app.selectWorkspaceFirst"));
         return;
       }
       try {
@@ -578,14 +645,14 @@ function App(): ReactElement {
         });
         setReleaseDecision(value ?? null);
         setReleaseDecisionError(null);
-        toast.showSuccess("Release block overridden with reason.");
+        toast.showSuccess(t("app.releaseBlockOverridden"));
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e);
         setReleaseDecisionError(message);
-        toast.showError(`Failed to override release block: ${message}`);
+        toast.showError(t("app.releaseOverrideFailed", { error: message }));
       }
     },
-    [path, toast],
+    [path, t, toast],
   );
 
   const visibleLogs = useMemo((): Critique[] => {
@@ -666,7 +733,7 @@ function App(): ReactElement {
   const hasAiContextData = Boolean(aiContext && aiContext.files.length > 0);
   const hasReviewData = Boolean((fixProposals?.proposals?.length ?? 0) > 0 || fixHistory.length > 0);
 
-  const engineModel = settings.providerDraft?.model?.trim() || "Not set";
+  const engineModel = settings.providerDraft?.model?.trim() || t("app.notSet");
   const isDesktop = isTauriRuntime();
   const showFloatingFilter =
     !isDesktop || active || baselineView === "resolved" || filter.trim().length > 0;
@@ -690,7 +757,7 @@ function App(): ReactElement {
   });
 
   return (
-    <div className="flex h-screen w-full bg-background text-text-main flex-col font-sans overflow-hidden transition-colors duration-300">
+    <div className="guardian-shell flex h-screen w-full bg-background text-text-main flex-col font-sans overflow-hidden transition-colors duration-300">
       <ToastContainer />
       <SettingsModal
         open={settingsOpen}
@@ -736,6 +803,8 @@ function App(): ReactElement {
           onWebSearchDepthChange: settings.onWebSearchDepthChange,
           autoVerifyEnabled: settings.autoVerifyEnabled,
           onAutoVerifyToggle: settings.onAutoVerifyToggle,
+          guruReplySoundEnabled: settings.guruReplySoundEnabled,
+          onGuruReplySoundToggle: settings.onGuruReplySoundToggle,
           scanProfile: settings.scanProfile,
           scanProfileSaving: settings.scanProfileSaving,
           scanProfileError: settings.scanProfileError,
@@ -844,10 +913,10 @@ function App(): ReactElement {
           >
             <div className="flex flex-col pl-2">
               <span className="text-[10px] uppercase tracking-wider font-bold text-[var(--accent-500)]">
-                Update Available
+                {t("app.updateAvailable")}
               </span>
               <span className="text-xs font-medium opacity-80 text-text-main">
-                v{normalizeVersionLabel(settings.updateInfo.latest_version)} is ready
+                {t("app.updateReady", { version: normalizeVersionLabel(settings.updateInfo.latest_version) })}
               </span>
             </div>
 
@@ -856,16 +925,16 @@ function App(): ReactElement {
             <div className="flex items-center gap-1">
               <button
                 onClick={() => settings.setUpdateDismissed(true)}
-                className="px-3 py-1.5 text-xs font-medium text-text-muted hover:text-text-main hover:bg-white/5 rounded-full transition-colors"
+                className="px-3 py-1.5 text-xs font-medium text-text-muted hover:text-text-main hover:bg-[var(--panel-muted)] rounded-full transition-colors"
               >
-                Later
+                {t("app.later")}
               </button>
               <button
                 onClick={settings.installUpdate}
                 disabled={settings.updateInstalling}
-                className="px-4 py-1.5 text-xs font-bold text-white bg-zinc-900 hover:bg-zinc-800 active:scale-95 rounded-full transition-all shadow-lg shadow-black/20 disabled:opacity-50 disabled:pointer-events-none"
+                className="px-4 py-1.5 text-xs font-bold text-background bg-[var(--accent-500)] hover:opacity-90 active:scale-95 rounded-full transition-all shadow-lg shadow-black/20 disabled:opacity-50 disabled:pointer-events-none"
               >
-                {settings.updateInstalling ? "Updating..." : "Update Now"}
+                {settings.updateInstalling ? t("app.updating") : t("app.updateNow")}
               </button>
             </div>
           </motion.div>
@@ -875,7 +944,7 @@ function App(): ReactElement {
       {settings.updateChecking && !settings.updateInfo && !settings.updateDismissed && (
         <div className="px-6 py-1 text-[10px] text-text-muted flex items-center gap-2">
           <span className="inline-block h-2 w-2 rounded-full bg-border-main animate-pulse" />
-          Checking for updates...
+          {t("app.checkingUpdates")}
         </div>
       )}
 
@@ -885,54 +954,56 @@ function App(): ReactElement {
         </div>
       )}
 
-      <div className="flex-1 flex overflow-hidden">
-        <ControlSidebar
-          view={view}
-          onViewChange={setView}
-	          hasAiContextData={hasAiContextData}
-	          hasReviewData={hasReviewData}
-	          pendingFixProposalsCount={pendingFixProposalsCount}
-	          guruUnreadCount={guruUnreadCount}
-	          totalFiles={context?.total_files || 0}
-          totalIssues={stats.total}
-          scopeLabel={scopeLabel}
-          onSelectScope={selectScope}
-          tokens={usage.tokens}
-          calls={usage.calls}
-          filesAnalyzed={usage.files}
-          queueWaitMs={usage.queueWaitMs}
-          scanProfileLabel={scanProfileLabel}
-          baselineLoading={baselineLoading}
-          baselineStatus={baselineStatus}
-          baselineValid={baselineValid}
-          baselineMetrics={baselineMetrics}
-          baselineError={baselineError}
-          baselineView={baselineView}
-          onSetBaselineNow={setBaselineNow}
-          onClearBaselineNow={clearBaselineNow}
-          onBaselineViewChange={setBaselineView}
-          path={path}
-          engineModel={engineModel}
-          embeddingModeLabel={embeddingModeLabel}
-          onOpenEmbeddingSettings={() => {
-            settings.setSettingsTab("embedding");
-            setSettingsOpen(true);
-          }}
-          authBannerVisible={auth.authGateVisible}
-          authShowGate={auth.showAuthGate}
-          authRequiresVerified={auth.requiresVerified}
-          authLoading={auth.authLoading}
-          authError={auth.authError}
-          authWarning={auth.authWarning}
-          onVerifyAuth={auth.refreshAuthSession}
-          settingsRequiresApiKey={settings.requiresApiKey}
-          providerLabel={settings.providerLabel}
-          onOpenSettings={() => setSettingsOpen(true)}
-          active={active}
-          canToggleMonitoring={canToggleMonitoring}
-          onToggleMonitoring={toggleMonitoring}
-          launchBlockingReason={launchGate.blockingReason}
-        />
+      <div className="flex-1 flex overflow-hidden p-3 gap-3">
+        <div className="min-h-0 flex">
+          <ControlSidebar
+            view={view}
+            onViewChange={setView}
+            hasAiContextData={hasAiContextData}
+            hasReviewData={hasReviewData}
+            pendingFixProposalsCount={pendingFixProposalsCount}
+            guruUnreadCount={guruUnreadCount}
+            totalFiles={context?.total_files || 0}
+            totalIssues={stats.total}
+            scopeLabel={scopeLabel}
+            onSelectScope={selectScope}
+            tokens={usage.tokens}
+            calls={usage.calls}
+            filesAnalyzed={usage.files}
+            queueWaitMs={usage.queueWaitMs}
+            scanProfileLabel={scanProfileLabel}
+            baselineLoading={baselineLoading}
+            baselineStatus={baselineStatus}
+            baselineValid={baselineValid}
+            baselineMetrics={baselineMetrics}
+            baselineError={baselineError}
+            baselineView={baselineView}
+            onSetBaselineNow={setBaselineNow}
+            onClearBaselineNow={clearBaselineNow}
+            onBaselineViewChange={setBaselineView}
+            path={path}
+            engineModel={engineModel}
+            embeddingModeLabel={embeddingModeLabel}
+            onOpenEmbeddingSettings={() => {
+              settings.setSettingsTab("embedding");
+              setSettingsOpen(true);
+            }}
+            authBannerVisible={auth.authGateVisible}
+            authShowGate={auth.showAuthGate}
+            authRequiresVerified={auth.requiresVerified}
+            authLoading={auth.authLoading}
+            authError={auth.authError}
+            authWarning={auth.authWarning}
+            onVerifyAuth={auth.refreshAuthSession}
+            settingsRequiresApiKey={settings.requiresApiKey}
+            providerLabel={settings.providerLabel}
+            onOpenSettings={() => setSettingsOpen(true)}
+            active={active}
+            canToggleMonitoring={canToggleMonitoring}
+            onToggleMonitoring={toggleMonitoring}
+            launchBlockingReason={launchGate.blockingReason}
+          />
+        </div>
 
         <MainWorkspace
           view={view}

@@ -1,13 +1,15 @@
 ---
 title: "Reviews & Fix Proposals"
-summary: "Manage suggested fixes through the review queue."
+summary: "Manage suggested fixes with human approval, override accountability, and release decision traceability."
 section: "Features"
 order: 4
 ---
 
 ## Overview
 
-Reviews & Fix Proposals provide a lightweight queue for previewing and applying fixes in a controlled way. Guardian reads proposals from your workspace at:
+Reviews & Fix Proposals are the human-approval stage of Guardian's release governance flow. You preview and apply fixes in a controlled queue, then record the release decision outcome with approver context.
+
+Guardian reads proposals from your workspace at:
 
 ```
 .guardian-proposals/fix_proposals.jsonl
@@ -15,12 +17,19 @@ Reviews & Fix Proposals provide a lightweight queue for previewing and applying 
 
 A proposal is a JSONL record that contains the **FULL updated file content** (not a patch/diff). You can generate proposals from your own tooling, or copy/paste Guru output into a proposal entry.
 
+Release decisions and overrides are recorded separately at:
+
+```
+.guardian/release_decisions.jsonl
+```
+
 ## How It Works
 
 1. Append proposal records to `.guardian-proposals/fix_proposals.jsonl`
 2. Open **Reviews** to browse and preview proposals
 3. Click **Request Review** to write the proposed content to disk and verify it in Guru
 4. Mark the outcome as **Applied** or **Rejected**
+5. Record or review release decision state (`PASS`, `PASS_WITH_WARNING`, `BLOCK_UNTIL_APPROVED`, `OVERRIDDEN`)
 
 ## Accessing Reviews
 
@@ -133,4 +142,3 @@ Fix proposals are stored in your workspace:
 
 - Batch operations: apply/reject multiple proposals at once
 - Review templates: save common rejection reasons
-

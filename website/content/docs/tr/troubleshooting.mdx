@@ -1,9 +1,17 @@
 ---
 title: "Sorun Giderme"
-summary: "Kurulum, giriş, tarama ve güncelleme problemleri için hızlı çözümler."
+summary: "Kurulum, provider, tarama ve release-gate governance sorunları için hızlı çözümler."
 section: "Destek"
 order: 4
 ---
+
+## Release governance hızlı kontrol
+
+Derin debug'a geçmeden önce şu üç noktayı doğrulayın:
+
+1. Workspace root içinde `guardian.policy.yaml` dosyası var ve geçerli.
+2. Monitor veya CLI çıktısında açık bir release decision durumu görünüyor (`PASS`, `PASS_WITH_WARNING`, `BLOCK_UNTIL_APPROVED`, `OVERRIDDEN`).
+3. Blok override edildiyse `.guardian/release_decisions.jsonl` içinde onaylayan + gerekçe kaydı var.
 
 ## Kurulum sorunları
 
@@ -239,4 +247,3 @@ Support için ekleyin:
 - Repro adımları
 - Hata mesajları
 - (Mümkünse) export edilen loglar
-

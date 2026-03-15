@@ -1,9 +1,17 @@
 ---
 title: "Troubleshooting"
-summary: "Quick fixes for common install, login, scan, and update issues."
+summary: "Quick fixes for common install, provider, scan, and release-gate governance issues."
 section: "Support"
 order: 4
 ---
+
+## Release Governance Quick Triage
+
+Before deep debugging, verify these three points:
+
+1. `guardian.policy.yaml` is present and valid in the workspace root.
+2. Monitor or CLI output clearly shows one of the release decisions (`PASS`, `PASS_WITH_WARNING`, `BLOCK_UNTIL_APPROVED`, `OVERRIDDEN`).
+3. If a block is overridden, `.guardian/release_decisions.jsonl` contains approver + reason.
 
 ## Installation Issues
 

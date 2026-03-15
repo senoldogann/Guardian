@@ -772,6 +772,9 @@ GUIDELINES:
 5. OUTPUT: A JSON Array of Critique objects. Each 'message' MUST include a WHY statement (risk/impact).
 6. NO PLACEHOLDERS: Do not return placeholder TODO snippets, pseudo-code, or "remaining logic unchanged" templates.
 7. If a file looks good, you CAN skip it in the output OR return a "LGTM" message.
+8. LOW-NOISE POLICY: Ignore style-only, naming-only, or readability-only nits. Warning/Critical should be reserved for release-impacting risks.
+9. SEVERITY DISCIPLINE: Use Critical only when exploitability, production outage, data corruption/loss, auth bypass, or secret exposure risk is concrete.
+10. SUGGESTION QUALITY: Suggestions must be repository-context aware and directly actionable for the file/language in scope.
 
 JSON ARRAY MODE:
 [

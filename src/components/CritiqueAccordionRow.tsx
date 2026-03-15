@@ -53,6 +53,12 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
     const severity = log.severity.toLowerCase();
     const isCritical = severity === "critical";
     const isWarning = severity === "warning";
+    const severityLabel =
+        log.severity === "Critical"
+            ? t("critique.severityCritical")
+            : log.severity === "Warning"
+                ? t("critique.severityWarning")
+                : t("critique.severityInfo");
     const { showError, showSuccess } = useToast();
     const [undoReady, setUndoReady] = React.useState<boolean>(() => Boolean(undoAvailable));
 
@@ -135,8 +141,8 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
             <div
                 onClick={onToggle}
                 className={clsx(
-                    "flex items-center px-6 py-4 cursor-pointer hover:bg-white/[0.02] transition-colors relative group",
-                    isExpanded ? "bg-white/[0.03]" : ""
+                    "flex items-center px-6 py-4 cursor-pointer hover:bg-[var(--panel-muted)] transition-colors relative group",
+                    isExpanded ? "bg-[var(--panel-bg)]" : ""
                 )}
                 role="button"
                 tabIndex={0}
@@ -160,7 +166,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                     "px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border",
                                     findingStatus === "new"
                                         ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                        : "bg-white/5 text-text-muted border-border-main"
+                                        : "bg-[var(--panel-muted)] text-text-muted border-border-main"
                                 )}
                                 title={
                                     findingStatus === "new"
@@ -207,7 +213,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                     {log.suggested_diff && undoReady && (
                         <button
                             onClick={undoFix}
-                            className="flex items-center gap-1.5 text-xs font-bold text-text-main bg-background/60 px-2.5 py-1.5 rounded-lg border border-border-main hover:bg-background transition-colors cursor-pointer z-10 min-w-[76px] justify-center"
+                            className="flex items-center gap-1.5 text-xs font-bold text-text-main bg-background/60 px-2.5 py-1.5 rounded-lg border border-border-main hover:bg-background transition-colors cursor-pointer z-10 min-w-[112px] justify-center whitespace-nowrap"
                             title={t("reviews.undoTitle")}
                         >
                             <RotateCcw className="w-3.5 h-3.5" /> {t("critique.undo")}
@@ -219,7 +225,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                             isWarning ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
                                 "bg-[var(--accent-200)] text-[var(--accent-500)] border-[var(--accent-400)]"
                     )}>
-                        {log.severity}
+                        {severityLabel}
                     </span>
                     {isExpanded ? <ChevronDown className="w-4 h-4 opacity-40" /> : <ChevronRight className="w-4 h-4 opacity-20 group-hover:opacity-60 transition-opacity" />}
                 </div>

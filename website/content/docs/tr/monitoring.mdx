@@ -74,13 +74,13 @@ Guardian, **maliyet vs kapsam** dengesini yönetmek için üç profil sunar.
 | **Warning** | Önemli riskli pattern | Kısa sürede ele alın |
 | **Info** | Bilgilendirici / düşük sinyal not | Opsiyonel |
 
-### Kategori örnekleri
+### Governance odaklı kategori örnekleri
 
-Guardian şunları tespit edebilir:
-- **Security**: Zafiyetler, açık secret'lar
-- **Code quality**: Anti-pattern'ler, yüksek kompleksite
-- **Performance**: Verimsiz pattern'ler
-- **Best practices**: Stil ve konvansiyon ihlalleri
+Guardian, release güvenliğini etkileyen kategorileri önceliklendirir:
+- **Security hijyeni**: Zafiyetler, açık secret'lar, güvensiz auth/veri işleme
+- **Architecture drift**: Katman sınırı ihlalleri, coupling artışı, mimari sapmalar
+- **Quality guardrail**: Riskli değişikliklerde eksik test ve güvensiz refactor pattern'leri
+- **AI-heavy risk sinyalleri**: Daha sıkı insan kapısı gerektiren büyük/şüpheli AI destekli değişiklikler
 
 ## Bulgularla çalışma
 

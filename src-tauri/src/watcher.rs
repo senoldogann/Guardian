@@ -268,6 +268,357 @@ fn is_significant_warning(critique: &crate::ai_client::Critique) -> bool {
     keywords.iter().any(|k| combined.contains(k))
 }
 
+fn contains_any(haystack: &str, needles: &[&str]) -> bool {
+    needles.iter().any(|needle| haystack.contains(needle))
+}
+
+fn allow_low_signal_warnings() -> bool {
+    std::env::var("GUARDIAN_ALLOW_LOW_SIGNAL_WARNINGS")
+        .ok()
+        .map(|raw| {
+            let value = raw.trim().to_lowercase();
+            value == "1" || value == "true" || value == "yes" || value == "on"
+        })
+        .unwrap_or(false)
+}
+
+fn warning_signal_score(critique: &crate::ai_client::Critique) -> i32 {
+    let message = critique.message.to_lowercase();
+    let suggestion = critique
+        .suggestion
+        .as_ref()
+        .map(|value| value.to_lowercase())
+        .unwrap_or_default();
+    let combined = format!("{} {}", message, suggestion);
+
+    let high_risk_terms = [
+        "security",
+        "vulnerability",
+        "exploit",
+        "injection",
+        "auth",
+        "permission",
+        "secret",
+        "credential",
+        "token leak",
+        "password",
+        "path traversal",
+        "privilege",
+        "sandbox escape",
+        "rce",
+        "xss",
+        "csrf",
+        "güvenlik",
+        "yetki",
+        "izin",
+        "sızıntı",
+    ];
+    let reliability_terms = [
+        "panic",
+        "crash",
+        "deadlock",
+        "race",
+        "data loss",
+        "corruption",
+        "timeout",
+        "availability",
+        "dos",
+        "fail open",
+        "retry storm",
+        "çök",
+        "yarış",
+        "veri kaybı",
+        "zaman aşımı",
+    ];
+    let architecture_terms = [
+        "architectural drift",
+        "boundary",
+        "layer violation",
+        "coupling",
+        "policy violation",
+        "release gate",
+        "mimari",
+        "katman ihlali",
+        "bağımlılık ihlali",
+    ];
+    let noise_terms = [
+        "consider",
+        "might improve",
+        "could improve",
+        "readability",
+        "naming",
+        "style",
+        "minor",
+        "nit",
+        "nice to have",
+        "add more comments",
+        "best practice in general",
+        "genel en iyi uygulama",
+        "okunabilirlik",
+        "isimlendirme",
+        "stili",
+        "iyileştirilebilir",
+        "önerilir",
+    ];
+
+    let mut score = 0;
+    if contains_any(&combined, &high_risk_terms) {
+        score += 4;
+    }
+    if contains_any(&combined, &reliability_terms) {
+        score += 3;
+    }
+    if contains_any(&combined, &architecture_terms) {
+        score += 2;
+    }
+    if critique.message.contains("->")
+        || critique.message.contains("because")
+        || critique.message.contains("risk")
+        || critique.message.contains("neden")
+        || critique.message.contains("etki")
+    {
+        score += 1;
+    }
+    if !critique.file_path.trim().is_empty() {
+        score += 1;
+    }
+    if contains_any(&combined, &noise_terms) {
+        score -= 3;
+    }
+    if critique.message.trim().len() < 48 {
+        score -= 1;
+    }
+    if critique
+        .suggestion
+        .as_ref()
+        .map(|value| value.trim().len() < 24)
+        .unwrap_or(true)
+    {
+        score -= 1;
+    }
+    score
+}
+
+fn is_low_signal_warning(critique: &crate::ai_client::Critique) -> bool {
+    warning_signal_score(critique) < 2
+}
+
+fn suggestion_is_generic(suggestion: &str) -> bool {
+    let normalized = suggestion.trim().to_lowercase();
+    if normalized.is_empty() {
+        return true;
+    }
+    let generic_terms = [
+        "consider improving",
+        "consider adding",
+        "best practice",
+        "review this",
+        "improve readability",
+        "add more logging",
+        "add tests",
+        "gözden geçir",
+        "iyileştirilebilir",
+        "en iyi uygulama",
+        "log ekle",
+    ];
+    contains_any(&normalized, &generic_terms)
+}
+
+fn contextual_suggestion(language: &str, file_path: &str, combined: &str) -> String {
+    let path_lower = file_path.to_lowercase();
+
+    if contains_any(
+        combined,
+        &["secret", "credential", "token", "password", "api key"],
+    ) {
+        return ui_text(
+            language,
+            "Move secrets to secure storage (env/Keychain), rotate exposed tokens, and add a startup guard that fails fast when required secrets are missing.",
+            "Secret bilgilerini güvenli depoya (env/Keychain) taşıyın, sızmış tokenları döndürün ve zorunlu secret yoksa hızlı fail veren bir başlangıç kontrolü ekleyin.",
+        )
+        .to_string();
+    }
+
+    if contains_any(
+        combined,
+        &["timeout", "rate limit", "retry", "backoff", "zaman aşımı"],
+    ) {
+        return ui_text(
+            language,
+            "Add bounded retries with exponential backoff + jitter, set provider-specific timeout, and surface a user-safe fallback message.",
+            "Sınırlı retry + exponential backoff + jitter ekleyin, provider bazlı timeout tanımlayın ve kullanıcıya güvenli fallback mesajı gösterin.",
+        )
+        .to_string();
+    }
+
+    if path_lower.ends_with(".rs") {
+        return ui_text(
+            language,
+            "Replace panic-prone paths (`unwrap/expect`) with `Result` propagation, add a negative-path unit test, and return an actionable error context.",
+            "Panik üretebilecek yolları (`unwrap/expect`) `Result` propagasyonu ile değiştirin, negatif-path unit test ekleyin ve aksiyon alınabilir hata bağlamı döndürün.",
+        )
+        .to_string();
+    }
+
+    if path_lower.ends_with(".ts")
+        || path_lower.ends_with(".tsx")
+        || path_lower.ends_with(".js")
+        || path_lower.ends_with(".jsx")
+    {
+        return ui_text(
+            language,
+            "Apply strict input validation at the boundary, avoid unsafe HTML rendering, and add an integration test covering the risky branch.",
+            "Sınır katmanda sıkı input doğrulaması uygulayın, unsafe HTML render'dan kaçının ve riskli dalı kapsayan bir integration test ekleyin.",
+        )
+        .to_string();
+    }
+
+    if path_lower.ends_with(".py") {
+        return ui_text(
+            language,
+            "Harden exception handling for file/network operations, validate untrusted input early, and add regression tests for malformed data.",
+            "Dosya/ağ işlemlerinde exception handling'i güçlendirin, güvenilmeyen girdiyi erken doğrulayın ve bozuk veri için regression test ekleyin.",
+        )
+        .to_string();
+    }
+
+    if path_lower.ends_with(".swift") {
+        return ui_text(
+            language,
+            "Guard permission-sensitive paths (Keychain/Accessibility), avoid hardcoded secrets, and add tests for denied-permission scenarios.",
+            "İzin hassas yolları (Keychain/Accessibility) guard edin, hardcoded secret kullanmayın ve izin reddi senaryoları için test ekleyin.",
+        )
+        .to_string();
+    }
+
+    if path_lower.ends_with(".json")
+        || path_lower.ends_with(".yaml")
+        || path_lower.ends_with(".yml")
+        || path_lower.ends_with(".toml")
+        || path_lower.contains("config")
+        || path_lower.contains("settings")
+    {
+        return ui_text(
+            language,
+            "Enforce schema-based config validation, reject unknown keys, and fail closed when required security fields are missing.",
+            "Şema tabanlı config doğrulaması uygulayın, bilinmeyen anahtarları reddedin ve zorunlu güvenlik alanları eksikse fail-closed davranın.",
+        )
+        .to_string();
+    }
+
+    ui_text(
+        language,
+        "Tie this finding to a concrete release risk, patch the risky code path, and add a test that reproduces the failure mode.",
+        "Bu bulguyu somut release riskine bağlayın, riskli kod yolunu yamalayın ve hata modunu yeniden üreten bir test ekleyin.",
+    )
+    .to_string()
+}
+
+fn normalize_severity_token(raw: &str) -> String {
+    let normalized = raw.trim().to_lowercase();
+    match normalized.as_str() {
+        "critical" => "Critical".to_string(),
+        "warning" => "Warning".to_string(),
+        "info" => "Info".to_string(),
+        "lgtm" => "LGTM".to_string(),
+        _ => "Warning".to_string(),
+    }
+}
+
+fn has_strong_critical_signal(critique: &crate::ai_client::Critique) -> bool {
+    let combined = format!(
+        "{} {} {}",
+        critique.file_path.to_lowercase(),
+        critique.message.to_lowercase(),
+        critique
+            .suggestion
+            .as_ref()
+            .map(|value| value.to_lowercase())
+            .unwrap_or_default()
+    );
+    let critical_terms = [
+        "critical",
+        "security",
+        "vulnerability",
+        "exploit",
+        "rce",
+        "token leak",
+        "secret",
+        "credential",
+        "privilege",
+        "auth bypass",
+        "injection",
+        "xss",
+        "csrf",
+        "panic",
+        "crash",
+        "data loss",
+        "corruption",
+        "deadlock",
+        "race condition",
+        "production outage",
+        "güvenlik",
+        "kritik",
+        "sızıntı",
+        "çök",
+    ];
+    contains_any(&combined, &critical_terms)
+}
+
+fn calibrate_critique_for_precision(
+    critique: &mut crate::ai_client::Critique,
+    language: &str,
+) -> bool {
+    critique.severity = normalize_severity_token(&critique.severity);
+
+    if critique.message.trim().is_empty() {
+        return false;
+    }
+
+    if critique.severity.eq_ignore_ascii_case("critical") && !has_strong_critical_signal(critique) {
+        critique.severity = "Warning".to_string();
+        let note = ui_text(
+            language,
+            "Severity auto-calibrated from Critical to Warning due to weak exploit/failure evidence.",
+            "Exploit/hata etkisi kanıtı zayıf olduğu için seviye Critical'dan Warning'e otomatik kalibre edildi.",
+        );
+        if !critique.message.contains(note) {
+            critique.message = format!("{} {}", critique.message.trim(), note);
+        }
+    }
+
+    if critique.severity.eq_ignore_ascii_case("warning")
+        && is_low_signal_warning(critique)
+        && !allow_low_signal_warnings()
+    {
+        return false;
+    }
+
+    let combined = format!(
+        "{} {}",
+        critique.message.to_lowercase(),
+        critique
+            .suggestion
+            .as_ref()
+            .map(|value| value.to_lowercase())
+            .unwrap_or_default()
+    );
+    if critique
+        .suggestion
+        .as_ref()
+        .map(|value| suggestion_is_generic(value))
+        .unwrap_or(true)
+    {
+        critique.suggestion = Some(contextual_suggestion(
+            language,
+            &critique.file_path,
+            &combined,
+        ));
+    }
+
+    true
+}
+
 fn should_surface_critique(critique: &crate::ai_client::Critique, profile: ScanProfile) -> bool {
     let severity = critique.severity.trim().to_lowercase();
     // Critical is always shown.
@@ -332,22 +683,25 @@ fn should_surface_critique(critique: &crate::ai_client::Critique, profile: ScanP
     match profile {
         ScanProfile::Source => {
             // Source: keep noise low.
-            severity == "warning" && is_significant_warning(critique)
+            severity == "warning"
+                && is_significant_warning(critique)
+                && (!is_low_signal_warning(critique) || allow_low_signal_warnings())
         }
         ScanProfile::Extended => {
             // Extended: allow significant warnings everywhere, and infra/security warnings only for infra-like files.
             if severity == "warning" && is_significant_warning(critique) {
-                return true;
+                return !is_low_signal_warning(critique) || allow_low_signal_warnings();
             }
             if severity == "warning" && is_infra_relevant_path(Path::new(&critique.file_path)) {
-                return has_infra_security_keywords();
+                return has_infra_security_keywords()
+                    && (!is_low_signal_warning(critique) || allow_low_signal_warnings());
             }
             false
         }
         ScanProfile::Full => {
-            // Full: show all warnings. Info stays gated to significant markers.
+            // Full: show warnings unless explicitly classified as low-signal.
             if severity == "warning" {
-                return true;
+                return !is_low_signal_warning(critique) || allow_low_signal_warnings();
             }
             if severity == "info" {
                 return is_significant_info();
@@ -1890,13 +2244,30 @@ fn handle_critiques(
         if critique.file_path.trim().is_empty() && items.len() == 1 {
             critique.file_path = items[0].path.to_string_lossy().to_string();
         }
+        let path_key = critique.file_path.clone();
+        if !calibrate_critique_for_precision(&mut critique, language) {
+            if active_lock.remove(&path_key).is_some() {
+                app.emit("guardian:clear", path_key.clone()).ok();
+                let rel_path = normalize_rel_file_path(workspace_root, &path_key);
+                append_agent_event(
+                    root,
+                    &json!({
+                        "timestamp": Utc::now().to_rfc3339(),
+                        "event": "clear",
+                        "file_path": rel_path,
+                        "finding_id": null,
+                        "reason": "precision_filtered"
+                    }),
+                );
+            }
+            continue;
+        }
         critique.finding_id = Some(crate::baseline::manager::finding_id_for_critique(
             workspace_root,
             &critique,
             &rules_hash,
         ));
         // Critiques for specific files
-        let path_key = critique.file_path.clone();
         if critique.message.to_uppercase().trim() == "LGTM" {
             active_lock.remove(&path_key);
             app.emit("guardian:clear", path_key.clone()).ok();
@@ -2381,6 +2752,141 @@ async fn audit_file_logic(
     let _ = tx.send(item).await;
 }
 
+fn write_governance_summary(
+    root_path: &Path,
+    guardian_dir: &Path,
+    workspace_id: &str,
+    rules_hash: &str,
+    critiques: &HashMap<String, crate::ai_client::Critique>,
+) {
+    let summary_json_path = guardian_dir.join("governance_summary.json");
+    let summary_md_path = guardian_dir.join("governance_summary.md");
+
+    let mut entries: Vec<(String, &crate::ai_client::Critique)> = critiques
+        .iter()
+        .map(|(path, critique)| (normalize_rel_file_path(root_path, path), critique))
+        .collect();
+    entries.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+    let mut critical = 0usize;
+    let mut warning = 0usize;
+    let mut info = 0usize;
+    let mut findings_payload = Vec::with_capacity(entries.len());
+
+    for (rel_path, critique) in &entries {
+        let severity = normalize_severity_token(&critique.severity);
+        match severity.as_str() {
+            "Critical" => critical += 1,
+            "Warning" => warning += 1,
+            _ => info += 1,
+        }
+        let finding_id = critique.finding_id.clone().unwrap_or_else(|| {
+            crate::baseline::manager::finding_id_for_critique(root_path, critique, rules_hash)
+        });
+        findings_payload.push(json!({
+            "finding_id": finding_id,
+            "file_path": rel_path,
+            "severity": severity,
+            "message": critique.message,
+            "suggestion": critique.suggestion,
+            "why": critique.why
+        }));
+    }
+
+    let total = critical + warning + info;
+    let release_recommendation = if critical > 0 {
+        "BLOCK_UNTIL_APPROVED"
+    } else if warning > 0 {
+        "PASS_WITH_WARNING"
+    } else {
+        "PASS"
+    };
+
+    let payload = json!({
+        "schema_version": 1,
+        "generated_at": Utc::now().to_rfc3339(),
+        "root": root_path.to_string_lossy(),
+        "workspace_id": workspace_id,
+        "rules_hash": rules_hash,
+        "summary": {
+            "total_findings": total,
+            "critical": critical,
+            "warning": warning,
+            "info": info,
+            "release_recommendation": release_recommendation
+        },
+        "consumer_guides": {
+            "ide": "Read highest severity first. Resolve Critical before merge. Treat Warning as risk debt with due date.",
+            "cli": "Use guardian-cli scan --release-gate strict for release checks and persist report as .guardian/release_gate_report.json.",
+            "llm_agents": "Read .guardian/critiques.json and .guardian/release_gate_report.json first. Do not auto-approve release based only on fix suggestions."
+        },
+        "findings": findings_payload
+    });
+
+    if let Ok(mut json_file) = fs::File::create(&summary_json_path) {
+        let _ = writeln!(
+            json_file,
+            "{}",
+            serde_json::to_string_pretty(&payload).unwrap_or_default()
+        );
+    }
+
+    if let Ok(mut md_file) = fs::File::create(&summary_md_path) {
+        let _ = writeln!(md_file, "# Guardian Governance Summary");
+        let _ = writeln!(md_file, "Updated: {}", Utc::now().to_rfc3339());
+        let _ = writeln!(md_file, "");
+        let _ = writeln!(md_file, "- Root: `{}`", root_path.to_string_lossy());
+        let _ = writeln!(md_file, "- Workspace ID: `{}`", workspace_id);
+        let _ = writeln!(md_file, "- Rules Hash: `{}`", rules_hash);
+        let _ = writeln!(
+            md_file,
+            "- Release Recommendation: `{}`",
+            release_recommendation
+        );
+        let _ = writeln!(
+            md_file,
+            "- Counts: critical=`{}` warning=`{}` info=`{}` total=`{}`",
+            critical, warning, info, total
+        );
+        let _ = writeln!(md_file, "");
+        let _ = writeln!(md_file, "## Agent Notes");
+        let _ = writeln!(
+            md_file,
+            "- IDE: show highest-severity findings first and link directly to file paths."
+        );
+        let _ = writeln!(
+            md_file,
+            "- CLI: prefer `guardian-cli scan --release-gate strict --format json` in CI."
+        );
+        let _ = writeln!(
+            md_file,
+            "- LLM Agents: do not auto-approve releases from suggestions; require explicit human decision."
+        );
+        let _ = writeln!(md_file, "");
+        let _ = writeln!(md_file, "## Findings");
+        if entries.is_empty() {
+            let _ = writeln!(md_file, "- No active findings.");
+        } else {
+            for (rel_path, critique) in entries.iter().take(50) {
+                let _ = writeln!(
+                    md_file,
+                    "- [{}] `{}`: {}",
+                    normalize_severity_token(&critique.severity),
+                    rel_path,
+                    critique.message
+                );
+            }
+            if entries.len() > 50 {
+                let _ = writeln!(
+                    md_file,
+                    "- ... {} more findings in `governance_summary.json`",
+                    entries.len().saturating_sub(50)
+                );
+            }
+        }
+    }
+}
+
 fn sync_guardian_logs(
     root: &str,
     critiques: &HashMap<String, crate::ai_client::Critique>,
@@ -2491,6 +2997,14 @@ fn sync_guardian_logs(
             }
         }
     }
+
+    write_governance_summary(
+        root_path,
+        &guardian_dir,
+        &workspace_id,
+        &rules_hash,
+        critiques,
+    );
 
     let stall_path = guardian_dir.join("STALL");
     if let Some(info) = &critical_info {
@@ -2821,6 +3335,68 @@ mod tests_protocol {
     use std::collections::HashMap;
     use std::fs;
     use tempfile::TempDir;
+
+    fn sample_critique(path: &str, severity: &str, message: &str) -> crate::ai_client::Critique {
+        crate::ai_client::Critique {
+            file_path: path.to_string(),
+            severity: severity.to_string(),
+            message: message.to_string(),
+            suggestion: None,
+            chat_message: None,
+            suggested_diff: None,
+            finding_id: None,
+            why: None,
+        }
+    }
+
+    #[test]
+    fn precision_calibration_filters_low_signal_warning() {
+        let mut critique = sample_critique(
+            "src/app.ts",
+            "Warning",
+            "Consider improving readability and naming for better style.",
+        );
+        let keep = calibrate_critique_for_precision(&mut critique, "en");
+        assert!(!keep, "low-signal style warning should be filtered");
+    }
+
+    #[test]
+    fn precision_calibration_downgrades_weak_critical() {
+        let mut critique = sample_critique(
+            "src/app.ts",
+            "Critical",
+            "Could be improved with additional comments and readability updates.",
+        );
+        let keep = calibrate_critique_for_precision(&mut critique, "en");
+        assert!(!keep);
+        assert_eq!(critique.severity, "Warning");
+    }
+
+    #[test]
+    fn governance_summary_files_are_written_with_sync() {
+        let tmp = TempDir::new().expect("tempdir");
+        let root = tmp.path();
+        let abs_path = root.join("src").join("main.rs");
+        let abs_str = abs_path.to_string_lossy().to_string();
+
+        let mut critiques = HashMap::new();
+        critiques.insert(
+            abs_str.clone(),
+            sample_critique(&abs_str, "Critical", "Security risk detected in auth path."),
+        );
+
+        let _ = sync_guardian_logs(root.to_string_lossy().as_ref(), &critiques);
+        let summary_json = root.join(".guardian").join("governance_summary.json");
+        let summary_md = root.join(".guardian").join("governance_summary.md");
+        assert!(summary_json.exists());
+        assert!(summary_md.exists());
+
+        let parsed: serde_json::Value = serde_json::from_str(
+            &fs::read_to_string(summary_json).expect("read governance_summary.json"),
+        )
+        .expect("parse governance summary");
+        assert_eq!(parsed["summary"]["critical"], 1);
+    }
 
     #[test]
     fn timeout_error_detection_variants() {

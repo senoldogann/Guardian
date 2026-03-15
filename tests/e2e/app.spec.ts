@@ -10,7 +10,7 @@ test.describe("App Load", () => {
   test("loads monitor view", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTitle("Setup & Settings")).toBeVisible();
-    await expect(page.getByRole("button", { name: /Monitor/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Monitor", exact: true })).toBeVisible();
   });
 });
 

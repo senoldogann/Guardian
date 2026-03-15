@@ -153,10 +153,10 @@ export function MainWorkspace({
     (fixHistory || []).map((entry) => normalizeUndoKey(entry.file_path)),
   );
   return (
-    <main className="flex-1 flex overflow-hidden">
+    <main className="flex-1 flex overflow-hidden gap-3">
       <section
         className={clsx(
-          "flex-1 overflow-hidden p-0 flex flex-col bg-background transition-colors duration-300 relative",
+          "flex-1 overflow-hidden flex flex-col bg-background rounded-2xl guardian-elevated-card transition-colors duration-300 relative",
           view === "monitor" ? "flex" : "hidden",
         )}
       >
@@ -169,11 +169,11 @@ export function MainWorkspace({
 
         {showFloatingFilter && (
           <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 w-full max-w-xl px-4 pointer-events-none">
-            <div className="pointer-events-auto mx-auto max-w-md rounded-xl border border-border-main bg-surface/90 backdrop-blur px-3 py-2 shadow-lg shadow-black/15">
+            <div className="guardian-elevated-card pointer-events-auto mx-auto max-w-md rounded-xl px-3 py-2 shadow-lg shadow-black/15">
               <div className="group relative flex items-center gap-2">
-                <Search className="w-3.5 h-3.5 text-zinc-500 group-focus-within:text-white transition-colors" />
+                <Search className="w-3.5 h-3.5 text-text-muted group-focus-within:text-text-main transition-colors" />
                 <input
-                  className="w-full bg-transparent text-xs outline-none placeholder:opacity-50"
+                  className="guardian-focus-ring w-full bg-transparent text-xs outline-none placeholder:opacity-50"
                   value={filter}
                   onChange={(event) => onFilterChange(event.target.value)}
                   placeholder={t("monitor.searchPlaceholder")}
@@ -181,7 +181,7 @@ export function MainWorkspace({
                 {filter.trim().length > 0 && (
                   <button
                     onClick={() => onFilterChange("")}
-                    className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors cursor-pointer"
+                    className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] rounded-md transition-colors cursor-pointer"
                   >
                     {t("common.clear")}
                   </button>
@@ -210,28 +210,28 @@ export function MainWorkspace({
           {baselineView === "resolved" ? (
             <div className="space-y-2">
               {!baselineStatus ? (
-                <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-4 py-12">
+                <div className="h-full flex flex-col items-center justify-center text-text-muted gap-4 py-12">
                   <div className="text-center space-y-1">
-                    <h3 className="font-bold text-sm text-zinc-500">{t("monitor.resolved.noBaselineTitle")}</h3>
-                    <p className="text-[10px] text-zinc-500 font-mono italic">
+                    <h3 className="font-bold text-sm text-text-muted">{t("monitor.resolved.noBaselineTitle")}</h3>
+                    <p className="text-[10px] text-text-muted font-mono italic">
                       {t("monitor.resolved.noBaselineNote")}
                     </p>
                   </div>
                 </div>
               ) : !baselineValid ? (
-                <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-4 py-12">
+                <div className="h-full flex flex-col items-center justify-center text-text-muted gap-4 py-12">
                   <div className="text-center space-y-1">
-                    <h3 className="font-bold text-sm text-zinc-500">{t("monitor.resolved.invalidTitle")}</h3>
-                    <p className="text-[10px] text-zinc-500 font-mono italic">
+                    <h3 className="font-bold text-sm text-text-muted">{t("monitor.resolved.invalidTitle")}</h3>
+                    <p className="text-[10px] text-text-muted font-mono italic">
                       {t("monitor.resolved.invalidNote")}
                     </p>
                   </div>
                 </div>
               ) : resolvedFindings.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-4 py-12">
+                <div className="h-full flex flex-col items-center justify-center text-text-muted gap-4 py-12">
                   <div className="text-center space-y-1">
-                    <h3 className="font-bold text-sm text-zinc-500">{t("monitor.resolved.emptyTitle")}</h3>
-                    <p className="text-[10px] text-zinc-500 font-mono italic">
+                    <h3 className="font-bold text-sm text-text-muted">{t("monitor.resolved.emptyTitle")}</h3>
+                    <p className="text-[10px] text-text-muted font-mono italic">
                       {t("monitor.resolved.emptyNote")}
                     </p>
                   </div>
@@ -259,10 +259,10 @@ export function MainWorkspace({
                           </div>
                         </div>
                         <div className="w-52 shrink-0 flex items-center justify-end gap-2">
-                          <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                          <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border bg-[color:var(--tone-success-bg)] text-[color:var(--tone-success-text)] border-[color:var(--tone-success-border)]">
                             {t("critique.badgeResolved")}
                           </span>
-                          <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border bg-white/5 text-text-muted border-border-main">
+                          <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border bg-[var(--panel-muted)] text-text-muted border-border-main">
                             {finding.severity}
                           </span>
                         </div>
@@ -273,20 +273,20 @@ export function MainWorkspace({
               )}
             </div>
           ) : filteredLogs.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-zinc-700 gap-6">
+            <div className="h-full flex flex-col items-center justify-center text-text-muted gap-6">
               {active ? (
                 <GuardianActivity status={status} active={active} showLabel={false} />
               ) : (
                 <div className="relative">
-                  <CheckCircle2 className="w-16 h-16 text-zinc-500" />
+                  <CheckCircle2 className="w-16 h-16 text-text-muted" />
                 </div>
               )}
               <div className="text-center space-y-1">
-                <h3 className="font-bold text-sm text-zinc-500">
+                <h3 className="font-bold text-sm text-text-muted">
                   {active ? t("monitor.guardianOnline") : t("monitor.systemSecure")}
                 </h3>
                 {(!active || status !== t("monitor.statusActive")) && (
-                  <p className="text-[10px] text-zinc-500 font-mono italic">
+                  <p className="text-[10px] text-text-muted font-mono italic">
                     {active ? status : t("monitor.offline")}
                   </p>
                 )}
@@ -321,7 +321,7 @@ export function MainWorkspace({
 
       <section
         className={clsx(
-          "flex-1 overflow-hidden p-0 flex flex-col bg-background transition-colors duration-300",
+          "flex-1 overflow-hidden flex flex-col bg-background rounded-2xl guardian-elevated-card transition-colors duration-300",
           view === "chat" ? "flex" : "hidden",
         )}
       >
@@ -340,7 +340,7 @@ export function MainWorkspace({
 
       <section
         className={clsx(
-          "flex-1 overflow-hidden p-0 flex flex-col bg-background transition-colors duration-300",
+          "flex-1 overflow-hidden flex flex-col bg-background rounded-2xl guardian-elevated-card transition-colors duration-300",
           view === "reviews" ? "flex" : "hidden",
         )}
       >
@@ -363,7 +363,7 @@ export function MainWorkspace({
         ) : (
           <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             <div className="shrink-0 border-b border-border-main bg-surface/30 px-6 py-4">
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
                 <div className="space-y-1 min-w-0">
                   <h2 className="text-xs font-bold uppercase tracking-widest text-text-muted">
                     {t("reviews.appliedFixesTitle")}
@@ -375,26 +375,6 @@ export function MainWorkspace({
                     <div className="text-[10px] text-rose-400 font-mono">{fixHistoryError}</div>
                   )}
                 </div>
-
-                <button
-                  onClick={async () => {
-                    try {
-                      await onRefreshFixHistory();
-                      toast.showSuccess(t("toast.refreshed"), 2500);
-                    } catch {
-                      toast.showError(t("toast.refreshFailed"), 3000);
-                    }
-                  }}
-                  disabled={fixHistoryLoading}
-                  className={clsx(
-                    "px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer",
-                    "bg-background/60 text-text-muted border-border-main hover:bg-border-main",
-                    fixHistoryLoading && "opacity-50 cursor-not-allowed"
-                  )}
-                  title={t("common.refresh")}
-                >
-                  {t("common.refresh")}
-                </button>
               </div>
             </div>
 
@@ -460,7 +440,7 @@ export function MainWorkspace({
 
       <section
         className={clsx(
-          "flex-1 overflow-hidden p-0 flex flex-col bg-background transition-colors duration-300",
+          "flex-1 overflow-hidden flex flex-col bg-background rounded-2xl guardian-elevated-card transition-colors duration-300",
           view === "ai-context" ? "flex" : "hidden",
         )}
       >
@@ -492,7 +472,7 @@ export function MainWorkspace({
 
       <section
         className={clsx(
-          "flex-1 overflow-hidden p-0 flex flex-col bg-background transition-colors duration-300",
+          "flex-1 overflow-hidden flex flex-col bg-background rounded-2xl guardian-elevated-card transition-colors duration-300",
           view === "diagram" ? "flex" : "hidden",
         )}
       >
@@ -519,7 +499,7 @@ export function MainWorkspace({
                 }
               }}
               disabled={!path || contextLoading}
-              className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-text-main rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="guardian-focus-ring px-3 py-1 text-[9px] font-bold uppercase tracking-widest bg-background/60 hover:bg-background/80 text-text-main border border-border-main rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {contextLoading ? t("diagram.scanning") : t("common.rescan")}
             </button>

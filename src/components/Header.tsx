@@ -1,26 +1,14 @@
-import React, { type ReactElement, ReactNode, useMemo } from "react";
+import type { ReactElement, ReactNode } from "react";
 import clsx from "clsx";
-import { Shield, ShieldAlert, AlertCircle, Cpu, Settings } from "lucide-react";
+import {
+  Activity,
+  AlertCircle,
+  Cpu,
+  LogOut,
+  Settings,
+  ShieldAlert,
+} from "lucide-react";
 import { useI18n } from "../i18n";
-
-export interface StatMiniProps {
-  icon: ReactNode;
-  count: number;
-  label: string;
-  color: string;
-}
-
-export function StatMini({ icon, count, label, color }: StatMiniProps): ReactElement {
-  return (
-    <div className="flex items-center gap-2 px-3 border-r border-white/5 last:border-r-0 hover:bg-white/[0.02] transition-colors rounded-md h-8 group cursor-default">
-      <div className="group-hover:scale-110 transition-transform">{icon}</div>
-      <div className="flex flex-col -space-y-1">
-        <span className={clsx("text-sm font-black tabular-nums", color)}>{count}</span>
-        <span className="text-[8px] font-bold uppercase tracking-widest opacity-30 group-hover:opacity-60 transition-opacity">{label}</span>
-      </div>
-    </div>
-  );
-}
 
 export interface HeaderProps {
   active: boolean;
@@ -45,10 +33,34 @@ export interface HeaderProps {
   onSettingsClick: () => void;
 }
 
-// Memoized icon components to prevent unnecessary re-renders
-const ShieldAlertIcon = React.memo(() => <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />);
-const AlertCircleIcon = React.memo(() => <AlertCircle className="w-3.5 h-3.5 text-amber-400" />);
-const CpuIcon = React.memo(() => <Cpu className="w-3.5 h-3.5 text-[var(--accent-500)]" />);
+function StatPill({
+  icon,
+  value,
+  label,
+  tone,
+}: {
+  icon: ReactNode;
+  value: number;
+  label: string;
+  tone: "critical" | "warning" | "ai";
+}): ReactElement {
+  const toneClass =
+    tone === "critical"
+      ? "text-[color:var(--tone-critical-text)]"
+      : tone === "warning"
+        ? "text-[color:var(--tone-warning-text)]"
+        : "text-[color:var(--tone-ai-text)]";
+
+  return (
+    <div className={clsx("min-w-[104px] flex items-center gap-2.5 transition-colors", toneClass)}>
+      <div className="shrink-0 opacity-90">{icon}</div>
+      <div className="leading-none min-w-0">
+        <div className="text-sm font-black tabular-nums">{value}</div>
+        <div className="text-[9px] uppercase tracking-[0.18em] opacity-85">{label}</div>
+      </div>
+    </div>
+  );
+}
 
 export function Header({
   active,
@@ -61,58 +73,95 @@ export function Header({
   onSettingsClick,
 }: HeaderProps): ReactElement {
   const { t } = useI18n();
-  // Memoize stat icons to prevent inline object recreation
-  const criticalIcon = useMemo(() => <ShieldAlertIcon />, []);
-  const warningIcon = useMemo(() => <AlertCircleIcon />, []);
-  const cpuIcon = useMemo(() => <CpuIcon />, []);
-
   return (
-    <header className="guardian-topbar justify-between shrink-0 z-20">
-      <div className="flex items-center gap-3">
-        <div className={clsx(
-          "p-1.5 rounded-lg transition-all duration-500",
-          active ? "bg-surface dark:bg-zinc-100 shadow-[0_0_15px_rgba(255,255,255,0.1)]" : "bg-surface dark:bg-border-main"
-        )}>
-          <Shield className={clsx("w-5 h-5", active ? "text-zinc-900" : "opacity-30")} />
+    <header className="guardian-topbar z-20 justify-between gap-4">
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="guardian-elevated-card h-10 w-10 rounded-xl flex items-center justify-center">
+          <ShieldAlert className="h-5 w-5 text-[var(--accent-500)]" />
         </div>
-        <span className="text-base font-bold tracking-tight uppercase opacity-50">GUARDIAN</span>
+        <div className="min-w-0">
+          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-text-main">
+            Guardian
+          </div>
+          <div className="flex items-center gap-2 text-[10px] text-text-muted">
+            <Activity
+              className={clsx(
+                "h-3 w-3",
+                active ? "text-[color:var(--tone-success-text)]" : "text-text-muted",
+              )}
+            />
+            <span>
+              {active ? t("header.monitoringOn") : t("header.monitoringOff")}
+            </span>
+          </div>
+        </div>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-2.5">
+        <div className="hidden xl:flex items-center gap-4 pr-1">
+          <StatPill
+            icon={<ShieldAlert className="h-3.5 w-3.5" />}
+            value={stats.critical}
+            label={t("header.stats.critical")}
+            tone="critical"
+          />
+          <StatPill
+            icon={<AlertCircle className="h-3.5 w-3.5" />}
+            value={stats.warning}
+            label={t("header.stats.warning")}
+            tone="warning"
+          />
+          <StatPill
+            icon={<Cpu className="h-3.5 w-3.5" />}
+            value={usage.calls}
+            label={t("header.stats.aiRequests")}
+            tone="ai"
+          />
+        </div>
         <button
           onClick={onSettingsClick}
-          className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-zinc-500 hover:text-white transition-all cursor-pointer"
+          className="guardian-elevated-card guardian-focus-ring rounded-xl p-2 text-text-muted hover:text-text-main transition-colors cursor-pointer"
           title={t("header.settingsTitle")}
+          aria-label={t("header.settingsTitle")}
         >
-          <Settings className="w-4 h-4" />
+          <Settings className="h-4 w-4" />
         </button>
 
-        <div className="flex gap-4 border-r border-border-main pr-6 hide-mobile">
-          <StatMini icon={criticalIcon} count={stats.critical} label={t("header.stats.critical")} color="text-rose-400" />
-          <StatMini icon={warningIcon} count={stats.warning} label={t("header.stats.warning")} color="text-amber-400" />
-          <StatMini icon={cpuIcon} count={usage.calls} label={t("header.stats.aiRequests")} color="text-[var(--accent-500)]" />
-        </div>
-        <div className="flex items-center gap-2 ml-auto">
-          {authSession && (
-            <>
-              <div className="flex items-center gap-2 text-[10px] font-mono text-text-main/80">
-                {authSession.avatar_url ? (
-                  <img src={authSession.avatar_url} alt={authSession.login} className="w-6 h-6 rounded-full" />
-                ) : (
-                  <div className="w-6 h-6 rounded-full bg-white/10" />
-                )}
-                <span>@{authSession.login}</span>
+        {authSession && (
+          <div className="guardian-elevated-card flex items-center gap-2 rounded-xl px-2.5 py-1.5">
+            {authSession.avatar_url ? (
+              <img
+                src={authSession.avatar_url}
+                alt={authSession.login}
+                className="h-7 w-7 rounded-full border border-border-main"
+              />
+            ) : (
+              <div className="h-7 w-7 rounded-full border border-border-main bg-background/40" />
+            )}
+            <div className="hidden md:block leading-tight">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-text-muted">
+                {t("header.session")}
               </div>
-              <button
-                onClick={onLogout}
-                disabled={authLoading || !isDesktop}
-                className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-[var(--surface)] border border-border-main hover:bg-border-main text-text-main"
-              >
-                {t("header.logout")}
-              </button>
-            </>
-          )}
-        </div>
+              <div className="max-w-[140px] truncate text-xs font-bold text-text-main">
+                @{authSession.login}
+              </div>
+            </div>
+            <button
+              onClick={onLogout}
+              disabled={authLoading || !isDesktop}
+              className={clsx(
+                "guardian-focus-ring rounded-lg border px-2 py-1 text-[9px]",
+                "font-bold uppercase tracking-[0.18em] transition-colors",
+                "border-border-main bg-background/60 text-text-main hover:bg-background/80",
+                "disabled:opacity-50 disabled:cursor-not-allowed",
+              )}
+              aria-label={t("header.logout")}
+            >
+              <span className="hidden sm:inline">{t("header.logout")}</span>
+              <LogOut className="h-3.5 w-3.5 sm:hidden" />
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

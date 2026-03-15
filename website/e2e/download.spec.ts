@@ -121,7 +121,7 @@ test.describe("Download Page", () => {
     
     if (await homeLink.isVisible()) {
       await homeLink.click();
-      await expect(page).toHaveURL("/");
+      await expect(page).toHaveURL(/\/(en|tr)?\/?$/);
     }
   });
 });

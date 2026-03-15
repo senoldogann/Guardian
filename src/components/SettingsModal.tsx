@@ -13,6 +13,7 @@ import {
   CircleHelp,
   ExternalLink,
   ChevronDown,
+  Bell,
 } from "lucide-react";
 import { openExternal } from "../lib/tauri";
 import { useFocusTrap } from "../hooks/useFocusTrap";
@@ -147,6 +148,8 @@ export interface WebSettingsProps {
   onWebSearchDepthChange: (value: "basic" | "advanced" | "fast" | "ultra-fast" | "auto") => void;
   autoVerifyEnabled: boolean;
   onAutoVerifyToggle: () => void;
+  guruReplySoundEnabled: boolean;
+  onGuruReplySoundToggle: () => void;
   scanProfile: "source" | "extended" | "full";
   scanProfileSaving: boolean;
   scanProfileError: string | null;
@@ -282,6 +285,8 @@ export function SettingsModal({
     onWebSearchDepthChange,
     autoVerifyEnabled,
     onAutoVerifyToggle,
+    guruReplySoundEnabled,
+    onGuruReplySoundToggle,
     scanProfile,
     scanProfileSaving,
     scanProfileError,
@@ -350,7 +355,7 @@ export function SettingsModal({
       "px-3 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md transition-colors",
       settingsTab === tab
         ? "bg-[var(--accent-500)] text-background"
-        : "bg-white/10 text-text-main hover:bg-white/20"
+        : "bg-[var(--panel-muted)] text-text-main hover:bg-[var(--panel-bg)]"
     );
 
   const [exportStatusMessageIndex, setExportStatusMessageIndex] = useState(0);
@@ -404,14 +409,14 @@ export function SettingsModal({
           <div className="flex items-center gap-2">
             <button
               onClick={onThemeToggle}
-              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-text-main transition-all cursor-pointer"
+              className="p-2 rounded-lg bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-main transition-all cursor-pointer"
               title={t("settings.toggleTheme")}
             >
               {theme === "dark" ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
             </button>
             <button
               onClick={onClose}
-              className="px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 transition-colors cursor-pointer text-xs uppercase tracking-widest"
+              className="px-3 py-1 rounded-md bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] transition-colors cursor-pointer text-xs uppercase tracking-widest"
               ref={closeButtonRef}
             >
               {t("common.close")}
@@ -437,7 +442,7 @@ export function SettingsModal({
         {settingsTab === "general" && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
                 <ShieldAlert className="w-4 h-4 text-[var(--accent-500)]" />
                 {t("settings.general.safety")}
               </div>
@@ -460,7 +465,7 @@ export function SettingsModal({
                 disabled={!isDesktop}
                 className={clsx(
                   "px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md transition-colors",
-                  autoVerifyEnabled ? "bg-[var(--accent-500)] text-background" : "bg-white/10 text-text-main",
+                  autoVerifyEnabled ? "bg-[var(--accent-500)] text-background" : "bg-[var(--panel-muted)] text-text-main",
                   !isDesktop && "opacity-50 cursor-not-allowed"
                 )}
               >
@@ -470,7 +475,7 @@ export function SettingsModal({
 
             <div className="pt-4 border-t border-border-main space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
                   <ShieldAlert className="w-4 h-4 text-[var(--accent-500)]" />
                   {t("settings.general.scanScopeTitle")}
                 </div>
@@ -507,7 +512,7 @@ export function SettingsModal({
 
             <div className="pt-4 border-t border-border-main space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
                   <ShieldAlert className="w-4 h-4 text-[var(--accent-500)]" />
                   {t("settings.general.languageTitle")}
                 </div>
@@ -524,13 +529,47 @@ export function SettingsModal({
                 </StyledSelect>
               </div>
             </div>
+
+            <div className="pt-4 border-t border-border-main space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
+                  <Bell className="w-4 h-4 text-[var(--accent-500)]" />
+                  {t("settings.general.guruReplySoundTitle")}
+                </div>
+                <InfoPopover
+                  title={t("settings.general.guruReplySoundTitle")}
+                  note={t("settings.general.guruReplySoundNote")}
+                />
+              </div>
+              <div className="text-[10px] text-text-muted">
+                {t("settings.general.guruReplySoundDescription")}
+              </div>
+              <div className="flex items-center justify-between bg-background border border-border-main rounded-lg px-3 py-2">
+                <div className="text-[10px] text-text-muted">
+                  {t("settings.general.guruReplySoundStatus", {
+                    status: guruReplySoundEnabled ? t("common.enabled") : t("common.disabled"),
+                  })}
+                </div>
+                <button
+                  onClick={onGuruReplySoundToggle}
+                  disabled={!isDesktop}
+                  className={clsx(
+                    "px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md transition-colors",
+                    guruReplySoundEnabled ? "bg-[var(--accent-500)] text-background" : "bg-[var(--panel-muted)] text-text-main",
+                    !isDesktop && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  {guruReplySoundEnabled ? t("common.on") : t("common.off")}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
         {settingsTab === "provider" && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
                 <Server className="w-4 h-4 text-[var(--accent-500)]" />
                 {t("settings.provider.title")}
               </div>
@@ -556,7 +595,7 @@ export function SettingsModal({
                 </div>
               ) : (
                 <>
-                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">{t("settings.provider.providerLabel")}</label>
+                  <label className="text-[10px] uppercase tracking-widest text-text-muted">{t("settings.provider.providerLabel")}</label>
                   <StyledSelect
                     disabled={!isDesktop}
                     value={providerDraft.provider_id}
@@ -566,7 +605,7 @@ export function SettingsModal({
                       <option key={option.id} value={option.id}>{option.label}</option>
                     ))}
                   </StyledSelect>
-                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">{t("settings.provider.baseUrlLabel")}</label>
+                  <label className="text-[10px] uppercase tracking-widest text-text-muted">{t("settings.provider.baseUrlLabel")}</label>
                   {providerDraft.provider_id === "ollama" ? (
                     <StyledSelect
                       disabled={!isDesktop}
@@ -586,11 +625,11 @@ export function SettingsModal({
                     />
                   )}
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] uppercase tracking-widest text-zinc-500">{t("settings.provider.modelLabel")}</label>
+                    <label className="text-[10px] uppercase tracking-widest text-text-muted">{t("settings.provider.modelLabel")}</label>
                     <button
                       onClick={onRefreshModels}
                       disabled={!isDesktop || providerModelLoading}
-                      className="text-[10px] uppercase tracking-widest text-zinc-500 hover:text-text-main transition-colors"
+                      className="text-[10px] uppercase tracking-widest text-text-muted hover:text-text-main transition-colors"
                     >
                       {providerModelLoading ? t("settings.provider.modelsLoading") : t("settings.provider.refreshModels")}
                     </button>
@@ -635,7 +674,7 @@ export function SettingsModal({
                     <button
                       onClick={onTestProviderConnection}
                       disabled={!isDesktop || providerSaving || providerTestLoading}
-                      className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors disabled:opacity-50"
+                      className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] rounded-md transition-colors disabled:opacity-50"
                     >
                       {providerTestLoading ? t("settings.provider.testing") : t("settings.provider.testConnection")}
                     </button>
@@ -656,7 +695,7 @@ export function SettingsModal({
 
             <div className="pt-4 border-t border-border-main space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
                   <KeyRound className="w-4 h-4 text-[var(--accent-500)]" />
                   {t("settings.provider.apiKeyTitle")}
                 </div>
@@ -727,7 +766,7 @@ export function SettingsModal({
                 <button
                   onClick={onClearApiKey}
                   disabled={!isDesktop || apiKeySaving}
-                  className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors disabled:opacity-50"
+                  className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] rounded-md transition-colors disabled:opacity-50"
                 >
                   {t("common.clear")}
                 </button>
@@ -739,7 +778,7 @@ export function SettingsModal({
         {settingsTab === "embedding" && (
           <div className="space-y-5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
                 <Database className="w-4 h-4 text-[var(--accent-500)]" />
                 {t("settings.embedding.title")}
               </div>
@@ -753,10 +792,10 @@ export function SettingsModal({
             </div>
             <div className="rounded-xl border border-border-main bg-background/40 p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] uppercase tracking-widest text-zinc-500">{t("settings.embedding.modeLabel")}</label>
+                <label className="text-[10px] uppercase tracking-widest text-text-muted">{t("settings.embedding.modeLabel")}</label>
                 <button
                   onClick={onRefreshEmbeddingSettings}
-                  className="text-[10px] uppercase tracking-widest text-zinc-500 hover:text-text-main transition-colors"
+                  className="text-[10px] uppercase tracking-widest text-text-muted hover:text-text-main transition-colors"
                 >
                   {t("settings.embedding.refresh")}
                 </button>
@@ -774,7 +813,7 @@ export function SettingsModal({
 
               <div className="grid grid-cols-1 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">{t("settings.embedding.openAiBaseUrl")}</label>
+                  <label className="text-[10px] uppercase tracking-widest text-text-muted">{t("settings.embedding.openAiBaseUrl")}</label>
                   <input
                     disabled={!isDesktop || !embeddingDraft}
                     value={embeddingDraft?.openai_base_url ?? ""}
@@ -784,7 +823,7 @@ export function SettingsModal({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">{t("settings.embedding.openAiModel")}</label>
+                  <label className="text-[10px] uppercase tracking-widest text-text-muted">{t("settings.embedding.openAiModel")}</label>
                   <input
                     disabled={!isDesktop || !embeddingDraft}
                     value={embeddingDraft?.openai_model ?? ""}
@@ -794,7 +833,7 @@ export function SettingsModal({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">{t("settings.embedding.ollamaBaseUrl")}</label>
+                  <label className="text-[10px] uppercase tracking-widest text-text-muted">{t("settings.embedding.ollamaBaseUrl")}</label>
                   <input
                     disabled={!isDesktop || !embeddingDraft}
                     value={embeddingDraft?.ollama_base_url ?? ""}
@@ -804,7 +843,7 @@ export function SettingsModal({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] uppercase tracking-widest text-zinc-500">{t("settings.embedding.ollamaModel")}</label>
+                  <label className="text-[10px] uppercase tracking-widest text-text-muted">{t("settings.embedding.ollamaModel")}</label>
                   <input
                     disabled={!isDesktop || !embeddingDraft}
                     value={embeddingDraft?.ollama_model ?? ""}
@@ -836,7 +875,7 @@ export function SettingsModal({
 
             <div className="rounded-xl border border-border-main bg-background/40 p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
                   <KeyRound className="w-4 h-4 text-[var(--accent-500)]" />
                   {t("settings.embedding.openAiKeyTitle")}
                 </div>
@@ -881,7 +920,7 @@ export function SettingsModal({
                 <button
                   onClick={onClearEmbeddingOpenAiKey}
                   disabled={!isDesktop || embeddingOpenAiKeySaving}
-                  className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors disabled:opacity-50"
+                  className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] rounded-md transition-colors disabled:opacity-50"
                 >
                   {t("settings.embedding.clearOpenAiKey")}
                 </button>
@@ -893,7 +932,7 @@ export function SettingsModal({
         {settingsTab === "web" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
                 <Search className="w-4 h-4 text-[var(--accent-500)]" />
                 {t("settings.web.title")}
               </div>
@@ -914,7 +953,7 @@ export function SettingsModal({
                 disabled={!webSearchReady}
                 className={clsx(
                   "px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md transition-colors",
-                  webSearchEnabled ? "bg-[var(--accent-500)] text-background" : "bg-white/10 text-text-main",
+                  webSearchEnabled ? "bg-[var(--accent-500)] text-background" : "bg-[var(--panel-muted)] text-text-main",
                   !webSearchReady && "opacity-50 cursor-not-allowed"
                 )}
               >
@@ -972,7 +1011,7 @@ export function SettingsModal({
               <button
                 onClick={onClearTavilyKey}
                 disabled={!isDesktop || tavilyKeySaving}
-                className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors disabled:opacity-50"
+                className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] rounded-md transition-colors disabled:opacity-50"
               >
                 {t("common.clear")}
               </button>
@@ -982,7 +1021,7 @@ export function SettingsModal({
 
         {settingsTab === "updates" && (
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
               <RefreshCw className="w-4 h-4 text-[var(--accent-500)]" />
               {t("settings.updates.title")}
             </div>
@@ -993,7 +1032,7 @@ export function SettingsModal({
               <span>{t("settings.updates.current")}: {currentVersionLabel}</span>
               <span>{t("settings.updates.latest")}: {latestVersionLabel}</span>
               <span>{t("settings.updates.lastCheck")}: {lastCheckLabel}</span>
-              <span className="px-2 py-0.5 rounded-full bg-white/10 text-[9px] uppercase tracking-widest text-text-main">
+              <span className="px-2 py-0.5 rounded-full bg-[var(--panel-muted)] text-[9px] uppercase tracking-widest text-text-main">
                 {updateStatusBadge}
               </span>
             </div>
@@ -1010,7 +1049,7 @@ export function SettingsModal({
               <button
                 onClick={onCheckUpdates}
                 disabled={!isDesktop || updateChecking}
-                className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-text-main rounded-md transition-colors disabled:opacity-50"
+                className="px-3 py-2 text-xs font-bold uppercase tracking-widest border border-border-main bg-[var(--accent-200)] hover:bg-[var(--panel-bg)] text-text-main rounded-md transition-colors disabled:opacity-50"
               >
                 {updateChecking ? t("settings.updates.checking") : t("settings.updates.checkNow")}
               </button>
@@ -1027,10 +1066,10 @@ export function SettingsModal({
             {updateError && <div className="text-[10px] text-rose-400">{updateError}</div>}
 
             <div className="pt-4 border-t border-border-main space-y-2">
-              <div className="text-xs font-bold uppercase tracking-widest text-zinc-500">
+              <div className="text-xs font-bold uppercase tracking-widest text-text-muted">
                 {t("settings.updates.aboutTitle")}
               </div>
-              <div className="text-[10px] text-text-muted bg-white/5 border border-border-main rounded-lg px-3 py-2">
+              <div className="text-[10px] text-text-muted bg-[var(--panel-muted)] border border-border-main rounded-lg px-3 py-2">
                 {t("settings.updates.builtBy", { name: "Senol Dogan" })}
               </div>
               <div className="flex flex-wrap gap-3 text-[10px]">
@@ -1057,11 +1096,11 @@ export function SettingsModal({
 
         {settingsTab === "export" && (
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-zinc-500">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
               <Download className="w-4 h-4 text-[var(--accent-500)]" />
               {t("settings.export.title")}
             </div>
-            <div className="text-[10px] text-text-muted bg-white/5 border border-border-main rounded-lg px-3 py-2">
+            <div className="text-[10px] text-text-muted bg-[var(--panel-muted)] border border-border-main rounded-lg px-3 py-2">
               {t("settings.export.note")}
             </div>
             <button
@@ -1072,7 +1111,7 @@ export function SettingsModal({
               {exportPdfInProgress ? t("settings.export.exporting") : t("settings.export.exportPdf")}
             </button>
             {exportPdfInProgress && (
-              <div className="rounded-lg border border-border-main bg-white/5 px-3 py-2 text-[10px] text-text-muted flex items-center gap-2">
+              <div className="rounded-lg border border-border-main bg-[var(--panel-muted)] px-3 py-2 text-[10px] text-text-muted flex items-center gap-2">
                 <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent-500)] shrink-0" />
                 <span className="transition-opacity duration-300">
                   {exportStatusMessages[exportStatusMessageIndex]}

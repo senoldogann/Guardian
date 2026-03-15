@@ -1,0 +1,5 @@
+{"case_id":"case-001","expected_severity":"critical","predicted_severity":"critical","expected_block":true,"predicted_decision":"BLOCK_UNTIL_APPROVED","notes":"auth bypass risk"}
+{"case_id":"case-002","expected_severity":"warning","predicted_severity":"warning","expected_block":false,"predicted_decision":"PASS_WITH_WARNING","notes":"unsafe refactor boundary drift"}
+{"case_id":"case-003","expected_severity":"none","predicted_severity":"warning","expected_block":false,"predicted_decision":"PASS_WITH_WARNING","notes":"false-positive sample"}
+{"case_id":"case-004","expected_severity":"critical","predicted_severity":"warning","expected_block":true,"predicted_decision":"PASS_WITH_WARNING","notes":"critical downgrade miss"}
+{"case_id":"case-005","expected_severity":"info","predicted_severity":"info","expected_block":false,"predicted_decision":"PASS","notes":"informational finding"}

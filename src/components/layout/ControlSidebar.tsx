@@ -22,7 +22,7 @@ import type { BaselineStatusView } from "../../types";
 import { useI18n } from "../../i18n";
 
 const SIDEBAR_COLLAPSED_KEY = "guardian_sidebar_collapsed";
-const SIDEBAR_DETAILS_OPEN_KEY = "guardian_sidebar_details_open_v3";
+const SIDEBAR_DETAILS_OPEN_KEY = "guardian_sidebar_details_open_v4";
 
 export interface ControlSidebarProps {
   view: "monitor" | "chat" | "diagram" | "ai-context" | "reviews";
@@ -115,7 +115,7 @@ export function ControlSidebar({
 }: ControlSidebarProps): ReactElement {
   const { t } = useI18n();
   const [collapsed, setCollapsed] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(true);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const persistCollapsed = (next: boolean): void => {
     try {
@@ -188,13 +188,13 @@ export function ControlSidebar({
   return (
     <aside
       className={clsx(
-        "bg-surface border-r border-border-main transition-colors duration-300 flex flex-col min-h-0",
+        "guardian-elevated-card rounded-2xl transition-colors duration-300 flex flex-col min-h-0 overflow-hidden",
         collapsed ? "w-[4.5rem] min-w-[4.5rem]" : "w-72 xl:w-80 min-w-[17rem]",
       )}
     >
       <div
         className={clsx(
-          "shrink-0 px-3 py-3",
+          "shrink-0 px-3 py-3 border-b border-border-main/60",
           collapsed ? "flex justify-center" : "flex items-center justify-between",
         )}
       >
@@ -206,7 +206,7 @@ export function ControlSidebar({
         <button
           onClick={toggleCollapsed}
           className={clsx(
-            "rounded-lg border border-border-main bg-background/40 hover:bg-background/60 transition-colors",
+            "guardian-focus-ring rounded-lg border border-border-main bg-background/40 hover:bg-background/70 transition-colors",
             collapsed ? "p-2" : "px-2.5 py-2",
           )}
           title={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
@@ -216,7 +216,7 @@ export function ControlSidebar({
         </button>
       </div>
 
-      <div className={clsx("flex-1 min-h-0 overflow-y-auto custom-scrollbar", collapsed ? "px-2 py-3" : "px-4 py-4")}>
+      <div className={clsx("flex-1 min-h-0 overflow-hidden", collapsed ? "px-2 py-3" : "px-3 py-3")}>
         <div className={clsx(collapsed ? "flex flex-col items-center gap-3" : "space-y-4")}>
           {collapsed ? (
             <>
@@ -271,7 +271,7 @@ export function ControlSidebar({
             </>
           ) : (
             <>
-              <div className="rounded-2xl border border-border-main bg-background/45 p-2 space-y-1.5">
+              <div className="guardian-subtle-card rounded-2xl p-2 space-y-1.5">
                 <NavRow
                   active={view === "monitor"}
                   label={t("sidebar.nav.monitor")}
@@ -285,7 +285,7 @@ export function ControlSidebar({
                   icon={<MessageSquare className="w-4 h-4" />}
                   right={
                     guruUnreadCount > 0 ? (
-                      <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-rose-500/10 text-rose-400 border-rose-500/20 tabular-nums">
+                      <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] border-[color:var(--tone-critical-border)] tabular-nums">
                         {Math.min(99, guruUnreadCount)}
                       </span>
                     ) : undefined
@@ -307,8 +307,8 @@ export function ControlSidebar({
                       className={clsx(
                         "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border",
                         hasAiContextData
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                          : "bg-white/5 text-text-muted border-border-main",
+                          ? "bg-[color:var(--tone-success-bg)] text-[color:var(--tone-success-text)] border-[color:var(--tone-success-border)]"
+                          : "bg-[var(--panel-muted)] text-text-muted border-border-main",
                       )}
                     >
                       {hasAiContextData ? t("sidebar.ready") : t("sidebar.empty")}
@@ -322,7 +322,7 @@ export function ControlSidebar({
                   icon={<ClipboardCheck className="w-4 h-4" />}
                   right={
                     pendingFixProposalsCount > 0 ? (
-                      <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-amber-500/10 text-amber-200 border-amber-500/20 tabular-nums">
+                      <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-[color:var(--tone-warning-bg)] text-[color:var(--tone-warning-text)] border-[color:var(--tone-warning-border)] tabular-nums">
                         {pendingFixProposalsCount}
                       </span>
                     ) : (
@@ -330,8 +330,8 @@ export function ControlSidebar({
                         className={clsx(
                           "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border",
                           hasReviewData
-                            ? "bg-white/10 text-text-main border-border-main"
-                            : "bg-white/5 text-text-muted border-border-main",
+                            ? "bg-[var(--panel-bg)] text-text-main border-border-main"
+                            : "bg-[var(--panel-muted)] text-text-muted border-border-main",
                         )}
                       >
                         {hasReviewData ? t("sidebar.log") : t("sidebar.empty")}
@@ -341,7 +341,7 @@ export function ControlSidebar({
                 />
               </div>
 
-              <div className="rounded-xl border border-border-main bg-background/35 p-3 space-y-3">
+              <div className="guardian-subtle-card rounded-xl p-3 space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   <StatMini
                     label={t("sidebar.files")}
@@ -352,7 +352,7 @@ export function ControlSidebar({
                   <StatMini
                     label={t("sidebar.issues")}
                     count={totalIssues}
-                    icon={<AlertCircle className="w-3.5 h-3.5 text-amber-400" />}
+                    icon={<AlertCircle className="w-3.5 h-3.5 text-[color:var(--tone-warning-text)]" />}
                     color="text-[var(--stat-strong)]"
                   />
                 </div>
@@ -362,7 +362,7 @@ export function ControlSidebar({
                     {t("sidebar.scope")}
                   </label>
                   <div className="group relative">
-                    <Folder className="absolute left-3 top-3 w-4 h-4 text-zinc-500 group-focus-within:text-white transition-colors pointer-events-none" />
+                    <Folder className="absolute left-3 top-3 w-4 h-4 text-zinc-500 group-focus-within:text-text-main transition-colors pointer-events-none" />
                     <input
                       readOnly
                       onClick={() => void onSelectScope()}
@@ -388,7 +388,7 @@ export function ControlSidebar({
                 </button>
 
                 {detailsOpen && (
-                  <div className="rounded-xl border border-border-main bg-background/30 overflow-hidden">
+                  <div className="rounded-xl border border-border-main bg-background/30 overflow-y-auto custom-scrollbar max-h-[34vh]">
                     <div className="p-3 space-y-2">
                       <CostMetricSection
                         tokens={tokens}
@@ -429,7 +429,7 @@ export function ControlSidebar({
                         <div className="h-px bg-border-main" />
                         <div className="p-3 space-y-2">
                           {authBannerVisible && (authShowGate || authRequiresVerified) && !active && (
-                            <div className="rounded-xl border border-amber-500/20 bg-white text-zinc-900 dark:bg-amber-500/10 dark:text-amber-200 px-3 py-2 text-[10px] space-y-2">
+                            <div className="rounded-xl border border-[color:var(--tone-warning-border)] bg-[color:var(--tone-warning-bg)] text-[color:var(--tone-warning-text)] px-3 py-2 text-[10px] space-y-2">
                               <div>
                                 {authShowGate
                                   ? t("sidebar.authLoginRequired")
@@ -445,22 +445,22 @@ export function ControlSidebar({
                                     {t("sidebar.verifyNow")}
                                   </button>
                                 )}
-                                {authError && <span className="text-[10px] text-rose-500">{authError}</span>}
+                                {authError && <span className="text-[10px] text-[color:var(--tone-critical-text)]">{authError}</span>}
                                 {!authError && authWarning && (
-                                  <span className="text-[10px] text-amber-500">{authWarning}</span>
+                                  <span className="text-[10px] text-[color:var(--tone-warning-text)]">{authWarning}</span>
                                 )}
                               </div>
                             </div>
                           )}
 
                           {settingsRequiresApiKey && !active && (
-                            <div className="rounded-xl border border-rose-500/20 bg-white text-rose-600 dark:bg-rose-500/10 dark:text-rose-500 px-3 py-2 text-[10px] space-y-2">
+                            <div className="rounded-xl border border-[color:var(--tone-critical-border)] bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] px-3 py-2 text-[10px] space-y-2">
                               <div>
                                 {t("sidebar.setupRequired", { provider: providerLabel })}
                               </div>
                               <button
                                 onClick={onOpenSettings}
-                                className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-rose-500 text-white rounded-md hover:opacity-90 transition-colors"
+                                className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[color:var(--tone-critical-text)] text-background rounded-md hover:opacity-90 transition-colors"
                               >
                                 {t("sidebar.openSettings")}
                               </button>
@@ -477,7 +477,7 @@ export function ControlSidebar({
         </div>
       </div>
 
-      <section className={clsx("shrink-0 border-t border-border-main bg-surface/95 py-3 space-y-2", collapsed ? "px-2" : "px-4")}>
+      <section className={clsx("shrink-0 border-t border-border-main bg-surface/70 py-3 space-y-2", collapsed ? "px-2" : "px-4")}>
         {collapsed ? (
           <div className="flex items-center justify-center">
             <button
@@ -486,7 +486,7 @@ export function ControlSidebar({
               className={clsx(
                 "h-12 w-12 rounded-2xl font-bold flex items-center justify-center transition-all duration-300 transform active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border",
                 active
-                  ? "bg-rose-500/10 text-rose-500 border-rose-500/20 hover:bg-rose-500/20"
+                  ? "bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] border-[color:var(--tone-critical-border)] hover:opacity-90"
                   : "bg-[var(--accent-500)] text-background border-border-main hover:opacity-90",
               )}
               title={
@@ -511,7 +511,7 @@ export function ControlSidebar({
               className={clsx(
                 "w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
                 active
-                  ? "bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500/20"
+                  ? "bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] border border-[color:var(--tone-critical-border)] hover:opacity-90"
                   : "bg-[var(--accent-500)] text-background hover:opacity-90",
               )}
               title={active ? t("sidebar.killGuardian") : t("sidebar.launchGuardian")}
@@ -528,7 +528,7 @@ export function ControlSidebar({
               )}
             </button>
             {!active && !canToggleMonitoring && launchBlockingReason && (
-              <p className="text-[10px] text-amber-400 px-1">{launchBlockingReason}</p>
+              <p className="text-[10px] text-[color:var(--tone-warning-text)] px-1">{launchBlockingReason}</p>
             )}
           </>
         )}
@@ -558,13 +558,13 @@ function DockNavButton({
       className={clsx(
         "relative h-11 w-11 rounded-2xl flex items-center justify-center transition-all border cursor-pointer",
         active
-          ? "bg-surface shadow text-[var(--text-main)] border-border-main"
+          ? "bg-[var(--accent-200)] shadow text-[var(--text-main)] border-[var(--panel-border-strong)]"
           : "bg-background/30 text-text-muted border-border-main hover:bg-background/55 hover:text-text-main",
       )}
     >
       {icon}
       {badge && badge > 0 && (
-        <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1.5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center leading-none tabular-nums shadow">
+        <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1.5 rounded-full bg-[color:var(--tone-critical-text)] text-background text-[10px] font-black flex items-center justify-center leading-none tabular-nums shadow">
           {Math.min(99, badge)}
         </span>
       )}
@@ -617,7 +617,9 @@ function NavRow({
       title={label}
       className={clsx(
         "w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all flex items-center justify-between gap-3 cursor-pointer",
-        active ? "bg-surface shadow text-[var(--text-main)]" : "opacity-70 hover:opacity-100",
+        active
+          ? "bg-[var(--accent-200)] shadow text-[var(--text-main)] border border-[var(--panel-border-strong)]"
+          : "opacity-70 hover:opacity-100",
       )}
     >
       <span className="flex items-center gap-3">
@@ -660,11 +662,11 @@ function CostMetricSection({
           {t("sidebar.cost.units")}
         </span>
       </div>
-      <div className="text-[10px] font-mono text-zinc-500">
+      <div className="text-[10px] font-mono text-text-muted">
         {t("sidebar.cost.tokens")}: {tokens} • {t("sidebar.cost.apiCalls")}: {calls} • {t("sidebar.cost.files")}:{" "}
         {filesAnalyzed}
       </div>
-      <div className="text-[10px] font-mono text-zinc-500">
+      <div className="text-[10px] font-mono text-text-muted">
         {t("sidebar.cost.queueWait")}: {queueLabel} • {t("sidebar.cost.scope")}: {scanProfileLabel}
       </div>
     </div>
@@ -705,12 +707,12 @@ function BaselineSection({
           className={clsx(
             "text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md border",
             baselineLoading
-              ? "bg-white/5 text-text-muted border-border-main"
+              ? "bg-[var(--panel-muted)] text-text-muted border-border-main"
               : baselineStatus?.valid
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                ? "bg-[color:var(--tone-success-bg)] text-[color:var(--tone-success-text)] border-[color:var(--tone-success-border)]"
                 : baselineStatus
-                  ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                  : "bg-white/5 text-text-muted border-border-main",
+                  ? "bg-[color:var(--tone-warning-bg)] text-[color:var(--tone-warning-text)] border-[color:var(--tone-warning-border)]"
+                  : "bg-[var(--panel-muted)] text-text-muted border-border-main",
           )}
         >
           {baselineLoading
@@ -739,12 +741,12 @@ function BaselineSection({
       )}
 
       {baselineStatus && !baselineValid && (
-        <div className="text-[10px] text-amber-400">
+        <div className="text-[10px] text-[color:var(--tone-warning-text)]">
           {t("sidebar.baseline.invalidNote")}
         </div>
       )}
 
-      {baselineError && <div className="text-[10px] text-rose-400">{baselineError}</div>}
+      {baselineError && <div className="text-[10px] text-[color:var(--tone-critical-text)]">{baselineError}</div>}
 
       <div className="flex gap-2">
         <button
@@ -758,7 +760,7 @@ function BaselineSection({
           <button
             onClick={() => void onClearBaselineNow()}
             disabled={!path || baselineLoading}
-            className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-text-main rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-main rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {t("sidebar.baseline.reset")}
           </button>
@@ -772,8 +774,8 @@ function BaselineSection({
             className={clsx(
               "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
               baselineView === "all"
-                ? "bg-white/10 text-text-main border-border-main"
-                : "bg-transparent text-text-muted border-border-main hover:bg-white/5",
+                ? "bg-[var(--panel-bg)] text-text-main border-border-main"
+                : "bg-transparent text-text-muted border-border-main hover:bg-[var(--panel-muted)]",
             )}
           >
             {t("sidebar.baseline.viewAll")}
@@ -783,8 +785,8 @@ function BaselineSection({
             className={clsx(
               "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
               baselineView === "new"
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                : "bg-transparent text-text-muted border-border-main hover:bg-white/5",
+                ? "bg-[color:var(--tone-success-bg)] text-[color:var(--tone-success-text)] border-[color:var(--tone-success-border)]"
+                : "bg-transparent text-text-muted border-border-main hover:bg-[var(--panel-muted)]",
             )}
           >
             {t("sidebar.baseline.viewNew")}
@@ -794,8 +796,8 @@ function BaselineSection({
             className={clsx(
               "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
               baselineView === "resolved"
-                ? "bg-white/10 text-text-main border-border-main"
-                : "bg-transparent text-text-muted border-border-main hover:bg-white/5",
+                ? "bg-[var(--panel-bg)] text-text-main border-border-main"
+                : "bg-transparent text-text-muted border-border-main hover:bg-[var(--panel-muted)]",
             )}
           >
             {t("sidebar.baseline.viewResolved")}
@@ -837,7 +839,7 @@ function EngineSection({
         </span>
         <button
           onClick={onOpenEmbeddingSettings}
-          className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 rounded-md transition-colors cursor-pointer"
+          className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] rounded-md transition-colors cursor-pointer"
         >
           {t("sidebar.engine.setup")}
         </button>
@@ -866,7 +868,7 @@ function StatMini({
   color: string;
 }): ReactElement {
   return (
-    <div className="flex items-center gap-2 px-3 border-r border-white/5 last:border-r-0 hover:bg-white/[0.02] transition-colors rounded-md h-8 group cursor-default">
+    <div className="flex items-center gap-2 px-3 border-r border-border-main last:border-r-0 hover:bg-[var(--panel-muted)] transition-colors rounded-md h-8 group cursor-default">
       <div className="group-hover:scale-110 transition-transform">{icon}</div>
       <div className="flex flex-col -space-y-1">
         <span className={clsx("text-sm font-black tabular-nums", color)}>{count}</span>

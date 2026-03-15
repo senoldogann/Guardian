@@ -88,7 +88,7 @@ export function AuthGate({
               )}
               <button
                 onClick={onCancel}
-                className="px-4 py-2 text-xs font-bold uppercase tracking-widest bg-white/10 hover:bg-white/20 text-white rounded-md transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-main rounded-md transition-colors cursor-pointer"
               >
                 {t("authGate.cancel")}
               </button>
