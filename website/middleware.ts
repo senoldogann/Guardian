@@ -2,10 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PUBLIC_FILE = /\.(.*)$/;
 
-function isIgnoredPath(pathname: string): boolean {
+export function isIgnoredPath(pathname: string): boolean {
   return (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
+    pathname === "/og" ||
     PUBLIC_FILE.test(pathname) ||
     pathname === "/icon.svg" ||
     pathname === "/robots.txt" ||
