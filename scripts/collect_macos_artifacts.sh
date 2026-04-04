@@ -37,6 +37,7 @@ INTEL_DIR="$4"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 MERGE_SCRIPT="$SCRIPT_DIR/merge_latest_json.sh"
+WRITE_LATEST_SCRIPT="$SCRIPT_DIR/write_tauri_latest_json.sh"
 
 if [[ ! -d "$ARM_DIR" ]]; then
   echo "Error: arm bundle dir not found: $ARM_DIR"
@@ -52,6 +53,16 @@ mkdir -p "$OUTPUT_DIR"
 
 ARM_LATEST="$(find "$ARM_DIR" -type f -name latest.json -print -quit || true)"
 INTEL_LATEST="$(find "$INTEL_DIR" -type f -name latest.json -print -quit || true)"
+
+if [[ -z "$ARM_LATEST" ]]; then
+  ARM_LATEST="$OUTPUT_DIR/latest.arm64.json"
+  "$WRITE_LATEST_SCRIPT" "$TAG" "$ARM_LATEST" "darwin-aarch64" "$ARM_DIR"
+fi
+
+if [[ -z "$INTEL_LATEST" ]]; then
+  INTEL_LATEST="$OUTPUT_DIR/latest.x64.json"
+  "$WRITE_LATEST_SCRIPT" "$TAG" "$INTEL_LATEST" "darwin-x86_64" "$INTEL_DIR"
+fi
 
 if [[ -z "$ARM_LATEST" || -z "$INTEL_LATEST" ]]; then
   echo "Error: latest.json not found in bundle dirs."

@@ -39,6 +39,7 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+WRITE_LATEST_SCRIPT="$SCRIPT_DIR/write_tauri_latest_json.sh"
 cd "$ROOT_DIR"
 
 resolve_github_token() {
@@ -293,6 +294,7 @@ build_target() {
 
 copy_bundle_artifacts() {
   local bundle_dir="$1"
+  local platform_key="$2"
   if [[ ! -d "$bundle_dir" ]]; then
     echo "Error: bundle dir not found: $bundle_dir"
     exit 1
@@ -304,6 +306,10 @@ copy_bundle_artifacts() {
     \) -print0 | while IFS= read -r -d '' file; do
       cp -f "$file" "$ARTIFACTS_DIR/"
     done
+
+  if [[ ! -f "$ARTIFACTS_DIR/latest.json" ]]; then
+    "$WRITE_LATEST_SCRIPT" "$TAG" "$ARTIFACTS_DIR/latest.json" "$platform_key" "$bundle_dir"
+  fi
 }
 
 if [[ "$MAC_BOTH" == "1" ]]; then
@@ -321,13 +327,13 @@ else
       rustup target add aarch64-apple-darwin >/dev/null 2>&1 || true
     fi
     build_target aarch64-apple-darwin
-    copy_bundle_artifacts "$ROOT_DIR/src-tauri/target/aarch64-apple-darwin/release/bundle"
+    copy_bundle_artifacts "$ROOT_DIR/src-tauri/target/aarch64-apple-darwin/release/bundle" "darwin-aarch64"
   else
     if [[ "$RUSTUP_AVAILABLE" == "1" ]]; then
       rustup target add x86_64-apple-darwin >/dev/null 2>&1 || true
     fi
     build_target x86_64-apple-darwin
-    copy_bundle_artifacts "$ROOT_DIR/src-tauri/target/x86_64-apple-darwin/release/bundle"
+    copy_bundle_artifacts "$ROOT_DIR/src-tauri/target/x86_64-apple-darwin/release/bundle" "darwin-x86_64"
   fi
 fi
 
