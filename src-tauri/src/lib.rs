@@ -24,6 +24,7 @@ mod tests_watcher;
 mod triage;
 mod undo;
 mod updates;
+mod user_preferences;
 mod validation;
 
 use anyhow::{Context, Result as AnyhowResult};
@@ -338,6 +339,21 @@ async fn start_monitoring(
         config::api_key_for_provider_or_empty(&provider.provider_id).map_err(|e| e.to_string())?;
     let scan_profile_cfg = load_scan_profile_config(&app)?;
     let scan_profile = normalize_scan_profile(&scan_profile_cfg.profile)?;
+    let user_preferences =
+        user_preferences::load_user_preferences(&app).unwrap_or_else(|err| {
+            warn!(
+                target: "guardian::settings",
+                "Falling back to default user preferences for monitoring start: {}",
+                err
+            );
+            user_preferences::UserPreferencesV1::default()
+        });
+    let effective_auto_verify =
+        auto_verify_enabled.unwrap_or(user_preferences.auto_verify_enabled);
+    let effective_language = language
+        .unwrap_or_else(|| user_preferences.language.clone())
+        .trim()
+        .to_lowercase();
 
     watcher
         .start(
@@ -348,12 +364,11 @@ async fn start_monitoring(
                 model: provider.model,
                 host: provider.base_url,
                 provider_id: provider.provider_id,
-                auto_verify_enabled: auto_verify_enabled.unwrap_or(false),
+                auto_verify_enabled: effective_auto_verify,
                 scan_profile,
-                language: language
-                    .unwrap_or_else(|| "en".to_string())
-                    .trim()
-                    .to_lowercase(),
+                language: effective_language,
+                scan_tuning: user_preferences.scan_tuning,
+                model_custom_instructions: user_preferences.model_custom_instructions,
             },
         )
         .await;
@@ -1106,6 +1121,9 @@ async fn ask_guru(
         api_key,
     )
     .map_err(|e| e.to_string())?;
+    let model_custom_instruction = user_preferences::load_user_preferences(&app)
+        .ok()
+        .and_then(|prefs| prefs.model_custom_instructions);
 
     // 3. Ask
     let result = client
@@ -1113,6 +1131,7 @@ async fn ask_guru(
             &guru_context,
             &clean_query,
             language.as_deref().unwrap_or("en"),
+            model_custom_instruction.as_deref(),
         )
         .await
         .map_err(|e| e.to_string())?;
@@ -1641,6 +1660,28 @@ async fn clear_tavily_key() -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn get_user_preferences(
+    app: AppHandle,
+) -> Result<user_preferences::UserPreferencesV1, String> {
+    user_preferences::load_user_preferences(&app)
+}
+
+#[tauri::command]
+async fn set_user_preferences(
+    app: AppHandle,
+    preferences: user_preferences::UserPreferencesV1,
+) -> Result<user_preferences::UserPreferencesV1, String> {
+    user_preferences::save_user_preferences(&app, preferences)
+}
+
+#[tauri::command]
+async fn reset_user_preferences(
+    app: AppHandle,
+) -> Result<user_preferences::UserPreferencesV1, String> {
+    user_preferences::reset_user_preferences(&app)
+}
+
+#[tauri::command]
 async fn clear_chat_history(
     path: String,
     storage: tauri::State<'_, Arc<Mutex<storage::StorageManager>>>,
@@ -1793,6 +1834,9 @@ pub fn run() -> AnyhowResult<()> {
             get_tavily_key_status,
             set_tavily_key,
             clear_tavily_key,
+            get_user_preferences,
+            set_user_preferences,
+            reset_user_preferences,
             get_scan_profile_config,
             set_scan_profile_config
         ])

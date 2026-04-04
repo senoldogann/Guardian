@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.6] - Approval Policy + Audit Compatibility + Review Precision
+
+Published: Apr 4, 2026
+
+### Highlights
+- Release approval policy documented with role boundaries for release managers, incident commanders, and reviewers.
+- Legacy `.guardian/release_decisions.jsonl` rows now remain readable during upgrades, so manual approval state is preserved.
+- Audit precision hardened for local/dev-only findings and recent-fix context reuse to reduce stale duplicate reports.
+- Website FAQ platform messaging aligned with the current macOS + Windows release reality.
+
+### Governance
+- Added a regression test for restoring manual approval state from legacy release-decision audit rows.
+- Release gate behavior and approval state rules now link directly to the release approval policy document.
+
+### Dependencies
+- Updated `jspdf` and `next` patch versions and added dependency overrides to reduce critical/high npm audit exposure.
+
 ## [1.2.5] - Cross-Platform Release + UX Polish
 
 Published: Mar 16, 2026

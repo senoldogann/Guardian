@@ -74,6 +74,72 @@ const MESSAGES: Record<AppLocale, Messages> = {
         languageTitle: "Language",
         languageNote:
           "Controls UI language and AI output language (Guru + Monitor findings).",
+        personalizationTitle: "Personalization",
+        personalizationNote:
+          "Customize theme mode, typography, model behavior hints, and scan tuning with safe limits.",
+        personalizationDescription:
+          "These settings are local-first and bounded by Guardian safety limits.",
+        appearanceTitle: "Appearance (light/dark palettes)",
+        appearancePreviewLabel: "Live preview ({mode})",
+        appearancePreviewDescription:
+          "Preview uses active theme mode. Accent and panel colors stay within guarded theme tokens.",
+        lightPaletteTitle: "Light palette",
+        darkPaletteTitle: "Dark palette",
+        palettePresetsLabel: "Quick palettes",
+        paletteCloud: "Cloud",
+        paletteStone: "Stone",
+        paletteMint: "Mint",
+        paletteSand: "Sand",
+        paletteMidnight: "Midnight",
+        paletteGraphite: "Graphite",
+        paletteAurora: "Aurora",
+        paletteEmber: "Ember",
+        accentColorLabel: "Accent color",
+        panelColorLabel: "Panel color",
+        textColorLabel: "Text color",
+        restoreLightPalette: "Restore Light Palette",
+        restoreDarkPalette: "Restore Dark Palette",
+        themeModeLabel: "Theme mode",
+        themeModeDark: "Dark",
+        themeModeLight: "Light",
+        themeModeSystem: "System",
+        fontFamilyLabel: "Font family",
+        fontFamilySpaceGrotesk: "Space Grotesk",
+        fontFamilyInter: "Inter",
+        fontFamilySystem: "System UI",
+        fontFamilySourceSans: "Source Sans 3",
+        fontFamilyIbmPlex: "IBM Plex Sans",
+        fontSizeScaleLabel: "Font size ({scale}%)",
+        modelInstructionLabel: "Model custom instructions",
+        modelInstructionPlaceholder:
+          "Optional: add project-specific style instructions without bypassing policy.",
+        modelInstructionHint:
+          "Applied to Guru/analysis requests within Guardian governance limits.",
+        modelInstructionPresetExplainFirstLabel: "Preset: Explain First",
+        modelInstructionPresetTerseLabel: "Preset: Terse",
+        modelInstructionPresetExplainFirst:
+          "Explain risk and release impact first, then provide the safest minimal fix.",
+        modelInstructionPresetTerse:
+          "Keep output concise and action-first, but preserve release risk clarity.",
+        maxFilesPerScanLabel: "Max files per scan",
+        maxBatchSizeHintLabel: "Batch size hint",
+        tokenBudgetHintLabel: "Token budget hint",
+        maxFilesPerScanNote:
+          "Upper bound for initial scan file count. Higher values increase startup latency and cost.",
+        maxBatchSizeHintNote:
+          "How many files are grouped in one AI request. Higher values increase context width and timeout risk.",
+        tokenBudgetHintNote:
+          "Target prompt budget per batch. Runtime policy may cap this to protect stability.",
+        scanTuningHint:
+          "Higher values may increase latency and cost; lower values may miss cross-file signals.",
+        scanTuningPolicyCaps: "Scope caps: files <= {filesCap}, batch <= {batchCap}.",
+        scanTuningPolicyOverride:
+          "Policy applied: effective files {files} / requested {requestedFiles}, effective batch {batch} / requested {requestedBatch}. Token budget may still be capped by runtime policy.",
+        scanTuningPolicyNoOverride:
+          "No scope cap is currently applied for these values. Runtime token policy can still apply.",
+        refreshPreferences: "Reload Preferences",
+        savingPreferences: "Saving...",
+        resetPreferences: "Reset to Defaults",
         guruReplySoundTitle: "Guru Reply Sound",
         guruReplySoundNote:
           "Plays a subtle chime when Guru responds while you are outside the Guru screen.",
@@ -210,6 +276,9 @@ const MESSAGES: Record<AppLocale, Messages> = {
         tavilyKeyEmpty: "Tavily key cannot be empty.",
         autoVerifyConfirm:
           "Automatic Verification runs project commands (npm/cargo/etc) inside your monitored workspace. Enable only for trusted repos.",
+        preferencesLoadFailed: "Preferences could not be loaded: {error}",
+        preferencesSaveFailed: "Preferences could not be saved: {error}",
+        preferencesResetFailed: "Preferences could not be reset: {error}",
         updateUnavailable: "Update service unavailable.",
         updateUnavailableHint: "Update service unavailable. Check network and try again.",
       },
@@ -694,6 +763,72 @@ const MESSAGES: Record<AppLocale, Messages> = {
         languageTitle: "Dil",
         languageNote:
           "Arayüz dilini ve AI çıktılarının dilini belirler (Guru + Monitor bulguları).",
+        personalizationTitle: "Kişiselleştirme",
+        personalizationNote:
+          "Tema modu, tipografi, model davranış notları ve tarama ayarlarını güvenli sınırlar içinde özelleştirin.",
+        personalizationDescription:
+          "Bu ayarlar local-first çalışır ve Guardian güvenlik sınırlarıyla korunur.",
+        appearanceTitle: "Görünüm (açık/koyu paletler)",
+        appearancePreviewLabel: "Canlı önizleme ({mode})",
+        appearancePreviewDescription:
+          "Önizleme aktif tema modunu kullanır. Vurgu ve panel renkleri güvenli tema token sınırlarında kalır.",
+        lightPaletteTitle: "Açık palet",
+        darkPaletteTitle: "Koyu palet",
+        palettePresetsLabel: "Hızlı paletler",
+        paletteCloud: "Bulut",
+        paletteStone: "Taş",
+        paletteMint: "Nane",
+        paletteSand: "Kum",
+        paletteMidnight: "Gece",
+        paletteGraphite: "Grafit",
+        paletteAurora: "Kutup",
+        paletteEmber: "Köz",
+        accentColorLabel: "Vurgu rengi",
+        panelColorLabel: "Panel rengi",
+        textColorLabel: "Metin rengi",
+        restoreLightPalette: "Açık Paleti Sıfırla",
+        restoreDarkPalette: "Koyu Paleti Sıfırla",
+        themeModeLabel: "Tema modu",
+        themeModeDark: "Koyu",
+        themeModeLight: "Açık",
+        themeModeSystem: "Sistem",
+        fontFamilyLabel: "Yazı tipi ailesi",
+        fontFamilySpaceGrotesk: "Space Grotesk",
+        fontFamilyInter: "Inter",
+        fontFamilySystem: "System UI",
+        fontFamilySourceSans: "Source Sans 3",
+        fontFamilyIbmPlex: "IBM Plex Sans",
+        fontSizeScaleLabel: "Yazı boyutu ({scale}%)",
+        modelInstructionLabel: "Model özel talimatları",
+        modelInstructionPlaceholder:
+          "Opsiyonel: politikayı aşmadan proje bağlamına uygun stil talimatı ekleyin.",
+        modelInstructionHint:
+          "Guardian yönetişim sınırları içinde Guru/analiz isteklerine uygulanır.",
+        modelInstructionPresetExplainFirstLabel: "Preset: Önce Açıkla",
+        modelInstructionPresetTerseLabel: "Preset: Kısa",
+        modelInstructionPresetExplainFirst:
+          "Önce riski ve release etkisini açıkla, sonra en güvenli minimal düzeltmeyi ver.",
+        modelInstructionPresetTerse:
+          "Çıktıyı kısa ve aksiyon odaklı tut, ancak release risk netliğini koru.",
+        maxFilesPerScanLabel: "Tarama başına maksimum dosya",
+        maxBatchSizeHintLabel: "Batch boyutu ipucu",
+        tokenBudgetHintLabel: "Token bütçesi ipucu",
+        maxFilesPerScanNote:
+          "İlk taramadaki dosya üst sınırı. Yüksek değerler başlangıç gecikmesini ve maliyeti artırır.",
+        maxBatchSizeHintNote:
+          "Tek AI isteğinde gruplanan dosya sayısı. Yüksek değerler bağlamı büyütür ve timeout riskini artırır.",
+        tokenBudgetHintNote:
+          "Batch başına hedef prompt bütçesi. Stabilite için çalışma zamanı politikası bu değeri sınırlandırabilir.",
+        scanTuningHint:
+          "Yüksek değerler gecikme ve maliyeti artırabilir; düşük değerler dosyalar arası sinyalleri kaçırabilir.",
+        scanTuningPolicyCaps: "Kapsam sınırları: dosya <= {filesCap}, batch <= {batchCap}.",
+        scanTuningPolicyOverride:
+          "Politika uygulandı: etkili dosya {files} / istenen {requestedFiles}, etkili batch {batch} / istenen {requestedBatch}. Token bütçesi ayrıca çalışma zamanı politikasıyla sınırlandırılabilir.",
+        scanTuningPolicyNoOverride:
+          "Bu değerler için şu an kapsam kaynaklı bir sınır uygulanmıyor. Çalışma zamanı token politikası yine de geçerli olabilir.",
+        refreshPreferences: "Tercihleri Yenile",
+        savingPreferences: "Kaydediliyor...",
+        resetPreferences: "Varsayılanlara Dön",
         guruReplySoundTitle: "Guru Yanıt Sesi",
         guruReplySoundNote:
           "Guru ekranı dışında olduğunuzda yanıt gelirse hafif bir zil sesi çalar.",
@@ -831,6 +966,9 @@ const MESSAGES: Record<AppLocale, Messages> = {
         tavilyKeyEmpty: "Tavily key boş olamaz.",
         autoVerifyConfirm:
           "Automatic Verification, izlenen workspace içinde proje komutlarını (npm/cargo vb.) çalıştırır. Sadece güvendiğiniz repolarda açın.",
+        preferencesLoadFailed: "Tercihler yüklenemedi: {error}",
+        preferencesSaveFailed: "Tercihler kaydedilemedi: {error}",
+        preferencesResetFailed: "Tercihler sıfırlanamadı: {error}",
         updateUnavailable: "Güncelleme servisi kullanılamıyor.",
         updateUnavailableHint:
           "Güncelleme servisi kullanılamıyor. Ağı kontrol edip tekrar deneyin.",

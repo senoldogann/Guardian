@@ -1,8 +1,9 @@
 /** Tests for useSettings hook */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, waitFor, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { renderHook, waitFor, act, cleanup } from "@testing-library/react";
 import { useSettings } from "../useSettings";
+import { STORAGE_KEYS } from "../../constants";
 
 // Mock Tauri
 vi.mock("../../lib/tauri", () => ({
@@ -30,6 +31,13 @@ describe("useSettings", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+    localStorage.setItem(STORAGE_KEYS.USER_PREFERENCES_MIGRATED_V1, "true");
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    cleanup();
   });
 
   it("should load providers on mount", async () => {
@@ -132,6 +140,75 @@ describe("useSettings", () => {
     });
   });
 
+  it("loads user preferences and saves partial scan tuning safely", async () => {
+    const mockProvider = {
+      provider_id: "openai",
+      base_url: "https://api.openai.com/v1",
+      model: "gpt-4",
+    };
+    const mockPreferences = {
+      schema_version: 1,
+      theme_mode: "dark",
+      language: "en",
+      light_palette: { accent: "#5f879a", panel: "#f7f9fc", text: "#1f2b38" },
+      dark_palette: { accent: "#5f8fa5", panel: "#141a21", text: "#e6edf5" },
+      font_size_scale: 100,
+      font_family: "inter",
+      model_custom_instructions: null,
+      scan_tuning: {
+        max_files_per_scan: 200,
+        max_batch_size_hint: 3,
+        token_budget_hint: 5000,
+      },
+      web_search_enabled: false,
+      web_search_depth: "basic",
+      auto_verify_enabled: false,
+      guru_reply_sound_enabled: true,
+    };
+
+    mockInvoke.mockImplementation(async (command: string, payload?: unknown) => {
+      if (command === "get_provider_config") return mockProvider;
+      if (command === "get_user_preferences") return mockPreferences;
+      if (command === "set_user_preferences") {
+        return (payload as { preferences: unknown }).preferences;
+      }
+      if (command === "get_api_key_status") return { has_key: false, source: "missing" };
+      if (command === "get_tavily_key_status") return { has_key: false, source: "none" };
+      if (command === "check_app_update") return defaultUpdateResult;
+      return null;
+    });
+
+    const { result } = renderHook(() => useSettings(mockExportPdfFn, true));
+
+    await waitFor(() => {
+      expect(result.current.userPreferences?.font_family).toBe("inter");
+    });
+
+    act(() => {
+      result.current.updateUserPreferences({
+        scan_tuning: { max_batch_size_hint: 5 },
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.userPreferences?.scan_tuning.max_batch_size_hint).toBe(5);
+      expect(result.current.userPreferences?.scan_tuning.max_files_per_scan).toBe(200);
+      expect(result.current.userPreferences?.scan_tuning.token_budget_hint).toBe(5000);
+    });
+
+    act(() => {
+      result.current.updateUserPreferences({
+        light_palette: { accent: "#123456" },
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.userPreferences?.light_palette.accent).toBe("#123456");
+      expect(result.current.userPreferences?.light_palette.panel).toBe("#f7f9fc");
+      expect(result.current.userPreferences?.light_palette.text).toBe("#1f2b38");
+    });
+  }, 15000);
+
   it("should handle update check", async () => {
     const mockUpdateResult = {
       status: "available",
@@ -150,11 +227,13 @@ describe("useSettings", () => {
 
     const { result } = renderHook(() => useSettings(mockExportPdfFn, true));
 
-    await act(async () => {
-      await result.current.checkForUpdates();
+    act(() => {
+      void result.current.checkForUpdates();
     });
 
-    expect(mockInvoke).toHaveBeenCalledWith("check_app_update");
+    await waitFor(() => {
+      expect(mockInvoke).toHaveBeenCalledWith("check_app_update");
+    });
   });
 
   it("should handle provider change", async () => {
@@ -223,7 +302,7 @@ describe("useSettings", () => {
       expect(result.current.providerDraft).toBeTruthy();
     });
 
-    await act(async () => {
+    act(() => {
       result.current.onExportPDF({}, "/test/path");
     });
 
@@ -345,11 +424,13 @@ describe("useSettings", () => {
       expect(result.current.providerDraft).toBeTruthy();
     });
 
-    await act(async () => {
-      await result.current.checkForUpdates();
+    act(() => {
+      void result.current.checkForUpdates();
     });
 
-    expect(result.current.updateInfo).toBeTruthy();
-    expect(mockInvoke).toHaveBeenCalledWith("check_app_update");
+    await waitFor(() => {
+      expect(result.current.updateInfo).toBeTruthy();
+      expect(mockInvoke).toHaveBeenCalledWith("check_app_update");
+    });
   });
 });

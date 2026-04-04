@@ -16,6 +16,7 @@ export const STORAGE_KEYS = {
   EMBEDDING_OLLAMA_BASE_URL: "guardian_embedding_ollama_base_url",
   EMBEDDING_OPENAI_MODEL: "guardian_embedding_openai_model",
   EMBEDDING_OLLAMA_MODEL: "guardian_embedding_ollama_model",
+  USER_PREFERENCES_MIGRATED_V1: "guardian_user_preferences_migrated_v1",
 } as const;
 
 // Limits

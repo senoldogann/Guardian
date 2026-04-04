@@ -206,7 +206,7 @@ export function ControlSidebar({
         <button
           onClick={toggleCollapsed}
           className={clsx(
-            "guardian-focus-ring rounded-lg border border-border-main bg-background/40 hover:bg-background/70 transition-colors",
+            "guardian-focus-ring rounded-lg border border-border-main bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] transition-colors",
             collapsed ? "p-2" : "px-2.5 py-2",
           )}
           title={collapsed ? t("sidebar.expand") : t("sidebar.collapse")}
@@ -346,7 +346,7 @@ export function ControlSidebar({
                   <StatMini
                     label={t("sidebar.files")}
                     count={totalFiles}
-                    icon={<Files className="w-3.5 h-3.5 text-zinc-400" />}
+                    icon={<Files className="w-3.5 h-3.5 text-text-muted" />}
                     color="text-[var(--stat-strong)]"
                   />
                   <StatMini
@@ -358,15 +358,15 @@ export function ControlSidebar({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">
+                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest px-1">
                     {t("sidebar.scope")}
                   </label>
                   <div className="group relative">
-                    <Folder className="absolute left-3 top-3 w-4 h-4 text-zinc-500 group-focus-within:text-text-main transition-colors pointer-events-none" />
+                    <Folder className="absolute left-3 top-3 w-4 h-4 text-text-muted group-focus-within:text-text-main transition-colors pointer-events-none" />
                     <input
                       readOnly
                       onClick={() => void onSelectScope()}
-                      className="w-full bg-background border border-border-main rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none focus:border-opacity-100 transition-all placeholder:opacity-50 cursor-pointer hover:bg-border-main"
+                      className="w-full bg-[var(--panel-muted)] border border-border-main rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none focus:border-[var(--focus-border)] transition-all placeholder:opacity-50 cursor-pointer hover:bg-[var(--panel-bg)]"
                       value={scopeLabel}
                       placeholder={t("sidebar.selectWorkspace")}
                     />
@@ -375,7 +375,7 @@ export function ControlSidebar({
 
                 <button
                   onClick={toggleDetails}
-                  className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-border-main bg-background/40 hover:bg-background/60 transition-colors"
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-border-main bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] transition-colors"
                   aria-label={detailsOpen ? t("sidebar.hideDetails") : t("sidebar.showDetails")}
                 >
                   <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
@@ -388,7 +388,7 @@ export function ControlSidebar({
                 </button>
 
                 {detailsOpen && (
-                  <div className="rounded-xl border border-border-main bg-background/30 overflow-y-auto custom-scrollbar max-h-[34vh]">
+                  <div className="rounded-xl border border-border-main bg-[var(--panel-muted)] overflow-y-auto custom-scrollbar max-h-[34vh]">
                     <div className="p-3 space-y-2">
                       <CostMetricSection
                         tokens={tokens}
@@ -558,8 +558,8 @@ function DockNavButton({
       className={clsx(
         "relative h-11 w-11 rounded-2xl flex items-center justify-center transition-all border cursor-pointer",
         active
-          ? "bg-[var(--accent-200)] shadow text-[var(--text-main)] border-[var(--panel-border-strong)]"
-          : "bg-background/30 text-text-muted border-border-main hover:bg-background/55 hover:text-text-main",
+          ? "bg-[var(--accent-500)] shadow text-[var(--text-main)] border-[var(--accent-400)]"
+          : "bg-[var(--panel-muted)] text-text-muted border-border-main hover:bg-[var(--panel-bg)] hover:text-text-main",
       )}
     >
       {icon}
@@ -589,7 +589,7 @@ function DockActionButton({
       onClick={onClick}
       aria-label={label}
       title={title}
-      className="h-11 w-11 rounded-2xl flex items-center justify-center transition-colors border border-border-main bg-background/25 hover:bg-background/50 cursor-pointer"
+      className="h-11 w-11 rounded-2xl flex items-center justify-center transition-colors border border-border-main bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] cursor-pointer"
     >
       {icon}
       <span className="sr-only">{label}</span>
@@ -618,7 +618,7 @@ function NavRow({
       className={clsx(
         "w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all flex items-center justify-between gap-3 cursor-pointer",
         active
-          ? "bg-[var(--accent-200)] shadow text-[var(--text-main)] border border-[var(--panel-border-strong)]"
+          ? "bg-[var(--accent-500)] shadow text-[var(--text-main)] border border-[var(--accent-400)]"
           : "opacity-70 hover:opacity-100",
       )}
     >
@@ -658,7 +658,7 @@ function CostMetricSection({
       </div>
       <div className="flex items-baseline gap-2">
         <span className="text-lg font-black text-[var(--accent-500)] tabular-nums">{costUnits}</span>
-        <span className="text-[10px] uppercase tracking-widest text-zinc-500">
+        <span className="text-[10px] uppercase tracking-widest text-text-muted">
           {t("sidebar.cost.units")}
         </span>
       </div>
@@ -831,7 +831,7 @@ function EngineSection({
       <p className="text-[10px] text-text-muted leading-relaxed font-mono">
         {t("sidebar.engine.model")}: {engineModel}
       </p>
-      <div className="flex items-center justify-between rounded-lg border border-border-main bg-background/60 px-2.5 py-2">
+      <div className="flex items-center justify-between rounded-lg border border-border-main bg-[var(--panel-muted)] px-2.5 py-2">
         <span className="text-[10px] text-text-muted flex items-center gap-1.5">
           <DatabaseZap className="w-3.5 h-3.5" />
           {t("sidebar.engine.embedding")}:{" "}

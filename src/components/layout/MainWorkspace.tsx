@@ -156,7 +156,7 @@ export function MainWorkspace({
     <main className="flex-1 flex overflow-hidden gap-3">
       <section
         className={clsx(
-          "flex-1 overflow-hidden flex flex-col bg-background rounded-2xl guardian-elevated-card transition-colors duration-300 relative",
+          "flex-1 overflow-hidden flex flex-col bg-[var(--panel-bg)] rounded-2xl guardian-elevated-card transition-colors duration-300 relative",
           view === "monitor" ? "flex" : "hidden",
         )}
       >
@@ -241,7 +241,7 @@ export function MainWorkspace({
                   {resolvedFindings.map((finding, index) => (
                     <div
                       key={finding.finding_id}
-                      className="group overflow-hidden rounded-xl hover:bg-surface/50 transition-colors"
+                      className="group overflow-hidden rounded-xl hover:bg-[var(--panel-muted)] transition-colors"
                     >
                       <div className="flex items-center px-6 py-4">
                         <div className="w-8 shrink-0 text-xs font-mono opacity-20">
@@ -321,7 +321,7 @@ export function MainWorkspace({
 
       <section
         className={clsx(
-          "flex-1 overflow-hidden flex flex-col bg-background rounded-2xl guardian-elevated-card transition-colors duration-300",
+          "flex-1 overflow-hidden flex flex-col bg-[var(--panel-bg)] rounded-2xl guardian-elevated-card transition-colors duration-300",
           view === "chat" ? "flex" : "hidden",
         )}
       >
@@ -340,13 +340,13 @@ export function MainWorkspace({
 
       <section
         className={clsx(
-          "flex-1 overflow-hidden flex flex-col bg-background rounded-2xl guardian-elevated-card transition-colors duration-300",
+          "flex-1 overflow-hidden flex flex-col bg-[var(--panel-bg)] rounded-2xl guardian-elevated-card transition-colors duration-300",
           view === "reviews" ? "flex" : "hidden",
         )}
       >
         {!path ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-muted text-sm">
-            <div className="w-16 h-16 rounded-2xl border border-border-main bg-background/40 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl border border-border-main bg-[var(--panel-muted)] flex items-center justify-center">
               <ClipboardList className="w-7 h-7 text-text-muted/80" />
             </div>
             <div className="text-xs uppercase tracking-widest">{t("common.noWorkspaceSelected")}</div>
@@ -355,14 +355,14 @@ export function MainWorkspace({
             </div>
             <button
               onClick={() => void onSelectScope()}
-              className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer"
+              className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest border border-[var(--panel-border-strong)] bg-[var(--panel-muted)] text-[var(--accent-500)] rounded-md hover:bg-[var(--panel-bg)] transition-colors cursor-pointer"
             >
               {t("common.selectWorkspace")}
             </button>
           </div>
         ) : (
           <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-            <div className="shrink-0 border-b border-border-main bg-surface/30 px-6 py-4">
+            <div className="shrink-0 border-b border-border-main bg-[var(--panel-muted)] px-6 py-4">
               <div className="flex items-start gap-4">
                 <div className="space-y-1 min-w-0">
                   <h2 className="text-xs font-bold uppercase tracking-widest text-text-muted">
@@ -372,13 +372,13 @@ export function MainWorkspace({
                     {t("reviews.appliedFixesNote")}
                   </div>
                   {fixHistoryError && (
-                    <div className="text-[10px] text-rose-400 font-mono">{fixHistoryError}</div>
+                    <div className="text-[10px] text-[color:var(--tone-critical-text)] font-mono">{fixHistoryError}</div>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="shrink-0 px-6 py-4 border-b border-border-main bg-background/20">
+            <div className="shrink-0 px-6 py-4 border-b border-border-main bg-[var(--panel-muted)]">
               <ReleaseDecisionPanel
                 decision={releaseDecision}
                 loading={releaseDecisionLoading}
@@ -389,7 +389,7 @@ export function MainWorkspace({
               />
             </div>
 
-            <div className="shrink-0 px-6 py-4 border-b border-border-main bg-background/20">
+            <div className="shrink-0 px-6 py-4 border-b border-border-main bg-[var(--panel-muted)]">
               {fixHistoryLoading ? (
                 <div className="text-[10px] font-mono text-text-muted">{t("reviews.fixHistoryLoading")}</div>
               ) : fixHistory.length === 0 ? (
@@ -401,7 +401,7 @@ export function MainWorkspace({
                   {fixHistory.slice(0, 12).map((entry) => (
                     <div
                       key={entry.file_path}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-border-main bg-background/40 px-4 py-3"
+                      className="flex items-center justify-between gap-3 rounded-xl border border-border-main bg-[var(--panel-bg)] px-4 py-3"
                     >
                       <div className="min-w-0">
                         <div className="font-mono text-xs text-text-main truncate">
@@ -414,7 +414,7 @@ export function MainWorkspace({
                       </div>
                       <button
                         onClick={() => void onUndoFix(entry.file_path)}
-                        className="px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors cursor-pointer bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/15"
+                        className="px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors cursor-pointer bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] border-[color:var(--tone-critical-border)] hover:opacity-90"
                         title={t("reviews.undoTitle")}
                       >
                         {t("common.undo")}
@@ -440,13 +440,13 @@ export function MainWorkspace({
 
       <section
         className={clsx(
-          "flex-1 overflow-hidden flex flex-col bg-background rounded-2xl guardian-elevated-card transition-colors duration-300",
+          "flex-1 overflow-hidden flex flex-col bg-[var(--panel-bg)] rounded-2xl guardian-elevated-card transition-colors duration-300",
           view === "ai-context" ? "flex" : "hidden",
         )}
       >
         {!path ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-muted text-sm">
-            <div className="w-16 h-16 rounded-2xl border border-border-main bg-background/40 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-2xl border border-border-main bg-[var(--panel-muted)] flex items-center justify-center">
               <EyeOff className="w-7 h-7 text-text-muted/80" />
             </div>
             <div className="text-xs uppercase tracking-widest">{t("aiContext.titleEmpty")}</div>
@@ -455,7 +455,7 @@ export function MainWorkspace({
             </div>
             <button
               onClick={() => void onSelectScope()}
-              className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer"
+              className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest border border-[var(--panel-border-strong)] bg-[var(--panel-muted)] text-[var(--accent-500)] rounded-md hover:bg-[var(--panel-bg)] transition-colors cursor-pointer"
             >
               {t("common.selectWorkspace")}
             </button>
@@ -472,7 +472,7 @@ export function MainWorkspace({
 
       <section
         className={clsx(
-          "flex-1 overflow-hidden flex flex-col bg-background rounded-2xl guardian-elevated-card transition-colors duration-300",
+          "flex-1 overflow-hidden flex flex-col bg-[var(--panel-bg)] rounded-2xl guardian-elevated-card transition-colors duration-300",
           view === "diagram" ? "flex" : "hidden",
         )}
       >
@@ -485,7 +485,7 @@ export function MainWorkspace({
           </div>
           <div className="flex items-center gap-2">
             {contextError && (
-              <span className="text-[10px] text-rose-500 max-w-[280px] truncate" title={contextError}>
+              <span className="text-[10px] text-[color:var(--tone-critical-text)] max-w-[280px] truncate" title={contextError}>
                 {contextError}
               </span>
             )}
@@ -499,7 +499,7 @@ export function MainWorkspace({
                 }
               }}
               disabled={!path || contextLoading}
-              className="guardian-focus-ring px-3 py-1 text-[9px] font-bold uppercase tracking-widest bg-background/60 hover:bg-background/80 text-text-main border border-border-main rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="guardian-focus-ring px-3 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-main border border-border-main rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {contextLoading ? t("diagram.scanning") : t("common.rescan")}
             </button>
@@ -519,7 +519,7 @@ export function MainWorkspace({
             </div>
             <button
               onClick={() => void onSelectScope()}
-              className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer"
+              className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest border border-[var(--panel-border-strong)] bg-[var(--panel-muted)] text-[var(--accent-500)] rounded-md hover:bg-[var(--panel-bg)] transition-colors cursor-pointer"
             >
               {t("common.selectWorkspace")}
             </button>

@@ -97,7 +97,7 @@ const CollapsibleNode = ({ data }: { data: FileNodeData }): ReactElement => {
                 {data.label}
             </span>
             {data.type === 'folder' && typeof data.count === 'number' && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--panel-muted)] text-[var(--map-node-text)]">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-border-main bg-[var(--panel-muted)] text-[var(--text-main)]">
                     {data.count}
                 </span>
             )}

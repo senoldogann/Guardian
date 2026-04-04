@@ -40,6 +40,7 @@ pub struct ReleaseDecisionView {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ReleaseDecisionAuditRecord {
     timestamp: String,
+    #[serde(default = "legacy_release_decision_action")]
     action: String,
     decision: ReleaseDecision,
     approver: String,
@@ -47,9 +48,13 @@ struct ReleaseDecisionAuditRecord {
     reason: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     override_reason: Option<String>,
+    #[serde(default)]
     critical_findings: usize,
+    #[serde(default)]
     warning_findings: usize,
+    #[serde(default)]
     ai_heavy_change: bool,
+    #[serde(default)]
     policy_path: String,
 }
 
@@ -64,6 +69,10 @@ struct ManualDecisionState {
 
 fn release_decisions_path(root: &Path) -> PathBuf {
     root.join(".guardian").join("release_decisions.jsonl")
+}
+
+fn legacy_release_decision_action() -> String {
+    "legacy_release_decision".to_string()
 }
 
 fn load_latest_audit_record(path: &Path) -> Option<ReleaseDecisionAuditRecord> {
@@ -723,6 +732,52 @@ gate:
         assert_eq!(
             record.get("override_reason").and_then(|v| v.as_str()),
             Some("Emergency hotfix for production incident.")
+        );
+    }
+
+    #[test]
+    fn legacy_audit_records_without_new_metadata_still_restore_manual_approval() {
+        let tmp = TempDir::new().expect("tempdir");
+        let root = tmp.path();
+        write_policy(root);
+        write_source_files(root, 16, "export const value = 1;\n");
+        let severities = vec!["Info"; 16];
+        write_critiques_snapshot(
+            root,
+            &severities,
+            "AI-heavy intake restored from legacy approval audit row.",
+        );
+
+        let guardian_dir = root.join(".guardian");
+        fs::create_dir_all(&guardian_dir).expect("create guardian dir");
+        fs::write(
+            guardian_dir.join("release_decisions.jsonl"),
+            serde_json::to_string(&json!({
+                "timestamp": "2026-03-14T23:52:12.336032+00:00",
+                "decided_at": "2026-03-14T23:52:12.336032+00:00",
+                "decision": "PASS",
+                "ai_heavy_change": true,
+                "reason": "Approved after manual release review.",
+                "override_reason": null,
+                "approver": "release-manager",
+                "source": "pilot_dryrun"
+            }))
+            .expect("serialize legacy audit record"),
+        )
+        .expect("write legacy audit file");
+
+        let restored =
+            get_release_decision(root.to_string_lossy().as_ref()).expect("restore decision");
+
+        assert_eq!(restored.decision, ReleaseDecision::PassWithWarning);
+        assert_eq!(restored.approver.as_deref(), Some("release-manager"));
+        assert_eq!(
+            restored.reason.as_deref(),
+            Some("Approved after manual release review.")
+        );
+        assert_eq!(
+            restored.decided_at.as_deref(),
+            Some("2026-03-14T23:52:12.336032+00:00")
         );
     }
 }

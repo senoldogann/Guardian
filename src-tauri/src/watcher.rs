@@ -5,6 +5,7 @@ use crate::executor;
 use crate::history_logger::{append_critique_event, append_history_event, HistoryEvent};
 use crate::storage::StorageManager;
 use crate::triage;
+use crate::user_preferences::ScanTuning;
 use chrono::Utc;
 use guardian_scan_policy::{classify_path, is_infra_relevant_path, ScanProfile, SkipReason};
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
@@ -118,6 +119,34 @@ const DIFF_MAX_HUNKS: usize = 6;
 
 fn is_turkish(language: &str) -> bool {
     language.trim().eq_ignore_ascii_case("tr")
+}
+
+fn effective_batch_size_limit(scan_profile: ScanProfile, scan_tuning: &ScanTuning) -> usize {
+    let hinted = usize::from(scan_tuning.max_batch_size_hint).max(1);
+    let profile_cap = scan_profile.max_batch_size().max(1);
+    let configured = config::max_batch_size().max(1);
+    let bounded_by_config = if configured == config::DEFAULT_MAX_BATCH_SIZE {
+        hinted
+    } else {
+        hinted.min(configured)
+    };
+    bounded_by_config.min(profile_cap).max(1)
+}
+
+fn effective_batch_prompt_token_budget(scan_tuning: &ScanTuning) -> u64 {
+    let hinted = u64::from(scan_tuning.token_budget_hint).max(1500);
+    let configured = config::max_batch_prompt_tokens().max(1);
+    if configured == config::DEFAULT_MAX_BATCH_PROMPT_TOKENS {
+        hinted
+    } else {
+        hinted.min(configured)
+    }
+}
+
+fn effective_initial_scan_limit(scan_profile: ScanProfile, scan_tuning: &ScanTuning) -> usize {
+    let hinted = usize::from(scan_tuning.max_files_per_scan).max(1);
+    let profile_cap = scan_profile.initial_scan_limit().max(1);
+    hinted.min(profile_cap).max(1)
 }
 
 fn ui_text<'a>(language: &str, en: &'a str, tr: &'a str) -> &'a str {
@@ -1089,6 +1118,8 @@ pub struct WatcherRuntimeConfig {
     pub auto_verify_enabled: bool,
     pub scan_profile: ScanProfile,
     pub language: String,
+    pub scan_tuning: ScanTuning,
+    pub model_custom_instructions: Option<String>,
 }
 
 pub async fn start_watching(
@@ -1105,6 +1136,8 @@ pub async fn start_watching(
         auto_verify_enabled,
         scan_profile,
         language,
+        scan_tuning,
+        model_custom_instructions,
     } = config;
 
     let (batch_tx, batch_rx) = tokio::sync::mpsc::channel(100);
@@ -1234,6 +1267,8 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
     let batch_shutdown = shutdown.clone();
     let batch_profile = scan_profile;
     let batch_language = language.clone();
+    let batch_scan_tuning = scan_tuning.clone();
+    let batch_model_custom_instructions = model_custom_instructions.clone();
     tokio::spawn(async move {
         batch_processing_loop(
             batch_rx,
@@ -1246,6 +1281,8 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
             batch_shutdown,
             batch_profile,
             batch_language,
+            batch_scan_tuning,
+            batch_model_custom_instructions,
         )
         .await;
     });
@@ -1287,12 +1324,14 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
     tokio::task::spawn_blocking(move || {
         use std::collections::HashMap;
 
-        let scan_limit = scan_profile_copy.initial_scan_limit();
+        let scan_limit = effective_initial_scan_limit(scan_profile_copy, &scan_tuning);
         info!(
             target: "guardian::watcher",
-            "Performing initial scan (profile={}, limit={})",
+            "Performing initial scan (profile={}, limit={}, requested_max_files_per_scan={}, policy_cap={})",
             scan_profile_copy.as_str(),
-            scan_limit
+            scan_limit,
+            scan_tuning.max_files_per_scan,
+            scan_profile_copy.initial_scan_limit()
         );
         let walker = ignore::WalkBuilder::new(&scan_root)
             .hidden(false)
@@ -1722,6 +1761,8 @@ async fn batch_processing_loop(
     shutdown: Arc<AtomicBool>,
     scan_profile: ScanProfile,
     language: String,
+    scan_tuning: ScanTuning,
+    model_custom_instructions: Option<String>,
 ) {
     let mut batch: Vec<BatchItem> = Vec::new();
     let flush_interval = Duration::from_secs(5); // 5s timeout
@@ -1744,6 +1785,8 @@ async fn batch_processing_loop(
                         auto_verify_enabled,
                         scan_profile,
                         language.as_str(),
+                        &scan_tuning,
+                        model_custom_instructions.as_deref(),
                         &mut last_request,
                     )
                     .await;
@@ -1753,7 +1796,7 @@ async fn batch_processing_loop(
                 // Keep the freshest content per path; do not keep stale pre-debounce snapshots.
                 upsert_batch_item(&mut batch, item);
 
-                let effective_batch_size = std::cmp::min(config::max_batch_size(), scan_profile.max_batch_size());
+                let effective_batch_size = effective_batch_size_limit(scan_profile, &scan_tuning);
                 if batch.len() >= effective_batch_size {
                     // FLUSH
                     process_batch(
@@ -1765,6 +1808,8 @@ async fn batch_processing_loop(
                         auto_verify_enabled,
                         scan_profile,
                         language.as_str(),
+                        &scan_tuning,
+                        model_custom_instructions.as_deref(),
                         &mut last_request,
                     )
                     .await;
@@ -1783,6 +1828,59 @@ fn upsert_batch_item(batch: &mut Vec<BatchItem>, item: BatchItem) {
     batch.push(item);
 }
 
+fn merge_project_intent_with_recent_fix_history(
+    project_intent_pack: Option<&str>,
+    root: &str,
+    items: &[BatchItem],
+) -> Option<String> {
+    let mut sections = Vec::new();
+    if let Some(pack) = project_intent_pack {
+        let trimmed = pack.trim();
+        if !trimmed.is_empty() {
+            sections.push(trimmed.to_string());
+        }
+    }
+
+    let Ok(history) = crate::undo::list_fix_history(root) else {
+        return if sections.is_empty() {
+            None
+        } else {
+            Some(sections.join("\n\n"))
+        };
+    };
+
+    let workspace_root = Path::new(root);
+    let batch_paths: std::collections::HashSet<String> = items
+        .iter()
+        .map(|item| normalize_rel_file_path(workspace_root, &item.path.to_string_lossy()))
+        .collect();
+    let mut recent_fix_history = Vec::new();
+    for entry in history {
+        if !batch_paths.contains(&entry.file_path) {
+            continue;
+        }
+        recent_fix_history.push(format!("- `{}` patched at {}", entry.file_path, entry.applied_at));
+        if recent_fix_history.len() >= 8 {
+            break;
+        }
+    }
+
+    if !recent_fix_history.is_empty() {
+        let mut section = String::from("RECENT FIX HISTORY:\n");
+        section.push_str(
+            "Treat these as recently applied patches and do not report stale duplicates unless the current diff still proves the issue exists.\n",
+        );
+        section.push_str(&recent_fix_history.join("\n"));
+        sections.push(section);
+    }
+
+    if sections.is_empty() {
+        None
+    } else {
+        Some(sections.join("\n\n"))
+    }
+}
+
 async fn process_batch(
     batch: &mut Vec<BatchItem>,
     app: &AppHandle,
@@ -1792,6 +1890,8 @@ async fn process_batch(
     auto_verify_enabled: bool,
     scan_profile: ScanProfile,
     language: &str,
+    scan_tuning: &ScanTuning,
+    model_custom_instructions: Option<&str>,
     last_request: &mut Instant,
 ) {
     if batch.is_empty() {
@@ -1826,10 +1926,12 @@ async fn process_batch(
 
     // Prepare Prompt Data
     let (prompt_data, estimated_tokens, hash_by_path, context_files) = build_prompt_data(&items);
+    let enriched_project_context =
+        merge_project_intent_with_recent_fix_history(project_intent_pack, root, &items);
     emit_ai_context(app, root, client, estimated_tokens, &context_files);
     append_ai_request_history(root, client, estimated_tokens, &context_files);
 
-    let max_batch_prompt_tokens = config::max_batch_prompt_tokens();
+    let max_batch_prompt_tokens = effective_batch_prompt_token_budget(scan_tuning);
     if estimated_tokens > max_batch_prompt_tokens && items.len() > 1 {
         app.emit(
             "guardian:warning",
@@ -1854,11 +1956,12 @@ async fn process_batch(
             items,
             app,
             client,
-            project_intent_pack,
+            enriched_project_context.as_deref(),
             root,
             auto_verify_enabled,
             scan_profile,
             language,
+            model_custom_instructions,
             last_request,
         )
         .await;
@@ -1868,7 +1971,12 @@ async fn process_batch(
     let mut attempt = 0;
     loop {
         let call = client
-            .analyze_batch_with_intent(project_intent_pack, language, prompt_data.clone())
+            .analyze_batch_with_intent(
+                enriched_project_context.as_deref(),
+                language,
+                model_custom_instructions,
+                prompt_data.clone(),
+            )
             .await;
         *last_request = Instant::now();
         match call {
@@ -1992,11 +2100,12 @@ async fn process_batch(
                         items,
                         app,
                         client,
-                        project_intent_pack,
+                        enriched_project_context.as_deref(),
                         root,
                         auto_verify_enabled,
                         scan_profile,
                         language,
+                        model_custom_instructions,
                         last_request,
                     )
                     .await;
@@ -2104,6 +2213,7 @@ async fn process_items_per_file_fallback(
     auto_verify_enabled: bool,
     scan_profile: ScanProfile,
     language: &str,
+    model_custom_instructions: Option<&str>,
     last_request: &mut Instant,
 ) {
     for item in items {
@@ -2113,7 +2223,12 @@ async fn process_items_per_file_fallback(
         emit_ai_context(app, root, client, single_tokens, &single_context);
         append_ai_request_history(root, client, single_tokens, &single_context);
         match client
-            .analyze_batch_with_intent(project_intent_pack, language, single_prompt)
+            .analyze_batch_with_intent(
+                project_intent_pack,
+                language,
+                model_custom_instructions,
+                single_prompt,
+            )
             .await
         {
             Ok(result) => {
@@ -3496,6 +3611,39 @@ mod tests_protocol {
     }
 
     #[test]
+    fn policy_caps_initial_scan_limit_from_user_tuning() {
+        let tuning = ScanTuning {
+            max_files_per_scan: 400,
+            max_batch_size_hint: 8,
+            token_budget_hint: 9_000,
+        };
+        assert_eq!(
+            effective_initial_scan_limit(ScanProfile::Source, &tuning),
+            ScanProfile::Source.initial_scan_limit()
+        );
+        assert_eq!(
+            effective_initial_scan_limit(ScanProfile::Extended, &tuning),
+            ScanProfile::Extended.initial_scan_limit()
+        );
+        assert_eq!(
+            effective_initial_scan_limit(ScanProfile::Full, &tuning),
+            400
+        );
+    }
+
+    #[test]
+    fn policy_caps_batch_size_from_user_tuning() {
+        let tuning = ScanTuning {
+            max_files_per_scan: 300,
+            max_batch_size_hint: 10,
+            token_budget_hint: 9_000,
+        };
+        assert_eq!(effective_batch_size_limit(ScanProfile::Source, &tuning), 3);
+        assert_eq!(effective_batch_size_limit(ScanProfile::Extended, &tuning), 3);
+        assert_eq!(effective_batch_size_limit(ScanProfile::Full, &tuning), 2);
+    }
+
+    #[test]
     fn agent_queue_rotates_and_prunes() {
         let tmp = TempDir::new().expect("tempdir");
         let root = tmp.path();
@@ -3653,6 +3801,53 @@ mod tests_protocol {
         assert_eq!(batch[0].content, "new-content");
         assert_eq!(batch[0].hash, "new-hash");
         assert_eq!(batch[0].mtime_ms, 2);
+    }
+
+    #[test]
+    fn merge_project_intent_with_recent_fix_history_includes_only_current_batch_files() {
+        let tmp = TempDir::new().expect("tempdir");
+        let root = tmp.path();
+        let tracked_path = root.join("src").join("main.rs");
+        let unrelated_path = root.join("src").join("other.rs");
+        fs::create_dir_all(tracked_path.parent().expect("parent dir")).expect("create src");
+        fs::write(&tracked_path, "fn main() {}\n").expect("seed tracked file");
+        fs::write(&unrelated_path, "fn other() {}\n").expect("seed unrelated file");
+
+        crate::undo::apply_fix_now(
+            root.to_string_lossy().as_ref(),
+            tracked_path.to_string_lossy().as_ref(),
+            "fn main() { println!(\"patched\"); }\n",
+        )
+        .expect("apply tracked fix");
+        crate::undo::apply_fix_now(
+            root.to_string_lossy().as_ref(),
+            unrelated_path.to_string_lossy().as_ref(),
+            "fn other() { println!(\"patched\"); }\n",
+        )
+        .expect("apply unrelated fix");
+
+        let items = vec![BatchItem {
+            path: tracked_path,
+            content: "fn main() { println!(\"patched\"); }\n".to_string(),
+            hash: "hash".to_string(),
+            mtime_ms: 1,
+            bytes: 32,
+            triage_risk_score: 1,
+            triage_signals: Vec::new(),
+            triage_kind: triage::FileKind::Source,
+        }];
+
+        let context = merge_project_intent_with_recent_fix_history(
+            Some("PROJECT POLICY:\n- Keep release gates strict."),
+            root.to_string_lossy().as_ref(),
+            &items,
+        )
+        .expect("context should exist");
+
+        assert!(context.contains("PROJECT POLICY:"));
+        assert!(context.contains("RECENT FIX HISTORY:"));
+        assert!(context.contains("src/main.rs"));
+        assert!(!context.contains("src/other.rs"));
     }
 
     #[test]

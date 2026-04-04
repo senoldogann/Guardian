@@ -1137,6 +1137,271 @@
       "started_at": "2026-03-15T15:18:31.514027+00:00",
       "ended_at": "2026-03-15T15:18:31.518172+00:00",
       "attributes": {}
+    },
+    {
+      "trace_id": "1eb0b26a98bc4b389c13feb0e9b7d07b",
+      "span_id": "04284a4c45eb48ed",
+      "script": "build_skill_registry",
+      "status": "ok",
+      "started_at": "2026-03-15T22:39:15.036064+00:00",
+      "ended_at": "2026-03-15T22:39:15.098598+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "c896864f1240441e9d4a0073ac33cc7e",
+      "span_id": "8c1d45a9a9604a4f",
+      "script": "policy_guard",
+      "status": "ok",
+      "started_at": "2026-03-15T22:39:15.334167+00:00",
+      "ended_at": "2026-03-15T22:39:15.338034+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "673d931d1c94495997980e3d10373b23",
+      "span_id": "0c80b4917ec749a1",
+      "script": "build_skill_registry",
+      "status": "ok",
+      "started_at": "2026-03-15T23:40:22.713541+00:00",
+      "ended_at": "2026-03-15T23:40:22.769907+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "5d4c4af56ec842f188ef9330be197d38",
+      "span_id": "9883679889c340ee",
+      "script": "policy_guard",
+      "status": "ok",
+      "started_at": "2026-03-15T23:40:22.995687+00:00",
+      "ended_at": "2026-03-15T23:40:22.999420+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "1b39c25c246a4a1db00cb95d2ba81df3",
+      "span_id": "fb7531ff01ed4f43",
+      "script": "build_skill_registry",
+      "status": "ok",
+      "started_at": "2026-03-16T14:43:54.100774+00:00",
+      "ended_at": "2026-03-16T14:43:54.139703+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "3935083a6e274c2dad9f9606e550f634",
+      "span_id": "ee2f42e9172e4315",
+      "script": "policy_guard",
+      "status": "ok",
+      "started_at": "2026-03-16T14:43:54.259337+00:00",
+      "ended_at": "2026-03-16T14:43:54.261695+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "2326d0883ec24b4ea4a64dccab974fbb",
+      "span_id": "13a8201fcc314df5",
+      "script": "build_skill_registry",
+      "status": "ok",
+      "started_at": "2026-03-16T15:13:31.223161+00:00",
+      "ended_at": "2026-03-16T15:13:31.261891+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "214634ee924a48e5a92f2d2b1e4dc0c5",
+      "span_id": "8c1d1a7ba6064f07",
+      "script": "policy_guard",
+      "status": "ok",
+      "started_at": "2026-03-16T15:13:31.376486+00:00",
+      "ended_at": "2026-03-16T15:13:31.378633+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "cde819166f7f4e41a0139df3ab78dd39",
+      "span_id": "5f6b70b7a18643c4",
+      "script": "build_skill_registry",
+      "status": "ok",
+      "started_at": "2026-03-16T15:15:36.993354+00:00",
+      "ended_at": "2026-03-16T15:15:37.035136+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "548eef96a40b41bb82ec7c4ee0cafbda",
+      "span_id": "a7e3acef0d824164",
+      "script": "policy_guard",
+      "status": "ok",
+      "started_at": "2026-03-16T15:15:37.161684+00:00",
+      "ended_at": "2026-03-16T15:15:37.165376+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "51f3654cd73f497bae3f080d3149b115",
+      "span_id": "8a689104e18e4cb8",
+      "script": "build_skill_registry",
+      "status": "ok",
+      "started_at": "2026-03-16T15:46:27.726362+00:00",
+      "ended_at": "2026-03-16T15:46:27.763323+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "2f52d0c8f4374f219fba1888800c2373",
+      "span_id": "7176d4eecdaf4465",
+      "script": "policy_guard",
+      "status": "ok",
+      "started_at": "2026-03-16T15:46:27.873105+00:00",
+      "ended_at": "2026-03-16T15:46:27.875332+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "3e80247f3d684e2786b9bf7c391b0ff6",
+      "span_id": "7d777fd739864f1d",
+      "script": "build_skill_registry",
+      "status": "ok",
+      "started_at": "2026-03-16T15:48:39.318797+00:00",
+      "ended_at": "2026-03-16T15:48:39.356353+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "c8405b746d7c4c3abeeceff4dd1bfaca",
+      "span_id": "b8958965a3a04b19",
+      "script": "policy_guard",
+      "status": "ok",
+      "started_at": "2026-03-16T15:48:39.465782+00:00",
+      "ended_at": "2026-03-16T15:48:39.468024+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "ae7dee461adc4d66b01517200ee1d299",
+      "span_id": "f756d4eb3d794618",
+      "script": "build_skill_registry",
+      "status": "ok",
+      "started_at": "2026-03-16T18:55:31.529986+00:00",
+      "ended_at": "2026-03-16T18:55:31.575354+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "b1068fe8fdc34d0283f9c51dfd479049",
+      "span_id": "0cbdb19b4f2949bf",
+      "script": "policy_guard",
+      "status": "ok",
+      "started_at": "2026-03-16T18:55:31.718112+00:00",
+      "ended_at": "2026-03-16T18:55:31.720883+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "72937ce518154231998846a65026133e",
+      "span_id": "0a831c3a97e14c57",
+      "script": "build_skill_registry",
+      "status": "ok",
+      "started_at": "2026-04-02T08:37:15.796271+00:00",
+      "ended_at": "2026-04-02T08:37:15.860912+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "f19eb47c763947e084d5a8701e461b22",
+      "span_id": "d8c4399036a141dd",
+      "script": "policy_guard",
+      "status": "ok",
+      "started_at": "2026-04-02T08:37:16.005747+00:00",
+      "ended_at": "2026-04-02T08:37:16.008207+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "d0ffd6e634c946c49cc62bbf4b5f2867",
+      "span_id": "a9c072bf60d64536",
+      "script": "build_skill_registry",
+      "status": "ok",
+      "started_at": "2026-04-02T08:48:47.115904+00:00",
+      "ended_at": "2026-04-02T08:48:47.160758+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "397cc0224e174e5fa7cd0b9a39708940",
+      "span_id": "6b4d7f8c85964d4c",
+      "script": "policy_guard",
+      "status": "ok",
+      "started_at": "2026-04-02T08:48:47.310703+00:00",
+      "ended_at": "2026-04-02T08:48:47.313576+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "1f134b01927a4653b7768c23cc88b601",
+      "span_id": "189f5278112b4fde",
+      "script": "skill_router_cli",
+      "status": "ok",
+      "started_at": "2026-04-04T11:59:33.782869+00:00",
+      "ended_at": "2026-04-04T11:59:33.789516+00:00",
+      "attributes": {
+        "query": "Rust watcher previous fixes false positives frontend FAQ release messaging",
+        "provider": "",
+        "phase": ""
+      }
+    },
+    {
+      "trace_id": "2b745be8ef544bf08bd6277bcaf42d23",
+      "span_id": "2712b79f23af4a43",
+      "script": "build_skill_registry",
+      "status": "ok",
+      "started_at": "2026-04-04T12:08:14.204395+00:00",
+      "ended_at": "2026-04-04T12:08:14.251806+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "bea767bd5b324b6cba599aa760e8f743",
+      "span_id": "a51b1f056bee4f6a",
+      "script": "policy_guard",
+      "status": "ok",
+      "started_at": "2026-04-04T12:08:14.395593+00:00",
+      "ended_at": "2026-04-04T12:08:14.398320+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "75c987df01b7483e86423ac38fe8c291",
+      "span_id": "b4d517b007ae46ee",
+      "script": "build_skill_registry",
+      "status": "ok",
+      "started_at": "2026-04-04T12:09:25.641255+00:00",
+      "ended_at": "2026-04-04T12:09:25.702111+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "51a35de409d54a0aaf8010e74cc17619",
+      "span_id": "2bcf0fb292ba4b12",
+      "script": "policy_guard",
+      "status": "ok",
+      "started_at": "2026-04-04T12:09:25.837099+00:00",
+      "ended_at": "2026-04-04T12:09:25.840112+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "888ce379b5a3428485957b5936f31d73",
+      "span_id": "1d5f6d5ae02f4f51",
+      "script": "build_skill_registry",
+      "status": "ok",
+      "started_at": "2026-04-04T12:18:32.882952+00:00",
+      "ended_at": "2026-04-04T12:18:32.928552+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "306791b60c894bb68d71dcdf26891bf4",
+      "span_id": "7f7ccd7c99054fc8",
+      "script": "policy_guard",
+      "status": "ok",
+      "started_at": "2026-04-04T12:18:33.070297+00:00",
+      "ended_at": "2026-04-04T12:18:33.072939+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "7a7325cd0d6c44c29bafe3e1ef7d94e9",
+      "span_id": "50aa90613be94b29",
+      "script": "build_skill_registry",
+      "status": "ok",
+      "started_at": "2026-04-04T12:38:41.441435+00:00",
+      "ended_at": "2026-04-04T12:38:41.488028+00:00",
+      "attributes": {}
+    },
+    {
+      "trace_id": "80384ee5494a49e4be28cbdb18249b21",
+      "span_id": "f4c7ee86388b4e63",
+      "script": "policy_guard",
+      "status": "ok",
+      "started_at": "2026-04-04T12:38:41.633094+00:00",
+      "ended_at": "2026-04-04T12:38:41.635728+00:00",
+      "attributes": {}
     }
   ]
 }

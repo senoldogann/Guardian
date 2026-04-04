@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -12,9 +13,11 @@
 
 @layer base {
   :root {
+    --app-font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+    --app-font-scale: 1;
     --background: #0b0f14;
     --surface: #141a21;
-    --border-main: #27303b;
+    --border-main: #2a313a;
     --text-main: #e6edf5;
     --text-muted: #8e9caf;
     --guide-bg-raw: #161d25;
@@ -61,7 +64,7 @@
     --map-node-muted: #90a2b8;
     --panel-bg: color-mix(in oklab, var(--surface) 90%, #1f2833 10%);
     --panel-muted: color-mix(in oklab, var(--surface) 94%, #1f2833 6%);
-    --panel-border-strong: color-mix(in oklab, var(--accent-500) 12%, var(--border-main) 88%);
+    --panel-border-strong: color-mix(in oklab, var(--border-main) 86%, var(--text-main) 14%);
     --hero-glow: color-mix(in oklab, var(--accent-500) 16%, transparent);
     --tone-critical-bg: rgba(137, 74, 89, 0.14);
     --tone-critical-border: rgba(143, 87, 101, 0.42);
@@ -75,22 +78,23 @@
     --tone-ai-bg: rgba(76, 105, 122, 0.16);
     --tone-ai-border: rgba(94, 127, 146, 0.4);
     --tone-ai-text: #9fc0d0;
+    --workspace-chrome: color-mix(in oklab, var(--surface) 72%, var(--background) 28%);
   }
 
   :root[data-theme="light"] {
-    --background: #f4f7fb;
+    --background: #f5f5f5;
     --surface: #ffffff;
-    --border-main: #d7dee8;
+    --border-main: #d7dbe0;
     --text-main: #192332;
-    --text-muted: #66758a;
-    --guide-bg-raw: #f7f9fc;
-    --topbar-bg: #f8fafd;
+    --text-muted: #68707a;
+    --guide-bg-raw: #fafafa;
+    --topbar-bg: #fafafa;
     --accent-500: #5f879a;
     --accent-400: color-mix(in oklab, var(--accent-500) 34%, transparent);
     --accent-200: color-mix(in oklab, var(--accent-500) 10%, transparent);
     --stat-strong: #112033;
     --focus-border: color-mix(in oklab, var(--accent-500) 30%, var(--border-main) 70%);
-    --edge-muted: #c7d3e3;
+    --edge-muted: #d2d6dc;
     --guardian-core-bg: color-mix(in oklab, var(--background) 82%, var(--accent-500) 18%);
     --guardian-ring: color-mix(in oklab, var(--accent-500) 26%, transparent);
     --guardian-dot: #5f879a;
@@ -117,12 +121,12 @@
     --code-comment: #71839b;
     --code-function: #1c5f9f;
     --code-type: #1a7392;
-    --map-node-bg: #203447;
+    --map-node-bg: #24303e;
     --map-node-text: #ffffff;
-    --map-node-muted: #d3e4f5;
+    --map-node-muted: #d7e0ea;
     --panel-bg: color-mix(in oklab, var(--surface) 92%, #e7edf4 8%);
     --panel-muted: color-mix(in oklab, var(--surface) 96%, #e7edf4 4%);
-    --panel-border-strong: color-mix(in oklab, var(--accent-500) 10%, var(--border-main) 90%);
+    --panel-border-strong: color-mix(in oklab, var(--border-main) 88%, var(--text-main) 12%);
     --hero-glow: color-mix(in oklab, var(--accent-500) 12%, transparent);
     --tone-critical-bg: #f5eaee;
     --tone-critical-border: #e1cad1;
@@ -136,17 +140,33 @@
     --tone-ai-bg: #eaf1f5;
     --tone-ai-border: #c7d6df;
     --tone-ai-text: #577a8b;
+    --workspace-chrome: color-mix(in oklab, var(--surface) 76%, var(--background) 24%);
+  }
+
+  html {
+    font-size: calc(16px * var(--app-font-scale));
   }
 
   body {
     margin: 0;
-    font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+    font-family: var(--app-font-family);
     -webkit-font-smoothing: antialiased;
     background-color: var(--background);
     background-image: var(--backdrop);
     background-attachment: fixed;
     color: var(--text-main);
-    font-size: 14px;
+    font-size: 1rem;
+  }
+
+  body * {
+    font-family: inherit;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font-family: inherit;
   }
 
   code,
@@ -156,7 +176,7 @@
   }
 
   .font-sans {
-    font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+    font-family: var(--app-font-family);
   }
 
   * {
@@ -174,6 +194,11 @@ summary {
 button:disabled,
 [role="button"][aria-disabled="true"] {
   cursor: not-allowed;
+}
+
+.guardian-shell .text-background,
+.guardian-shell [class*="text-background"] {
+  color: var(--text-main) !important;
 }
 
 .guardian-markdown {
@@ -321,23 +346,23 @@ button:disabled,
 }
 
 :root[data-theme="light"] .text-zinc-900 {
-  color: #18273a;
+  color: var(--text-main);
 }
 
 :root[data-theme="light"] .text-zinc-700 {
-  color: #4f5f73;
+  color: color-mix(in oklab, var(--text-main) 76%, var(--background) 24%);
 }
 
 :root[data-theme="light"] .text-zinc-600 {
-  color: #62758c;
+  color: color-mix(in oklab, var(--text-main) 64%, var(--background) 36%);
 }
 
 :root[data-theme="light"] .text-zinc-500 {
-  color: #70839a;
+  color: color-mix(in oklab, var(--text-main) 54%, var(--background) 46%);
 }
 
 :root[data-theme="light"] .text-zinc-400 {
-  color: #8495ab;
+  color: color-mix(in oklab, var(--text-main) 44%, var(--background) 56%);
 }
 
 .hide-mobile {
@@ -444,15 +469,15 @@ button:disabled,
 
 .guardian-topbar {
   min-height: 60px;
-  background: color-mix(in oklab, var(--topbar-bg) 88%, transparent);
+  background: color-mix(in oklab, var(--topbar-bg) 92%, var(--surface) 8%);
   backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--border-main);
+  border-bottom: 1px solid color-mix(in oklab, var(--border-main) 70%, transparent);
   display: flex;
   align-items: center;
   padding: 0 20px;
   box-shadow:
     inset 0 1px 0 color-mix(in oklab, var(--text-main) 5%, transparent),
-    0 10px 30px -26px rgba(0, 0, 0, 0.7);
+    0 10px 30px -26px color-mix(in oklab, var(--background) 74%, transparent);
 }
 
 .guardian-topbar-text {
@@ -493,21 +518,21 @@ button:disabled,
       transparent 93%,
       color-mix(in oklab, var(--border-main) 36%, transparent) 100%
     );
-  background-size: 100% 32px;
-  opacity: 0.18;
+  background-size: 100% 56px;
+  opacity: 0.08;
 }
 
 .guardian-elevated-card {
-  border: 1px solid var(--panel-border-strong);
-  background: color-mix(in oklab, var(--panel-bg) 88%, transparent);
+  border: 1px solid color-mix(in oklab, var(--panel-border-strong) 76%, transparent);
+  background: color-mix(in oklab, var(--panel-bg) 94%, var(--surface) 6%);
   backdrop-filter: blur(16px);
   box-shadow:
     inset 0 1px 0 color-mix(in oklab, var(--text-main) 5%, transparent),
-    0 18px 40px -30px rgba(0, 0, 0, 0.76);
+    0 18px 40px -30px color-mix(in oklab, var(--background) 76%, transparent);
 }
 
 .guardian-subtle-card {
-  border: 1px solid var(--border-main);
+  border: 1px solid color-mix(in oklab, var(--border-main) 72%, transparent);
   background: color-mix(in oklab, var(--panel-muted) 90%, transparent);
 }
 
@@ -567,7 +592,7 @@ button:disabled,
 .guardian-chat-action-card {
   background: color-mix(in oklab, var(--panel-bg) 88%, transparent);
   border: 1px solid var(--panel-border-strong);
-  box-shadow: 0 16px 34px -26px rgba(0, 0, 0, 0.72);
+  box-shadow: 0 16px 34px -26px color-mix(in oklab, var(--background) 72%, transparent);
 }
 
 @keyframes guru-placeholder {

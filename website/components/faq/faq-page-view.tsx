@@ -45,7 +45,7 @@ const faqCategoriesEn: FaqCategory[] = [
       },
       {
         q: "What platforms does Guardian support?",
-        a: "Guardian ships macOS builds today (Apple Silicon and Intel). Windows and Linux installers will appear on the download page as they are published.",
+        a: "Guardian ships macOS builds (Apple Silicon and Intel) and Windows installers today. Linux installers will appear on the download page once they are published.",
       },
     ],
   },
@@ -60,7 +60,7 @@ const faqCategoriesEn: FaqCategory[] = [
       },
       {
         q: "What are the system requirements?",
-        a: "macOS 12+ is required for current builds. At least 4GB RAM and ~500MB free disk space are recommended. Internet access is required only if you enable cloud AI providers or in-app update checks.",
+        a: "macOS 12+ or a current Windows 10/11 build is required for published desktop installers. At least 4GB RAM and ~500MB free disk space are recommended. Internet access is required only if you enable cloud AI providers or in-app update checks.",
       },
       {
         q: "How do I control what files Guardian scans?",
@@ -117,7 +117,7 @@ const faqCategoriesTr: FaqCategory[] = [
       },
       {
         q: "Guardian hangi platformları destekliyor?",
-        a: "Guardian bugün macOS için yayınlanır (Apple Silicon ve Intel). Windows ve Linux yükleyicileri yayınlandıkça indirme sayfasında görünür.",
+        a: "Guardian bugün macOS (Apple Silicon ve Intel) ve Windows installer olarak yayınlanır. Linux yükleyicileri yayınlandıkça indirme sayfasında görünür.",
       },
     ],
   },
@@ -132,7 +132,7 @@ const faqCategoriesTr: FaqCategory[] = [
       },
       {
         q: "Sistem gereksinimleri neler?",
-        a: "Mevcut sürümler için macOS 12+ gerekir. En az 4GB RAM ve ~500MB boş disk alanı önerilir. İnternet sadece cloud AI sağlayıcıları veya update kontrolü etkinse gereklidir.",
+        a: "Yayınlanan desktop installer'lar için macOS 12+ veya güncel Windows 10/11 gerekir. En az 4GB RAM ve ~500MB boş disk alanı önerilir. İnternet sadece cloud AI sağlayıcıları veya update kontrolü etkinse gereklidir.",
       },
       {
         q: "Guardian'ın hangi dosyaları tarayacağını nasıl kontrol ederim?",

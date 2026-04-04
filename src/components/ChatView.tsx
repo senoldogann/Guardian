@@ -529,7 +529,7 @@ export function ChatView({
     }, [chatHistory.length, chatLoading, scrollToBottom, shouldAutoScroll]);
 
     return (
-        <section className="flex-1 flex flex-col bg-background relative overflow-hidden">
+        <section className="flex-1 flex flex-col bg-[var(--panel-bg)] relative overflow-hidden">
             {/* Header with Guide Button */}
             <div className="guardian-topbar justify-between shrink-0">
                 <div className="flex items-center gap-3">
@@ -552,7 +552,7 @@ export function ChatView({
                         disabled={chatHistory.length === 0}
                         title={t("chat.clearHistory")}
                     >
-                        <Trash2 className="w-4 h-4 text-rose-500 group-hover:scale-110 transition-transform" />
+                        <Trash2 className="w-4 h-4 text-[color:var(--tone-critical-text)] group-hover:scale-110 transition-transform" />
                     </button>
                 </div>
             </div>
@@ -610,7 +610,7 @@ export function ChatView({
                 )}
             >
                 {chatLoadError && (
-                    <div className="text-[10px] text-rose-400">
+                    <div className="text-[10px] text-[color:var(--tone-critical-text)]">
                         {chatLoadError}
                     </div>
                 )}
@@ -782,7 +782,7 @@ export function ChatView({
             </AnimatePresence>
 
             {/* Input Area */}
-            <div className="p-6 border-t border-border-main bg-background/85 backdrop-blur-sm space-y-2">
+            <div className="p-6 border-t border-border-main bg-[var(--panel-muted)] backdrop-blur-sm space-y-2">
                 <div className="relative">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10" ref={plusMenuRef}>
                         <button
@@ -832,7 +832,7 @@ export function ChatView({
                         onChange={(e) => setChatInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && askGuru()}
                         placeholder={t("chat.inputPlaceholder")}
-                        className="guru-input w-full bg-background border border-border-main rounded-2xl py-5 pl-14 pr-16 text-sm font-sans outline-none focus:border-[var(--focus-border)] transition-all shadow-inner"
+                        className="guru-input w-full bg-[var(--panel-muted)] border border-border-main rounded-2xl py-5 pl-14 pr-16 text-sm font-sans outline-none focus:border-[var(--focus-border)] transition-all shadow-inner"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                         <button
@@ -846,7 +846,7 @@ export function ChatView({
                     </div>
                 </div>
                 {!webSearchReady && (
-                    <div className="text-[10px] text-amber-400">
+                    <div className="text-[10px] text-[color:var(--tone-warning-text)]">
                         {t("chat.webSearchSetupHint")}
                     </div>
                 )}
@@ -866,8 +866,8 @@ interface GuideOptionProps {
 function GuideOption({ icon: Icon, title, desc, color, onClick }: GuideOptionProps): ReactElement {
     const colorStyles = {
         sky: "bg-[var(--accent-200)] text-[var(--accent-500)] group-hover:bg-[var(--accent-500)] group-hover:text-background",
-        rose: "bg-rose-500/10 text-rose-400 group-hover:bg-rose-500/15",
-        amber: "bg-amber-500/10 text-amber-400 group-hover:bg-amber-500/15",
+        rose: "bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] group-hover:opacity-90",
+        amber: "bg-[color:var(--tone-warning-bg)] text-[color:var(--tone-warning-text)] group-hover:opacity-90",
     };
 
     return (
@@ -985,16 +985,16 @@ function ChatMessageRow({
                         <div className="guardian-chat-action-card flex flex-col items-center justify-center p-6 rounded-[var(--guide-radius)] text-center space-y-5 animate-in fade-in zoom-in duration-500">
                             <div className="flex items-center gap-2 mb-2">
                                     {msg.action.status === "MODIFIED" ? (
-                                        <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                        <AlertTriangle className="w-4 h-4 text-[color:var(--tone-warning-text)]" />
                                     ) : (
                                         <CheckCircle className="w-4 h-4 text-[var(--accent-500)]" />
                                     )}
-                                    <span className={clsx("text-xs font-bold uppercase", msg.action.status === "MODIFIED" ? "text-amber-500" : "text-[var(--accent-500)]")}>
+                                    <span className={clsx("text-xs font-bold uppercase", msg.action.status === "MODIFIED" ? "text-[color:var(--tone-warning-text)]" : "text-[var(--accent-500)]")}>
                                     {msg.action.status === "MODIFIED" ? t("chat.guardianAutoCorrected") : t("chat.verifiedSafe")}
                                     </span>
                                 </div>
 
-                            <div className="bg-background/55 rounded p-2 mb-2 max-h-40 overflow-y-auto border border-border-main w-full">
+                            <div className="bg-[var(--panel-muted)] rounded p-2 mb-2 max-h-40 overflow-y-auto border border-border-main w-full">
                                 <pre className="text-[10px] font-mono text-[color:var(--text-main)] opacity-80 whitespace-pre-wrap">
                                     {msg.action.diff}
                                 </pre>
@@ -1006,7 +1006,7 @@ function ChatMessageRow({
                                         <CheckCircle className="w-3 h-3" /> {t("chat.successfullyApplied")}
                                     </div>
                                 ) : rejectedFixes.has(index) ? (
-                                    <div className="flex items-center gap-2 text-xs text-rose-400 font-bold bg-rose-500/10 px-3 py-1.5 rounded-md border border-rose-500/20">
+                                    <div className="flex items-center gap-2 text-xs text-[color:var(--tone-critical-text)] font-bold bg-[color:var(--tone-critical-bg)] px-3 py-1.5 rounded-md border border-[color:var(--tone-critical-border)]">
                                         <XCircle className="w-3 h-3" /> {t("chat.fix.rejected")}
                                     </div>
                                 ) : (

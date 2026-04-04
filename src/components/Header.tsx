@@ -75,7 +75,7 @@ export function Header({
   const { t } = useI18n();
   return (
     <header className="guardian-topbar z-20 justify-between gap-4">
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="rounded-xl px-3 py-2 flex min-w-0 items-center gap-3 bg-[var(--panel-muted)]">
         <div className="guardian-elevated-card h-10 w-10 rounded-xl flex items-center justify-center">
           <ShieldAlert className="h-5 w-5 text-[var(--accent-500)]" />
         </div>
@@ -128,7 +128,7 @@ export function Header({
         </button>
 
         {authSession && (
-          <div className="guardian-elevated-card flex items-center gap-2 rounded-xl px-2.5 py-1.5">
+          <div className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 bg-[var(--panel-muted)]">
             {authSession.avatar_url ? (
               <img
                 src={authSession.avatar_url}
@@ -136,7 +136,7 @@ export function Header({
                 className="h-7 w-7 rounded-full border border-border-main"
               />
             ) : (
-              <div className="h-7 w-7 rounded-full border border-border-main bg-background/40" />
+              <div className="h-7 w-7 rounded-full border border-border-main bg-[var(--panel-muted)]" />
             )}
             <div className="hidden md:block leading-tight">
               <div className="text-[10px] uppercase tracking-[0.16em] text-text-muted">
@@ -152,7 +152,7 @@ export function Header({
               className={clsx(
                 "guardian-focus-ring rounded-lg border px-2 py-1 text-[9px]",
                 "font-bold uppercase tracking-[0.18em] transition-colors",
-                "border-border-main bg-background/60 text-text-main hover:bg-background/80",
+                "border-border-main bg-[var(--panel-muted)] text-text-main hover:bg-[var(--panel-bg)]",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
               )}
               aria-label={t("header.logout")}

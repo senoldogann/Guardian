@@ -58,6 +58,18 @@ test.describe("Settings", () => {
     await page.getByRole("button", { name: /Export/i }).click();
     await expect(page.getByText("Export creates a PDF snapshot")).toBeVisible();
   });
+
+  test("general tab shows personalization controls", async ({ page }) => {
+    await page.goto("/");
+    await page.getByTitle("Setup & Settings").click();
+
+    await expect(page.getByText("Personalization").first()).toBeVisible();
+    await expect(page.getByText("Appearance (light/dark palettes)")).toBeVisible();
+    await expect(page.getByText("Model custom instructions")).toBeVisible();
+    await expect(page.getByRole("button", { name: /Restore Light Palette/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Restore Dark Palette/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Reset to Defaults/i })).toBeVisible();
+  });
 });
 
 test.describe("Theme", () => {

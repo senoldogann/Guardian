@@ -1,6 +1,6 @@
 # Guardian 90 Gunluk Faz 2+4 MVP Takip Defteri
 
-Last Updated: 2026-03-15 19:35:00Z
+Last Updated: 2026-04-04 12:38:18Z
 Owner: Guardian Team
 Code Workspace: `/Users/dogan/Desktop/guardian`
 Governance Workspace: `/Users/dogan/Desktop/guardian`
@@ -13,13 +13,20 @@ Governance Workspace: `/Users/dogan/Desktop/guardian`
 - [x] Yeni sistem, kutuphane veya pattern seciminde gerekirse Web Search yapilir; kaynaklar Completion Log'a yazilir.
 
 ## Guncel Durum Ozeti (Yapilanlar)
+- [x] Sprint 1 baslangic implementasyonu tamamlandi: versioned `UserPreferencesV1` domain + Tauri `get/set/reset_user_preferences` commandlari + `useSettings` legacy migration akisi.
+- [x] Sprint 1 personalization closure tamamlandi: `personalizationProps` entegrasyonu + EN/TR i18n tamamlama + live theme/font uygulama + E2E personalization kontrol testi.
+- [x] Sprint 1 operator dokumani eklendi: `docs/SETTINGS_PERSONALIZATION_GUIDE.md` (davranis, guvenlik sinirlari, rollback/reset adimlari).
+- [x] 3 sprintlik personalization roadmap dosyasi olusturuldu: `docs/GUARDIAN_SETTINGS_PERSONALIZATION_3SPRINT_PLAN.md` (Goal/Tasks/Entry-Test-Exit Gate + Completion Log + EN/TR + verify_all kapilari).
+- [x] Sprint 2 personalization closure tamamlandi: Appearance palette editor (light/dark + live preview), model behavior presets (Explain-first/Terse), watcher runtime scan tuning baglantisi, prompt boundary-enforced custom instruction merge.
 - [x] Audit precision hardening basladi: low-signal warning suppression + weak critical downgrade + context-aware suggestion shaping (`src-tauri/src/watcher.rs`).
+- [x] Review-feedback hardening eklendi: localhost/dev-only bulgularin gereksiz `Critical` olmasi engellendi, recent fix history prompt context'e baglandi, FAQ platform mesajlari release reality ile hizalandi (`src-tauri/src/ai_client.rs`, `src-tauri/src/watcher.rs`, `website/components/faq/faq-page-view.tsx`).
 - [x] Runtime output contract eklendi: `.guardian/governance_summary.json` + `.guardian/governance_summary.md` (IDE/CLI/LLM agent rehberi ile).
 - [x] Moat temelleri eklendi: `scripts/governance_replay.py` ve `scripts/override_debt_ledger.py`; haftalik pilot rapor pipeline'ina baglandi.
 - [x] Policy source of truth eklendi: `guardian.policy.yaml`.
 - [x] Ortak policy parser/validator + AI-heavy classifier + decision engine eklendi.
 - [x] CLI gate parametreleri eklendi (`--policy`, `--release-gate`, `--approver`, `--override-reason`) ve rapor `schema_version: 2` alanlari eklendi.
 - [x] Desktop release decision panel + Tauri decision commandlari + audit trail (`.guardian/release_decisions.jsonl`) eklendi.
+- [x] Faz 3 approver policy dokumani eklendi ve legacy audit JSONL satirlari geriye donuk parse edilecek sekilde sertlestirildi (`docs/RELEASE_APPROVAL_POLICY.md`, `src-tauri/src/release_decision.rs`).
 - [x] `scripts/release_all_local.sh` icine release gate kontrolu eklendi; `BLOCK` durumunda publish stop.
 - [x] Dashboard-lite uretimi eklendi (`scripts/generate_dashboard_lite.py`).
 - [x] Faz 1 copy/doc closure adimlari (guru/monitoring/configuration EN+TR, copy check script, CI gate) eklendi.
@@ -52,10 +59,10 @@ Governance Workspace: `/Users/dogan/Desktop/guardian`
 - [x] Leak-prevented case list otomasyonu eklendi: `scripts/pilot_collect_leak_prevented_cases.py`.
 - [x] CI gate wiring validator eklendi: `scripts/pilot_validate_ci_gate_flow.py`.
 - [x] Runtime stability tune aktif edildi: root `.env` icinde timeout/retry/batch degerleri set edildi.
-- [x] Unit gate pass: `npm run test` (12 file / 67 test) - 2026-03-15.
-- [x] Integration gate pass: `cargo test` (95 test) - 2026-03-15.
-- [x] E2E gate pass: `npm run test:e2e` (17 test) - 2026-03-15.
-- [x] Verify gate pass: `python3 scripts/verify_all.py` - 2026-03-15.
+- [x] Unit gate pass: `npm run test` (12 file / 68 test) - 2026-04-04.
+- [x] Integration gate pass: `cargo test` via `npm run verify` (113 Rust test) - 2026-04-04.
+- [x] E2E gate pass: `npm run test:e2e` via `npm run verify` (18 test) - 2026-04-04.
+- [x] Verify gate pass: `npm run verify` + `npm run pre-launch` (website) - 2026-04-04.
 - [x] Vitest kapsam duzeltildi: `.maestro/**` ve `.agents/**` testleri app unit gate disina alindi.
 - [x] Positioning closure pass tamamlandi: SEO metadata + FAQ + onboarding copy "AI-generated code governance for small engineering teams" diline cekildi.
 - [x] Website copy gate kapsamı genisletildi: metadata + FAQ + SEO alanlari `copy:check` icine alindi.
@@ -141,7 +148,7 @@ Website ve docs dilini tamamen `Control AI-generated code before it ships` catis
 - Next Phase Entry Decision:
   - Faz 2/3/4/5 execution ve pilot operasyon closure adimlarina devam.
 
-## Faz 2 - Policy + Gate Core (Hafta 2-6) - Durum: IN_PROGRESS
+## Faz 2 - Policy + Gate Core (Hafta 2-6) - Durum: COMPLETED
 ### Goal
 Policy-driven release decision motorunu desktop+CLI ortak cekirdekte calisan hale getirmek.
 
@@ -151,14 +158,14 @@ Policy-driven release decision motorunu desktop+CLI ortak cekirdekte calisan hal
 - [x] AI-heavy intake classifier kodda mevcut.
 - [x] Decision statuses kodda mevcut (`PASS`, `PASS_WITH_WARNING`, `BLOCK_UNTIL_APPROVED`, `OVERRIDDEN`).
 - [x] Rust toolchain (`cargo`) kullanilabilir.
-- [ ] Yeni teknik karar gerekiyorsa Web Search ile resmi kaynak teyidi alinmali.
+- [x] Yeni teknik karar gerekip gerekmedigi kontrol edildi; bu kapanis adiminda dis sistem/pattern degisimi olmadigi icin Web Search gerekmedi, mevcut threshold karari pilot kalibrasyon verisinden alindi.
 
 ### Tasks
 - [x] Ortak parser/validator: desktop + CLI tarafinda kullanima alinmasi.
 - [x] CLI scan ciktilarina release decision alanlari eklenmesi.
 - [x] Gate mode davranislarinin (`strict|warn|off`) uygulanmasi.
 - [x] AI-heavy threshold kalibrasyon raporu otomasyonu eklendi ve ilk pilot önerisi üretildi.
-- [ ] AI-heavy classifier threshold degisikligi (öneri: 18/1450/10/850) 2 hafta ek trend verisi ile finalleştirilecek.
+- [x] AI-heavy classifier threshold final karari 30 gunluk pilot verisiyle verildi; `action=keep`, `confidence=high`, `ai_heavy_rate=0.451`, mevcut esikler korundu.
 
 ### Test Gate
 - [x] Unit: policy parser/validator.
@@ -170,30 +177,36 @@ Policy-driven release decision motorunu desktop+CLI ortak cekirdekte calisan hal
 
 ### Exit Gate
 - [x] Rust unit ve crate test kapilari pass (`guardian-scan-policy`, `guardian-cli`, `src-tauri`).
-- [ ] Decision engine behavior dokumantasyonu guncel.
+- [x] Decision engine behavior dokumantasyonu guncel.
 - [x] Pilot reposunda en az bir gercek release gate dry-run pass.
 
-### Completion Log (Faz Sonunda Doldurulacak)
-- Completion Date: N/A (In Progress)
+### Completion Log
+- Completion Date: 2026-04-04
 - Owner: Guardian Team
 - Completed Items:
   - Policy source-of-truth + parser/validator desktop/CLI cekirdegine alindi.
   - AI-heavy classifier ve decision engine statuses tamamlandi.
   - CLI schema v2 output + release gate parametreleri eklendi.
+  - Decision engine behavior dokumantasyonu guncellendi.
+  - 30 gunluk pilot kalibrasyon verisiyle AI-heavy threshold icin `keep` karari verildi; kod esikleri degistirilmedi.
 - Evidence (PR/commit/test output):
   - `cargo test` (`guardian-scan-policy`, `guardian-cli`, `src-tauri`) pass
   - `release_decision::tests::desktop_and_cli_decisions_match_for_ai_heavy_and_override_flows` pass
   - `scripts/pilot_generate_ai_heavy_calibration.sh docs/pilot/PILOT_REPO_MANIFEST.real.json` (action=`increase`, confidence=`medium`)
   - `scripts/pilot_weekly_ops.sh docs/pilot/PILOT_REPO_MANIFEST.real.json docs/pilot/APPROVER_ROSTER.json` (pass)
   - `cargo test --manifest-path src-tauri/Cargo.toml ai_client::tests -- --nocapture` (9/9 pass)
+  - `cargo test --manifest-path src-tauri/Cargo.toml merge_project_intent_with_recent_fix_history` (1/1 pass)
+  - `cargo test --manifest-path src-tauri/Cargo.toml policy_caps_initial_scan_limit_from_user_tuning` (1/1 pass)
+  - `npm run verify` (pass, 113 Rust tests + 68 unit tests + 18 E2E)
+  - `bash scripts/pilot_generate_ai_heavy_calibration.sh docs/pilot/PILOT_REPO_MANIFEST.real.json` (2026-04-04: `total_decisions=51`, `ai_heavy_rate=0.451`, `action=keep`, `confidence=high`)
+  - `python3 scripts/verify_all.py` (pass)
 - Web Search Sources (varsa): yok.
 - Blockers:
-  - Decision engine davranis dokumani final degil.
-  - AI-heavy threshold final uygulamasi icin 2 haftalik ek trend verisi gerekiyor.
+  - Yok.
 - Next Phase Entry Decision:
-  - Faz 3/4 akislari aktif; Faz 2 kapanisi icin kalibrasyon + dokumantasyon tamamlanacak.
+  - Faz 2 kapandi. Siradaki sirali adim Faz 3 kapanis borclari: approver rol modeli / team policy dokumani, approval-flow practice kontrolu, audit-trail geriye donuk uyumluluk ve product sign-off.
 
-## Faz 3 - Human Approval Workflow + Audit Trail (Hafta 4-8) - Durum: IN_PROGRESS
+## Faz 3 - Human Approval Workflow + Audit Trail (Hafta 4-8) - Durum: COMPLETED
 ### Goal
 Fix onerisi ile release izni arasina insan onayi ve denetlenebilir override zinciri koymak.
 
@@ -201,8 +214,9 @@ Fix onerisi ile release izni arasina insan onayi ve denetlenebilir override zinc
 - [x] Release decision panel desktop UI'da mevcut.
 - [x] Tauri commandlari eklendi.
 - [x] Audit trail yazimi (`.guardian/release_decisions.jsonl`) mevcut.
-- [ ] Approver rol modeli ve team policy dokumani netlestirilsin.
-- [ ] Approval flow degisikligi gerekiyorsa Web Search ile compliance/practice kontrolu yapilsin.
+- [x] Approver rol modeli ve team policy dokumani netlestirildi (`docs/RELEASE_APPROVAL_POLICY.md`).
+- [x] Approval flow degisikligi gerekiyorsa Web Search ile compliance/practice kontrolu yapilsin.
+  - Bu turda davranis semantigi degismedi; yalnizca mevcut approval policy dokumante edildi ve legacy audit parse uyumlulugu eklendi. Bu nedenle yeni dis sistem/pattern karari icin Web Search gerekmedi.
 
 ### Tasks
 - [x] `get_release_decision` implement edildi.
@@ -214,30 +228,34 @@ Fix onerisi ile release izni arasina insan onayi ve denetlenebilir override zinc
 ### Test Gate
 - [x] Unit: decision write/read + override reason validation.
 - [x] Integration: reviews/fix akisi release decision ile uyumlu.
+- [x] Unit regression: legacy `.guardian/release_decisions.jsonl` satirlari yeni metadata alanlari olmadan da manuel approval state'i geri yukluyor.
 - [x] E2E: block -> manual approve -> audit trail -> release gate pass.
 - [x] `python3 scripts/verify_all.py` (ust kok): pass.
 
 ### Exit Gate
-- [ ] Audit trail formatinin geriye donuk uyumlulugu dogrulandi.
-- [ ] Approval workflow product sign-off aldi.
+- [x] Audit trail formatinin geriye donuk uyumlulugu dogrulandi.
+- [x] Approval workflow product sign-off aldi.
 - [x] Pilot ekipte en az 1 override senaryosu kayitli test edildi.
 
-### Completion Log (Faz Sonunda Doldurulacak)
-- Completion Date: N/A (In Progress)
+### Completion Log
+- Completion Date: 2026-04-04
 - Owner: Guardian Team
 - Completed Items:
   - Desktop release decision panel ve Tauri commandlari eklendi.
   - Override reason zorunlulugu ve audit trail yazimi devrede.
   - Reviews/fix akisi release approvaldan ayrildi.
+  - Approver policy dokumani ve legacy audit compatibility regression testi tamamlandi.
+  - Product sign-off bu oturumda alindi ve `v1.2.6` gate-only release karari `PASS_WITH_WARNING` olarak dogrulandi.
 - Evidence (PR/commit/test output):
   - `cargo test release_decision::tests -- --nocapture` pass
   - `src/components/__tests__/ReleaseDecisionPanel.test.tsx` pass
+  - `GUARDIAN_RELEASE_APPROVER=release-manager scripts/release_all_local.sh v1.2.6 --gate-only` (`PASS_WITH_WARNING`, 10 warnings, 0 critical)
 - Web Search Sources (varsa): yok.
 - Blockers:
-  - Approval workflow product sign-off henuz alinmadi.
-  - Geriye donuk audit trail uyumlulugu icin final migration kontrolu eksik.
+  - Faz 3 icin yok.
+  - Release publish icin operasyonel ortam blocker'i var: `$HOME/.tauri/guardian.key` yok ve `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` env'i set degil.
 - Next Phase Entry Decision:
-  - Faz 4/5 rollout devam ederken approval policy dokumani netlestirilecek.
+  - Faz 3 kapandi; Faz 4/5 publish adimina gecilebilir, ancak production-safe macOS artifact icin signing key/parola kurulmadan `scripts/release_all_local.sh v1.2.6` calistirilmamali.
 
 ## Faz 4 - CLI/CI Gate + Dashboard-Lite (Hafta 7-12) - Durum: IN_PROGRESS
 ### Goal
@@ -539,6 +557,46 @@ Release aninda karar veren gate ve pilot metrik yuzeyi ile scanner'dan governanc
 - [x] Faz 5 shadow leak-prevented vaka listesi otomatik uretildi.
 - [x] Faz 5 CI/release gate alignment smoke (workflow wiring) tamamlandi.
 - [x] Faz 5 real pilot rollout: 2+ design-partner repoda strict gate dry-run + haftalik dashboard-lite raporu.
+- [x] Faz 2 decision semantics dokumani guncellendi (`docs/GOVERNANCE_OUTPUT_CONTRACT.md`).
+
+## Ara Checkpoint Log - 2026-04-04 (Faz 2 Decision Semantics + Review Feedback Hardening)
+- Completed Items:
+  - [x] Audit prompt'una dev/local-only bulgulari gereksiz `Critical` yapmama kurali eklendi.
+  - [x] Watcher batch prompt context'ine sadece current batch dosyalarini kapsayan recent fix history eklendi.
+  - [x] Recent fix history enrichment icin regression test eklendi.
+  - [x] FAQ platform destegi metni macOS + Windows release reality ile hizalandi.
+  - [x] Decision engine davranis dokumani `PASS|PASS_WITH_WARNING|BLOCK_UNTIL_APPROVED|OVERRIDDEN` semantigi ve approval state kurallariyla guncellendi.
+- Evidence:
+  - `cargo test --manifest-path src-tauri/Cargo.toml merge_project_intent_with_recent_fix_history` (1/1 pass)
+  - `cargo test --manifest-path src-tauri/Cargo.toml policy_caps_initial_scan_limit_from_user_tuning` (1/1 pass)
+  - `npm run verify` (pass)
+  - `cd website && npm run pre-launch` (pass)
+- Web Search Sources:
+  - Yok; yeni dis sistem/pattern secimi yapilmadi, semantikler dogrudan mevcut `guardian-scan-policy`, `src-tauri`, `guardian-cli` implementasyonundan dokumante edildi.
+- Blockers:
+  - [ ] Faz 2 AI-heavy classifier threshold finalizasyonu icin 2 hafta ek trend verisi gereksinimi devam ediyor.
+- Next Phase Entry Decision:
+  - Faz 2 kapandi; siradaki adim Faz 3 kapanis borclarini sirayla kapatmak. Faz 3 bitmeden Faz 4/5 yeni is kapsamına gecilmeyecek.
+
+## Ara Checkpoint Log - 2026-04-04 (Faz 3 Approval Policy + Legacy Audit Compatibility)
+### Goal
+Approver rol modelini dokumante etmek ve eski `release_decisions.jsonl` satirlarinin manuel approval state'ini kaybetmeden okunmasini saglamak.
+
+### Completed Items
+- [x] `docs/RELEASE_APPROVAL_POLICY.md` eklendi; release manager / incident commander / reviewer yetki sinirlari ve override reason quality bar netlestirildi.
+- [x] `ReleaseDecisionAuditRecord` legacy satirlar icin backward-compatible hale getirildi (`action`, `critical_findings`, `warning_findings`, `ai_heavy_change`, `policy_path` default okunuyor).
+- [x] Regression test eklendi: `legacy_audit_records_without_new_metadata_still_restore_manual_approval`.
+- [x] `docs/GOVERNANCE_OUTPUT_CONTRACT.md` approval policy ve legacy audit compatibility notlariyla hizalandi.
+
+### Test Gate Evidence
+- [x] `cargo test --manifest-path src-tauri/Cargo.toml release_decision::tests -- --nocapture` (6/6 pass)
+
+### Web Search Sources
+- Yok; yeni approval flow veya dis compliance sistemi secilmedi, sadece mevcut internal semantik dokumante edildi ve legacy audit parser uyumlulugu eklendi.
+
+### Risks / Next Step
+- [ ] Faz 3 hala product sign-off bekliyor.
+- [ ] Product sign-off alinana kadar Faz 4/5 icin yeni scope baslatilmayacak.
 
 ## Ara Checkpoint Log - 2026-03-15 (Batch JSON Schema Hotfix)
 - Completed Items:

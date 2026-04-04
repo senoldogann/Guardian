@@ -151,21 +151,34 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                 <div className={clsx(
                     "absolute left-0 top-0 bottom-0 w-0.5 transition-all",
                     isExpanded ? "w-1" : "group-hover:w-1",
-                    isCritical ? "bg-rose-500" : isWarning ? "bg-amber-500" : "bg-[var(--accent-500)]"
+                    isCritical
+                        ? "bg-[color:var(--tone-critical-text)]"
+                        : isWarning
+                            ? "bg-[color:var(--tone-warning-text)]"
+                            : "bg-[var(--accent-500)]"
                 )} />
 
                 <div className="w-8 shrink-0 text-xs font-mono opacity-20">{index.toString().padStart(2, '0')}</div>
 
                 <div className="w-48 shrink-0 pr-4">
                     <div className="flex items-center gap-2">
-                        <FileCode className={clsx("w-3.5 h-3.5", isCritical ? "text-rose-400" : isWarning ? "text-amber-400" : "text-[var(--accent-500)]")} />
+                        <FileCode
+                            className={clsx(
+                                "w-3.5 h-3.5",
+                                isCritical
+                                    ? "text-[color:var(--tone-critical-text)]"
+                                    : isWarning
+                                        ? "text-[color:var(--tone-warning-text)]"
+                                        : "text-[var(--accent-500)]",
+                            )}
+                        />
                         <span className="font-bold text-sm truncate" title={log.file_path}>{fileName}</span>
                         {findingStatus && (
                             <span
                                 className={clsx(
                                     "px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border",
                                     findingStatus === "new"
-                                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                        ? "bg-[color:var(--tone-success-bg)] text-[color:var(--tone-success-text)] border-[color:var(--tone-success-border)]"
                                         : "bg-[var(--panel-muted)] text-text-muted border-border-main"
                                 )}
                                 title={
@@ -194,7 +207,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                 event.stopPropagation();
                                 onAskGuru();
                             }}
-                            className="p-2 rounded-lg border border-border-main bg-background/60 hover:bg-background transition-colors text-text-muted hover:text-text-main"
+                            className="p-2 rounded-lg border border-border-main bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] transition-colors text-text-muted hover:text-text-main"
                             title={t("critique.askGuru")}
                             aria-label={t("critique.askGuru")}
                         >
@@ -213,7 +226,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                     {log.suggested_diff && undoReady && (
                         <button
                             onClick={undoFix}
-                            className="flex items-center gap-1.5 text-xs font-bold text-text-main bg-background/60 px-2.5 py-1.5 rounded-lg border border-border-main hover:bg-background transition-colors cursor-pointer z-10 min-w-[112px] justify-center whitespace-nowrap"
+                            className="flex items-center gap-1.5 text-xs font-bold text-text-main bg-[var(--panel-muted)] px-2.5 py-1.5 rounded-lg border border-border-main hover:bg-[var(--panel-bg)] transition-colors cursor-pointer z-10 min-w-[112px] justify-center whitespace-nowrap"
                             title={t("reviews.undoTitle")}
                         >
                             <RotateCcw className="w-3.5 h-3.5" /> {t("critique.undo")}
@@ -221,8 +234,8 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                     )}
                     <span className={clsx(
                         "px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border shrink-0 min-w-[84px] text-center",
-                        isCritical ? "bg-rose-500/10 text-rose-500 border-rose-500/20" :
-                            isWarning ? "bg-amber-500/10 text-amber-400 border-amber-500/20" :
+                        isCritical ? "bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] border-[color:var(--tone-critical-border)]" :
+                            isWarning ? "bg-[color:var(--tone-warning-bg)] text-[color:var(--tone-warning-text)] border-[color:var(--tone-warning-border)]" :
                                 "bg-[var(--accent-200)] text-[var(--accent-500)] border-[var(--accent-400)]"
                     )}>
                         {severityLabel}
@@ -237,7 +250,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                     <div className="space-y-4">
                         <div className="relative group/suggest">
                             <div className="absolute inset-0 bg-black/5 blur-xl rounded-2xl" />
-                            <div className="relative bg-background border border-border-main p-5 rounded-2xl">
+                            <div className="relative bg-[var(--panel-muted)] border border-border-main p-5 rounded-2xl">
                                 <div className="mb-4 rounded-xl border border-border-main bg-surface/70 px-4 py-3">
                                     <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">
                                         {t("critique.filePath")}
@@ -250,10 +263,14 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                 <div className="flex items-start gap-4 mb-4">
                                     <div className={clsx(
                                         "p-2 rounded-lg",
-                                        isCritical ? "bg-rose-500/10" : isWarning ? "bg-amber-500/10" : "bg-[var(--accent-200)]"
+                                        isCritical
+                                            ? "bg-[color:var(--tone-critical-bg)]"
+                                            : isWarning
+                                                ? "bg-[color:var(--tone-warning-bg)]"
+                                                : "bg-[var(--accent-200)]"
                                     )}>
-                                        {isCritical ? <ShieldAlert className="w-5 h-5 text-rose-500" /> :
-                                            isWarning ? <AlertCircle className="w-5 h-5 text-amber-500" /> :
+                                        {isCritical ? <ShieldAlert className="w-5 h-5 text-[color:var(--tone-critical-text)]" /> :
+                                            isWarning ? <AlertCircle className="w-5 h-5 text-[color:var(--tone-warning-text)]" /> :
                                                 <BadgeInfo className="w-5 h-5 text-[var(--accent-500)]" />}
                                     </div>
                                     <div>
@@ -297,7 +314,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                             className={clsx(
                                                 "w-full py-2 font-bold rounded-lg text-xs transition-colors shadow-lg shadow-black/40 flex items-center justify-center gap-2 cursor-pointer",
                                                 undoReady
-                                                    ? "bg-background/60 hover:bg-background/80 text-text-main border border-border-main"
+                                                    ? "bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-main border border-border-main"
                                                     : "bg-[var(--accent-500)] hover:opacity-90 text-background"
                                             )}
                                         >

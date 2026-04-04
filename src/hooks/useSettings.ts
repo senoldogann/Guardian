@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, startTransition } from "react";
 import { invoke, isTauriRuntime } from "../lib/tauri";
 import type { Critique } from "../components/CritiqueAccordionRow";
 import { STORAGE_KEYS } from "../constants";
@@ -46,6 +46,51 @@ export type SettingsTab = "general" | "provider" | "embedding" | "web" | "update
 export type ScanProfile = "source" | "extended" | "full";
 
 export type WebSearchDepth = "basic" | "advanced" | "fast" | "ultra-fast" | "auto";
+
+export type ThemeMode = "dark" | "light" | "system";
+
+export type ThemePalette = {
+  accent: string;
+  panel: string;
+  text: string;
+};
+
+export type ScanTuning = {
+  max_files_per_scan: number;
+  max_batch_size_hint: number;
+  token_budget_hint: number;
+};
+
+export type UserPreferencesV1 = {
+  schema_version: number;
+  theme_mode: ThemeMode;
+  language: "en" | "tr";
+  light_palette: ThemePalette;
+  dark_palette: ThemePalette;
+  font_size_scale: number;
+  font_family: string;
+  model_custom_instructions: string | null;
+  scan_tuning: ScanTuning;
+  web_search_enabled: boolean;
+  web_search_depth: WebSearchDepth;
+  auto_verify_enabled: boolean;
+  guru_reply_sound_enabled: boolean;
+};
+
+export type UserPreferencesPatch = {
+  theme_mode?: ThemeMode;
+  language?: "en" | "tr";
+  light_palette?: Partial<ThemePalette>;
+  dark_palette?: Partial<ThemePalette>;
+  font_size_scale?: number;
+  font_family?: string;
+  model_custom_instructions?: string | null;
+  scan_tuning?: Partial<ScanTuning>;
+  web_search_enabled?: boolean;
+  web_search_depth?: WebSearchDepth;
+  auto_verify_enabled?: boolean;
+  guru_reply_sound_enabled?: boolean;
+};
 
 export type ScanProfileConfig = {
   profile: ScanProfile;
@@ -99,6 +144,38 @@ const DEFAULT_EMBEDDING_CONFIG: EmbeddingRuntimeConfig = {
   ollama_base_url: "http://localhost:11434",
   openai_model: "text-embedding-3-small",
   ollama_model: "nomic-embed-text",
+};
+
+const USER_PREFERENCES_SCHEMA_VERSION = 1;
+const DEFAULT_MODEL_CUSTOM_INSTRUCTION =
+  "Keep release-governance clarity first: explain risk and release impact before fix details, and prefer minimal, policy-compliant, production-safe changes.";
+
+const DEFAULT_USER_PREFERENCES: UserPreferencesV1 = {
+  schema_version: USER_PREFERENCES_SCHEMA_VERSION,
+  theme_mode: "dark",
+  language: "en",
+  light_palette: {
+    accent: "#5f879a",
+    panel: "#f7f9fc",
+    text: "#1f2b38",
+  },
+  dark_palette: {
+    accent: "#5f8fa5",
+    panel: "#141a21",
+    text: "#e6edf5",
+  },
+  font_size_scale: 100,
+  font_family: "space-grotesk",
+  model_custom_instructions: DEFAULT_MODEL_CUSTOM_INSTRUCTION,
+  scan_tuning: {
+    max_files_per_scan: 300,
+    max_batch_size_hint: 3,
+    token_budget_hint: 5000,
+  },
+  web_search_enabled: false,
+  web_search_depth: "basic",
+  auto_verify_enabled: false,
+  guru_reply_sound_enabled: true,
 };
 
 const normalizeEmbeddingConfig = (
@@ -164,6 +241,11 @@ export interface UseSettingsReturn {
   scanProfileSaving: boolean;
   scanProfileError: string | null;
 
+  // Personalization (Sprint 1 foundation)
+  userPreferences: UserPreferencesV1 | null;
+  userPreferencesSaving: boolean;
+  userPreferencesError: string | null;
+
   // Updates
   updateInfo: UpdateCheckResult | null;
   updateDismissed: boolean;
@@ -215,8 +297,12 @@ export interface UseSettingsReturn {
   onAutoVerifyToggle: () => void;
   setGuruReplySoundEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   onGuruReplySoundToggle: () => void;
+  onLocalePreferenceChange: (locale: "en" | "tr") => void;
   setScanProfile: React.Dispatch<React.SetStateAction<ScanProfile>>;
   saveScanProfile: () => Promise<void>;
+  updateUserPreferences: (patch: UserPreferencesPatch) => void;
+  refreshUserPreferences: () => Promise<void>;
+  resetUserPreferences: () => Promise<void>;
   onExportPDF: (logs: Record<string, Critique>, path: string) => void;
   setUpdateDismissed: React.Dispatch<React.SetStateAction<boolean>>;
   checkForUpdates: () => Promise<void>;
@@ -293,6 +379,142 @@ export function useSettings(
     return "basic";
   }, []);
 
+  const normalizeThemeMode = useCallback((value: unknown): ThemeMode => {
+    const raw = String(value ?? "").trim().toLowerCase();
+    if (raw === "light" || raw === "system") return raw;
+    return "dark";
+  }, []);
+
+  const normalizeLocale = useCallback((value: unknown): "en" | "tr" => {
+    const raw = String(value ?? "").trim().toLowerCase();
+    return raw === "tr" ? "tr" : "en";
+  }, []);
+
+  const normalizeHex = useCallback((value: unknown, fallback: string): string => {
+    const raw = String(value ?? "").trim();
+    const valid = /^#[0-9a-fA-F]{6}$/.test(raw);
+    return valid ? raw : fallback;
+  }, []);
+
+  const normalizeFontFamily = useCallback((value: unknown): string => {
+    const raw = String(value ?? "")
+      .trim()
+      .toLowerCase();
+    const allowList = new Set([
+      "space-grotesk",
+      "inter",
+      "system-ui",
+      "source-sans-3",
+      "ibm-plex-sans",
+    ]);
+    return allowList.has(raw) ? raw : "space-grotesk";
+  }, []);
+
+  const normalizeUserPreferences = useCallback(
+    (input?: Partial<UserPreferencesV1> | null): UserPreferencesV1 => {
+      const next = input ?? {};
+      const mergedScanTuning = {
+        ...DEFAULT_USER_PREFERENCES.scan_tuning,
+        ...(next.scan_tuning ?? {}),
+      };
+      const modelInstructionRaw =
+        typeof next.model_custom_instructions === "string"
+          ? next.model_custom_instructions
+          : (DEFAULT_USER_PREFERENCES.model_custom_instructions ?? "");
+      return {
+        schema_version: USER_PREFERENCES_SCHEMA_VERSION,
+        theme_mode: normalizeThemeMode(next.theme_mode),
+        language: normalizeLocale(next.language),
+        light_palette: {
+          accent: normalizeHex(
+            next.light_palette?.accent,
+            DEFAULT_USER_PREFERENCES.light_palette.accent,
+          ),
+          panel: normalizeHex(
+            next.light_palette?.panel,
+            DEFAULT_USER_PREFERENCES.light_palette.panel,
+          ),
+          text: normalizeHex(
+            next.light_palette?.text,
+            DEFAULT_USER_PREFERENCES.light_palette.text,
+          ),
+        },
+        dark_palette: {
+          accent: normalizeHex(
+            next.dark_palette?.accent,
+            DEFAULT_USER_PREFERENCES.dark_palette.accent,
+          ),
+          panel: normalizeHex(
+            next.dark_palette?.panel,
+            DEFAULT_USER_PREFERENCES.dark_palette.panel,
+          ),
+          text: normalizeHex(
+            next.dark_palette?.text,
+            DEFAULT_USER_PREFERENCES.dark_palette.text,
+          ),
+        },
+        font_size_scale: Math.min(
+          130,
+          Math.max(85, Number(next.font_size_scale ?? DEFAULT_USER_PREFERENCES.font_size_scale)),
+        ),
+        font_family: normalizeFontFamily(next.font_family),
+        model_custom_instructions: modelInstructionRaw.trim() || null,
+        scan_tuning: {
+          max_files_per_scan: Math.min(
+            400,
+            Math.max(
+              50,
+              Number(
+                mergedScanTuning.max_files_per_scan
+                  ?? DEFAULT_USER_PREFERENCES.scan_tuning.max_files_per_scan,
+              ),
+            ),
+          ),
+          max_batch_size_hint: Math.min(
+            10,
+            Math.max(
+              1,
+              Number(
+                mergedScanTuning.max_batch_size_hint
+                  ?? DEFAULT_USER_PREFERENCES.scan_tuning.max_batch_size_hint,
+              ),
+            ),
+          ),
+          token_budget_hint: Math.min(
+            12000,
+            Math.max(
+              1500,
+              Number(
+                mergedScanTuning.token_budget_hint
+                  ?? DEFAULT_USER_PREFERENCES.scan_tuning.token_budget_hint,
+              ),
+            ),
+          ),
+        },
+        web_search_enabled:
+          typeof next.web_search_enabled === "boolean"
+            ? next.web_search_enabled
+            : DEFAULT_USER_PREFERENCES.web_search_enabled,
+        web_search_depth: normalizeWebSearchDepth(next.web_search_depth ?? "basic"),
+        auto_verify_enabled:
+          typeof next.auto_verify_enabled === "boolean"
+            ? next.auto_verify_enabled
+            : DEFAULT_USER_PREFERENCES.auto_verify_enabled,
+        guru_reply_sound_enabled:
+          typeof next.guru_reply_sound_enabled === "boolean"
+            ? next.guru_reply_sound_enabled
+            : DEFAULT_USER_PREFERENCES.guru_reply_sound_enabled,
+      };
+    },
+    [
+      normalizeFontFamily,
+      normalizeHex,
+      normalizeLocale,
+      normalizeThemeMode,
+      normalizeWebSearchDepth,
+    ],
+  );
+
   const [webSearchDepth, setWebSearchDepth] = useState<WebSearchDepth>(() => {
     if (typeof window !== "undefined") {
       return normalizeWebSearchDepth(localStorage.getItem(STORAGE_KEYS.WEB_SEARCH_DEPTH));
@@ -322,6 +544,16 @@ export function useSettings(
   const [scanProfileSaving, setScanProfileSaving] = useState(false);
   const [scanProfileError, setScanProfileError] = useState<string | null>(null);
 
+  // User preferences (desktop persisted, schema-versioned)
+  const [userPreferences, setUserPreferences] = useState<UserPreferencesV1 | null>(null);
+  const [userPreferencesSaving, setUserPreferencesSaving] = useState(false);
+  const [userPreferencesError, setUserPreferencesError] = useState<string | null>(null);
+  const userPreferencesRef = useRef<UserPreferencesV1 | null>(null);
+  const userPreferencesGenerationRef = useRef(0);
+  const pendingUserPreferencesSaveRef = useRef<{ prefs: UserPreferencesV1; generation: number } | null>(null);
+  const userPreferencesSaveLoopRunningRef = useRef(false);
+  const userPreferencesSaveTimerRef = useRef<number | null>(null);
+
   // Update state
   const [updateInfo, setUpdateInfo] = useState<UpdateCheckResult | null>(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
@@ -342,8 +574,15 @@ export function useSettings(
       if (exportStatusTimerRef.current) {
         window.clearTimeout(exportStatusTimerRef.current);
       }
+      if (userPreferencesSaveTimerRef.current) {
+        window.clearTimeout(userPreferencesSaveTimerRef.current);
+      }
     };
   }, []);
+
+  useEffect(() => {
+    userPreferencesRef.current = userPreferences;
+  }, [userPreferences]);
 
   // Tab state
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("general");
@@ -375,6 +614,254 @@ export function useSettings(
     if (typeof window === "undefined") return;
     localStorage.setItem(STORAGE_KEYS.GURU_REPLY_SOUND_ENABLED, String(guruReplySoundEnabled));
   }, [guruReplySoundEnabled]);
+
+  const mergeLegacyPreferences = useCallback(
+    (base: UserPreferencesV1): UserPreferencesV1 => {
+      if (typeof window === "undefined") return base;
+      const asBool = (raw: string | null): boolean | null => {
+        if (raw === "true") return true;
+        if (raw === "false") return false;
+        return null;
+      };
+
+      const next: UserPreferencesV1 = {
+        ...base,
+        scan_tuning: { ...base.scan_tuning },
+      };
+
+      const themeLegacy = localStorage.getItem(STORAGE_KEYS.THEME);
+      if (themeLegacy === "dark" || themeLegacy === "light") {
+        next.theme_mode = themeLegacy;
+      }
+
+      const localeLegacy = localStorage.getItem(STORAGE_KEYS.LANGUAGE);
+      if (localeLegacy === "en" || localeLegacy === "tr") {
+        next.language = localeLegacy;
+      }
+
+      const webSearchLegacy = asBool(localStorage.getItem(STORAGE_KEYS.WEB_SEARCH));
+      if (webSearchLegacy !== null) {
+        next.web_search_enabled = webSearchLegacy;
+      }
+
+      const webDepthLegacy = localStorage.getItem(STORAGE_KEYS.WEB_SEARCH_DEPTH);
+      if (webDepthLegacy) {
+        next.web_search_depth = normalizeWebSearchDepth(webDepthLegacy);
+      }
+
+      const autoVerifyLegacy = asBool(localStorage.getItem(STORAGE_KEYS.AUTO_VERIFY_ENABLED));
+      if (autoVerifyLegacy !== null) {
+        next.auto_verify_enabled = autoVerifyLegacy;
+      }
+
+      const guruSoundLegacy = asBool(localStorage.getItem(STORAGE_KEYS.GURU_REPLY_SOUND_ENABLED));
+      if (guruSoundLegacy !== null) {
+        next.guru_reply_sound_enabled = guruSoundLegacy;
+      }
+
+      return normalizeUserPreferences(next);
+    },
+    [normalizeUserPreferences, normalizeWebSearchDepth],
+  );
+
+  const applyPreferencesToRuntime = useCallback((prefs: UserPreferencesV1): void => {
+    setWebSearchEnabled(prefs.web_search_enabled);
+    setWebSearchDepth(normalizeWebSearchDepth(prefs.web_search_depth));
+    setAutoVerifyEnabled(prefs.auto_verify_enabled);
+    setGuruReplySoundEnabled(prefs.guru_reply_sound_enabled);
+  }, [normalizeWebSearchDepth]);
+
+  const commitUserPreferencesState = useCallback((prefs: UserPreferencesV1): number => {
+    const nextGeneration = userPreferencesGenerationRef.current + 1;
+    userPreferencesGenerationRef.current = nextGeneration;
+    userPreferencesRef.current = prefs;
+    startTransition(() => {
+      setUserPreferences(prefs);
+    });
+    return nextGeneration;
+  }, []);
+
+  const clearQueuedUserPreferencesSave = useCallback((): void => {
+    pendingUserPreferencesSaveRef.current = null;
+    if (userPreferencesSaveTimerRef.current) {
+      window.clearTimeout(userPreferencesSaveTimerRef.current);
+      userPreferencesSaveTimerRef.current = null;
+    }
+  }, []);
+
+  const saveUserPreferencesInternal = useCallback(
+    async (prefs: UserPreferencesV1): Promise<UserPreferencesV1> => {
+      const normalized = normalizeUserPreferences(prefs);
+      const saved = await invoke<UserPreferencesV1>("set_user_preferences", {
+        preferences: normalized,
+      });
+      return normalizeUserPreferences(saved);
+    },
+    [normalizeUserPreferences],
+  );
+
+  const flushUserPreferencesSaveQueue = useCallback(async (): Promise<void> => {
+    if (!isDesktop || userPreferencesSaveLoopRunningRef.current) return;
+    userPreferencesSaveLoopRunningRef.current = true;
+    try {
+      while (pendingUserPreferencesSaveRef.current) {
+        const queued = pendingUserPreferencesSaveRef.current;
+        pendingUserPreferencesSaveRef.current = null;
+        setUserPreferencesSaving(true);
+        setUserPreferencesError(null);
+        try {
+          const saved = await saveUserPreferencesInternal(queued.prefs);
+          const hasNewerPatch = pendingUserPreferencesSaveRef.current !== null;
+          const isCurrentGeneration = queued.generation === userPreferencesGenerationRef.current;
+          if (!hasNewerPatch && isCurrentGeneration) {
+            userPreferencesRef.current = saved;
+            startTransition(() => {
+              setUserPreferences(saved);
+            });
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          setUserPreferencesError(t("settings.errors.preferencesSaveFailed", { error: message }));
+          break;
+        }
+      }
+    } finally {
+      userPreferencesSaveLoopRunningRef.current = false;
+      setUserPreferencesSaving(false);
+    }
+  }, [isDesktop, saveUserPreferencesInternal, t]);
+
+  const queueUserPreferencesSave = useCallback(
+    (prefs: UserPreferencesV1, generation: number, delayMs = 220): void => {
+      pendingUserPreferencesSaveRef.current = { prefs, generation };
+      setUserPreferencesSaving(true);
+      setUserPreferencesError(null);
+      if (userPreferencesSaveTimerRef.current) {
+        window.clearTimeout(userPreferencesSaveTimerRef.current);
+      }
+      userPreferencesSaveTimerRef.current = window.setTimeout(() => {
+        userPreferencesSaveTimerRef.current = null;
+        void flushUserPreferencesSaveQueue();
+      }, delayMs);
+    },
+    [flushUserPreferencesSaveQueue],
+  );
+
+  const refreshUserPreferences = useCallback(async (): Promise<void> => {
+    if (!isDesktop) return;
+    setUserPreferencesSaving(true);
+    setUserPreferencesError(null);
+    try {
+      clearQueuedUserPreferencesSave();
+      const raw = await invoke<UserPreferencesV1>("get_user_preferences");
+      const normalized = normalizeUserPreferences(raw);
+      commitUserPreferencesState(normalized);
+      applyPreferencesToRuntime(normalized);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setUserPreferencesError(t("settings.errors.preferencesLoadFailed", { error: message }));
+    } finally {
+      setUserPreferencesSaving(false);
+    }
+  }, [
+    isDesktop,
+    clearQueuedUserPreferencesSave,
+    normalizeUserPreferences,
+    commitUserPreferencesState,
+    applyPreferencesToRuntime,
+    t,
+  ]);
+
+  const resetUserPreferences = useCallback(async (): Promise<void> => {
+    if (!isDesktop) return;
+    setUserPreferencesSaving(true);
+    setUserPreferencesError(null);
+    try {
+      clearQueuedUserPreferencesSave();
+      const raw = await invoke<UserPreferencesV1>("reset_user_preferences");
+      const normalized = normalizeUserPreferences(raw);
+      commitUserPreferencesState(normalized);
+      applyPreferencesToRuntime(normalized);
+      if (typeof window !== "undefined") {
+        localStorage.setItem(STORAGE_KEYS.USER_PREFERENCES_MIGRATED_V1, "true");
+      }
+      toast.showSuccess(t("toast.saved"), 2500);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setUserPreferencesError(t("settings.errors.preferencesResetFailed", { error: message }));
+    } finally {
+      setUserPreferencesSaving(false);
+    }
+  }, [
+    isDesktop,
+    clearQueuedUserPreferencesSave,
+    normalizeUserPreferences,
+    commitUserPreferencesState,
+    applyPreferencesToRuntime,
+    t,
+    toast,
+  ]);
+
+  // Load + one-time migrate legacy local settings to schema-versioned preferences.
+  useEffect(() => {
+    if (!isDesktop || !settingsOpen) return;
+    let canceled = false;
+
+    const loadAndMigrate = async (): Promise<void> => {
+      setUserPreferencesSaving(true);
+      setUserPreferencesError(null);
+      try {
+        clearQueuedUserPreferencesSave();
+        const fetched = await invoke<UserPreferencesV1>("get_user_preferences");
+        if (canceled) return;
+        let normalized = normalizeUserPreferences(fetched);
+
+        const migrationDone =
+          typeof window !== "undefined" &&
+          localStorage.getItem(STORAGE_KEYS.USER_PREFERENCES_MIGRATED_V1) === "true";
+
+        if (!migrationDone) {
+          const mergedFromLegacy = mergeLegacyPreferences(normalized);
+          const before = JSON.stringify(normalized);
+          const after = JSON.stringify(mergedFromLegacy);
+          if (before !== after) {
+            setUserPreferencesSaving(true);
+            normalized = await saveUserPreferencesInternal(mergedFromLegacy);
+          }
+          if (typeof window !== "undefined") {
+            localStorage.setItem(STORAGE_KEYS.USER_PREFERENCES_MIGRATED_V1, "true");
+          }
+        }
+
+        if (canceled) return;
+        commitUserPreferencesState(normalized);
+        applyPreferencesToRuntime(normalized);
+      } catch (error) {
+        if (canceled) return;
+        const message = error instanceof Error ? error.message : String(error);
+        setUserPreferencesError(t("settings.errors.preferencesLoadFailed", { error: message }));
+      } finally {
+        if (!canceled) {
+          setUserPreferencesSaving(false);
+        }
+      }
+    };
+
+    void loadAndMigrate();
+    return () => {
+      canceled = true;
+    };
+  }, [
+    applyPreferencesToRuntime,
+    clearQueuedUserPreferencesSave,
+    commitUserPreferencesState,
+    isDesktop,
+    mergeLegacyPreferences,
+    normalizeUserPreferences,
+    saveUserPreferencesInternal,
+    settingsOpen,
+    t,
+  ]);
 
   // Load scan profile config when settings opens
   useEffect(() => {
@@ -412,9 +899,52 @@ export function useSettings(
     }
   }, [isDesktop, scanProfile, t, toast]);
 
+  const patchUserPreferences = useCallback((patch: UserPreferencesPatch): void => {
+    if (!isDesktop) return;
+    void (async () => {
+      let base = userPreferencesRef.current;
+      if (!base) {
+        try {
+          const fetched = await invoke<UserPreferencesV1>("get_user_preferences");
+          base = normalizeUserPreferences(fetched);
+        } catch {
+          base = normalizeUserPreferences(null);
+        }
+      }
+
+      const merged = normalizeUserPreferences({
+        ...base,
+        ...patch,
+        light_palette: {
+          ...base.light_palette,
+          ...(patch.light_palette ?? {}),
+        },
+        dark_palette: {
+          ...base.dark_palette,
+          ...(patch.dark_palette ?? {}),
+        },
+        scan_tuning: {
+          ...base.scan_tuning,
+          ...(patch.scan_tuning ?? {}),
+        },
+      });
+      const generation = commitUserPreferencesState(merged);
+      applyPreferencesToRuntime(merged);
+      queueUserPreferencesSave(merged, generation);
+    })();
+  }, [
+    isDesktop,
+    normalizeUserPreferences,
+    commitUserPreferencesState,
+    applyPreferencesToRuntime,
+    queueUserPreferencesSave,
+  ]);
+
   const onWebSearchDepthChange = useCallback((value: WebSearchDepth): void => {
-    setWebSearchDepth(normalizeWebSearchDepth(value));
-  }, [normalizeWebSearchDepth]);
+    const normalized = normalizeWebSearchDepth(value);
+    setWebSearchDepth(normalized);
+    patchUserPreferences({ web_search_depth: normalized });
+  }, [normalizeWebSearchDepth, patchUserPreferences]);
 
   // Load initial provider config
   useEffect(() => {
@@ -1018,8 +1548,12 @@ export function useSettings(
   }, [isDesktop, applyTavilyStatus, t, toast]);
 
   const onWebSearchToggle = useCallback((): void => {
-    setWebSearchEnabled(prev => !prev);
-  }, []);
+    setWebSearchEnabled(prev => {
+      const next = !prev;
+      patchUserPreferences({ web_search_enabled: next });
+      return next;
+    });
+  }, [patchUserPreferences]);
 
   const onAutoVerifyToggle = useCallback((): void => {
     // SECURITY: Auto-verify runs project commands inside the monitored workspace.
@@ -1029,12 +1563,24 @@ export function useSettings(
       );
       if (!ok) return;
     }
-    setAutoVerifyEnabled(prev => !prev);
-  }, [autoVerifyEnabled, t]);
+    setAutoVerifyEnabled(prev => {
+      const next = !prev;
+      patchUserPreferences({ auto_verify_enabled: next });
+      return next;
+    });
+  }, [autoVerifyEnabled, patchUserPreferences, t]);
 
   const onGuruReplySoundToggle = useCallback((): void => {
-    setGuruReplySoundEnabled((prev) => !prev);
-  }, []);
+    setGuruReplySoundEnabled((prev) => {
+      const next = !prev;
+      patchUserPreferences({ guru_reply_sound_enabled: next });
+      return next;
+    });
+  }, [patchUserPreferences]);
+
+  const onLocalePreferenceChange = useCallback((locale: "en" | "tr"): void => {
+    patchUserPreferences({ language: locale });
+  }, [patchUserPreferences]);
 
   const onExportPDF = useCallback((logs: Record<string, Critique>, path: string): void => {
     if (exportPdfInProgress) return;
@@ -1190,6 +1736,9 @@ export function useSettings(
     scanProfile,
     scanProfileSaving,
     scanProfileError,
+    userPreferences,
+    userPreferencesSaving,
+    userPreferencesError,
     updateInfo,
     updateDismissed,
     updateInstalling,
@@ -1231,8 +1780,12 @@ export function useSettings(
     onAutoVerifyToggle,
     setGuruReplySoundEnabled,
     onGuruReplySoundToggle,
+    onLocalePreferenceChange,
     setScanProfile,
     saveScanProfile,
+    updateUserPreferences: patchUserPreferences,
+    refreshUserPreferences,
+    resetUserPreferences,
     onExportPDF,
     setUpdateDismissed,
     checkForUpdates,
