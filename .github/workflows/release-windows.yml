@@ -7,6 +7,15 @@ on:
         description: "Release tag (e.g. v1.0.0)"
         required: true
         type: string
+      release_target:
+        description: "Which release path to run"
+        required: true
+        default: windows
+        type: choice
+        options:
+          - windows
+          - macos
+          - all
       approver:
         description: "Human approver identity for release gate override/approval flows"
         required: false
@@ -107,6 +116,7 @@ jobs:
           exit 1
 
   build-windows:
+    if: ${{ inputs.release_target == 'windows' || inputs.release_target == 'all' }}
     runs-on: windows-latest
     needs: release-gate
     steps:
@@ -203,7 +213,7 @@ jobs:
           retention-days: 7
 
   build-macos:
-    if: false
+    if: ${{ inputs.release_target == 'macos' || inputs.release_target == 'all' }}
     runs-on: macos-latest
     needs: release-gate
     steps:
@@ -344,20 +354,10 @@ jobs:
 
       - name: 📦 Collect Artifacts
         run: |
-          mkdir -p artifacts/mac
-          find src-tauri/target/aarch64-apple-darwin/release/bundle -maxdepth 6 -type f \( \
-            -name "*.dmg" -o -name "*.tar.gz" -o -name "*.sig" -o -name "latest.json" \
-          \) -exec cp -f {} artifacts/mac/ \;
-          find src-tauri/target/x86_64-apple-darwin/release/bundle -maxdepth 6 -type f -name "*.dmg" -exec cp -f {} artifacts/mac/ \;
-
-          if ! ls artifacts/mac/*.sig >/dev/null 2>&1; then
-            echo "No updater signature (*.sig) found in macOS artifacts."
-            exit 1
-          fi
-          if ! ls artifacts/mac/*.tar.gz >/dev/null 2>&1; then
-            echo "No updater bundle (*.tar.gz) found in macOS artifacts."
-            exit 1
-          fi
+          chmod +x scripts/collect_macos_artifacts.sh scripts/write_tauri_latest_json.sh
+          scripts/collect_macos_artifacts.sh "${{ inputs.tag }}" artifacts/mac \
+            src-tauri/target/aarch64-apple-darwin/release/bundle \
+            src-tauri/target/x86_64-apple-darwin/release/bundle
 
       - name: 📤 Upload Artifacts
         uses: actions/upload-artifact@v6
@@ -368,16 +368,24 @@ jobs:
 
   publish-distribution:
     runs-on: ubuntu-latest
-    needs: [release-gate, build-windows]
+    needs: [release-gate, build-windows, build-macos]
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v6
 
       - name: 📦 Download Windows Artifacts
+        if: ${{ inputs.release_target == 'windows' || inputs.release_target == 'all' }}
         uses: actions/download-artifact@v8
         with:
           name: guardian-windows-${{ inputs.tag }}
           path: artifacts/win
+
+      - name: 📦 Download macOS Artifacts
+        if: ${{ inputs.release_target == 'macos' || inputs.release_target == 'all' }}
+        uses: actions/download-artifact@v8
+        with:
+          name: guardian-macos-${{ inputs.tag }}
+          path: artifacts/mac
 
       - name: 🔐 Verify updater key alignment
         run: |
@@ -434,6 +442,7 @@ jobs:
           GH_TOKEN: ${{ secrets.PUBLIC_DIST_REPO_TOKEN }}
 
       - name: 📦 Publish Windows Artifacts to Distribution
+        if: ${{ inputs.release_target == 'windows' || inputs.release_target == 'all' }}
         run: |
           set -euo pipefail
           chmod +x scripts/merge_latest_json.sh
@@ -524,6 +533,57 @@ jobs:
 
           if [[ "${#RELEASE_ASSETS[@]}" -lt 3 ]]; then
             echo "Error: expected Windows installer and signature assets in artifacts/win."
+            exit 1
+          fi
+
+          gh release upload "$TAG" "${RELEASE_ASSETS[@]}" -R "$DIST_REPO" --clobber
+        env:
+          GH_TOKEN: ${{ secrets.PUBLIC_DIST_REPO_TOKEN }}
+          PUBLIC_DIST_REPO: ${{ secrets.PUBLIC_DIST_REPO }}
+
+      - name: 🍎 Publish macOS Artifacts to Distribution
+        if: ${{ inputs.release_target == 'macos' || inputs.release_target == 'all' }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/merge_latest_json.sh
+
+          DIST_REPO="${PUBLIC_DIST_REPO:-senoldogann/guardian-distribution}"
+          TAG="${{ inputs.tag }}"
+          mkdir -p artifacts/current
+
+          if [[ ! -f artifacts/mac/latest.json ]]; then
+            echo "Error: macOS latest.json artifact is missing."
+            exit 1
+          fi
+
+          if gh release view "$TAG" -R "$DIST_REPO" >/dev/null 2>&1; then
+            if gh release download "$TAG" -R "$DIST_REPO" -p latest.json -D artifacts/current >/dev/null 2>&1; then
+              scripts/merge_latest_json.sh "$TAG" artifacts/latest.json artifacts/current/latest.json artifacts/mac/latest.json
+            else
+              cp -f artifacts/mac/latest.json artifacts/latest.json
+            fi
+          else
+            gh release create "$TAG" -R "$DIST_REPO" --title "$TAG" --notes "Manual distribution release for $TAG"
+            cp -f artifacts/mac/latest.json artifacts/latest.json
+          fi
+
+          DIST_BASE="https://github.com/${DIST_REPO}/releases/download/${TAG}/"
+          jq --arg dist "$DIST_BASE" '
+            .platforms |= with_entries(
+              .value.url = ($dist + (.value.url | split("/") | last))
+            )
+          ' artifacts/latest.json > artifacts/latest.rewritten.json
+          mv artifacts/latest.rewritten.json artifacts/latest.json
+
+          RELEASE_ASSETS=(artifacts/latest.json)
+          while IFS= read -r -d '' asset_path; do
+            RELEASE_ASSETS+=("$asset_path")
+          done < <(find artifacts/mac -maxdepth 1 -type f \( \
+            -name "*.dmg" -o -name "*.tar.gz" -o -name "*.sig" \
+          \) -print0)
+
+          if [[ "${#RELEASE_ASSETS[@]}" -lt 4 ]]; then
+            echo "Error: expected notarized macOS assets in artifacts/mac."
             exit 1
           fi
 
