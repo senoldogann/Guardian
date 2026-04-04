@@ -443,6 +443,49 @@ jobs:
           mkdir -p artifacts/current
 
           if [[ ! -f artifacts/win/latest.json ]]; then
+            echo "Windows latest.json missing; generating fallback updater manifest."
+
+            WINDOWS_UPDATER_ASSET="$(find artifacts/win -maxdepth 1 -type f -name '*-setup.exe' -print -quit || true)"
+            if [[ -z "$WINDOWS_UPDATER_ASSET" ]]; then
+              WINDOWS_UPDATER_ASSET="$(find artifacts/win -maxdepth 1 -type f -name '*.msi' -print -quit || true)"
+            fi
+            if [[ -z "$WINDOWS_UPDATER_ASSET" ]]; then
+              echo "Error: could not find Windows installer asset to generate latest.json."
+              exit 1
+            fi
+
+            WINDOWS_SIGNATURE_FILE="${WINDOWS_UPDATER_ASSET}.sig"
+            if [[ ! -f "$WINDOWS_SIGNATURE_FILE" ]]; then
+              echo "Error: missing signature for Windows updater asset: $WINDOWS_SIGNATURE_FILE"
+              exit 1
+            fi
+
+            WINDOWS_SIGNATURE="$(tr -d '\n' < "$WINDOWS_SIGNATURE_FILE")"
+            if [[ -z "$WINDOWS_SIGNATURE" ]]; then
+              echo "Error: Windows signature file is empty: $WINDOWS_SIGNATURE_FILE"
+              exit 1
+            fi
+
+            jq -n \
+              --arg version "${TAG#v}" \
+              --arg notes "${TAG} Release" \
+              --arg pub_date "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+              --arg signature "$WINDOWS_SIGNATURE" \
+              --arg url "$(basename "$WINDOWS_UPDATER_ASSET")" \
+              '{
+                version: $version,
+                notes: $notes,
+                pub_date: $pub_date,
+                platforms: {
+                  "windows-x86_64": {
+                    signature: $signature,
+                    url: $url
+                  }
+                }
+              }' > artifacts/win/latest.json
+          fi
+
+          if [[ ! -f artifacts/win/latest.json ]]; then
             echo "Error: Windows latest.json artifact is missing."
             exit 1
           fi
