@@ -308,7 +308,10 @@ jobs:
             exit 1
           fi
 
-          mapfile -t DMG_PATHS < <(find src-tauri/target -type f -path '*/release/bundle/*.dmg')
+          DMG_PATHS=()
+          while IFS= read -r dmg_path; do
+            DMG_PATHS+=("$dmg_path")
+          done < <(find src-tauri/target -type f -path '*/release/bundle/*.dmg')
           if [[ "${#DMG_PATHS[@]}" -eq 0 ]]; then
             echo "Error: no .dmg files found to notarize."
             exit 1
