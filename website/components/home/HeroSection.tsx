@@ -9,6 +9,7 @@ import type { SiteDictionary } from "../../lib/i18n";
 import { getLatestReleaseClient, releaseTagToVersionClient } from "../../lib/releases-client";
 import type { Locale } from "../../lib/locale";
 import { withLocale } from "../../lib/locale";
+import { ProductHuntBadge } from "./product-hunt-badge";
 
 interface HeroSectionProps {
     dict: SiteDictionary;
@@ -89,9 +90,17 @@ export function HeroSection({ dict, locale }: HeroSectionProps) {
                 </motion.div>
 
                 <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.4 }}
+                >
+                    <ProductHuntBadge />
+                </motion.div>
+
+                <motion.div
                     initial={{ opacity: 0, y: 40 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.4 }}
+                    transition={{ duration: 0.8, delay: 0.5 }}
                     className="mt-16 relative mx-auto max-w-5xl"
                 >
                     <div className="relative rounded-xl border border-neutral-200 dark:border-white/10 bg-white dark:bg-black shadow-2xl overflow-hidden">

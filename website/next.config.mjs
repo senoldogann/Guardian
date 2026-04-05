@@ -8,6 +8,12 @@ const nextConfig = {
   images: {
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 86400, // 24 hours
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "api.producthunt.com",
+      },
+    ],
   },
 
   // Compression
