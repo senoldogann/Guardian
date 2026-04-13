@@ -3,6 +3,14 @@ name: "Guardian Scan (PR Summary)"
 on:
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "**/package.json"
+      - "**/package-lock.json"
+      - "**/pnpm-lock.yaml"
+      - "**/yarn.lock"
+      - "**/bun.lockb"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
   workflow_dispatch:
 
 permissions:
@@ -13,6 +21,7 @@ permissions:
 
 jobs:
   guardian-scan:
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
 
     steps:
