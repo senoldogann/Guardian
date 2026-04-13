@@ -8,6 +8,14 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "**/package.json"
+      - "**/package-lock.json"
+      - "**/pnpm-lock.yaml"
+      - "**/yarn.lock"
+      - "**/bun.lockb"
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
   workflow_dispatch:
 
 jobs:
