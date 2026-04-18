@@ -62,7 +62,7 @@ pub struct Critique {
     pub confidence: Option<f64>,
 }
 
-const DEFAULT_AI_REQUEST_CONCURRENCY_CLOUD: usize = 1;
+const DEFAULT_AI_REQUEST_CONCURRENCY_CLOUD: usize = 2;
 const DEFAULT_AI_REQUEST_CONCURRENCY_LOCAL: usize = 2;
 const AI_QUEUE_WAIT_TIMEOUT_AUDIT_SECS: u64 = 120;
 const AI_QUEUE_WAIT_TIMEOUT_GURU_SECS: u64 = 300;

@@ -328,7 +328,7 @@ pub(super) async fn batch_processing_loop(
     model_custom_instructions: Option<String>,
 ) {
     let mut batch: Vec<BatchItem> = Vec::new();
-    let flush_interval = Duration::from_secs(5); // 5s timeout
+    let flush_interval = Duration::from_secs(crate::config::batch_flush_interval_secs());
     let mut interval = tokio::time::interval(flush_interval);
     let mut last_request = Instant::now() - Duration::from_secs(10);
 

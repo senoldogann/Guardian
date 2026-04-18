@@ -23,16 +23,17 @@ const MIN_TIMEOUT_SECS: u64 = 5;
 const MAX_TIMEOUT_SECS: u64 = 600;
 
 // Watcher Configuration
-pub const DEFAULT_MAX_BATCH_SIZE: usize = 3;
-pub const DEFAULT_MAX_CONTENT_CHARS: usize = 6000;
-pub const DEFAULT_MAX_CONTENT_LINES: usize = 220;
+pub const DEFAULT_MAX_BATCH_SIZE: usize = 5;
+pub const DEFAULT_MAX_CONTENT_CHARS: usize = 8000;
+pub const DEFAULT_MAX_CONTENT_LINES: usize = 300;
 pub const DEFAULT_LAST_AUDITED_CACHE_MAX_ENTRIES: usize = 1200;
 pub const DEFAULT_MIN_BATCH_INTERVAL_SECS: u64 = 2;
 pub const DEFAULT_RATE_LIMIT_RETRIES: u32 = 2;
 pub const DEFAULT_RATE_LIMIT_BACKOFF_SECS: u64 = 2;
 pub const DEFAULT_SEND_FAILURE_RETRIES: u32 = 2;
 pub const DEFAULT_SEND_FAILURE_BACKOFF_SECS: u64 = 2;
-pub const DEFAULT_MAX_BATCH_PROMPT_TOKENS: u64 = 5000;
+pub const DEFAULT_MAX_BATCH_PROMPT_TOKENS: u64 = 8000;
+pub const DEFAULT_BATCH_FLUSH_INTERVAL_SECS: u64 = 3;
 pub const DEFAULT_MAX_FILE_BYTES: u64 = 512 * 1024; // 512KB
 
 pub fn is_production() -> bool {
@@ -544,6 +545,13 @@ pub fn max_batch_prompt_tokens() -> u64 {
         },
         Err(_) => DEFAULT_MAX_BATCH_PROMPT_TOKENS,
     }
+}
+
+pub fn batch_flush_interval_secs() -> u64 {
+    env::var("GUARDIAN_BATCH_FLUSH_INTERVAL_SECS")
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(DEFAULT_BATCH_FLUSH_INTERVAL_SECS)
 }
 
 pub fn max_file_bytes() -> u64 {
