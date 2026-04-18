@@ -48,3 +48,5 @@ JSON MODE:
   "chat_message": "Urgent context for the user (only for Critical/Warning)" or null,
   "suggested_diff": "FULL file content only (no diff markers, no markdown)" or null
 }
+
+{{LANGUAGE_SPECIFIC_RULES}}
