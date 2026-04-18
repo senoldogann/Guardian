@@ -52,6 +52,11 @@ const CRITIQUE_SCHEMA_JSON: &str = r#"{
             "maxLength": 50000,
             "description": "Optional code diff suggestion"
         },
+        "finding_id": {
+            "type": ["string", "null"],
+            "maxLength": 256,
+            "description": "Stable fingerprint for deduplication"
+        },
         "why": {
             "type": ["string", "null"],
             "maxLength": 5000,
@@ -129,6 +134,11 @@ const BATCH_CRITIQUE_SCHEMA_JSON: &str = r#"{
                         "type": ["string", "null"],
                         "maxLength": 50000
                     },
+                    "finding_id": {
+                        "type": ["string", "null"],
+                        "maxLength": 256,
+                        "description": "Stable fingerprint for deduplication"
+                    },
                     "why": {
                         "type": ["string", "null"],
                         "maxLength": 5000
@@ -198,6 +208,11 @@ const BATCH_CRITIQUE_SCHEMA_JSON: &str = r#"{
                                 "type": ["string", "null"],
                                 "maxLength": 50000
                             },
+                            "finding_id": {
+                                "type": ["string", "null"],
+                                "maxLength": 256,
+                                "description": "Stable fingerprint for deduplication"
+                            },
                             "why": {
                                 "type": ["string", "null"],
                                 "maxLength": 5000
@@ -263,6 +278,11 @@ const BATCH_CRITIQUE_SCHEMA_JSON: &str = r#"{
                                 "type": ["string", "null"],
                                 "maxLength": 50000
                             },
+                            "finding_id": {
+                                "type": ["string", "null"],
+                                "maxLength": 256,
+                                "description": "Stable fingerprint for deduplication"
+                            },
                             "why": {
                                 "type": ["string", "null"],
                                 "maxLength": 5000
@@ -327,6 +347,11 @@ const BATCH_CRITIQUE_SCHEMA_JSON: &str = r#"{
                             "suggested_diff": {
                                 "type": ["string", "null"],
                                 "maxLength": 50000
+                            },
+                            "finding_id": {
+                                "type": ["string", "null"],
+                                "maxLength": 256,
+                                "description": "Stable fingerprint for deduplication"
                             },
                             "why": {
                                 "type": ["string", "null"],

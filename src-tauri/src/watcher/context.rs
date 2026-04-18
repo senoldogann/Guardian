@@ -421,16 +421,18 @@ pub fn extract_local_imports(content: &str, file_path: &str) -> Vec<String> {
                 }
             }
             "go" => {
-                if trimmed.starts_with("import ") || trimmed.starts_with('"') {
+                // Match `import "pkg"` or `"pkg"` inside an import block
+                if trimmed.starts_with("import \"") {
                     let path = trimmed
                         .trim_start_matches("import ")
                         .trim()
-                        .trim_matches('"')
-                        .trim_matches('(');
-                    if !path.is_empty()
-                        && !path.contains("github.com")
-                        && !path.contains('/')
-                    {
+                        .trim_matches('"');
+                    if !path.is_empty() && !path.contains("github.com") {
+                        imports.push(path.to_string());
+                    }
+                } else if trimmed.starts_with('"') && trimmed.ends_with('"') && trimmed.len() > 2 {
+                    let path = trimmed.trim_matches('"');
+                    if !path.is_empty() && !path.contains("github.com") {
                         imports.push(path.to_string());
                     }
                 }

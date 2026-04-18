@@ -118,8 +118,10 @@ export interface Critique {
   severity: "Info" | "Warning" | "Critical";
   message: string;
   suggestion?: string;
+  chat_message?: string;
   suggested_diff?: string;
   finding_id?: string;
+  why?: string;
   line_start?: number;
   line_end?: number;
   evidence_snippet?: string;
