@@ -3,7 +3,7 @@ import { renderHook, act, cleanup, waitFor } from "@testing-library/react";
 import { useThemeManager } from "../useThemeManager";
 
 vi.mock("../../lib/tauri", () => ({
-  invoke: vi.fn(),
+  invoke: vi.fn().mockResolvedValue(undefined),
   isTauriRuntime: vi.fn(() => false),
   listen: vi.fn(async () => () => {}),
   openDialog: vi.fn(),

@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../lib/tauri";
 import { useLocalStorage } from "./useLocalStorage";
 import { STORAGE_KEYS } from "../constants";
 import type { ThemeMode } from "./useTheme";
