@@ -26,6 +26,7 @@ mod undo;
 mod updates;
 mod user_preferences;
 mod validation;
+mod workspace_manager;
 
 use anyhow::{Context, Result as AnyhowResult};
 use guardian_scan_policy::{ReleaseDecision, ScanProfile};
@@ -411,6 +412,96 @@ async fn start_monitoring(
 async fn stop_monitoring(watcher: tauri::State<'_, WatcherSupervisor>) -> Result<(), String> {
     watcher.stop().await;
     Ok(())
+}
+
+// --- Multi-workspace commands ---
+
+#[tauri::command]
+async fn add_monitored_workspace(
+    app: AppHandle,
+    path: String,
+    auto_verify_enabled: Option<bool>,
+    language: Option<String>,
+    ws_manager: tauri::State<'_, workspace_manager::WorkspaceManager>,
+    auth_state: tauri::State<'_, AuthState>,
+) -> Result<String, String> {
+    let path_buf = std::path::Path::new(&path);
+    if !path_buf.exists() {
+        return Err("Workspace path does not exist.".to_string());
+    }
+    if !path_buf.is_dir() {
+        return Err("Workspace path is not a directory.".to_string());
+    }
+    if auth_state.get_user().await.is_none() {
+        let refreshed = refresh_auth_session(app.clone(), auth_state).await?;
+        if refreshed.is_none() {
+            return Err("GitHub login is required before starting monitoring.".to_string());
+        }
+    }
+
+    let provider = provider::resolve_provider_config(&app).map_err(|e| e.to_string())?;
+    let api_key =
+        config::api_key_for_provider_or_empty(&provider.provider_id).map_err(|e| e.to_string())?;
+    let scan_profile_cfg = load_scan_profile_config(&app)?;
+    let scan_profile = normalize_scan_profile(&scan_profile_cfg.profile)?;
+    let user_preferences =
+        user_preferences::load_user_preferences(&app).unwrap_or_else(|err| {
+            warn!(
+                target: "guardian::settings",
+                "Falling back to default user preferences for workspace add: {}",
+                err
+            );
+            user_preferences::UserPreferencesV1::default()
+        });
+    let effective_auto_verify =
+        auto_verify_enabled.unwrap_or(user_preferences.auto_verify_enabled);
+    let effective_language = language
+        .unwrap_or_else(|| user_preferences.language.clone())
+        .trim()
+        .to_lowercase();
+
+    let id = ws_manager
+        .add_workspace(
+            app,
+            watcher::WatcherRuntimeConfig {
+                target_path: path,
+                api_key,
+                model: provider.model,
+                host: provider.base_url,
+                provider_id: provider.provider_id,
+                auto_verify_enabled: effective_auto_verify,
+                scan_profile,
+                language: effective_language,
+                scan_tuning: user_preferences.scan_tuning,
+                model_custom_instructions: user_preferences.model_custom_instructions,
+            },
+        )
+        .await;
+
+    Ok(id)
+}
+
+#[tauri::command]
+async fn remove_monitored_workspace(
+    workspace_id: String,
+    ws_manager: tauri::State<'_, workspace_manager::WorkspaceManager>,
+) -> Result<bool, String> {
+    Ok(ws_manager.remove_workspace(&workspace_id).await)
+}
+
+#[tauri::command]
+async fn list_monitored_workspaces(
+    ws_manager: tauri::State<'_, workspace_manager::WorkspaceManager>,
+) -> Result<Vec<workspace_manager::WorkspaceInfo>, String> {
+    Ok(ws_manager.list_workspaces().await)
+}
+
+#[tauri::command]
+async fn get_workspace_status(
+    workspace_id: String,
+    ws_manager: tauri::State<'_, workspace_manager::WorkspaceManager>,
+) -> Result<Option<workspace_manager::WorkspaceInfo>, String> {
+    Ok(ws_manager.get_workspace_status(&workspace_id).await)
 }
 
 #[tauri::command]
@@ -1727,6 +1818,7 @@ pub fn run() -> AnyhowResult<()> {
         .manage(storage)
         .manage(bus) // Manage Bus so commands can use it
         .manage(WatcherSupervisor::new())
+        .manage(workspace_manager::WorkspaceManager::new())
         .manage(AuthState::new())
         .setup(move |app| {
             #[cfg(desktop)]
@@ -1770,6 +1862,10 @@ pub fn run() -> AnyhowResult<()> {
         .invoke_handler(tauri::generate_handler![
             start_monitoring,
             stop_monitoring,
+            add_monitored_workspace,
+            remove_monitored_workspace,
+            list_monitored_workspaces,
+            get_workspace_status,
             get_baseline,
             create_baseline,
             clear_baseline,
