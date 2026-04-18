@@ -67,20 +67,29 @@ fn looks_like_chat_or_tool_transcript(content: &str) -> bool {
     let window = &content[..content.len().min(4096)];
     let lower = window.to_lowercase();
 
-    // Common LLM/tool-call transcript markers. These must never be written into source files.
-    let markers = [
-        "```",
+    // Strong markers — any single one is enough to reject
+    let strong_markers = [
         "<invoke",
         "tool_call",
         "<minimax:",
         "minimax:tool_call",
+    ];
+
+    if strong_markers.iter().any(|m| lower.contains(m)) {
+        return true;
+    }
+
+    // Weak markers — need at least 2 to reject (individually they appear in legitimate code)
+    let weak_markers = [
+        "```",
         "<function",
         "</function",
         "<assistant",
         "</assistant",
     ];
 
-    markers.iter().any(|m| lower.contains(m))
+    let weak_count = weak_markers.iter().filter(|m| lower.contains(**m)).count();
+    weak_count >= 2
 }
 
 fn read_undo_index(root: &str) -> Result<HashMap<String, UndoIndexEntry>> {
