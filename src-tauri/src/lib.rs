@@ -963,7 +963,11 @@ async fn apply_fix(
     state_bus: tauri::State<'_, Arc<kernel::bus::EventBus>>,
     file_path: String,
     new_content: String,
+    auth_state: tauri::State<'_, AuthState>,
 ) -> Result<String, String> {
+    if auth_state.get_user().await.is_none() {
+        return Err("Authentication required to apply fixes.".to_string());
+    }
     info!(target: "guardian::autopilot", "Fix requested for: {}", file_path);
 
     // Publish RequestReview event to the Kernel
@@ -988,7 +992,11 @@ async fn apply_fix_now(
     file_path: String,
     new_content: String,
     root: String,
+    auth_state: tauri::State<'_, AuthState>,
 ) -> Result<ApplyFixNowResult, String> {
+    if auth_state.get_user().await.is_none() {
+        return Err("Authentication required to apply fixes.".to_string());
+    }
     info!(target: "guardian::autopilot", "Applying fix now: {}", file_path);
 
     undo::apply_fix_now(&root, &file_path, &new_content).map_err(|e| e.to_string())?;
@@ -1024,7 +1032,10 @@ async fn apply_fix_now(
 }
 
 #[tauri::command]
-async fn undo_fix(file_path: String, root: String) -> Result<String, String> {
+async fn undo_fix(file_path: String, root: String, auth_state: tauri::State<'_, AuthState>) -> Result<String, String> {
+    if auth_state.get_user().await.is_none() {
+        return Err("Authentication required to undo fixes.".to_string());
+    }
     info!(target: "guardian::autopilot", "Undoing fix for: {}", file_path);
     undo::undo_fix(&root, &file_path).map_err(|e| e.to_string())?;
 
@@ -1069,7 +1080,11 @@ async fn confirm_fix(
     file_path: String,
     new_content: String,
     root: String,
+    auth_state: tauri::State<'_, AuthState>,
 ) -> Result<String, String> {
+    if auth_state.get_user().await.is_none() {
+        return Err("Authentication required to apply fixes.".to_string());
+    }
     info!(target: "guardian::autopilot", "Fix confirmed, applying to: {}", file_path);
     let res = patcher::apply_patch(&file_path, &new_content, &root).map_err(|e| e.to_string())?;
 
