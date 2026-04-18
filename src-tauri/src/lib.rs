@@ -12,6 +12,7 @@ mod executor;
 mod history_logger;
 mod kernel;
 mod patcher;
+mod prompt_loader;
 mod provider;
 mod rag_lite;
 mod redaction;
