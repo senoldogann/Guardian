@@ -15,132 +15,116 @@
   :root {
     --app-font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
     --app-font-scale: 1;
-    --background: #0b0f14;
-    --surface: #141a21;
-    --border-main: #2a313a;
-    --text-main: #e6edf5;
-    --text-muted: #8e9caf;
-    --guide-bg-raw: #161d25;
-    --topbar-bg: color-mix(in oklab, var(--surface) 88%, #0b1016 12%);
-    --accent-500: #5f8fa5;
-    --accent-400: color-mix(in oklab, var(--accent-500) 42%, transparent);
-    --accent-200: color-mix(in oklab, var(--accent-500) 11%, transparent);
-    --stat-strong: #f2f7ff;
-    --focus-border: color-mix(in oklab, var(--accent-500) 34%, var(--border-main) 66%);
-    --edge-muted: #394553;
-    --guardian-core-bg: color-mix(in oklab, var(--surface) 72%, #101820 28%);
-    --guardian-ring: color-mix(in oklab, var(--accent-500) 34%, transparent);
-    --guardian-dot: #84a8b8;
-    --guardian-shadow: color-mix(in oklab, var(--accent-500) 20%, transparent);
-    --scrollbar-thumb: rgba(121, 141, 168, 0.44);
-    --scrollbar-thumb-hover: rgba(147, 168, 196, 0.6);
-    --backdrop: radial-gradient(
-        1100px 700px at -12% -16%,
-        rgba(95, 143, 165, 0.1),
-        transparent 58%
-      ),
-      radial-gradient(
-        900px 620px at 112% -12%,
-        rgba(122, 164, 210, 0.08),
-        transparent 64%
-      ),
-      radial-gradient(
-        860px 620px at 50% 118%,
-        rgba(31, 41, 53, 0.48),
-        transparent 72%
-      );
-    --code-block-bg: #0f151d;
-    --code-block-text: #dde8f5;
-    --code-inline-bg: rgba(105, 125, 151, 0.24);
-    --code-inline-text: #d4e0ee;
-    --code-keyword: #7fafc2;
-    --code-string: #8ee0be;
-    --code-number: #e2bf8d;
-    --code-comment: #7788a0;
-    --code-function: #78aedf;
-    --code-type: #8bc8f2;
-    --map-node-bg: #18202a;
-    --map-node-text: #e8eef6;
-    --map-node-muted: #90a2b8;
-    --panel-bg: color-mix(in oklab, var(--surface) 90%, #1f2833 10%);
-    --panel-muted: color-mix(in oklab, var(--surface) 94%, #1f2833 6%);
-    --panel-border-strong: color-mix(in oklab, var(--border-main) 86%, var(--text-main) 14%);
-    --hero-glow: color-mix(in oklab, var(--accent-500) 16%, transparent);
-    --tone-critical-bg: rgba(137, 74, 89, 0.14);
-    --tone-critical-border: rgba(143, 87, 101, 0.42);
-    --tone-critical-text: #c89ba7;
-    --tone-warning-bg: rgba(134, 113, 74, 0.14);
-    --tone-warning-border: rgba(143, 120, 79, 0.42);
-    --tone-warning-text: #c7b08a;
-    --tone-success-bg: rgba(75, 116, 104, 0.14);
-    --tone-success-border: rgba(86, 132, 119, 0.4);
-    --tone-success-text: #a6c7bd;
-    --tone-ai-bg: rgba(76, 105, 122, 0.16);
-    --tone-ai-border: rgba(94, 127, 146, 0.4);
-    --tone-ai-text: #9fc0d0;
-    --workspace-chrome: color-mix(in oklab, var(--surface) 72%, var(--background) 28%);
+
+    /* ── Dark Theme — "Guardian Nova" ─────────────────────── */
+    --background: #080c13;
+    --surface: #0f1520;
+    --border-main: #1e293b;
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --guide-bg-raw: #131b28;
+    --topbar-bg: color-mix(in oklab, #0f1520 92%, #080c13 8%);
+    --accent-500: #22d3ee;
+    --accent-400: color-mix(in oklab, var(--accent-500) 38%, transparent);
+    --accent-200: color-mix(in oklab, var(--accent-500) 12%, transparent);
+    --stat-strong: #f8fafc;
+    --focus-border: color-mix(in oklab, var(--accent-500) 40%, var(--border-main) 60%);
+    --edge-muted: #334155;
+    --guardian-core-bg: color-mix(in oklab, var(--surface) 68%, var(--accent-500) 32%);
+    --guardian-ring: color-mix(in oklab, var(--accent-500) 36%, transparent);
+    --guardian-dot: var(--accent-500);
+    --guardian-shadow: color-mix(in oklab, var(--accent-500) 24%, transparent);
+    --scrollbar-thumb: rgba(148, 163, 184, 0.3);
+    --scrollbar-thumb-hover: rgba(148, 163, 184, 0.5);
+    --backdrop:
+      radial-gradient(1100px 700px at -10% -14%, rgba(34, 211, 238, 0.07), transparent 56%),
+      radial-gradient(900px 620px at 110% -10%, rgba(56, 189, 248, 0.05), transparent 62%),
+      radial-gradient(860px 620px at 50% 116%, rgba(15, 23, 42, 0.6), transparent 72%);
+    --code-block-bg: #0c1220;
+    --code-block-text: #e2e8f0;
+    --code-inline-bg: rgba(34, 211, 238, 0.1);
+    --code-inline-text: #e2e8f0;
+    --code-keyword: #67e8f9;
+    --code-string: #6ee7b7;
+    --code-number: #fcd34d;
+    --code-comment: #64748b;
+    --code-function: #7dd3fc;
+    --code-type: #a5f3fc;
+    --map-node-bg: #131b28;
+    --map-node-text: #f1f5f9;
+    --map-node-muted: #94a3b8;
+    --panel-bg: color-mix(in oklab, var(--surface) 88%, #162033 12%);
+    --panel-muted: color-mix(in oklab, var(--surface) 94%, #162033 6%);
+    --panel-border-strong: color-mix(in oklab, var(--border-main) 82%, var(--text-main) 18%);
+    --hero-glow: color-mix(in oklab, var(--accent-500) 14%, transparent);
+    --tone-critical-bg: rgba(239, 68, 68, 0.1);
+    --tone-critical-border: rgba(239, 68, 68, 0.28);
+    --tone-critical-text: #fca5a5;
+    --tone-warning-bg: rgba(245, 158, 11, 0.1);
+    --tone-warning-border: rgba(245, 158, 11, 0.28);
+    --tone-warning-text: #fcd34d;
+    --tone-success-bg: rgba(16, 185, 129, 0.1);
+    --tone-success-border: rgba(16, 185, 129, 0.28);
+    --tone-success-text: #6ee7b7;
+    --tone-ai-bg: rgba(34, 211, 238, 0.08);
+    --tone-ai-border: rgba(34, 211, 238, 0.24);
+    --tone-ai-text: #67e8f9;
+    --workspace-chrome: color-mix(in oklab, var(--surface) 68%, var(--background) 32%);
   }
 
   :root[data-theme="light"] {
-    --background: #f5f5f5;
+    --background: #f8fafc;
     --surface: #ffffff;
-    --border-main: #d7dbe0;
-    --text-main: #192332;
-    --text-muted: #68707a;
-    --guide-bg-raw: #fafafa;
-    --topbar-bg: #fafafa;
-    --accent-500: #5f879a;
-    --accent-400: color-mix(in oklab, var(--accent-500) 34%, transparent);
-    --accent-200: color-mix(in oklab, var(--accent-500) 10%, transparent);
-    --stat-strong: #112033;
-    --focus-border: color-mix(in oklab, var(--accent-500) 30%, var(--border-main) 70%);
-    --edge-muted: #d2d6dc;
-    --guardian-core-bg: color-mix(in oklab, var(--background) 82%, var(--accent-500) 18%);
-    --guardian-ring: color-mix(in oklab, var(--accent-500) 26%, transparent);
-    --guardian-dot: #5f879a;
-    --guardian-shadow: color-mix(in oklab, var(--accent-500) 20%, transparent);
-    --scrollbar-thumb: rgba(70, 94, 124, 0.26);
-    --scrollbar-thumb-hover: rgba(70, 94, 124, 0.4);
-    --backdrop: radial-gradient(
-        980px 640px at -12% -12%,
-        rgba(95, 135, 154, 0.11),
-        transparent 58%
-      ),
-      radial-gradient(
-        820px 560px at 108% -10%,
-        rgba(113, 141, 178, 0.12),
-        transparent 62%
-      );
-    --code-block-bg: #eaf1f8;
-    --code-block-text: #14253a;
-    --code-inline-bg: #e7eff7;
-    --code-inline-text: #16283d;
-    --code-keyword: #3f6f86;
-    --code-string: #237252;
-    --code-number: #9a642f;
-    --code-comment: #71839b;
-    --code-function: #1c5f9f;
-    --code-type: #1a7392;
-    --map-node-bg: #24303e;
-    --map-node-text: #ffffff;
-    --map-node-muted: #d7e0ea;
-    --panel-bg: color-mix(in oklab, var(--surface) 92%, #e7edf4 8%);
-    --panel-muted: color-mix(in oklab, var(--surface) 96%, #e7edf4 4%);
-    --panel-border-strong: color-mix(in oklab, var(--border-main) 88%, var(--text-main) 12%);
-    --hero-glow: color-mix(in oklab, var(--accent-500) 12%, transparent);
-    --tone-critical-bg: #f5eaee;
-    --tone-critical-border: #e1cad1;
-    --tone-critical-text: #986273;
-    --tone-warning-bg: #f4f0e7;
-    --tone-warning-border: #dfd3bf;
-    --tone-warning-text: #8f7549;
-    --tone-success-bg: #e9f1ed;
-    --tone-success-border: #c6d8d0;
-    --tone-success-text: #5f8378;
-    --tone-ai-bg: #eaf1f5;
-    --tone-ai-border: #c7d6df;
-    --tone-ai-text: #577a8b;
-    --workspace-chrome: color-mix(in oklab, var(--surface) 76%, var(--background) 24%);
+    --border-main: #e2e8f0;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --guide-bg-raw: #f1f5f9;
+    --topbar-bg: rgba(255, 255, 255, 0.82);
+    --accent-500: #0891b2;
+    --accent-400: color-mix(in oklab, var(--accent-500) 28%, transparent);
+    --accent-200: color-mix(in oklab, var(--accent-500) 8%, transparent);
+    --stat-strong: #0f172a;
+    --focus-border: color-mix(in oklab, var(--accent-500) 36%, var(--border-main) 64%);
+    --edge-muted: #cbd5e1;
+    --guardian-core-bg: color-mix(in oklab, var(--surface) 82%, var(--accent-500) 18%);
+    --guardian-ring: color-mix(in oklab, var(--accent-500) 28%, transparent);
+    --guardian-dot: var(--accent-500);
+    --guardian-shadow: color-mix(in oklab, var(--accent-500) 18%, transparent);
+    --scrollbar-thumb: rgba(100, 116, 139, 0.25);
+    --scrollbar-thumb-hover: rgba(100, 116, 139, 0.42);
+    --backdrop:
+      radial-gradient(960px 640px at -8% -10%, rgba(8, 145, 178, 0.06), transparent 56%),
+      radial-gradient(820px 560px at 106% -8%, rgba(14, 165, 233, 0.05), transparent 60%);
+    --code-block-bg: #f1f5f9;
+    --code-block-text: #1e293b;
+    --code-inline-bg: rgba(8, 145, 178, 0.08);
+    --code-inline-text: #0f172a;
+    --code-keyword: #0e7490;
+    --code-string: #047857;
+    --code-number: #b45309;
+    --code-comment: #94a3b8;
+    --code-function: #0284c7;
+    --code-type: #0891b2;
+    --map-node-bg: #1e293b;
+    --map-node-text: #f8fafc;
+    --map-node-muted: #cbd5e1;
+    --panel-bg: color-mix(in oklab, var(--surface) 94%, #f1f5f9 6%);
+    --panel-muted: color-mix(in oklab, var(--surface) 97%, #f1f5f9 3%);
+    --panel-border-strong: color-mix(in oklab, var(--border-main) 86%, var(--text-main) 14%);
+    --hero-glow: color-mix(in oklab, var(--accent-500) 8%, transparent);
+    --tone-critical-bg: rgba(239, 68, 68, 0.06);
+    --tone-critical-border: rgba(239, 68, 68, 0.2);
+    --tone-critical-text: #dc2626;
+    --tone-warning-bg: rgba(245, 158, 11, 0.06);
+    --tone-warning-border: rgba(245, 158, 11, 0.2);
+    --tone-warning-text: #d97706;
+    --tone-success-bg: rgba(16, 185, 129, 0.06);
+    --tone-success-border: rgba(16, 185, 129, 0.2);
+    --tone-success-text: #059669;
+    --tone-ai-bg: rgba(8, 145, 178, 0.06);
+    --tone-ai-border: rgba(8, 145, 178, 0.2);
+    --tone-ai-text: #0891b2;
+    --workspace-chrome: color-mix(in oklab, var(--surface) 72%, var(--background) 28%);
   }
 
   html {
@@ -468,16 +452,16 @@ button:disabled,
 }
 
 .guardian-topbar {
-  min-height: 60px;
-  background: color-mix(in oklab, var(--topbar-bg) 92%, var(--surface) 8%);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid color-mix(in oklab, var(--border-main) 70%, transparent);
+  min-height: 56px;
+  background: var(--topbar-bg);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid color-mix(in oklab, var(--border-main) 60%, transparent);
   display: flex;
   align-items: center;
   padding: 0 20px;
   box-shadow:
-    inset 0 1px 0 color-mix(in oklab, var(--text-main) 5%, transparent),
-    0 10px 30px -26px color-mix(in oklab, var(--background) 74%, transparent);
+    0 1px 0 color-mix(in oklab, var(--text-main) 3%, transparent),
+    0 4px 24px -12px color-mix(in oklab, var(--background) 60%, transparent);
 }
 
 .guardian-topbar-text {
@@ -499,9 +483,9 @@ button:disabled,
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(560px 360px at 10% 2%, var(--hero-glow), transparent 74%),
-    radial-gradient(620px 420px at 94% 94%, color-mix(in oklab, var(--accent-500) 12%, transparent), transparent 78%),
-    linear-gradient(180deg, color-mix(in oklab, var(--background) 76%, transparent), transparent 45%);
+    radial-gradient(560px 360px at 8% 2%, color-mix(in oklab, var(--accent-500) 10%, transparent), transparent 72%),
+    radial-gradient(620px 420px at 92% 92%, color-mix(in oklab, var(--accent-500) 6%, transparent), transparent 76%),
+    linear-gradient(180deg, color-mix(in oklab, var(--background) 80%, transparent), transparent 40%);
   z-index: -2;
 }
 
@@ -523,17 +507,17 @@ button:disabled,
 }
 
 .guardian-elevated-card {
-  border: 1px solid color-mix(in oklab, var(--panel-border-strong) 76%, transparent);
-  background: color-mix(in oklab, var(--panel-bg) 94%, var(--surface) 6%);
-  backdrop-filter: blur(16px);
+  border: 1px solid color-mix(in oklab, var(--panel-border-strong) 60%, transparent);
+  background: color-mix(in oklab, var(--panel-bg) 96%, var(--surface) 4%);
+  backdrop-filter: blur(20px) saturate(1.2);
   box-shadow:
-    inset 0 1px 0 color-mix(in oklab, var(--text-main) 5%, transparent),
-    0 18px 40px -30px color-mix(in oklab, var(--background) 76%, transparent);
+    0 1px 0 color-mix(in oklab, var(--text-main) 3%, transparent) inset,
+    0 12px 32px -16px color-mix(in oklab, var(--background) 64%, transparent);
 }
 
 .guardian-subtle-card {
-  border: 1px solid color-mix(in oklab, var(--border-main) 72%, transparent);
-  background: color-mix(in oklab, var(--panel-muted) 90%, transparent);
+  border: 1px solid color-mix(in oklab, var(--border-main) 54%, transparent);
+  background: color-mix(in oklab, var(--panel-muted) 80%, transparent);
 }
 
 .guardian-focus-ring:focus-visible {
@@ -575,24 +559,24 @@ button:disabled,
 }
 
 .guardian-chat-bubble {
-  background: color-mix(in oklab, var(--panel-bg) 90%, transparent);
-  border: 1px solid var(--panel-border-strong);
+  background: color-mix(in oklab, var(--panel-bg) 92%, transparent);
+  border: 1px solid color-mix(in oklab, var(--border-main) 60%, transparent);
   color: var(--text-main);
 }
 
 .guardian-chat-bubble-user {
   background: linear-gradient(
     140deg,
-    color-mix(in oklab, var(--accent-200) 64%, var(--surface) 36%),
-    color-mix(in oklab, var(--panel-bg) 84%, var(--surface) 16%)
+    color-mix(in oklab, var(--accent-500) 12%, var(--surface)),
+    color-mix(in oklab, var(--panel-bg) 88%, var(--surface) 12%)
   );
-  border: 1px solid color-mix(in oklab, var(--accent-500) 22%, var(--border-main) 78%);
+  border: 1px solid color-mix(in oklab, var(--accent-500) 18%, var(--border-main) 82%);
 }
 
 .guardian-chat-action-card {
-  background: color-mix(in oklab, var(--panel-bg) 88%, transparent);
-  border: 1px solid var(--panel-border-strong);
-  box-shadow: 0 16px 34px -26px color-mix(in oklab, var(--background) 72%, transparent);
+  background: color-mix(in oklab, var(--panel-bg) 90%, transparent);
+  border: 1px solid color-mix(in oklab, var(--border-main) 60%, transparent);
+  box-shadow: 0 8px 24px -12px color-mix(in oklab, var(--background) 60%, transparent);
 }
 
 @keyframes guru-placeholder {

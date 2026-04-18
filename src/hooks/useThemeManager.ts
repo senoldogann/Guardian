@@ -96,14 +96,14 @@ export function useThemeManager(
       const palette =
         mode === "light"
           ? {
-              accent: normalizeHexColor(prefs.light_palette?.accent, "#5f879a"),
-              panel: normalizeHexColor(prefs.light_palette?.panel, "#f7f9fc"),
-              text: normalizeHexColor(prefs.light_palette?.text, "#1f2b38"),
+              accent: normalizeHexColor(prefs.light_palette?.accent, "#0891b2"),
+              panel: normalizeHexColor(prefs.light_palette?.panel, "#ffffff"),
+              text: normalizeHexColor(prefs.light_palette?.text, "#0f172a"),
             }
           : {
-              accent: normalizeHexColor(prefs.dark_palette?.accent, "#5f8fa5"),
-              panel: normalizeHexColor(prefs.dark_palette?.panel, "#141a21"),
-              text: normalizeHexColor(prefs.dark_palette?.text, "#e6edf5"),
+              accent: normalizeHexColor(prefs.dark_palette?.accent, "#22d3ee"),
+              panel: normalizeHexColor(prefs.dark_palette?.panel, "#0f1520"),
+              text: normalizeHexColor(prefs.dark_palette?.text, "#f1f5f9"),
             };
       const panelIsNearWhite = mode === "light" && isNearWhiteHex(palette.panel);
 

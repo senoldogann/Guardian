@@ -150,8 +150,8 @@ describe("useSettings", () => {
       schema_version: 1,
       theme_mode: "dark",
       language: "en",
-      light_palette: { accent: "#5f879a", panel: "#f7f9fc", text: "#1f2b38" },
-      dark_palette: { accent: "#5f8fa5", panel: "#141a21", text: "#e6edf5" },
+      light_palette: { accent: "#0891b2", panel: "#ffffff", text: "#0f172a" },
+      dark_palette: { accent: "#22d3ee", panel: "#0f1520", text: "#f1f5f9" },
       font_size_scale: 100,
       font_family: "inter",
       model_custom_instructions: null,
@@ -204,8 +204,8 @@ describe("useSettings", () => {
 
     await waitFor(() => {
       expect(result.current.userPreferences?.light_palette.accent).toBe("#123456");
-      expect(result.current.userPreferences?.light_palette.panel).toBe("#f7f9fc");
-      expect(result.current.userPreferences?.light_palette.text).toBe("#1f2b38");
+      expect(result.current.userPreferences?.light_palette.panel).toBe("#ffffff");
+      expect(result.current.userPreferences?.light_palette.text).toBe("#0f172a");
     });
   }, 15000);
 

@@ -43,15 +43,15 @@ type UserPreferencesLike = {
 } | null;
 
 const DEFAULT_LIGHT_PALETTE: ThemePalette = {
-  accent: "#5f879a",
-  panel: "#f7f9fc",
-  text: "#1f2b38",
+  accent: "#0891b2",
+  panel: "#ffffff",
+  text: "#0f172a",
 };
 
 const DEFAULT_DARK_PALETTE: ThemePalette = {
-  accent: "#5f8fa5",
-  panel: "#141a21",
-  text: "#e6edf5",
+  accent: "#22d3ee",
+  panel: "#0f1520",
+  text: "#f1f5f9",
 };
 
 export interface UseThemeReturn {

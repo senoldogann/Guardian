@@ -6,7 +6,7 @@ import {
   Cpu,
   LogOut,
   Settings,
-  ShieldAlert,
+  ShieldCheck,
 } from "lucide-react";
 import { useI18n } from "../i18n";
 
@@ -44,20 +44,22 @@ function StatPill({
   label: string;
   tone: "critical" | "warning" | "ai";
 }): ReactElement {
-  const toneClass =
-    tone === "critical"
-      ? "text-[color:var(--tone-critical-text)]"
-      : tone === "warning"
-        ? "text-[color:var(--tone-warning-text)]"
-        : "text-[color:var(--tone-ai-text)]";
+  const toneStyles = {
+    critical: "bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] border-[color:var(--tone-critical-border)]",
+    warning: "bg-[color:var(--tone-warning-bg)] text-[color:var(--tone-warning-text)] border-[color:var(--tone-warning-border)]",
+    ai: "bg-[color:var(--tone-ai-bg)] text-[color:var(--tone-ai-text)] border-[color:var(--tone-ai-border)]",
+  };
 
   return (
-    <div className={clsx("min-w-[104px] flex items-center gap-2.5 transition-colors", toneClass)}>
-      <div className="shrink-0 opacity-90">{icon}</div>
-      <div className="leading-none min-w-0">
-        <div className="text-sm font-black tabular-nums">{value}</div>
-        <div className="text-[9px] uppercase tracking-[0.18em] opacity-85">{label}</div>
-      </div>
+    <div
+      className={clsx(
+        "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all",
+        toneStyles[tone],
+      )}
+    >
+      <div className="shrink-0">{icon}</div>
+      <span className="text-sm font-bold tabular-nums">{value}</span>
+      <span className="text-[10px] uppercase tracking-wider opacity-70">{label}</span>
     </div>
   );
 }
@@ -75,38 +77,40 @@ export function Header({
   const { t } = useI18n();
   return (
     <header className="guardian-topbar z-20 justify-between gap-4">
-      <div className="rounded-xl px-3 py-2 flex min-w-0 items-center gap-3 bg-[var(--panel-muted)]">
-        <div className="guardian-elevated-card h-10 w-10 rounded-xl flex items-center justify-center">
-          <ShieldAlert className="h-5 w-5 text-[var(--accent-500)]" />
+      {/* Brand */}
+      <div className="flex items-center gap-3">
+        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[var(--accent-500)] to-[color-mix(in_oklab,var(--accent-500)_70%,#6366f1_30%)] flex items-center justify-center shadow-lg shadow-[var(--accent-500)]/10">
+          <ShieldCheck className="h-5 w-5 text-white" />
         </div>
         <div className="min-w-0">
-          <div className="text-[11px] font-black uppercase tracking-[0.2em] text-text-main">
+          <div className="text-sm font-bold text-text-main tracking-tight">
             Guardian
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-text-muted">
-            <Activity
+          <div className="flex items-center gap-1.5 text-[10px] text-text-muted">
+            <span
               className={clsx(
-                "h-3 w-3",
-                active ? "text-[color:var(--tone-success-text)]" : "text-text-muted",
+                "inline-block h-1.5 w-1.5 rounded-full",
+                active
+                  ? "bg-[color:var(--tone-success-text)] shadow-[0_0_6px_var(--tone-success-text)]"
+                  : "bg-text-muted opacity-50",
               )}
             />
-            <span>
-              {active ? t("header.monitoringOn") : t("header.monitoringOff")}
-            </span>
+            <span>{active ? t("header.monitoringOn") : t("header.monitoringOff")}</span>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2.5">
-        <div className="hidden xl:flex items-center gap-4 pr-1">
+      {/* Stats + Controls */}
+      <div className="flex items-center gap-2">
+        <div className="hidden xl:flex items-center gap-2">
           <StatPill
-            icon={<ShieldAlert className="h-3.5 w-3.5" />}
+            icon={<AlertCircle className="h-3.5 w-3.5" />}
             value={stats.critical}
             label={t("header.stats.critical")}
             tone="critical"
           />
           <StatPill
-            icon={<AlertCircle className="h-3.5 w-3.5" />}
+            icon={<Activity className="h-3.5 w-3.5" />}
             value={stats.warning}
             label={t("header.stats.warning")}
             tone="warning"
@@ -118,50 +122,46 @@ export function Header({
             tone="ai"
           />
         </div>
-        <button
-          onClick={onSettingsClick}
-          className="guardian-elevated-card guardian-focus-ring rounded-xl p-2 text-text-muted hover:text-text-main transition-colors cursor-pointer"
-          title={t("header.settingsTitle")}
-          aria-label={t("header.settingsTitle")}
-        >
-          <Settings className="h-4 w-4" />
-        </button>
 
-        {authSession && (
-          <div className="flex items-center gap-2 rounded-xl px-2.5 py-1.5 bg-[var(--panel-muted)]">
-            {authSession.avatar_url ? (
-              <img
-                src={authSession.avatar_url}
-                alt={authSession.login}
-                className="h-7 w-7 rounded-full border border-border-main"
-              />
-            ) : (
-              <div className="h-7 w-7 rounded-full border border-border-main bg-[var(--panel-muted)]" />
-            )}
-            <div className="hidden md:block leading-tight">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-text-muted">
-                {t("header.session")}
-              </div>
-              <div className="max-w-[140px] truncate text-xs font-bold text-text-main">
-                @{authSession.login}
-              </div>
-            </div>
-            <button
-              onClick={onLogout}
-              disabled={authLoading || !isDesktop}
-              className={clsx(
-                "guardian-focus-ring rounded-lg border px-2 py-1 text-[9px]",
-                "font-bold uppercase tracking-[0.18em] transition-colors",
-                "border-border-main bg-[var(--panel-muted)] text-text-main hover:bg-[var(--panel-bg)]",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
+        <div className="flex items-center gap-1.5 ml-1">
+          <button
+            onClick={onSettingsClick}
+            className="guardian-focus-ring rounded-lg p-2 text-text-muted hover:text-text-main hover:bg-[var(--panel-muted)] transition-all cursor-pointer"
+            title={t("header.settingsTitle")}
+            aria-label={t("header.settingsTitle")}
+          >
+            <Settings className="h-4 w-4" />
+          </button>
+
+          {authSession && (
+            <div className="flex items-center gap-2 rounded-lg px-2 py-1.5 bg-[var(--panel-muted)] border border-[color:var(--border-main)]/40">
+              {authSession.avatar_url ? (
+                <img
+                  src={authSession.avatar_url}
+                  alt={authSession.login}
+                  className="h-6 w-6 rounded-full ring-1 ring-border-main"
+                />
+              ) : (
+                <div className="h-6 w-6 rounded-full ring-1 ring-border-main bg-[var(--accent-200)]" />
               )}
-              aria-label={t("header.logout")}
-            >
-              <span className="hidden sm:inline">{t("header.logout")}</span>
-              <LogOut className="h-3.5 w-3.5 sm:hidden" />
-            </button>
-          </div>
-        )}
+              <span className="hidden md:block max-w-[120px] truncate text-xs font-medium text-text-main">
+                @{authSession.login}
+              </span>
+              <button
+                onClick={onLogout}
+                disabled={authLoading || !isDesktop}
+                className={clsx(
+                  "guardian-focus-ring rounded-md p-1.5 text-text-muted hover:text-text-main transition-colors",
+                  "disabled:opacity-40 disabled:cursor-not-allowed",
+                )}
+                aria-label={t("header.logout")}
+                title={t("header.logout")}
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

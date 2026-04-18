@@ -477,17 +477,17 @@ export function ControlSidebar({
         </div>
       </div>
 
-      <section className={clsx("shrink-0 border-t border-border-main bg-surface/70 py-3 space-y-2", collapsed ? "px-2" : "px-4")}>
+      <section className={clsx("shrink-0 border-t border-border-main/50 py-3 space-y-2", collapsed ? "px-2" : "px-4")}>
         {collapsed ? (
           <div className="flex items-center justify-center">
             <button
               onClick={canToggleMonitoring ? () => void onToggleMonitoring() : undefined}
               disabled={!canToggleMonitoring}
               className={clsx(
-                "h-12 w-12 rounded-2xl font-bold flex items-center justify-center transition-all duration-300 transform active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed border",
+                "h-11 w-11 rounded-xl font-bold flex items-center justify-center transition-all duration-300 transform active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed",
                 active
-                  ? "bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] border-[color:var(--tone-critical-border)] hover:opacity-90"
-                  : "bg-[var(--accent-500)] text-background border-border-main hover:opacity-90",
+                  ? "bg-[#ef4444]/15 text-[#ef4444] ring-1 ring-[#ef4444]/30 hover:bg-[#ef4444]/20"
+                  : "bg-gradient-to-br from-[var(--accent-500)] to-[color-mix(in_oklab,var(--accent-500)_70%,#6366f1_30%)] text-white shadow-lg shadow-[var(--accent-500)]/20 hover:shadow-[var(--accent-500)]/30",
               )}
               title={
                 active
@@ -509,10 +509,10 @@ export function ControlSidebar({
               onClick={canToggleMonitoring ? () => void onToggleMonitoring() : undefined}
               disabled={!canToggleMonitoring}
               className={clsx(
-                "w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
+                "w-full py-3 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-[0.98] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed",
                 active
-                  ? "bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] border border-[color:var(--tone-critical-border)] hover:opacity-90"
-                  : "bg-[var(--accent-500)] text-background hover:opacity-90",
+                  ? "bg-[#ef4444]/12 text-[#ef4444] ring-1 ring-[#ef4444]/25 hover:bg-[#ef4444]/18"
+                  : "bg-gradient-to-r from-[var(--accent-500)] to-[color-mix(in_oklab,var(--accent-500)_70%,#6366f1_30%)] text-white shadow-lg shadow-[var(--accent-500)]/20 hover:shadow-[var(--accent-500)]/30",
               )}
               title={active ? t("sidebar.killGuardian") : t("sidebar.launchGuardian")}
               aria-label={active ? t("sidebar.killGuardian") : t("sidebar.launchGuardian")}
@@ -556,15 +556,15 @@ function DockNavButton({
       aria-label={label}
       title={label}
       className={clsx(
-        "relative h-11 w-11 rounded-2xl flex items-center justify-center transition-all border cursor-pointer",
+        "relative h-11 w-11 rounded-xl flex items-center justify-center transition-all cursor-pointer",
         active
-          ? "bg-[var(--accent-500)] shadow text-[var(--text-main)] border-[var(--accent-400)]"
-          : "bg-[var(--panel-muted)] text-text-muted border-border-main hover:bg-[var(--panel-bg)] hover:text-text-main",
+          ? "bg-[var(--accent-500)]/15 text-[var(--accent-500)] ring-1 ring-[var(--accent-500)]/30 shadow-sm shadow-[var(--accent-500)]/10"
+          : "text-text-muted hover:bg-[var(--panel-muted)] hover:text-text-main",
       )}
     >
       {icon}
       {badge && badge > 0 && (
-        <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1.5 rounded-full bg-[color:var(--tone-critical-text)] text-background text-[10px] font-black flex items-center justify-center leading-none tabular-nums shadow">
+        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#ef4444] text-white text-[10px] font-bold flex items-center justify-center leading-none tabular-nums shadow-lg">
           {Math.min(99, badge)}
         </span>
       )}
@@ -616,10 +616,10 @@ function NavRow({
       aria-label={label}
       title={label}
       className={clsx(
-        "w-full py-2 px-3 text-xs font-bold uppercase tracking-widest rounded-xl transition-all flex items-center justify-between gap-3 cursor-pointer",
+        "w-full py-2.5 px-3 text-xs font-semibold tracking-wide rounded-lg transition-all flex items-center justify-between gap-3 cursor-pointer",
         active
-          ? "bg-[var(--accent-500)] shadow text-[var(--text-main)] border border-[var(--accent-400)]"
-          : "opacity-70 hover:opacity-100",
+          ? "bg-[var(--accent-500)]/12 text-[var(--accent-500)] ring-1 ring-[var(--accent-500)]/20"
+          : "text-text-muted hover:text-text-main hover:bg-[var(--panel-muted)]",
       )}
     >
       <span className="flex items-center gap-3">
