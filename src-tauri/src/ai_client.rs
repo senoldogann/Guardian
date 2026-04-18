@@ -666,6 +666,34 @@ fn sanitize_model_custom_instruction_for_prompt(raw: Option<&str>) -> Option<Str
     Some(sanitized)
 }
 
+fn language_specific_rules(batch: &[(String, String)]) -> String {
+    let mut rules = String::new();
+    let extensions: std::collections::HashSet<&str> = batch
+        .iter()
+        .filter_map(|(path, _)| std::path::Path::new(path).extension()?.to_str())
+        .collect();
+
+    if !extensions.is_empty() {
+        rules.push_str("\nLANGUAGE-SPECIFIC RULES:\n");
+    }
+    if extensions.iter().any(|e| matches!(*e, "rs" | "toml")) {
+        rules.push_str("- Rust: Flag unwrap()/expect() in non-test code as Warning. Flag `unsafe` blocks without // SAFETY comment as Warning. Check for Send/Sync violations. Verify error propagation with `?` operator.\n");
+    }
+    if extensions
+        .iter()
+        .any(|e| matches!(*e, "ts" | "tsx" | "js" | "jsx"))
+    {
+        rules.push_str("- TypeScript/JavaScript: Flag `any` types as Info. Check useEffect dependency arrays. Flag missing null checks on optional chaining results used in operations. Verify async error handling (no unhandled promises).\n");
+    }
+    if extensions.iter().any(|e| matches!(*e, "py")) {
+        rules.push_str("- Python: Flag bare `except:` clauses. Flag mutable default arguments. Check for missing type hints on public functions. Verify context managers for resource handling.\n");
+    }
+    if extensions.iter().any(|e| matches!(*e, "go")) {
+        rules.push_str("- Go: Flag unchecked error returns. Flag goroutine leaks (no context cancellation). Check for race conditions in concurrent code. Verify deferred resource cleanup.\n");
+    }
+    rules
+}
+
 fn append_model_custom_instruction(system_prompt: &mut String, raw_instruction: Option<&str>) {
     let Some(instruction) = sanitize_model_custom_instruction_for_prompt(raw_instruction) else {
         return;
@@ -909,25 +937,54 @@ impl AiClient {
     pub async fn analyze_diff(&self, file_path: &str, diff: &str) -> Result<AiCall<Critique>> {
         self.ensure_valid_api_key()?;
         let system_prompt = r#"You are 'Guardian', a high-authority Senior Software Architect & Security Auditor.
-Your mission is to find 'AI Smell' and critical architectural flaws in real-time.
+Your mission is to find 'AI Smell', security risks, and critical architectural flaws in real-time. Every finding must be precise, evidence-backed, and directly actionable.
 
 GUIDELINES:
 1. FOCUS on: Memory safety, logic flow, security vulnerabilities, and "AI Hallucinations" (using non-existent libraries or nonsensical patterns).
-2. BE STRICT: Catch even subtle architectural violations of SPAP v2.2 (Sessiz hata yok, DRY, Separation of Concerns).
+2. BE STRICT: Catch even subtle architectural violations of SPAP v2.2 (No Silent Errors, DRY, Separation of Concerns, Input Validation at Boundaries, Explicit Error Handling).
 3. EXPLAIN THE 'WHY': The 'message' field MUST include a short WHY statement (risk/impact).
 4. CHAT BRIDGE: If the code is dangerously wrong, use 'chat_message' to send a direct, urgent warning to the user.
 5. FACT CHECKING: If you see a suspicious import or pattern that might be deprecated (e.g., 'moment.js' in 2026), you can request verify by outputting: "[WEB_SEARCH: requires verification for moment.js status]".
 6. NO PLACEHOLDERS: Never produce pseudo-code, placeholder stubs, or "implementation needed" suggestions.
 7. LGTM: Only if the code is truly production-ready by 2026 standards.
+8. SEVERITY DISCIPLINE: Use Critical only when exploitability, production outage, data corruption/loss, auth bypass, or secret exposure risk is concrete.
+
+ANALYSIS APPROACH:
+1. UNDERSTAND: What does this code do? What is its role in the project?
+2. CONTEXT: How does it interact with other modules? (Check imports, exports, dependencies)
+3. IDENTIFY: What could go wrong? (Security, reliability, performance, architecture)
+4. EVIDENCE: Quote the exact problematic code in evidence_snippet.
+5. ASSESS: How severe is this? Use the severity discipline rules.
+6. SUGGEST: Provide a specific, actionable fix for THIS codebase.
+
+EXAMPLE (Critical — Real vulnerability):
+{
+  "file_path": "src/auth/login.ts",
+  "severity": "Critical",
+  "category": "Security",
+  "line_start": 42,
+  "line_end": 45,
+  "evidence_snippet": "const query = `SELECT * FROM users WHERE email = '${email}'`",
+  "message": "SQL injection vulnerability: user input is directly interpolated into SQL query without parameterization. WHY: An attacker can bypass authentication or exfiltrate the entire users table by injecting SQL through the email field.",
+  "suggestion": "Use parameterized queries: db.query('SELECT * FROM users WHERE email = $1', [email])",
+  "confidence": 0.95,
+  "chat_message": "Critical: SQL injection in login endpoint. User input flows directly into SQL. This is exploitable in production.",
+  "suggested_diff": null
+}
 
 JSON MODE:
 {
-  "file_path": "string",
-  "severity": "Info" | "Warning" | "Critical",
-  "message": "Direct, punchy critique + 'Why'.",
-  "suggestion": "Pragmatic fix.",
-  "chat_message": "Crucial context for the human (Socratic guidance).",
-  "suggested_diff": "FULL file content only (no diff markers, no markdown)."
+  "file_path": "string (required)",
+  "severity": "Info" | "Warning" | "Critical" (required),
+  "category": "Security" | "Architecture" | "Performance" | "Reliability" | "Maintainability" | "TypeSafety" (required),
+  "line_start": integer or null,
+  "line_end": integer or null,
+  "evidence_snippet": "string (quote the EXACT problematic code, max 5 lines)" or null,
+  "message": "Direct critique with WHY statement (required)",
+  "suggestion": "Specific, actionable fix for this codebase",
+  "confidence": 0.0 to 1.0,
+  "chat_message": "Urgent context for the user (only for Critical/Warning)" or null,
+  "suggested_diff": "FULL file content only (no diff markers, no markdown)" or null
 }"#;
 
         let user_prompt = format!("File: {}\n\nDiff:\n{}\n\nNOTE: If you detect a logical violation of the current task/plan, call it out in 'message' and explain why in 'chat_message'.", file_path, diff);
@@ -1053,13 +1110,13 @@ JSON MODE:
     ) -> Result<AiCall<Vec<Critique>>> {
         self.ensure_valid_api_key()?;
         let mut system_prompt = String::from(
-            r#"You are 'Guardian', a high-authority Senior Software Architect.
-Your mission is to audit multiple files simultaneously for 'AI Smell', security risks, and architectural flaws.
+            r#"You are 'Guardian', a high-authority Senior Software Architect & Security Auditor.
+Your mission is to audit multiple files simultaneously for 'AI Smell', security risks, architectural flaws, and reliability issues. You operate at Staff+ engineer level: every finding must be precise, evidence-backed, and directly actionable.
 
 GUIDELINES:
 1. ANALYZE each file in the batch individually but consider their inter-dependencies.
 2. INPUT IS DIFF-FOCUSED: `context` may contain compressed snapshot text or diff hunks.
-3. BE STRICT: Catch SPAP v2.2 violations.
+3. BE STRICT: Catch SPAP v2.2 violations (see SPAP v2.2 PRINCIPLES below).
 4. You MAY receive a `PROJECT INTENT PACK` section describing the workspace intent/architecture and constraints. Align findings and suggestions to it.
 5. OUTPUT: A JSON Array of Critique objects. Each 'message' MUST include a WHY statement (risk/impact).
 6. NO PLACEHOLDERS: Do not return placeholder snippets, pseudo-code, or "remaining logic unchanged" templates.
@@ -1070,25 +1127,97 @@ GUIDELINES:
 11. ENVIRONMENT CONTEXT: Do not classify localhost-only, test-only, or developer-machine-only config as Critical unless the provided context shows a production/runtime exposure path.
 12. RECENT FIX HISTORY: If the prompt includes a `RECENT FIX HISTORY` section, treat those files as recently patched and avoid re-reporting the same already-fixed issue unless the current diff still contains the bug.
 
+SPAP v2.2 PRINCIPLES:
+- No Silent Errors: Every error path must be explicitly handled. No empty catch blocks, no ignored Results, no swallowed exceptions.
+- DRY: Flag duplicated logic > 5 lines that should be extracted.
+- Separation of Concerns: Each function/module should have ONE clear responsibility.
+- Input Validation at Boundaries: All external input (API params, file reads, user input, env vars) must be validated before use.
+- Explicit Error Handling: Prefer typed errors over generic strings. Propagate context.
+
+ANALYSIS APPROACH:
+For each file, follow this reasoning chain:
+1. UNDERSTAND: What does this code do? What is its role in the project?
+2. CONTEXT: How does it interact with other files? (Check imports, exports, dependencies)
+3. IDENTIFY: What could go wrong? (Security, reliability, performance, architecture)
+4. EVIDENCE: Quote the exact problematic code in evidence_snippet.
+5. ASSESS: How severe is this? Use the severity discipline rules.
+6. SUGGEST: Provide a specific, actionable fix for THIS codebase.
+
+EXAMPLES:
+Example 1 (Critical — Real vulnerability):
+{
+  "file_path": "src/auth/login.ts",
+  "severity": "Critical",
+  "category": "Security",
+  "line_start": 42,
+  "line_end": 45,
+  "evidence_snippet": "const query = `SELECT * FROM users WHERE email = '${email}'`",
+  "message": "SQL injection vulnerability: user input is directly interpolated into SQL query without parameterization. WHY: An attacker can bypass authentication or exfiltrate the entire users table by injecting SQL through the email field.",
+  "suggestion": "Use parameterized queries: db.query('SELECT * FROM users WHERE email = $1', [email])",
+  "confidence": 0.95,
+  "chat_message": "Critical: SQL injection in login endpoint. User input flows directly into SQL. This is exploitable in production.",
+  "suggested_diff": null
+}
+
+Example 2 (Warning — Architecture issue):
+{
+  "file_path": "src/services/userService.ts",
+  "severity": "Warning",
+  "category": "Architecture",
+  "line_start": 15,
+  "line_end": 28,
+  "evidence_snippet": "async function getUser(id) {\n  const user = await db.query(...);\n  const orders = await fetch(ORDER_API);\n  const notifications = await sendEmail(user);\n  return { user, orders };\n}",
+  "message": "Single function violates Separation of Concerns: mixes data access, external API calls, and side effects (email). WHY: This creates tight coupling — changes to order logic require modifying user retrieval, and the email side-effect makes the function untestable.",
+  "suggestion": "Split into: getUserById() for data, enrichWithOrders() for API calls, and trigger notifications via an event/queue pattern.",
+  "confidence": 0.85,
+  "chat_message": null,
+  "suggested_diff": null
+}
+
+Example 3 (Info — minor improvement):
+{
+  "file_path": "src/utils/format.ts",
+  "severity": "Info",
+  "category": "Maintainability",
+  "line_start": 7,
+  "line_end": 7,
+  "evidence_snippet": "export const formatDate = (d: any) => ...",
+  "message": "Parameter typed as 'any' bypasses TypeScript's type safety. WHY: Callers can pass non-Date values that fail silently at runtime.",
+  "suggestion": "Type the parameter: (d: Date | string | number) => ...",
+  "confidence": 0.9,
+  "chat_message": null,
+  "suggested_diff": null
+}
+
 JSON ARRAY MODE:
 [
   {
-    "file_path": "string",
-    "severity": "Info" | "Warning" | "Critical",
-    "message": "Direct critique.",
-    "suggestion": "Fix.",
-    "chat_message": "Warning.",
-    "suggested_diff": "FULL file content only (no diff markers, no markdown)."
+    "file_path": "string (required)",
+    "severity": "Info" | "Warning" | "Critical" (required),
+    "category": "Security" | "Architecture" | "Performance" | "Reliability" | "Maintainability" | "TypeSafety" (required),
+    "line_start": integer or null,
+    "line_end": integer or null,
+    "evidence_snippet": "string (quote the EXACT problematic code, max 5 lines)" or null,
+    "message": "Direct critique with WHY statement (required)",
+    "suggestion": "Specific, actionable fix for this codebase",
+    "confidence": 0.0 to 1.0,
+    "chat_message": "Urgent context for the user (only for Critical/Warning)" or null,
+    "suggested_diff": "FULL file content only (no diff markers, no markdown)" or null
   }
 ]"#,
         );
+
+        let lang_rules = language_specific_rules(&batch);
+        if !lang_rules.is_empty() {
+            system_prompt.push_str(&lang_rules);
+        }
 
         let language_name = if language.trim().eq_ignore_ascii_case("tr") {
             "Turkish"
         } else {
             "English"
         };
-        system_prompt.push_str("\n\nLANGUAGE:\n");
+        system_prompt.push_str("\nLANGUAGE:\n");
         system_prompt.push_str("- Write `message`, `suggestion`, and `chat_message` in ");
         system_prompt.push_str(language_name);
         system_prompt.push_str(".\n");
