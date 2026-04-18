@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import type { BaselineStatusView } from "../../types";
 import { useI18n } from "../../i18n";
+import { Badge } from "../ui/Badge";
+import { Button } from "../ui/Button";
 
 const SIDEBAR_COLLAPSED_KEY = "guardian_sidebar_collapsed";
 const SIDEBAR_DETAILS_OPEN_KEY = "guardian_sidebar_details_open_v4";
@@ -199,7 +201,7 @@ export function ControlSidebar({
         )}
       >
         {!collapsed && (
-          <div className="text-[10px] font-bold uppercase tracking-widest text-text-muted select-none">
+          <div className="text-xs font-medium text-text-muted select-none">
             {t("sidebar.controlHub")}
           </div>
         )}
@@ -285,7 +287,7 @@ export function ControlSidebar({
                   icon={<MessageSquare className="w-4 h-4" />}
                   right={
                     guruUnreadCount > 0 ? (
-                      <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] border-[color:var(--tone-critical-border)] tabular-nums">
+                      <span className="px-2 py-0.5 rounded-md text-[11px] font-medium border bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] border-[color:var(--tone-critical-border)] tabular-nums">
                         {Math.min(99, guruUnreadCount)}
                       </span>
                     ) : undefined
@@ -305,7 +307,7 @@ export function ControlSidebar({
                   right={
                     <span
                       className={clsx(
-                        "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border",
+                        "px-2 py-0.5 rounded-md text-[11px] font-medium border",
                         hasAiContextData
                           ? "bg-[color:var(--tone-success-bg)] text-[color:var(--tone-success-text)] border-[color:var(--tone-success-border)]"
                           : "bg-[var(--panel-muted)] text-text-muted border-border-main",
@@ -322,13 +324,13 @@ export function ControlSidebar({
                   icon={<ClipboardCheck className="w-4 h-4" />}
                   right={
                     pendingFixProposalsCount > 0 ? (
-                      <span className="px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-[color:var(--tone-warning-bg)] text-[color:var(--tone-warning-text)] border-[color:var(--tone-warning-border)] tabular-nums">
+                      <span className="px-2 py-0.5 rounded-md text-[11px] font-medium border bg-[color:var(--tone-warning-bg)] text-[color:var(--tone-warning-text)] border-[color:var(--tone-warning-border)] tabular-nums">
                         {pendingFixProposalsCount}
                       </span>
                     ) : (
                       <span
                         className={clsx(
-                          "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border",
+                          "px-2 py-0.5 rounded-md text-[11px] font-medium border",
                           hasReviewData
                             ? "bg-[var(--panel-bg)] text-text-main border-border-main"
                             : "bg-[var(--panel-muted)] text-text-muted border-border-main",
@@ -358,7 +360,7 @@ export function ControlSidebar({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest px-1">
+                  <label className="text-xs font-bold text-text-muted  px-1">
                     {t("sidebar.scope")}
                   </label>
                   <div className="group relative">
@@ -378,11 +380,11 @@ export function ControlSidebar({
                   className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-border-main bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] transition-colors"
                   aria-label={detailsOpen ? t("sidebar.hideDetails") : t("sidebar.showDetails")}
                 >
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">
+                  <span className="text-xs font-medium text-text-muted">
                     {t("sidebar.details")}
                   </span>
                   <span className="flex items-center gap-2 min-w-0">
-                    <span className="text-[10px] font-mono text-text-muted truncate">{detailsSummary}</span>
+                    <span className="text-xs font-mono text-text-muted truncate">{detailsSummary}</span>
                     <ChevronDown className={clsx("w-4 h-4 opacity-70 transition-transform", detailsOpen && "rotate-180")} />
                   </span>
                 </button>
@@ -429,7 +431,7 @@ export function ControlSidebar({
                         <div className="h-px bg-border-main" />
                         <div className="p-3 space-y-2">
                           {authBannerVisible && (authShowGate || authRequiresVerified) && !active && (
-                            <div className="rounded-xl border border-[color:var(--tone-warning-border)] bg-[color:var(--tone-warning-bg)] text-[color:var(--tone-warning-text)] px-3 py-2 text-[10px] space-y-2">
+                            <div className="rounded-xl border border-[color:var(--tone-warning-border)] bg-[color:var(--tone-warning-bg)] text-[color:var(--tone-warning-text)] px-3 py-2 text-xs space-y-2">
                               <div>
                                 {authShowGate
                                   ? t("sidebar.authLoginRequired")
@@ -440,27 +442,27 @@ export function ControlSidebar({
                                   <button
                                     onClick={() => void onVerifyAuth()}
                                     disabled={authLoading}
-                                    className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-2 py-1 text-[11px] font-medium bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     {t("sidebar.verifyNow")}
                                   </button>
                                 )}
-                                {authError && <span className="text-[10px] text-[color:var(--tone-critical-text)]">{authError}</span>}
+                                {authError && <span className="text-xs text-[color:var(--tone-critical-text)]">{authError}</span>}
                                 {!authError && authWarning && (
-                                  <span className="text-[10px] text-[color:var(--tone-warning-text)]">{authWarning}</span>
+                                  <span className="text-xs text-[color:var(--tone-warning-text)]">{authWarning}</span>
                                 )}
                               </div>
                             </div>
                           )}
 
                           {settingsRequiresApiKey && !active && (
-                            <div className="rounded-xl border border-[color:var(--tone-critical-border)] bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] px-3 py-2 text-[10px] space-y-2">
+                            <div className="rounded-xl border border-[color:var(--tone-critical-border)] bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] px-3 py-2 text-xs space-y-2">
                               <div>
                                 {t("sidebar.setupRequired", { provider: providerLabel })}
                               </div>
                               <button
                                 onClick={onOpenSettings}
-                                className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[color:var(--tone-critical-text)] text-background rounded-md hover:opacity-90 transition-colors"
+                                className="px-2 py-1 text-[11px] font-medium bg-[color:var(--tone-critical-text)] text-background rounded-md hover:opacity-90 transition-colors"
                               >
                                 {t("sidebar.openSettings")}
                               </button>
@@ -528,7 +530,7 @@ export function ControlSidebar({
               )}
             </button>
             {!active && !canToggleMonitoring && launchBlockingReason && (
-              <p className="text-[10px] text-[color:var(--tone-warning-text)] px-1">{launchBlockingReason}</p>
+              <p className="text-xs text-[color:var(--tone-warning-text)] px-1">{launchBlockingReason}</p>
             )}
           </>
         )}
@@ -564,7 +566,7 @@ function DockNavButton({
     >
       {icon}
       {badge && badge > 0 && (
-        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#ef4444] text-white text-[10px] font-bold flex items-center justify-center leading-none tabular-nums shadow-lg">
+        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#ef4444] text-white text-xs font-bold flex items-center justify-center leading-none tabular-nums shadow-lg">
           {Math.min(99, badge)}
         </span>
       )}
@@ -585,15 +587,17 @@ function DockActionButton({
   onClick: () => void;
 }): ReactElement {
   return (
-    <button
+    <Button
       onClick={onClick}
       aria-label={label}
       title={title}
-      className="h-11 w-11 rounded-2xl flex items-center justify-center transition-colors border border-border-main bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] cursor-pointer"
+      variant="secondary"
+      size="icon"
+      className="rounded-2xl"
     >
       {icon}
       <span className="sr-only">{label}</span>
-    </button>
+    </Button>
   );
 }
 
@@ -651,22 +655,22 @@ function CostMetricSection({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+        <span className="text-xs font-medium opacity-60">
           {t("sidebar.cost.title")}
         </span>
-        <span className="text-[10px] font-mono opacity-40">{t("sidebar.cost.est")}</span>
+        <span className="text-xs font-mono opacity-40">{t("sidebar.cost.est")}</span>
       </div>
       <div className="flex items-baseline gap-2">
         <span className="text-lg font-black text-[var(--accent-500)] tabular-nums">{costUnits}</span>
-        <span className="text-[10px] uppercase tracking-widest text-text-muted">
+        <span className="text-xs text-text-muted">
           {t("sidebar.cost.units")}
         </span>
       </div>
-      <div className="text-[10px] font-mono text-text-muted">
+      <div className="text-xs font-mono text-text-muted">
         {t("sidebar.cost.tokens")}: {tokens} • {t("sidebar.cost.apiCalls")}: {calls} • {t("sidebar.cost.files")}:{" "}
         {filesAnalyzed}
       </div>
-      <div className="text-[10px] font-mono text-text-muted">
+      <div className="text-xs font-mono text-text-muted">
         {t("sidebar.cost.queueWait")}: {queueLabel} • {t("sidebar.cost.scope")}: {scanProfileLabel}
       </div>
     </div>
@@ -700,20 +704,12 @@ function BaselineSection({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+        <span className="text-xs font-medium opacity-60">
           {t("sidebar.baseline.title")}
         </span>
-        <span
-          className={clsx(
-            "text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-md border",
-            baselineLoading
-              ? "bg-[var(--panel-muted)] text-text-muted border-border-main"
-              : baselineStatus?.valid
-                ? "bg-[color:var(--tone-success-bg)] text-[color:var(--tone-success-text)] border-[color:var(--tone-success-border)]"
-                : baselineStatus
-                  ? "bg-[color:var(--tone-warning-bg)] text-[color:var(--tone-warning-text)] border-[color:var(--tone-warning-border)]"
-                  : "bg-[var(--panel-muted)] text-text-muted border-border-main",
-          )}
+        <Badge
+          variant={baselineLoading ? "neutral" : baselineStatus?.valid ? "success" : baselineStatus ? "warning" : "neutral"}
+          size="sm"
         >
           {baselineLoading
             ? t("sidebar.baseline.statusLoading")
@@ -722,11 +718,11 @@ function BaselineSection({
               : baselineStatus
                 ? t("sidebar.baseline.statusInvalid")
                 : t("sidebar.baseline.statusNone")}
-        </span>
+        </Badge>
       </div>
 
       {baselineStatus ? (
-        <div className="text-[10px] font-mono text-text-muted space-y-1">
+        <div className="text-xs font-mono text-text-muted space-y-1">
           <div>
             {t("sidebar.baseline.age")}: {baselineStatus.baseline_age_days}d
           </div>
@@ -737,33 +733,36 @@ function BaselineSection({
           </div>
         </div>
       ) : (
-        <div className="text-[10px] text-text-muted">{t("sidebar.baseline.noneSet")}</div>
+        <div className="text-xs text-text-muted">{t("sidebar.baseline.noneSet")}</div>
       )}
 
       {baselineStatus && !baselineValid && (
-        <div className="text-[10px] text-[color:var(--tone-warning-text)]">
+        <div className="text-xs text-[color:var(--tone-warning-text)]">
           {t("sidebar.baseline.invalidNote")}
         </div>
       )}
 
-      {baselineError && <div className="text-[10px] text-[color:var(--tone-critical-text)]">{baselineError}</div>}
+      {baselineError && <div className="text-xs text-[color:var(--tone-critical-text)]">{baselineError}</div>}
 
       <div className="flex gap-2">
-        <button
+        <Button
           onClick={() => void onSetBaselineNow()}
           disabled={!path || baselineLoading}
-          className="flex-1 px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          variant="primary"
+          size="sm"
+          fullWidth
         >
           {t("sidebar.baseline.setNow")}
-        </button>
+        </Button>
         {baselineStatus && (
-          <button
+          <Button
             onClick={() => void onClearBaselineNow()}
             disabled={!path || baselineLoading}
-            className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-main rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            variant="secondary"
+            size="sm"
           >
             {t("sidebar.baseline.reset")}
-          </button>
+          </Button>
         )}
       </div>
 
@@ -772,7 +771,7 @@ function BaselineSection({
           <button
             onClick={() => onBaselineViewChange("all")}
             className={clsx(
-              "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
+              "px-2 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer",
               baselineView === "all"
                 ? "bg-[var(--panel-bg)] text-text-main border-border-main"
                 : "bg-transparent text-text-muted border-border-main hover:bg-[var(--panel-muted)]",
@@ -783,7 +782,7 @@ function BaselineSection({
           <button
             onClick={() => onBaselineViewChange("new")}
             className={clsx(
-              "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
+              "px-2 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer",
               baselineView === "new"
                 ? "bg-[color:var(--tone-success-bg)] text-[color:var(--tone-success-text)] border-[color:var(--tone-success-border)]"
                 : "bg-transparent text-text-muted border-border-main hover:bg-[var(--panel-muted)]",
@@ -794,7 +793,7 @@ function BaselineSection({
           <button
             onClick={() => onBaselineViewChange("resolved")}
             className={clsx(
-              "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
+              "px-2 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer",
               baselineView === "resolved"
                 ? "bg-[var(--panel-bg)] text-text-main border-border-main"
                 : "bg-transparent text-text-muted border-border-main hover:bg-[var(--panel-muted)]",
@@ -824,25 +823,26 @@ function EngineSection({
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <Box className="w-3.5 h-3.5 opacity-60" />
-        <span className="text-[10px] font-bold opacity-60 uppercase tracking-widest">
+        <span className="text-xs font-bold opacity-60 ">
           {t("sidebar.engine.title")}
         </span>
       </div>
-      <p className="text-[10px] text-text-muted leading-relaxed font-mono">
+      <p className="text-xs text-text-muted leading-relaxed font-mono">
         {t("sidebar.engine.model")}: {engineModel}
       </p>
       <div className="flex items-center justify-between rounded-lg border border-border-main bg-[var(--panel-muted)] px-2.5 py-2">
-        <span className="text-[10px] text-text-muted flex items-center gap-1.5">
+        <span className="text-xs text-text-muted flex items-center gap-1.5">
           <DatabaseZap className="w-3.5 h-3.5" />
           {t("sidebar.engine.embedding")}:{" "}
           <span className="text-[var(--text-main)]">{embeddingModeLabel}</span>
         </span>
-        <button
+        <Button
           onClick={onOpenEmbeddingSettings}
-          className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] rounded-md transition-colors cursor-pointer"
+          variant="secondary"
+          size="sm"
         >
           {t("sidebar.engine.setup")}
-        </button>
+        </Button>
       </div>
       <div className="h-1 w-full bg-border-main rounded-full overflow-hidden">
         <div
@@ -872,7 +872,7 @@ function StatMini({
       <div className="group-hover:scale-110 transition-transform">{icon}</div>
       <div className="flex flex-col -space-y-1">
         <span className={clsx("text-sm font-black tabular-nums", color)}>{count}</span>
-        <span className="text-[8px] font-bold uppercase tracking-widest opacity-30 group-hover:opacity-60 transition-opacity">
+        <span className="text-[10px] font-bold  opacity-30 group-hover:opacity-60 transition-opacity">
           {label}
         </span>
       </div>

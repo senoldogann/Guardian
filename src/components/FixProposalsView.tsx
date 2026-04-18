@@ -6,6 +6,8 @@ import type { FixProposal, FixProposalsSnapshot } from "../types";
 import { basenameOf, copyToClipboard, formatTimestamp } from "../lib/uiFormat";
 import { useToast } from "../hooks/useToast";
 import { useI18n } from "../i18n";
+import { Badge } from "./ui/Badge";
+import { Button } from "./ui/Button";
 
 export interface FixProposalsViewProps {
   snapshot: FixProposalsSnapshot | null;
@@ -17,13 +19,13 @@ export interface FixProposalsViewProps {
 
 type ProposalFilter = "pending" | "review_requested" | "done" | "all";
 
-const statusBadgeClass = (status: string): string => {
+const statusBadgeVariant = (status: string): "warning" | "neutral" | "success" | "danger" => {
   const s = (status || "pending").toLowerCase();
-  if (s === "pending") return "bg-[color:var(--tone-warning-bg)] text-[color:var(--tone-warning-text)] border-[color:var(--tone-warning-border)]";
-  if (s === "review_requested") return "bg-[var(--panel-muted)] text-text-muted border-border-main";
-  if (s === "applied") return "bg-[color:var(--tone-success-bg)] text-[color:var(--tone-success-text)] border-[color:var(--tone-success-border)]";
-  if (s === "rejected") return "bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] border-[color:var(--tone-critical-border)]";
-  return "bg-[var(--panel-muted)] text-text-muted border-border-main";
+  if (s === "pending") return "warning";
+  if (s === "review_requested") return "neutral";
+  if (s === "applied") return "success";
+  if (s === "rejected") return "danger";
+  return "neutral";
 };
 
 export function FixProposalsView({
@@ -38,7 +40,7 @@ export function FixProposalsView({
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ProposalFilter>("pending");
 
-  const proposals = snapshot?.proposals ?? [];
+  const proposals = useMemo(() => snapshot?.proposals ?? [], [snapshot]);
   const pending = proposals.filter((p) => {
     const status = (p.status || "").toLowerCase();
     return status !== "rejected" && status !== "applied";
@@ -61,10 +63,10 @@ export function FixProposalsView({
         </div>
         <div className="text-center space-y-1">
           <h3 className="font-bold text-sm text-text-main">{t("fixProposals.emptyTitle")}</h3>
-          <p className="text-[10px] leading-relaxed max-w-md">
+          <p className="text-xs leading-relaxed max-w-md">
             {t("fixProposals.emptyNote")}
           </p>
-          <p className="text-[10px] leading-relaxed max-w-md">
+          <p className="text-xs leading-relaxed max-w-md">
             {t("fixProposals.emptyAdvanced")}
           </p>
         </div>
@@ -150,11 +152,11 @@ export function FixProposalsView({
     <div className="h-full flex flex-col overflow-hidden">
       <div className="shrink-0 flex items-start justify-between gap-4 px-6 py-4 border-b border-border-main bg-surface/20">
         <div className="space-y-1 min-w-0">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-text-muted">
+          <h2 className="text-xs font-medium text-text-muted">
             {t("fixProposals.title")}
           </h2>
           {snapshot && (
-            <div className="text-[10px] font-mono text-text-muted space-y-0.5">
+            <div className="text-xs font-mono text-text-muted space-y-0.5">
               <div className="truncate">
                 {t("fixProposals.source")}:{" "}
                 <span className="text-[var(--text-main)]">{snapshot.source_path}</span>
@@ -171,7 +173,7 @@ export function FixProposalsView({
               </div>
             </div>
           )}
-          {error && <div className="text-[10px] text-[color:var(--tone-critical-text)] font-mono">{error}</div>}
+          {error && <div className="text-xs text-[color:var(--tone-critical-text)] font-mono">{error}</div>}
         </div>
 
         {/* Refresh is intentionally not shown here; use the global refresh controls instead. */}
@@ -203,19 +205,16 @@ export function FixProposalsView({
                   ).map(({ key, label }) => {
                     const active = filter === key;
                     return (
-                      <button
+                      <Button
                         key={key}
                         type="button"
                         onClick={() => setFilter(key)}
-                        className={clsx(
-                          "px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-colors",
-                          active
-                            ? "bg-surface/40 text-text-main border-border-main"
-                            : "bg-[var(--panel-muted)] text-text-muted border-border-main hover:bg-[var(--panel-bg)]"
-                        )}
+                        variant={active ? "accent" : "secondary"}
+                        size="sm"
+                        className={active ? "bg-surface/40 text-text-main border-border-main" : undefined}
                       >
                         {label}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
@@ -223,7 +222,7 @@ export function FixProposalsView({
 
               <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-2 space-y-2">
                 {filteredProposals.length === 0 ? (
-                  <div className="px-3 py-3 text-[10px] font-mono text-text-muted italic">
+                  <div className="px-3 py-3 text-xs font-mono text-text-muted italic">
                     {t("fixProposals.noMatch")}
                   </div>
                 ) : (
@@ -250,25 +249,20 @@ export function FixProposalsView({
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="text-xs font-bold truncate">{title}</div>
-                            <div className="text-[10px] font-mono text-text-muted truncate">
+                            <div className="text-xs font-mono text-text-muted truncate">
                               {filePath}
                             </div>
                             {excerpt && (
-                              <div className="mt-1 text-[10px] text-text-muted line-clamp-2">
+                              <div className="mt-1 text-xs text-text-muted line-clamp-2">
                                 {excerpt}
                               </div>
                             )}
                           </div>
                           <div className="shrink-0 flex flex-col items-end gap-1">
-                            <span
-                              className={clsx(
-                                "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border",
-                                statusBadgeClass(status)
-                              )}
-                            >
+                            <Badge variant={statusBadgeVariant(status)} size="md">
                               {status}
-                            </span>
-                            <div className="text-[10px] font-mono text-text-muted tabular-nums">
+                            </Badge>
+                            <div className="text-xs font-mono text-text-muted tabular-nums">
                               {formatTimestamp(p.timestamp) || ""}
                             </div>
                           </div>
@@ -286,8 +280,8 @@ export function FixProposalsView({
                   <div className="w-16 h-16 rounded-2xl border border-border-main bg-[var(--panel-muted)] flex items-center justify-center">
                     <FileText className="w-7 h-7 text-text-muted/80" />
                   </div>
-                  <div className="text-xs uppercase tracking-widest">{t("fixProposals.selectTitle")}</div>
-                  <div className="text-[10px] text-text-muted max-w-md text-center">
+                  <div className="text-xs">{t("fixProposals.selectTitle")}</div>
+                  <div className="text-xs text-text-muted max-w-md text-center">
                     {t("fixProposals.selectNote")}
                   </div>
                 </div>
@@ -299,105 +293,97 @@ export function FixProposalsView({
                         <div className="text-xs font-bold truncate" title={selectedProposal.file_path || ""}>
                           {selectedProposal.file_path || t("fixProposals.unknownFile")}
                         </div>
-                        <div className="text-[10px] font-mono text-text-muted">
+                        <div className="text-xs font-mono text-text-muted">
                           {formatTimestamp(selectedProposal.timestamp)} • id: {selectedProposal.proposal_id}
                         </div>
                       </div>
                       <div className="shrink-0 flex items-center gap-2">
-                        <button
+                        <Button
                           type="button"
                           onClick={onCopyProposedContent}
                           disabled={!selectedHasContent}
-                          className={clsx(
-                            "guardian-focus-ring px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer",
-                            "bg-[var(--panel-muted)] text-text-muted border-border-main hover:bg-[var(--panel-bg)]",
-                            !selectedHasContent && "opacity-50 cursor-not-allowed"
-                          )}
+                          variant="secondary"
+                          size="md"
                           title={t("fixProposals.copyProposedContentTitle")}
+                          leadingIcon={<Copy className="w-3 h-3" />}
                         >
-                          <Copy className="w-3 h-3" />
                           {t("fixProposals.copyProposedContent")}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
                           onClick={onCopyProposalJson}
-                          className="guardian-focus-ring px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer bg-[var(--panel-muted)] text-text-muted border-border-main hover:bg-[var(--panel-bg)]"
+                          variant="secondary"
+                          size="md"
                           title={t("fixProposals.copyProposalJsonTitle")}
+                          leadingIcon={<Copy className="w-3 h-3" />}
                         >
-                          <Copy className="w-3 h-3" />
                           {t("fixProposals.copyProposalJson")}
-                        </button>
+                        </Button>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span
-                        className={clsx(
-                          "px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border",
-                          statusBadgeClass(selectedStatus)
-                        )}
-                      >
+                      <Badge variant={statusBadgeVariant(selectedStatus)} size="md">
                         {selectedStatus}
-                      </span>
+                      </Badge>
                       {selectedProposal.finding_id && (
-                        <span className="px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-[var(--panel-muted)] text-text-muted border-border-main">
+                        <Badge variant="neutral" size="md">
                           finding_id: {selectedProposal.finding_id}
-                        </span>
+                        </Badge>
                       )}
                     </div>
 
                     {selectedProposal.suggestion && (
-                      <div className="text-[10px] text-text-muted font-mono whitespace-pre-wrap">
+                      <div className="text-xs text-text-muted font-mono whitespace-pre-wrap">
                         {selectedProposal.suggestion}
                       </div>
                     )}
 
                     {!selectedHasContent && (
-                      <div className="rounded-lg border border-[color:var(--tone-critical-border)] bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] px-3 py-2 text-[10px] font-mono">
+                      <div className="rounded-lg border border-[color:var(--tone-critical-border)] bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] px-3 py-2 text-xs font-mono">
                         {t("fixProposals.missingProposedContent")}
                       </div>
                     )}
 
                     {selectedHasContent && (
-                      <pre className="whitespace-pre-wrap break-words text-[10px] leading-relaxed font-mono text-[var(--text-main)] bg-[var(--panel-muted)] border border-border-main rounded-lg p-3 overflow-x-auto custom-scrollbar max-h-[420px]">
+                      <pre className="whitespace-pre-wrap break-words text-xs leading-relaxed font-mono text-[var(--text-main)] bg-[var(--panel-muted)] border border-border-main rounded-lg p-3 overflow-x-auto custom-scrollbar max-h-[420px]">
                         {selectedProposal.proposed_content}
                       </pre>
                     )}
 
                     <div className="flex flex-wrap gap-2">
                       {onRequestReview && !selectedIsDone && (
-                        <button
+                        <Button
                           onClick={() => selectedProposal && onRequestReview(selectedProposal)}
                           disabled={!selectedHasContent}
-                          className={clsx(
-                            "guardian-focus-ring px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors cursor-pointer",
-                            "bg-[var(--accent-200)] text-[var(--accent-500)] border-[var(--accent-400)] hover:opacity-90",
-                            !selectedHasContent && "opacity-50 cursor-not-allowed"
-                          )}
+                          variant="accent"
+                          size="md"
                           title={t("fixProposals.requestReviewTitle")}
                         >
                           {t("fixProposals.requestReview")}
-                        </button>
+                        </Button>
                       )}
 
                       {onSetStatus && selectedStatus !== "rejected" && (
-                        <button
+                        <Button
                           onClick={() => selectedProposal && onSetStatus(selectedProposal.proposal_id, "rejected")}
-                          className="guardian-focus-ring px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors cursor-pointer bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] border-[color:var(--tone-critical-border)] hover:opacity-90"
+                          variant="danger"
+                          size="md"
                           title={t("fixProposals.rejectTitle")}
                         >
                           {t("fixProposals.reject")}
-                        </button>
+                        </Button>
                       )}
 
                       {onSetStatus && selectedStatus !== "applied" && (
-                        <button
+                        <Button
                           onClick={() => selectedProposal && onSetStatus(selectedProposal.proposal_id, "applied")}
-                          className="guardian-focus-ring px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors cursor-pointer bg-[color:var(--tone-success-bg)] text-[color:var(--tone-success-text)] border-[color:var(--tone-success-border)] hover:opacity-90"
+                          variant="success"
+                          size="md"
                           title={t("fixProposals.markAppliedTitle")}
                         >
                           {t("fixProposals.markApplied")}
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>

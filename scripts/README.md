@@ -9,7 +9,7 @@ Utility and automation scripts for the Guardian project.
 - **Testing** — Test runners, coverage, benchmarks
 - **Dev** — Local development, project setup, debugging
 - **CI** — Continuous integration helpers
-- **Maestro / Agent Infra** — Provider management, skill registry, agent sync
+- **Maintainer / Agent Tooling** — Provider management, skill registry, agent sync
 - **Pilot / Rollout** — Feature rollout, readiness checks, weekly ops
 - **Governance** — Policy enforcement, auditing, telemetry
 
@@ -66,7 +66,10 @@ Utility and automation scripts for the Guardian project.
 | `ci/release_gate_ci_smoke.sh` | Smoke test gate before CI releases | `bash scripts/ci/release_gate_ci_smoke.sh` |
 | `ci/render_guardian_pr_comment.mjs` | Render a Guardian report as a PR comment | `node scripts/ci/render_guardian_pr_comment.mjs <report.json>` |
 
-## Maestro / Agent Infrastructure
+## Maintainer / Agent Tooling
+
+These scripts are maintainer-oriented utilities. Some depend on optional local
+agent-workspace content such as `.maestro/` and are not required for normal desktop or website development.
 
 | Script | Description | Usage |
 |--------|-------------|-------|

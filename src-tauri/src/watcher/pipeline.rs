@@ -333,7 +333,7 @@ pub(super) async fn batch_processing_loop(
     let mut last_request = Instant::now() - Duration::from_secs(10);
 
     loop {
-        if shutdown.load(std::sync::atomic::Ordering::Relaxed) {
+        if shutdown.load(std::sync::atomic::Ordering::Acquire) {
             break;
         }
         tokio::select! {

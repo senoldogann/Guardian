@@ -1,4 +1,4 @@
-# Local Release Runbook (No GitHub Actions)
+# Local Release Runbook
 
 Bu dokuman, Guardian release surecini sadece local makineden yurutmek icin adim adim referanstir.
 
@@ -19,14 +19,14 @@ Release scripti artik version dosyalarini otomatik senkronlar:
 Manuel bump gerekirse:
 
 ```bash
-cd /Users/dogan/Desktop/new-idee/guardian
+cd Guardian
 scripts/bump_version.sh patch   # veya minor/major/X.Y.Z
 ```
 
 Ardindan temel dogrulama:
 
 ```bash
-cd /Users/dogan/Desktop/new-idee/guardian
+cd Guardian
 npm run verify
 ```
 
@@ -58,7 +58,7 @@ Not:
 ## 3) macOS Build (ARM + Intel)
 
 ```bash
-cd /Users/dogan/Desktop/new-idee/guardian
+cd Guardian
 
 # Apple Silicon
 npm run tauri build -- --target aarch64-apple-darwin
@@ -100,7 +100,7 @@ gh auth status
 Release olustur + asset upload:
 
 ```bash
-cd /Users/dogan/Desktop/new-idee/guardian
+cd Guardian
 scripts/release_local.sh vX.Y.Z ./artifacts senoldogann/guardian-distribution
 ```
 
@@ -140,7 +140,7 @@ Kontrol et:
 Su an tek komuta en yakin yol:
 
 ```bash
-cd /Users/dogan/Desktop/new-idee/guardian
+cd Guardian
 scripts/release_all_local.sh
 ```
 

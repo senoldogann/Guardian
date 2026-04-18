@@ -11,12 +11,15 @@ interface DiffViewerProps {
  * we display it as a clean code viewer with line numbers.
  */
 export const DiffViewer: React.FC<DiffViewerProps> = ({ content, maxLines = 100 }) => {
-  const lines = React.useMemo(() => {
+  const { lines, totalLineCount } = React.useMemo(() => {
     const allLines = content.split('\n');
-    return maxLines ? allLines.slice(0, maxLines) : allLines;
+    return {
+      lines: maxLines ? allLines.slice(0, maxLines) : allLines,
+      totalLineCount: allLines.length,
+    };
   }, [content, maxLines]);
 
-  const truncated = content.split('\n').length > (maxLines || Infinity);
+  const truncated = totalLineCount > (maxLines || Infinity);
 
   return (
     <div className="rounded-xl border border-border-main overflow-hidden">
@@ -25,7 +28,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ content, maxLines = 100 
           <tbody>
             {lines.map((line, i) => (
               <tr key={i} className="hover:bg-white/5">
-                <td className="text-right px-3 py-0 select-none text-text-muted opacity-30 border-r border-white/5 w-12 text-[10px]">
+                <td className="text-right px-3 py-0 select-none text-text-muted opacity-30 border-r border-white/5 w-12 text-xs">
                   {i + 1}
                 </td>
                 <td className="px-4 py-0 whitespace-pre text-emerald-300/80">
@@ -37,8 +40,8 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ content, maxLines = 100 
         </table>
       </div>
       {truncated && (
-        <div className="text-center text-[10px] text-text-muted py-1.5 bg-[var(--panel-muted)] border-t border-border-main">
-          Showing first {maxLines} of {content.split('\n').length} lines
+        <div className="text-center text-xs text-text-muted py-1.5 bg-[var(--panel-muted)] border-t border-border-main">
+          Showing first {maxLines} of {totalLineCount} lines
         </div>
       )}
     </div>

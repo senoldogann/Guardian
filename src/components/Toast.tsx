@@ -4,6 +4,7 @@ import React, { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from "lucide-react";
 import { useToastStore, type ToastAction, type ToastType } from "../hooks/useToast";
+import { Button } from "./ui/Button";
 
 const icons: Record<ToastType, typeof Info> = {
   info: Info,
@@ -36,7 +37,7 @@ function ToastItem({
 }): React.ReactElement {
   const { removeToast } = useToastStore();
   const Icon = icons[type];
-  
+
   useEffect(() => {
     if (duration && duration > 0) {
       const timer = setTimeout(() => {
@@ -45,7 +46,7 @@ function ToastItem({
       return () => clearTimeout(timer);
     }
   }, [id, duration, removeToast]);
-  
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -20, scale: 0.95 }}
@@ -56,7 +57,7 @@ function ToastItem({
       <Icon className="w-5 h-5 shrink-0" />
       <span className="text-sm font-medium">{message}</span>
       {action && (
-        <button
+        <Button
           onClick={() => {
             try {
               action.onClick();
@@ -64,25 +65,30 @@ function ToastItem({
               removeToast(id);
             }
           }}
-          className="ml-1 px-2.5 py-1 rounded-lg border border-[var(--accent-400)] bg-background/30 hover:bg-background/55 transition-colors text-xs font-bold uppercase tracking-widest cursor-pointer"
+          variant="accent"
+          size="sm"
+          className="ml-1 bg-background/30 hover:bg-background/55 text-[var(--accent-500)] border-[var(--accent-400)]"
           title={action.label}
         >
           {action.label}
-        </button>
+        </Button>
       )}
-      <button
+      <Button
         onClick={() => removeToast(id)}
-        className="ml-2 p-1 rounded-lg hover:bg-[var(--panel-muted)] transition-colors"
+        variant="ghost"
+        size="icon"
+        className="ml-2 h-8 w-8"
+        aria-label="Dismiss notification"
       >
         <X className="w-4 h-4" />
-      </button>
+      </Button>
     </motion.div>
   );
 }
 
 export function ToastContainer(): React.ReactElement {
   const { toasts } = useToastStore();
-  
+
   return (
     <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
       <AnimatePresence mode="popLayout">

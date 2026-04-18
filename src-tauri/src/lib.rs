@@ -12,6 +12,7 @@ mod executor;
 mod history_logger;
 mod kernel;
 mod patcher;
+#[allow(dead_code)]
 mod prompt_loader;
 mod provider;
 mod rag_lite;
@@ -33,7 +34,7 @@ use anyhow::{Context, Result as AnyhowResult};
 use guardian_scan_policy::{ReleaseDecision, ScanProfile};
 use keyring::{Entry, Error as KeyringError};
 use once_cell::sync::Lazy;
-use secrecy::{ExposeSecret, SecretString};
+use secrecy::ExposeSecret;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs;
@@ -323,7 +324,7 @@ impl WatcherSupervisor {
 
     async fn start(&self, app: AppHandle, config: watcher::WatcherRuntimeConfig) {
         self.stop().await;
-        self.shutdown.store(false, Ordering::Relaxed);
+        self.shutdown.store(false, Ordering::Release);
 
         let shutdown = self.shutdown.clone();
         let handle = tauri::async_runtime::spawn(async move {
@@ -335,7 +336,7 @@ impl WatcherSupervisor {
     }
 
     async fn stop(&self) {
-        self.shutdown.store(true, Ordering::Relaxed);
+        self.shutdown.store(true, Ordering::Release);
         let mut guard = self.handle.write().await;
         if let Some(handle) = guard.take() {
             handle.abort();
@@ -1467,7 +1468,7 @@ async fn test_provider_connection(
     })
 }
 
-fn read_optional_env(key: &str) -> Option<String> {
+pub(crate) fn read_optional_env(key: &str) -> Option<String> {
     // Thread-safe in-process config store (replaces std::env::set_var)
     if let Ok(store) = EMBEDDING_RUNTIME_STORE.read() {
         let value = match key {

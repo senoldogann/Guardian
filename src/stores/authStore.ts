@@ -6,29 +6,25 @@ import type { AuthState, GithubUser } from "../types";
 interface AuthStoreState {
   user: GithubUser | null;
   authState: AuthState;
-  token: string | null;
 
   setUser: (user: GithubUser | null) => void;
   setAuthState: (state: AuthState) => void;
-  setToken: (token: string | null) => void;
-  login: (user: GithubUser, token: string) => void;
+  login: (user: GithubUser) => void;
   logout: () => void;
 }
 
 export const useAuthStore = create<AuthStoreState>((set) => ({
   user: null,
   authState: "signed_out",
-  token: null,
 
   setUser: (user) => set({ user }),
   setAuthState: (authState) => set({ authState }),
-  setToken: (token) => set({ token }),
 
-  login: (user, token) =>
-    set({ user, token, authState: "signed_in_verified" }),
+  login: (user) =>
+    set({ user, authState: "signed_in_verified" }),
 
   logout: () =>
-    set({ user: null, token: null, authState: "signed_out" }),
+    set({ user: null, authState: "signed_out" }),
 }));
 
 // Selectors

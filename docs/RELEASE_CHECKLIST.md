@@ -1,6 +1,6 @@
 # Release Checklist (Guardian)
 
-Scope: macOS (ARM + Intel) and Windows release pipeline, private source + public distribution model.
+Scope: macOS (ARM + Intel) and Windows release pipeline with public source + public distribution assets.
 
 ## 1) Version Sync
 
@@ -33,7 +33,7 @@ Scope: macOS (ARM + Intel) and Windows release pipeline, private source + public
 - `TAURI_SIGNING_PRIVATE_KEY`
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
 
-## 4) Required GitHub Actions Configuration
+## 4) Required GitHub / Signing Configuration
 
 ### Variables
 

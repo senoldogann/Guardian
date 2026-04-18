@@ -1,8 +1,10 @@
 import type { ReactElement } from "react";
-import clsx from "clsx";
 import { Bell, ShieldAlert } from "lucide-react";
 import { useI18n } from "../../i18n";
 import { InfoPopover, StyledSelect } from "./shared";
+import { Button } from "../ui/Button";
+import { Panel } from "../ui/Panel";
+import { SectionHeader } from "../ui/SectionHeader";
 
 export interface GeneralTabProps {
   isDesktop: boolean;
@@ -25,46 +27,41 @@ export function GeneralTab({
 
   return (
     <>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
-          <ShieldAlert className="w-4 h-4 text-[var(--accent-500)]" />
-          {t("settings.general.safety")}
-        </div>
-        <InfoPopover
-          title={t("settings.general.autoVerifyTitle")}
-          note={t("settings.general.autoVerifyNote")}
-        />
-      </div>
-      <div className="text-[10px] text-text-muted">
+      <SectionHeader
+        title={t("settings.general.safety")}
+        icon={<ShieldAlert className="w-4 h-4 text-[var(--accent-500)]" />}
+        action={(
+          <InfoPopover
+            title={t("settings.general.autoVerifyTitle")}
+            note={t("settings.general.autoVerifyNote")}
+          />
+        )}
+      />
+      <div className="text-xs text-text-muted">
         {t("settings.general.autoVerifyDescription")}
       </div>
-      <div className="flex items-center justify-between bg-[var(--panel-muted)] border border-border-main rounded-lg px-3 py-2">
-        <div className="text-[10px] text-text-muted">
+      <Panel surface="muted" padding="sm" rounded="lg" className="flex items-center justify-between gap-3">
+        <div className="text-xs text-text-muted">
           {t("settings.general.autoVerifyStatus", {
             status: autoVerifyEnabled ? t("common.enabled") : t("common.disabled"),
           })}
         </div>
-        <button
+        <Button
           onClick={onAutoVerifyToggle}
           disabled={!isDesktop}
-          className={clsx(
-            "px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md transition-colors",
-            autoVerifyEnabled ? "bg-[var(--accent-500)] text-background" : "bg-[var(--panel-muted)] text-text-main",
-            !isDesktop && "opacity-50 cursor-not-allowed"
-          )}
+          variant={autoVerifyEnabled ? "primary" : "secondary"}
+          size="sm"
         >
           {autoVerifyEnabled ? t("common.on") : t("common.off")}
-        </button>
-      </div>
+        </Button>
+      </Panel>
 
       <div className="pt-4 border-t border-border-main space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
-            <ShieldAlert className="w-4 h-4 text-[var(--accent-500)]" />
-            {t("settings.general.languageTitle")}
-          </div>
-          <InfoPopover title={t("settings.general.languageTitle")} note={t("settings.general.languageNote")} />
-        </div>
+        <SectionHeader
+          title={t("settings.general.languageTitle")}
+          icon={<ShieldAlert className="w-4 h-4 text-[var(--accent-500)]" />}
+          action={<InfoPopover title={t("settings.general.languageTitle")} note={t("settings.general.languageNote")} />}
+        />
         <div className="grid grid-cols-1 gap-2">
           <StyledSelect
             disabled={!isDesktop}
@@ -82,37 +79,34 @@ export function GeneralTab({
       </div>
 
       <div className="pt-4 border-t border-border-main space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
-            <Bell className="w-4 h-4 text-[var(--accent-500)]" />
-            {t("settings.general.guruReplySoundTitle")}
-          </div>
-          <InfoPopover
-            title={t("settings.general.guruReplySoundTitle")}
-            note={t("settings.general.guruReplySoundNote")}
-          />
-        </div>
-        <div className="text-[10px] text-text-muted">
+        <SectionHeader
+          title={t("settings.general.guruReplySoundTitle")}
+          icon={<Bell className="w-4 h-4 text-[var(--accent-500)]" />}
+          action={(
+            <InfoPopover
+              title={t("settings.general.guruReplySoundTitle")}
+              note={t("settings.general.guruReplySoundNote")}
+            />
+          )}
+        />
+        <div className="text-xs text-text-muted">
           {t("settings.general.guruReplySoundDescription")}
         </div>
-        <div className="flex items-center justify-between bg-[var(--panel-muted)] border border-border-main rounded-lg px-3 py-2">
-          <div className="text-[10px] text-text-muted">
+        <Panel surface="muted" padding="sm" rounded="lg" className="flex items-center justify-between gap-3">
+          <div className="text-xs text-text-muted">
             {t("settings.general.guruReplySoundStatus", {
               status: guruReplySoundEnabled ? t("common.enabled") : t("common.disabled"),
             })}
           </div>
-          <button
+          <Button
             onClick={onGuruReplySoundToggle}
             disabled={!isDesktop}
-            className={clsx(
-              "px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest rounded-md transition-colors",
-              guruReplySoundEnabled ? "bg-[var(--accent-500)] text-background" : "bg-[var(--panel-muted)] text-text-main",
-              !isDesktop && "opacity-50 cursor-not-allowed"
-            )}
+            variant={guruReplySoundEnabled ? "primary" : "secondary"}
+            size="sm"
           >
             {guruReplySoundEnabled ? t("common.on") : t("common.off")}
-          </button>
-        </div>
+          </Button>
+        </Panel>
       </div>
     </>
   );

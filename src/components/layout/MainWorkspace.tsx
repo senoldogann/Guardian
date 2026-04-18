@@ -32,6 +32,9 @@ import { critiqueStateKey } from "../../lib/critiqueStateKey";
 import { formatTimestamp } from "../../lib/uiFormat";
 import { useToast } from "../../hooks/useToast";
 import { useI18n } from "../../i18n";
+import { Badge } from "../ui/Badge";
+import { Button } from "../ui/Button";
+import { Panel } from "../ui/Panel";
 
 /* ── Virtualization constants ── */
 const CRITIQUE_ROW_HEIGHT = 72;
@@ -322,38 +325,41 @@ export function MainWorkspace({
 
         {baselineView !== "resolved" && filteredLogs.length > 0 && (
           <div className="flex items-center gap-1.5 px-6 py-2 border-b border-border-main overflow-x-auto shrink-0">
-            <button
+            <Button
               onClick={() => setCategoryFilter(null)}
               className={clsx(
-                "px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors border cursor-pointer",
                 !categoryFilter
                   ? "bg-[var(--accent-200)] text-[var(--accent-500)] border-[var(--accent-400)]"
                   : "bg-transparent text-text-muted border-transparent hover:bg-[var(--panel-muted)]",
               )}
+              variant="ghost"
+              size="sm"
             >
               All
-            </button>
+            </Button>
             {(["Security", "Architecture", "Performance", "Reliability", "Maintainability", "TypeSafety"] as const).map((cat) => {
               const count = filteredLogs.filter((c) => c.category === cat).length;
               if (count === 0) return null;
               return (
-                <button
+                <Button
                   key={cat}
                   onClick={() => setCategoryFilter((prev) => (prev === cat ? null : cat))}
                   className={clsx(
-                    "px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors border flex items-center gap-1 cursor-pointer",
+                    "gap-1 border",
                     categoryFilter === cat
                       ? cat === "Security" ? "bg-red-500/20 text-red-400 border-red-500/30"
                         : cat === "Performance" ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
-                        : cat === "Architecture" ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
-                        : cat === "Reliability" ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                        : cat === "TypeSafety" ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
-                        : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                          : cat === "Architecture" ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                            : cat === "Reliability" ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                              : cat === "TypeSafety" ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
+                                : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
                       : "bg-transparent text-text-muted border-transparent hover:bg-[var(--panel-muted)]",
                   )}
+                  variant="ghost"
+                  size="sm"
                 >
                   {cat} <span className="opacity-50">({count})</span>
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -361,7 +367,7 @@ export function MainWorkspace({
 
         {showFloatingFilter && (
           <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 w-full max-w-xl px-4 pointer-events-none">
-            <div className="guardian-elevated-card pointer-events-auto mx-auto max-w-md rounded-xl px-3 py-2 shadow-lg shadow-black/15">
+            <Panel surface="elevated" padding="sm" rounded="xl" className="pointer-events-auto mx-auto max-w-md shadow-lg shadow-black/15">
               <div className="group relative flex items-center gap-2">
                 <Search className="w-3.5 h-3.5 text-text-muted group-focus-within:text-text-main transition-colors" />
                 <input
@@ -371,15 +377,16 @@ export function MainWorkspace({
                   placeholder={t("monitor.searchPlaceholder")}
                 />
                 {filter.trim().length > 0 && (
-                  <button
+                  <Button
                     onClick={() => onFilterChange("")}
-                    className="px-2 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] rounded-md transition-colors cursor-pointer"
+                    variant="secondary"
+                    size="sm"
                   >
                     {t("common.clear")}
-                  </button>
+                  </Button>
                 )}
               </div>
-            </div>
+            </Panel>
           </div>
         )}
 
@@ -407,7 +414,7 @@ export function MainWorkspace({
                 <div className="h-full flex flex-col items-center justify-center text-text-muted gap-4 py-12">
                   <div className="text-center space-y-1">
                     <h3 className="font-bold text-sm text-text-muted">{t("monitor.resolved.noBaselineTitle")}</h3>
-                    <p className="text-[10px] text-text-muted font-mono italic">
+                    <p className="text-xs text-text-muted font-mono italic">
                       {t("monitor.resolved.noBaselineNote")}
                     </p>
                   </div>
@@ -416,7 +423,7 @@ export function MainWorkspace({
                 <div className="h-full flex flex-col items-center justify-center text-text-muted gap-4 py-12">
                   <div className="text-center space-y-1">
                     <h3 className="font-bold text-sm text-text-muted">{t("monitor.resolved.invalidTitle")}</h3>
-                    <p className="text-[10px] text-text-muted font-mono italic">
+                    <p className="text-xs text-text-muted font-mono italic">
                       {t("monitor.resolved.invalidNote")}
                     </p>
                   </div>
@@ -425,7 +432,7 @@ export function MainWorkspace({
                 <div className="h-full flex flex-col items-center justify-center text-text-muted gap-4 py-12">
                   <div className="text-center space-y-1">
                     <h3 className="font-bold text-sm text-text-muted">{t("monitor.resolved.emptyTitle")}</h3>
-                    <p className="text-[10px] text-text-muted font-mono italic">
+                    <p className="text-xs text-text-muted font-mono italic">
                       {t("monitor.resolved.emptyNote")}
                     </p>
                   </div>
@@ -453,12 +460,12 @@ export function MainWorkspace({
                           </div>
                         </div>
                         <div className="w-52 shrink-0 flex items-center justify-end gap-2">
-                          <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border bg-[color:var(--tone-success-bg)] text-[color:var(--tone-success-text)] border-[color:var(--tone-success-border)]">
+                          <Badge variant="success" size="md">
                             {t("critique.badgeResolved")}
-                          </span>
-                          <span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border bg-[var(--panel-muted)] text-text-muted border-border-main">
+                          </Badge>
+                          <Badge variant="neutral" size="md">
                             {finding.severity}
-                          </span>
+                          </Badge>
                         </div>
                       </div>
                     </div>
@@ -480,7 +487,7 @@ export function MainWorkspace({
                   {active ? t("monitor.guardianOnline") : t("monitor.systemSecure")}
                 </h3>
                 {(!active || status !== t("monitor.statusActive")) && (
-                  <p className="text-[10px] text-text-muted font-mono italic">
+                  <p className="text-xs text-text-muted font-mono italic">
                     {active ? status : t("monitor.offline")}
                   </p>
                 )}
@@ -556,30 +563,32 @@ export function MainWorkspace({
             <div className="w-16 h-16 rounded-2xl border border-border-main bg-[var(--panel-muted)] flex items-center justify-center">
               <ClipboardList className="w-7 h-7 text-text-muted/80" />
             </div>
-            <div className="text-xs uppercase tracking-widest">{t("common.noWorkspaceSelected")}</div>
-            <div className="text-[10px] text-text-muted max-w-md text-center">
+            <div className="text-xs ">{t("common.noWorkspaceSelected")}</div>
+            <div className="text-xs text-text-muted max-w-md text-center">
               {t("reviews.selectWorkspaceHint")}
             </div>
-            <button
+            <Button
               onClick={() => void onSelectScope()}
-              className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest border border-[var(--panel-border-strong)] bg-[var(--panel-muted)] text-[var(--accent-500)] rounded-md hover:bg-[var(--panel-bg)] transition-colors cursor-pointer"
+              variant="secondary"
+              size="sm"
+              className="text-[var(--accent-500)]"
             >
               {t("common.selectWorkspace")}
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             <div className="shrink-0 border-b border-border-main bg-[var(--panel-muted)] px-6 py-4">
               <div className="flex items-start gap-4">
                 <div className="space-y-1 min-w-0">
-                  <h2 className="text-xs font-bold uppercase tracking-widest text-text-muted">
+                  <h2 className="text-xs font-medium text-text-muted">
                     {t("reviews.appliedFixesTitle")}
                   </h2>
-                  <div className="text-[10px] text-text-muted">
+                  <div className="text-xs text-text-muted">
                     {t("reviews.appliedFixesNote")}
                   </div>
                   {fixHistoryError && (
-                    <div className="text-[10px] text-[color:var(--tone-critical-text)] font-mono">{fixHistoryError}</div>
+                    <div className="text-xs text-[color:var(--tone-critical-text)] font-mono">{fixHistoryError}</div>
                   )}
                 </div>
               </div>
@@ -598,9 +607,9 @@ export function MainWorkspace({
 
             <div className="shrink-0 px-6 py-4 border-b border-border-main bg-[var(--panel-muted)]">
               {fixHistoryLoading ? (
-                <div className="text-[10px] font-mono text-text-muted">{t("reviews.fixHistoryLoading")}</div>
+                <div className="text-xs font-mono text-text-muted">{t("reviews.fixHistoryLoading")}</div>
               ) : fixHistory.length === 0 ? (
-                <div className="text-[10px] text-text-muted">
+                <div className="text-xs text-text-muted">
                   {t("reviews.noAppliedFixes")}
                 </div>
               ) : (
@@ -614,18 +623,19 @@ export function MainWorkspace({
                         <div className="font-mono text-xs text-text-main truncate">
                           {entry.file_path}
                         </div>
-                        <div className="text-[10px] font-mono text-text-muted truncate">
+                        <div className="text-xs font-mono text-text-muted truncate">
                           {t("reviews.appliedLabel")}:{" "}
                           <span className="text-[var(--text-main)]">{formatTimestamp(entry.applied_at)}</span>
                         </div>
                       </div>
-                      <button
+                      <Button
                         onClick={() => void onUndoFix(entry.file_path)}
-                        className="px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors cursor-pointer bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] border-[color:var(--tone-critical-border)] hover:opacity-90"
+                        variant="danger"
+                        size="md"
                         title={t("reviews.undoTitle")}
                       >
                         {t("common.undo")}
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -656,16 +666,18 @@ export function MainWorkspace({
             <div className="w-16 h-16 rounded-2xl border border-border-main bg-[var(--panel-muted)] flex items-center justify-center">
               <EyeOff className="w-7 h-7 text-text-muted/80" />
             </div>
-            <div className="text-xs uppercase tracking-widest">{t("aiContext.titleEmpty")}</div>
-            <div className="text-[10px] text-text-muted max-w-md text-center">
+            <div className="text-xs ">{t("aiContext.titleEmpty")}</div>
+            <div className="text-xs text-text-muted max-w-md text-center">
               {t("aiContext.noteEmpty")}
             </div>
-            <button
+            <Button
               onClick={() => void onSelectScope()}
-              className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest border border-[var(--panel-border-strong)] bg-[var(--panel-muted)] text-[var(--accent-500)] rounded-md hover:bg-[var(--panel-bg)] transition-colors cursor-pointer"
+              variant="secondary"
+              size="sm"
+              className="text-[var(--accent-500)]"
             >
               {t("common.selectWorkspace")}
-            </button>
+            </Button>
           </div>
         ) : (
           <AIContextPreview
@@ -692,11 +704,11 @@ export function MainWorkspace({
           </div>
           <div className="flex items-center gap-2">
             {contextError && (
-              <span className="text-[10px] text-[color:var(--tone-critical-text)] max-w-[280px] truncate" title={contextError}>
+              <span className="text-xs text-[color:var(--tone-critical-text)] max-w-[280px] truncate" title={contextError}>
                 {contextError}
               </span>
             )}
-            <button
+            <Button
               onClick={async () => {
                 try {
                   await onRefreshContext();
@@ -706,10 +718,11 @@ export function MainWorkspace({
                 }
               }}
               disabled={!path || contextLoading}
-              className="guardian-focus-ring px-3 py-1 text-[9px] font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-main border border-border-main rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              variant="secondary"
+              size="sm"
             >
               {contextLoading ? t("diagram.scanning") : t("common.rescan")}
-            </button>
+            </Button>
           </div>
         </div>
         {path && context?.file_structure && context.file_structure.length > 0 ? (
@@ -720,16 +733,18 @@ export function MainWorkspace({
           />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center gap-3 text-text-muted text-sm">
-            <div className="text-xs uppercase tracking-widest">{t("diagram.emptyTitle")}</div>
-            <div className="text-[10px] text-text-muted max-w-md text-center">
+            <div className="text-xs ">{t("diagram.emptyTitle")}</div>
+            <div className="text-xs text-text-muted max-w-md text-center">
               {t("diagram.emptyNote")}
             </div>
-            <button
+            <Button
               onClick={() => void onSelectScope()}
-              className="px-3 py-1 text-[9px] font-bold uppercase tracking-widest border border-[var(--panel-border-strong)] bg-[var(--panel-muted)] text-[var(--accent-500)] rounded-md hover:bg-[var(--panel-bg)] transition-colors cursor-pointer"
+              variant="secondary"
+              size="sm"
+              className="text-[var(--accent-500)]"
             >
               {t("common.selectWorkspace")}
-            </button>
+            </Button>
           </div>
         )}
       </section>
@@ -763,7 +778,7 @@ function GuardianActivity({
         </div>
       </div>
       {!compact && showLabel && label && (
-        <div className="mt-1 text-[10px] uppercase tracking-[0.3em] text-[var(--accent-500)] opacity-70">
+        <div className="mt-1 text-xs font-medium text-[var(--accent-500)] opacity-70">
           {label}
         </div>
       )}

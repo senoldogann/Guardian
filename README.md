@@ -1,8 +1,8 @@
-# Guardian v1.0.0 🚀
+# Guardian v1.3.0 🚀
 ### Advanced Architectural Governance and Code Security Protocol
 ### Gelişmiş Mimari Yönetişim ve Kod Güvenliği Protokolü
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](./CHANGELOG.md)
 [![CI/CD](https://img.shields.io/badge/CI%2FCD-Self--Hosted%20Runner-success.svg)](./scripts/setup-runner.sh)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -21,13 +21,13 @@ Guardian, gerçek zamanlı mimari denetim ve otomatik iyileştirme yoluyla siste
 
 ---
 
-## 🆕 What's New in v1.0.0
+## 🆕 What's New in v1.3.0
 
 ### Major Changes
 - ✅ **Self-Hosted CI/CD**: Zero GitHub Actions minutes with local runner
-- ✅ **Production Ready**: Stable 1.0.0 release
+- ✅ **Production Ready**: Stable 1.3.0 release
 - ✅ **Enhanced Security**: Improved CSP and authentication flow
-- ✅ **Website v1.0.0**: Public website with download/changelog/docs
+- ✅ **Website v1.3.0**: Public website with download/changelog/docs
 
 ---
 
@@ -55,7 +55,7 @@ Context-sensitive patches and automated remediation based on project documentati
 ### Installation
 ```bash
 git clone https://github.com/senoldogann/Guardian.git
-cd guardian
+cd Guardian
 npm install
 ```
 
@@ -132,10 +132,10 @@ npm run test:e2e
 
 ## 📦 Distribution
 
-Guardian uses **private source + public distribution** model:
+Guardian uses a **public source + public distribution assets** model:
 
-- **Source Repo** (private): This repository
-- **Distribution Repo** (public): [guardian-distribution](https://github.com/senoldogann/guardian-distribution)
+- **Source Repo** (public): This repository for source code, docs, issues, and contributions
+- **Distribution Repo** (public): [guardian-distribution](https://github.com/senoldogann/guardian-distribution) for signed installers and updater metadata
 
 ### Required Secrets
 ```
@@ -154,7 +154,7 @@ GITHUB_RELEASE_REPO=guardian-distribution
 - Offline-first telemetry
 - Automated security scanning
 
-See [SECURITY.md](./SECURITY.md) for details.
+See [docs/TOKEN_SECURITY.md](./docs/TOKEN_SECURITY.md) for details.
 
 ---
 
@@ -184,9 +184,9 @@ MIT License - see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  <strong>Guardian v1.0.0</strong> — Built with ❤️ using Tauri + React + TypeScript
+  <strong>Guardian v1.3.0</strong> — Built with ❤️ using Tauri + React + TypeScript
 </p>
 
 <p align="center">
-  Copyright 2026 Guardian Protocol. All rights reserved.
+  Maintained by Senol Dogan.
 </p>

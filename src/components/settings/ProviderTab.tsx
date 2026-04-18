@@ -3,6 +3,9 @@ import { Server } from "lucide-react";
 import { useI18n } from "../../i18n";
 import type { ProviderSettingsProps } from "./types";
 import { InfoPopover, StyledSelect, PROVIDER_OPTIONS, getProviderDefaults } from "./shared";
+import { Button } from "../ui/Button";
+import { Field, TextInput } from "../ui/Field";
+import { SectionHeader } from "../ui/SectionHeader";
 
 export interface ProviderTabProps {
   isDesktop: boolean;
@@ -31,22 +34,23 @@ export function ProviderTab({ isDesktop, providerProps }: ProviderTabProps): Rea
   } = providerProps;
 
   const providerLabel = providerDraft ? getProviderDefaults(providerDraft.provider_id).label : t("common.loading");
-  const requiresApiKey = isDesktop && Boolean(providerDraft) && apiKeyStatus?.has_key === false;
+  const isOllamaLocal = providerDraft?.provider_id === "ollama";
+  const requiresApiKey = isDesktop && Boolean(providerDraft) && !isOllamaLocal && apiKeyStatus?.has_key === false;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
-          <Server className="w-4 h-4 text-[var(--accent-500)]" />
-          {t("settings.provider.title")}
-        </div>
-        <InfoPopover
-          title={t("settings.provider.popoverTitle")}
-          note={t("settings.provider.popoverNote")}
-        />
-      </div>
+      <SectionHeader
+        title={t("settings.provider.title")}
+        icon={<Server className="w-4 h-4 text-[var(--accent-500)]" />}
+        action={(
+          <InfoPopover
+            title={t("settings.provider.popoverTitle")}
+            note={t("settings.provider.popoverNote")}
+          />
+        )}
+      />
       <div className="space-y-3">
-        <div className="text-[10px] text-text-muted">
+        <div className="text-xs text-text-muted">
           {t("settings.provider.currentProvider", {
             provider: providerDraft ? getProviderDefaults(providerDraft.provider_id).label : t("common.loading"),
           })}
@@ -62,97 +66,103 @@ export function ProviderTab({ isDesktop, providerProps }: ProviderTabProps): Rea
           </div>
         ) : (
           <>
-            <label className="text-[10px] uppercase tracking-widest text-text-muted">{t("settings.provider.providerLabel")}</label>
-            <StyledSelect
-              disabled={!isDesktop}
-              value={providerDraft.provider_id}
-              onChange={(e) => onProviderChange(e.target.value)}
-            >
-              {PROVIDER_OPTIONS.map((option) => (
-                <option key={option.id} value={option.id}>{option.label}</option>
-              ))}
-            </StyledSelect>
-            <label className="text-[10px] uppercase tracking-widest text-text-muted">{t("settings.provider.baseUrlLabel")}</label>
-            {providerDraft.provider_id === "ollama" ? (
+            <Field label={t("settings.provider.providerLabel")}>
               <StyledSelect
                 disabled={!isDesktop}
-                value={providerDraft.base_url}
-                onChange={(e) => onBaseUrlChange(e.target.value)}
+                value={providerDraft.provider_id}
+                onChange={(e) => onProviderChange(e.target.value)}
               >
-                <option value="http://localhost:11434">Local (http://localhost:11434)</option>
-                <option value="https://ollama.com">Cloud (https://ollama.com)</option>
-              </StyledSelect>
-            ) : (
-              <input
-                disabled={!isDesktop}
-                value={providerDraft.base_url}
-                onChange={(e) => onBaseUrlChange(e.target.value)}
-                className="w-full bg-[var(--panel-muted)] border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
-                placeholder={getProviderDefaults(providerDraft.provider_id).baseUrl}
-              />
-            )}
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] uppercase tracking-widest text-text-muted">{t("settings.provider.modelLabel")}</label>
-              <button
-                onClick={onRefreshModels}
-                disabled={!isDesktop || providerModelLoading}
-                className="text-[10px] uppercase tracking-widest text-text-muted hover:text-text-main transition-colors"
-              >
-                {providerModelLoading ? t("settings.provider.modelsLoading") : t("settings.provider.refreshModels")}
-              </button>
-            </div>
-            {providerModelLoading ? (
-              <div className="h-9 w-full bg-border-main rounded animate-pulse" />
-            ) : providerModels.length > 0 ? (
-              <StyledSelect
-                disabled={!isDesktop}
-                value={providerDraft.model}
-                onChange={(e) => onModelChange(e.target.value)}
-              >
-                {providerModels.map((model) => (
-                  <option key={model} value={model}>{model}</option>
+                {PROVIDER_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>{option.label}</option>
                 ))}
               </StyledSelect>
-            ) : (
-              <input
-                disabled={!isDesktop}
-                value={providerDraft.model}
-                onChange={(e) => onModelChange(e.target.value)}
-                className="w-full bg-[var(--panel-muted)] border border-border-main rounded-lg py-2 px-3 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
-                placeholder={t("settings.provider.modelPlaceholder")}
-              />
-            )}
+            </Field>
+            <Field label={t("settings.provider.baseUrlLabel")}>
+              {providerDraft.provider_id === "ollama" ? (
+                <StyledSelect
+                  disabled={!isDesktop}
+                  value={providerDraft.base_url}
+                  onChange={(e) => onBaseUrlChange(e.target.value)}
+                >
+                  <option value="http://localhost:11434">Local (http://localhost:11434)</option>
+                  <option value="https://ollama.com">Cloud (https://ollama.com)</option>
+                </StyledSelect>
+              ) : (
+                <TextInput
+                  disabled={!isDesktop}
+                  value={providerDraft.base_url}
+                  onChange={(e) => onBaseUrlChange(e.target.value)}
+                  placeholder={getProviderDefaults(providerDraft.provider_id).baseUrl}
+                />
+              )}
+            </Field>
+            <Field
+              label={t("settings.provider.modelLabel")}
+              action={(
+                <Button
+                  onClick={onRefreshModels}
+                  disabled={!isDesktop || providerModelLoading}
+                  variant="ghost"
+                  size="sm"
+                >
+                  {providerModelLoading ? t("settings.provider.modelsLoading") : t("settings.provider.refreshModels")}
+                </Button>
+              )}
+            >
+              {providerModelLoading ? (
+                <div className="h-9 w-full bg-border-main rounded-lg animate-pulse" />
+              ) : providerModels.length > 0 ? (
+                <StyledSelect
+                  disabled={!isDesktop}
+                  value={providerDraft.model}
+                  onChange={(e) => onModelChange(e.target.value)}
+                >
+                  {providerModels.map((model) => (
+                    <option key={model} value={model}>{model}</option>
+                  ))}
+                </StyledSelect>
+              ) : (
+                <TextInput
+                  disabled={!isDesktop}
+                  value={providerDraft.model}
+                  onChange={(e) => onModelChange(e.target.value)}
+                  placeholder={t("settings.provider.modelPlaceholder")}
+                />
+              )}
+            </Field>
             {providerModelError && (
-              <div className="text-[10px] text-[color:var(--tone-critical-text)]">
+              <div className="text-xs text-[color:var(--tone-critical-text)]">
                 {requiresApiKey
                   ? t("settings.provider.requiresKeyLoadModels", { provider: providerLabel })
                   : providerModelError}
               </div>
             )}
-            {providerError && <div className="text-[10px] text-[color:var(--tone-critical-text)]">{providerError}</div>}
+            {providerError && <div className="text-xs text-[color:var(--tone-critical-text)]">{providerError}</div>}
             <div className="flex flex-wrap items-center gap-2">
-              <button
+              <Button
                 onClick={onSaveProvider}
                 disabled={!isDesktop || providerSaving}
-                className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
+                variant="primary"
+                size="md"
               >
                 {providerSaving ? t("common.saving") : t("settings.provider.saveProvider")}
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={onTestProviderConnection}
                 disabled={!isDesktop || providerSaving || providerTestLoading}
-                className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] rounded-md transition-colors disabled:opacity-50"
+                variant="secondary"
+                size="md"
               >
                 {providerTestLoading ? t("settings.provider.testing") : t("settings.provider.testConnection")}
-              </button>
+              </Button>
             </div>
             {providerTestMessage && (
-              <div className="text-[10px] text-[color:var(--tone-success-text)] bg-[color:var(--tone-success-bg)] border border-[color:var(--tone-success-border)] rounded-md px-3 py-2">
+              <div className="text-xs text-[color:var(--tone-success-text)] bg-[color:var(--tone-success-bg)] border border-[color:var(--tone-success-border)] rounded-md px-3 py-2">
                 {providerTestMessage}
               </div>
             )}
             {providerTestError && (
-              <div className="text-[10px] text-[color:var(--tone-critical-text)] bg-[color:var(--tone-critical-bg)] border border-[color:var(--tone-critical-border)] rounded-md px-3 py-2">
+              <div className="text-xs text-[color:var(--tone-critical-text)] bg-[color:var(--tone-critical-bg)] border border-[color:var(--tone-critical-border)] rounded-md px-3 py-2">
                 {providerTestError}
               </div>
             )}

@@ -204,12 +204,11 @@ Indicators of compromise:
 ## Contact
 
 For token security issues or rotation assistance:
-- Security Team: security@guardian.local
-- DevOps Team: devops@guardian.local
-- Emergency: +1-XXX-XXX-XXXX
+- Email: contact@senoldogan.dev
+- GitHub Security: https://github.com/senoldogann/Guardian/security
 
 ---
 
-**Last Updated:** 2026-02-09  
-**Version:** 1.0.0  
-**Next Review:** 2026-05-09
+**Last Updated:** 2026-04-19  
+**Version:** 1.3.0  
+**Next Review:** 2026-07-19

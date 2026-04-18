@@ -29,6 +29,8 @@ import rehypeSanitize from "rehype-sanitize";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { useToast } from "../hooks/useToast";
 import { useI18n } from "../i18n";
+import { Button } from "./ui/Button";
+import { DialogShell } from "./ui/DialogShell";
 
 interface ReviewDecisionPayload {
     file_path: string;
@@ -550,66 +552,58 @@ export function ChatView({
                     <h2 className="guardian-topbar-text">{t("chat.title")}</h2>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button
+                    <Button
                         onClick={() => setGuideOpen(true)}
-                        className="p-2 rounded-lg transition-all active:scale-95 cursor-pointer hover:bg-[var(--panel-muted)] group"
+                        className="group"
                         title={t("chat.openGuide")}
+                        variant="ghost"
+                        size="icon"
                     >
                         <HelpCircle className="w-4 h-4 text-[var(--accent-500)] group-hover:scale-110 transition-transform" />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         onClick={() => setClearConfirmOpen(true)}
-                        className="p-2 rounded-lg transition-all active:scale-95 cursor-pointer hover:bg-[var(--panel-muted)] group disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
+                        className="group"
                         disabled={chatHistory.length === 0}
                         title={t("chat.clearHistory")}
+                        variant="ghost"
+                        size="icon"
                     >
                         <Trash2 className="w-4 h-4 text-[color:var(--tone-critical-text)] group-hover:scale-110 transition-transform" />
-                    </button>
+                    </Button>
                 </div>
             </div>
             {clearConfirmOpen && (
-                <div
-                    className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center"
-                    onMouseDown={(e) => {
-                        if (e.target === e.currentTarget) {
-                            setClearConfirmOpen(false);
-                        }
-                    }}
+                <DialogShell
+                    open={clearConfirmOpen}
+                    onClose={() => setClearConfirmOpen(false)}
+                    showCloseButton={false}
+                    title={t("chat.clearConfirmTitle")}
+                    description={t("chat.clearConfirmDescription")}
+                    panelClassName="max-w-sm w-[90%]"
+                    contentClassName="pt-4"
                 >
                     <div
                         ref={clearConfirmRef}
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="guardian-clear-chat-title"
-                        aria-describedby="guardian-clear-chat-desc"
-                        className="guardian-elevated-card max-w-sm w-[90%] rounded-2xl p-5 shadow-2xl"
+                        className="flex justify-end gap-2"
                     >
-                        <div
-                            id="guardian-clear-chat-title"
-                            className="text-sm font-bold uppercase tracking-widest text-text-main mb-2"
+                        <Button
+                            onClick={() => setClearConfirmOpen(false)}
+                            variant="secondary"
+                            size="md"
+                            ref={clearCancelRef}
                         >
-                            {t("chat.clearConfirmTitle")}
-                        </div>
-                        <p id="guardian-clear-chat-desc" className="text-xs text-text-muted">
-                            {t("chat.clearConfirmDescription")}
-                        </p>
-                        <div className="mt-4 flex justify-end gap-2">
-                            <button
-                                onClick={() => setClearConfirmOpen(false)}
-                                className="guardian-focus-ring px-3 py-1.5 text-xs font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-main rounded-md transition-colors cursor-pointer"
-                                ref={clearCancelRef}
-                            >
-                                {t("common.cancel")}
-                            </button>
-                            <button
-                                onClick={handleClearChat}
-                                className="guardian-focus-ring px-3 py-1.5 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer"
-                            >
-                                {t("common.delete")}
-                            </button>
-                        </div>
+                            {t("common.cancel")}
+                        </Button>
+                        <Button
+                            onClick={handleClearChat}
+                            variant="primary"
+                            size="md"
+                        >
+                            {t("common.delete")}
+                        </Button>
                     </div>
-                </div>
+                </DialogShell>
             )}
 
             {/* Chat History */}
@@ -621,7 +615,7 @@ export function ChatView({
                 )}
             >
                 {chatLoadError && (
-                    <div className="text-[10px] text-[color:var(--tone-critical-text)]">
+                    <div className="text-xs text-[color:var(--tone-critical-text)]">
                         {chatLoadError}
                     </div>
                 )}
@@ -675,9 +669,9 @@ export function ChatView({
                         <div className="guardian-chat-bubble p-4 rounded-2xl text-xs font-mono text-text-muted flex items-center gap-2 shadow-sm min-w-[280px]">
                             <Activity className="w-3 h-3 animate-spin shrink-0 text-text-muted" />
                             <span className="inline-flex items-center gap-0.5">
-                                    <span className="transition-opacity duration-300">
+                                <span className="transition-opacity duration-300">
                                     {thinkingMessages[thinkingMessageIndex]}
-                                    </span>
+                                </span>
                                 <span className="inline-flex gap-0.5 pt-1" aria-hidden="true">
                                     <span className="h-0.5 w-0.5 rounded-full bg-current animate-pulse" />
                                     <span className="h-0.5 w-0.5 rounded-full bg-current animate-pulse [animation-delay:120ms]" />
@@ -763,18 +757,18 @@ export function ChatView({
 
                                 {/* Steps / Usage */}
                                 <div className="guardian-subtle-card p-6 rounded-2xl space-y-4">
-                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">{t("chat.guide.stepsTitle")}</h4>
+                                    <h4 className="text-xs font-semibold text-text-muted">{t("chat.guide.stepsTitle")}</h4>
                                     <div className="grid grid-cols-1 gap-3">
                                         <div className="flex items-start gap-4 text-xs">
-                                            <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[9px] font-black shrink-0 shadow-lg shadow-black/20">1</div>
+                                            <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[11px] font-black shrink-0 shadow-lg shadow-black/20">1</div>
                                             <p className="font-medium text-text-muted">{t("chat.guide.step1")}</p>
                                         </div>
                                         <div className="flex items-start gap-4 text-xs">
-                                            <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[9px] font-black shrink-0 shadow-lg shadow-black/20">2</div>
+                                            <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[11px] font-black shrink-0 shadow-lg shadow-black/20">2</div>
                                             <p className="font-medium text-text-muted">{t("chat.guide.step2")}</p>
                                         </div>
                                         <div className="flex items-start gap-4 text-xs">
-                                            <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[9px] font-black shrink-0 shadow-lg shadow-black/20">3</div>
+                                            <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[11px] font-black shrink-0 shadow-lg shadow-black/20">3</div>
                                             <p className="font-medium text-text-muted">{t("chat.guide.step3")}</p>
                                         </div>
                                     </div>
@@ -857,7 +851,7 @@ export function ChatView({
                     </div>
                 </div>
                 {!webSearchReady && (
-                    <div className="text-[10px] text-[color:var(--tone-warning-text)]">
+                    <div className="text-xs text-[color:var(--tone-warning-text)]">
                         {t("chat.webSearchSetupHint")}
                     </div>
                 )}
@@ -986,7 +980,7 @@ function ChatMessageRow({
                             </ReactMarkdown>
                         </div>
                         {msg.timestamp && (
-                            <div className={clsx("mt-3 text-[10px] text-text-muted/80", msg.role === "user" ? "text-right" : "text-left")}>
+                            <div className={clsx("mt-3 text-xs text-text-muted/80", msg.role === "user" ? "text-right" : "text-left")}>
                                 {formatTimestamp(msg.timestamp)}
                             </div>
                         )}
@@ -995,18 +989,18 @@ function ChatMessageRow({
                     {msg.action && (
                         <div className="guardian-chat-action-card flex flex-col items-center justify-center p-6 rounded-[var(--guide-radius)] text-center space-y-5 animate-in fade-in zoom-in duration-500">
                             <div className="flex items-center gap-2 mb-2">
-                                    {msg.action.status === "MODIFIED" ? (
-                                        <AlertTriangle className="w-4 h-4 text-[color:var(--tone-warning-text)]" />
-                                    ) : (
-                                        <CheckCircle className="w-4 h-4 text-[var(--accent-500)]" />
-                                    )}
-                                    <span className={clsx("text-xs font-bold uppercase", msg.action.status === "MODIFIED" ? "text-[color:var(--tone-warning-text)]" : "text-[var(--accent-500)]")}>
+                                {msg.action.status === "MODIFIED" ? (
+                                    <AlertTriangle className="w-4 h-4 text-[color:var(--tone-warning-text)]" />
+                                ) : (
+                                    <CheckCircle className="w-4 h-4 text-[var(--accent-500)]" />
+                                )}
+                                <span className={clsx("text-xs font-bold uppercase", msg.action.status === "MODIFIED" ? "text-[color:var(--tone-warning-text)]" : "text-[var(--accent-500)]")}>
                                     {msg.action.status === "MODIFIED" ? t("chat.guardianAutoCorrected") : t("chat.verifiedSafe")}
-                                    </span>
-                                </div>
+                                </span>
+                            </div>
 
                             <div className="bg-[var(--panel-muted)] rounded p-2 mb-2 max-h-40 overflow-y-auto border border-border-main w-full">
-                                <pre className="text-[10px] font-mono text-[color:var(--text-main)] opacity-80 whitespace-pre-wrap">
+                                <pre className="text-xs font-mono text-[color:var(--text-main)] opacity-80 whitespace-pre-wrap">
                                     {msg.action.diff}
                                 </pre>
                             </div>

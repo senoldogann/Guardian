@@ -37,8 +37,8 @@ impl ScanProfile {
     pub fn max_batch_size(self) -> usize {
         match self {
             Self::Source => 3,
-            Self::Extended => 3,
-            Self::Full => 2,
+            Self::Extended => 4,
+            Self::Full => 4,
         }
     }
 }
@@ -722,8 +722,8 @@ mod tests {
         assert_eq!(ScanProfile::Full.initial_scan_limit(), 500);
 
         assert_eq!(ScanProfile::Source.max_batch_size(), 3);
-        assert_eq!(ScanProfile::Extended.max_batch_size(), 3);
-        assert_eq!(ScanProfile::Full.max_batch_size(), 2);
+        assert_eq!(ScanProfile::Extended.max_batch_size(), 4);
+        assert_eq!(ScanProfile::Full.max_batch_size(), 4);
     }
 
     #[test]

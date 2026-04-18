@@ -29,8 +29,8 @@ use tokio::time::sleep;
 use tracing::{debug, error, info, warn};
 
 // Re-export public API
-pub use context::{AiContextFile, AiContextSnapshot};
-pub use fix::{FixProposal, FixProposalsSnapshot};
+pub use context::AiContextSnapshot;
+pub use fix::FixProposalsSnapshot;
 
 // Re-export pub(crate) functions
 pub(crate) use context::last_ai_context_for_root;
@@ -493,7 +493,7 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
         let mut skipped_by_reason: HashMap<&'static str, usize> = HashMap::new();
 
         for result in walker {
-            if scan_shutdown.load(Ordering::Relaxed) {
+            if scan_shutdown.load(Ordering::Acquire) {
                 break;
             }
             if included_count >= scan_limit {
@@ -578,7 +578,7 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
     tokio::task::spawn_blocking(move || {
         use std::sync::mpsc::RecvTimeoutError;
         loop {
-            if watch_shutdown.load(Ordering::Relaxed) {
+            if watch_shutdown.load(Ordering::Acquire) {
                 break;
             }
 
@@ -603,7 +603,7 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
         }
     });
 
-    while !shutdown.load(Ordering::Relaxed) {
+    while !shutdown.load(Ordering::Acquire) {
         sleep(Duration::from_secs(10)).await;
     }
 }
@@ -912,7 +912,6 @@ mod tests_protocol {
     use super::*;
     use super::context::*;
     use super::critique::*;
-    use super::fix::*;
     use super::pipeline::*;
     use serde_json::json;
     use std::collections::HashMap;
@@ -1071,8 +1070,8 @@ mod tests_protocol {
             token_budget_hint: 9_000,
         };
         assert_eq!(effective_batch_size_limit(ScanProfile::Source, &tuning), 3);
-        assert_eq!(effective_batch_size_limit(ScanProfile::Extended, &tuning), 3);
-        assert_eq!(effective_batch_size_limit(ScanProfile::Full, &tuning), 2);
+        assert_eq!(effective_batch_size_limit(ScanProfile::Extended, &tuning), 4);
+        assert_eq!(effective_batch_size_limit(ScanProfile::Full, &tuning), 4);
     }
 
     #[test]

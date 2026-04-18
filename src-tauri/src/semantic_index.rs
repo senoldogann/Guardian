@@ -197,12 +197,10 @@ enum EmbeddingExecutionPlan {
 }
 
 fn configured_embed_mode() -> String {
-    let preferred = std::env::var("GUARDIAN_EMBED_MODE")
-        .ok()
+    let preferred = crate::read_optional_env("GUARDIAN_EMBED_MODE")
         .map(|v| v.trim().to_lowercase())
         .filter(|v| !v.is_empty());
-    let legacy = std::env::var("GUARDIAN_EMBED_PROVIDER")
-        .ok()
+    let legacy = crate::read_optional_env("GUARDIAN_EMBED_PROVIDER")
         .map(|v| v.trim().to_lowercase())
         .filter(|v| !v.is_empty());
     preferred.or(legacy).unwrap_or_else(|| "auto".to_string())
@@ -338,10 +336,8 @@ async fn embed_text(text: &str) -> EmbeddingResult {
 async fn embed_with_openai(text: &str) -> Result<Vec<f32>> {
     let key = config::api_key_for_provider("openai")?;
     let model = embedding_model_for("openai");
-    let base_url = std::env::var("GUARDIAN_EMBED_BASE_URL_OPENAI")
-        .ok()
-        .filter(|v| !v.trim().is_empty())
-        .or_else(|| std::env::var("GUARDIAN_EMBED_BASE_URL").ok())
+    let base_url = crate::read_optional_env("GUARDIAN_EMBED_BASE_URL_OPENAI")
+        .or_else(|| crate::read_optional_env("GUARDIAN_EMBED_BASE_URL"))
         .unwrap_or_else(|| crate::provider::OPENAI_BASE_URL.to_string());
     let url = format!("{}/embeddings", base_url.trim_end_matches('/'));
 
@@ -372,10 +368,8 @@ async fn embed_with_openai(text: &str) -> Result<Vec<f32>> {
 
 async fn embed_with_ollama(text: &str) -> Result<Vec<f32>> {
     let model = embedding_model_for("ollama");
-    let base_url_raw = std::env::var("GUARDIAN_EMBED_BASE_URL_OLLAMA")
-        .ok()
-        .filter(|v| !v.trim().is_empty())
-        .or_else(|| std::env::var("GUARDIAN_EMBED_BASE_URL").ok())
+    let base_url_raw = crate::read_optional_env("GUARDIAN_EMBED_BASE_URL_OLLAMA")
+        .or_else(|| crate::read_optional_env("GUARDIAN_EMBED_BASE_URL"))
         .unwrap_or_else(|| config::DEFAULT_HOST.to_string());
     let base_url = normalize_ollama_base_url(&base_url_raw);
 
@@ -411,10 +405,7 @@ fn embedding_model_for(provider: &str) -> String {
         "ollama" => DEFAULT_OLLAMA_EMBED_MODEL,
         _ => DEFAULT_OPENAI_EMBED_MODEL,
     };
-    std::env::var(key)
-        .ok()
-        .map(|v| v.trim().to_string())
-        .filter(|v| !v.is_empty())
+    crate::read_optional_env(key)
         .unwrap_or_else(|| default.to_string())
 }
 

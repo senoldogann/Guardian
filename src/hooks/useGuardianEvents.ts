@@ -30,6 +30,8 @@ function toFriendlySystemMessage(
   const normalized = normalizeSystemMessage(raw);
   const lower = normalized.toLowerCase();
 
+  let friendly: string | null = null;
+
   if (
     lower.includes("json schema validation failed")
     || lower.includes("invalid json syntax")
@@ -37,33 +39,41 @@ function toFriendlySystemMessage(
     || lower.includes("oneof")
     || lower.includes("is not valid under any of the schemas")
   ) {
-    return t("systemUi.aiResponseInvalidFormat");
+    friendly = t("systemUi.aiResponseInvalidFormat");
   }
 
   if (
-    lower.includes("batch prompt is heavy")
-    || lower.includes("estimated tokens")
-    || lower.includes("max_batch_prompt_tokens")
-    || lower.includes("falling back to per-file audit")
+    !friendly && (
+      lower.includes("batch prompt is heavy")
+      || lower.includes("estimated tokens")
+      || lower.includes("max_batch_prompt_tokens")
+      || lower.includes("falling back to per-file audit"))
   ) {
-    return t("systemUi.batchPromptHeavy");
+    friendly = t("systemUi.batchPromptHeavy");
   }
 
   if (
-    lower.includes("timed out")
-    || lower.includes("timeout")
-    || lower.includes("failed to send openai request")
-    || lower.includes("error sending request for url")
+    !friendly && (
+      lower.includes("timed out")
+      || lower.includes("timeout")
+      || lower.includes("failed to send openai request")
+      || lower.includes("error sending request for url"))
   ) {
-    return t("systemUi.providerTimeout");
+    friendly = t("systemUi.providerTimeout");
   }
 
-  if (kind === "backend") {
-    return t("systemUi.backendUnavailable");
+  if (!friendly && kind === "backend") {
+    friendly = t("systemUi.backendUnavailable");
   }
 
-  if (normalized.length > 220) {
-    return kind === "error" ? t("systemUi.internalError") : t("systemUi.internalWarning");
+  if (!friendly && normalized.length > 220) {
+    friendly = kind === "error" ? t("systemUi.internalError") : t("systemUi.internalWarning");
+  }
+
+  if (friendly) {
+    // Orijinal mesajı debug için logla
+    console.warn(`[Guardian] ${kind}: ${normalized}`);
+    return friendly;
   }
 
   return normalized;

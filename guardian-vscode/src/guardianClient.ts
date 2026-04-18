@@ -53,7 +53,7 @@ export class GuardianClient {
   constructor(
     private readonly serverPath: string,
     private readonly output: vscode.OutputChannel
-  ) {}
+  ) { }
 
   async initialize(): Promise<void> {
     if (this.initialized) {
@@ -141,6 +141,8 @@ export class GuardianClient {
     }
   }
 
+  private static readonly REQUEST_TIMEOUT_MS = 30_000;
+
   private send(method: string, params?: Record<string, unknown>): Promise<unknown> {
     return new Promise((resolve, reject) => {
       if (!this.process?.stdin) {
@@ -156,13 +158,34 @@ export class GuardianClient {
         params,
       };
 
-      this.pending.set(id, { resolve, reject });
+      const timer = setTimeout(() => {
+        const entry = this.pending.get(id);
+        if (entry) {
+          this.pending.delete(id);
+          entry.reject(new Error(`MCP request timed out after ${GuardianClient.REQUEST_TIMEOUT_MS}ms: ${method}`));
+        }
+      }, GuardianClient.REQUEST_TIMEOUT_MS);
+
+      const pendingEntry = {
+        resolve: (value: unknown) => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        reject: (reason: Error) => {
+          clearTimeout(timer);
+          reject(reason);
+        },
+      };
+
+      this.pending.set(id, pendingEntry);
 
       const line = JSON.stringify(request) + "\n";
       this.process.stdin.write(line, (err) => {
         if (err) {
-          this.pending.delete(id);
-          reject(err);
+          const removed = this.pending.delete(id);
+          if (removed) {
+            pendingEntry.reject(err);
+          }
         }
       });
     });

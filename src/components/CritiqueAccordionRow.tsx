@@ -170,14 +170,14 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                         />
                         <span className="font-bold text-sm truncate" title={log.file_path}>{fileName}</span>
                         {log.line_start && (
-                            <span className="text-[10px] font-mono text-text-muted opacity-60 ml-1">
+                            <span className="text-xs font-mono text-text-muted opacity-60 ml-1">
                                 :{log.line_start}{log.line_end && log.line_end !== log.line_start ? `-${log.line_end}` : ''}
                             </span>
                         )}
                         {findingStatus && (
                             <span
                                 className={clsx(
-                                    "px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border",
+                                    "px-1.5 py-0.5 rounded-md text-[11px] font-medium border",
                                     findingStatus === "new"
                                         ? "bg-[color:var(--tone-success-bg)] text-[color:var(--tone-success-text)] border-[color:var(--tone-success-border)]"
                                         : "bg-[var(--panel-muted)] text-text-muted border-border-main"
@@ -235,7 +235,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                     )}
                     {log.category && (
                         <span className={clsx(
-                            "px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest border shrink-0",
+                            "px-1.5 py-0.5 rounded-md text-[11px] font-medium border shrink-0",
                             log.category === "Security"
                                 ? "bg-red-500/10 text-red-400 border-red-500/20"
                                 : log.category === "Performance"
@@ -253,7 +253,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                         </span>
                     )}
                     <span className={clsx(
-                        "px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border shrink-0 min-w-[84px] text-center",
+                        "px-2 py-1 rounded-md text-xs font-medium border shrink-0 min-w-[84px] text-center",
                         isCritical ? "bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] border-[color:var(--tone-critical-border)]" :
                             isWarning ? "bg-[color:var(--tone-warning-bg)] text-[color:var(--tone-warning-text)] border-[color:var(--tone-warning-border)]" :
                                 "bg-[var(--accent-200)] text-[var(--accent-500)] border-[var(--accent-400)]"
@@ -261,7 +261,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                         {severityLabel}
                     </span>
                     {log.confidence != null && (
-                        <span className="text-[9px] font-mono text-text-muted opacity-50 ml-1" title={`Confidence: ${Math.round(log.confidence * 100)}%`}>
+                        <span className="text-[11px] font-mono text-text-muted opacity-50 ml-1" title={`Confidence: ${Math.round(log.confidence * 100)}%`}>
                             {Math.round(log.confidence * 100)}%
                         </span>
                     )}
@@ -277,7 +277,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                             <div className="absolute inset-0 bg-black/5 blur-xl rounded-2xl" />
                             <div className="relative bg-[var(--panel-muted)] border border-border-main p-5 rounded-2xl">
                                 <div className="mb-4 rounded-xl border border-border-main bg-surface/70 px-4 py-3">
-                                    <div className="text-[10px] font-bold uppercase tracking-widest opacity-60 mb-1">
+                                    <div className="text-xs font-medium opacity-60 mb-1">
                                         {t("critique.filePath")}
                                     </div>
                                     <div className="font-mono text-xs break-all opacity-90">
@@ -299,7 +299,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                                 <BadgeInfo className="w-5 h-5 text-[var(--accent-500)]" />}
                                     </div>
                                     <div>
-                                        <h4 className="text-xs font-bold opacity-60 uppercase tracking-widest mb-1 flex items-center gap-2">
+                                        <h4 className="text-xs font-medium opacity-60 mb-1 flex items-center gap-2">
                                             <Activity className="w-3 h-3" /> {t("critique.violationDetails")}
                                         </h4>
                                         <p className="text-sm leading-relaxed opacity-90">{log.message}</p>
@@ -309,7 +309,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                 {log.evidence_snippet && (
                                     <div className="mt-4 space-y-3">
                                         <div className="h-px w-full bg-border-main" />
-                                        <div className="flex items-center gap-2 text-[10px] font-bold opacity-60 uppercase tracking-widest">
+                                        <div className="flex items-center gap-2 text-xs font-bold opacity-60 ">
                                             <Code2 className="w-3 h-3" /> Evidence
                                             {log.line_start && (
                                                 <span className="font-mono text-[var(--accent-500)] normal-case">
@@ -326,7 +326,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                 {log.suggestion && (
                                     <div className="mt-4 space-y-3">
                                         <div className="h-px w-full bg-border-main" />
-                                        <div className="flex items-center gap-2 text-[10px] font-bold opacity-60 uppercase tracking-widest">
+                                        <div className="flex items-center gap-2 text-xs font-bold opacity-60 ">
                                             <Terminal className="w-3 h-3" /> {t("critique.verdictSuggestion")}
                                         </div>
                                         <div className="bg-surface border border-border-main p-4 rounded-xl font-mono text-xs leading-relaxed opacity-80 whitespace-pre-wrap">
@@ -338,7 +338,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                 {log.suggested_diff && (
                                     <div className="mt-4 space-y-3">
                                         <div className="h-px w-full bg-border-main" />
-                                        <div className="flex items-center gap-2 text-[10px] font-bold text-[var(--accent-500)] uppercase tracking-widest">
+                                        <div className="flex items-center gap-2 text-xs font-bold text-[var(--accent-500)] ">
                                             <Hammer className="w-3 h-3" /> {t("critique.autopilotProposedFix")}
                                         </div>
                                         <DiffViewer content={log.suggested_diff} maxLines={80} />
@@ -372,7 +372,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                 )}
 
                                 {(log.category || log.confidence != null) && (
-                                    <div className="mt-4 flex items-center gap-4 text-[10px] text-text-muted opacity-60">
+                                    <div className="mt-4 flex items-center gap-4 text-xs text-text-muted opacity-60">
                                         {log.category && (
                                             <span className="flex items-center gap-1">
                                                 <Tag className="w-3 h-3" /> Category: <strong>{log.category}</strong>

@@ -11,12 +11,15 @@ import {
   DARK_PALETTE_PRESETS,
   normalizeHexColor,
 } from "./shared";
+import { Button } from "../ui/Button";
+import { Field, TextArea } from "../ui/Field";
+import { Panel } from "../ui/Panel";
+import { SectionHeader } from "../ui/SectionHeader";
 
 export interface ThemeTabProps {
   isDesktop: boolean;
   theme: "dark" | "light";
   open: boolean;
-  scanProfile: "source" | "extended" | "full";
   personalizationProps: PersonalizationSettingsProps;
 }
 
@@ -24,7 +27,6 @@ export function ThemeTab({
   isDesktop,
   theme,
   open,
-  scanProfile,
   personalizationProps,
 }: ThemeTabProps): ReactElement {
   const { t } = useI18n();
@@ -52,55 +54,45 @@ export function ThemeTab({
   const previewPalette =
     previewPaletteMode === "light"
       ? {
-          accent: normalizeHexColor(userPreferences?.light_palette.accent, DEFAULT_LIGHT_PALETTE.accent),
-          panel: normalizeHexColor(userPreferences?.light_palette.panel, DEFAULT_LIGHT_PALETTE.panel),
-          text: normalizeHexColor(userPreferences?.light_palette.text, DEFAULT_LIGHT_PALETTE.text),
-        }
+        accent: normalizeHexColor(userPreferences?.light_palette.accent, DEFAULT_LIGHT_PALETTE.accent),
+        panel: normalizeHexColor(userPreferences?.light_palette.panel, DEFAULT_LIGHT_PALETTE.panel),
+        text: normalizeHexColor(userPreferences?.light_palette.text, DEFAULT_LIGHT_PALETTE.text),
+      }
       : {
-          accent: normalizeHexColor(userPreferences?.dark_palette.accent, DEFAULT_DARK_PALETTE.accent),
-          panel: normalizeHexColor(userPreferences?.dark_palette.panel, DEFAULT_DARK_PALETTE.panel),
-          text: normalizeHexColor(userPreferences?.dark_palette.text, DEFAULT_DARK_PALETTE.text),
-        };
-
-  const profileInitialScanLimit = scanProfile === "source" ? 200 : scanProfile === "extended" ? 300 : 500;
-  const profileBatchSizeCap = scanProfile === "full" ? 2 : 3;
-  const requestedMaxFilesPerScan = userPreferences?.scan_tuning.max_files_per_scan ?? 300;
-  const requestedBatchSizeHint = userPreferences?.scan_tuning.max_batch_size_hint ?? 3;
-  const effectiveMaxFilesPerScan = Math.min(requestedMaxFilesPerScan, profileInitialScanLimit);
-  const effectiveBatchSizeHint = Math.min(requestedBatchSizeHint, profileBatchSizeCap);
-  const scanTuningPolicyOverrideActive =
-    effectiveMaxFilesPerScan !== requestedMaxFilesPerScan
-    || effectiveBatchSizeHint !== requestedBatchSizeHint;
+        accent: normalizeHexColor(userPreferences?.dark_palette.accent, DEFAULT_DARK_PALETTE.accent),
+        panel: normalizeHexColor(userPreferences?.dark_palette.panel, DEFAULT_DARK_PALETTE.panel),
+        text: normalizeHexColor(userPreferences?.dark_palette.text, DEFAULT_DARK_PALETTE.text),
+      };
 
   return (
     <div className="pt-4 border-t border-border-main space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
-          <Sun className="w-4 h-4 text-[var(--accent-500)]" />
-          {t("settings.general.personalizationTitle")}
-        </div>
-        <InfoPopover
-          title={t("settings.general.personalizationTitle")}
-          note={t("settings.general.personalizationNote")}
-        />
-      </div>
-      <div className="text-[10px] text-text-muted">
+      <SectionHeader
+        title={t("settings.general.personalizationTitle")}
+        icon={<Sun className="w-4 h-4 text-[var(--accent-500)]" />}
+        action={(
+          <InfoPopover
+            title={t("settings.general.personalizationTitle")}
+            note={t("settings.general.personalizationNote")}
+          />
+        )}
+      />
+      <div className="text-xs text-text-muted">
         {t("settings.general.personalizationDescription")}
       </div>
 
-      <div className="rounded-lg border border-border-main bg-[var(--panel-muted)] p-3 space-y-3">
-        <div className="text-[10px] uppercase tracking-widest text-text-muted">
+      <Panel surface="muted" padding="sm" rounded="xl" className="space-y-3">
+        <div className="text-xs text-text-muted">
           {t("settings.general.appearanceTitle")}
         </div>
         <div
-          className="rounded-lg border px-3 py-2 text-[10px]"
+          className="rounded-lg border px-3 py-2 text-xs"
           style={{
             backgroundColor: previewPalette.panel,
             borderColor: previewPalette.accent,
           }}
         >
           <div
-            className="text-[10px] font-bold uppercase tracking-widest"
+            className="text-xs font-medium"
             style={{ color: previewPalette.accent }}
           >
             {t("settings.general.appearancePreviewLabel", {
@@ -110,23 +102,23 @@ export function ThemeTab({
                   : t("settings.general.themeModeLight"),
             })}
           </div>
-          <div className="mt-1 text-[10px]" style={{ color: previewPalette.text }}>
+          <div className="mt-1 text-xs" style={{ color: previewPalette.text }}>
             {t("settings.general.appearancePreviewDescription")}
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="space-y-2 rounded-lg border border-border-main bg-[var(--panel-muted)] px-3 py-2">
-            <div className="text-[10px] uppercase tracking-widest text-text-muted">
+          <Panel surface="background" padding="sm" rounded="lg" className="space-y-2">
+            <div className="text-xs text-text-muted">
               {t("settings.general.lightPaletteTitle")}
             </div>
             <div className="space-y-1">
-              <div className="text-[9px] uppercase tracking-widest text-text-muted">
+              <div className="text-[11px]  text-text-muted">
                 {t("settings.general.palettePresetsLabel")}
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 {LIGHT_PALETTE_PRESETS.map((preset) => (
-                  <button
+                  <Button
                     key={preset.id}
                     type="button"
                     disabled={personalizationUiDisabled}
@@ -139,7 +131,9 @@ export function ThemeTab({
                         },
                       })
                     }
-                    className="px-2 py-1.5 text-[9px] rounded-md border border-border-main bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] transition-colors disabled:opacity-50"
+                    variant="secondary"
+                    size="sm"
+                    className="justify-start"
                   >
                     <span className="inline-flex items-center gap-1.5 text-text-main">
                       <span
@@ -148,12 +142,12 @@ export function ThemeTab({
                       />
                       {t(preset.labelKey)}
                     </span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
             <div className="grid grid-cols-[1fr_auto] items-center gap-2">
-              <label className="text-[10px] text-text-muted">
+              <label className="text-xs text-text-muted">
                 {t("settings.general.accentColorLabel")}
               </label>
               <input
@@ -172,7 +166,7 @@ export function ThemeTab({
               />
             </div>
             <div className="grid grid-cols-[1fr_auto] items-center gap-2">
-              <label className="text-[10px] text-text-muted">
+              <label className="text-xs text-text-muted">
                 {t("settings.general.panelColorLabel")}
               </label>
               <input
@@ -191,7 +185,7 @@ export function ThemeTab({
               />
             </div>
             <div className="grid grid-cols-[1fr_auto] items-center gap-2">
-              <label className="text-[10px] text-text-muted">
+              <label className="text-xs text-text-muted">
                 {t("settings.general.textColorLabel")}
               </label>
               <input
@@ -209,30 +203,32 @@ export function ThemeTab({
                 className="h-7 w-10 rounded border border-border-main bg-[var(--panel-muted)] p-0.5"
               />
             </div>
-            <button
+            <Button
               onClick={() =>
                 onUpdateUserPreferences({
                   light_palette: { ...DEFAULT_LIGHT_PALETTE },
                 })
               }
               disabled={personalizationUiDisabled}
-              className="w-full px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-main rounded-md transition-colors disabled:opacity-50"
+              variant="secondary"
+              size="sm"
+              fullWidth
             >
               {t("settings.general.restoreLightPalette")}
-            </button>
-          </div>
+            </Button>
+          </Panel>
 
-          <div className="space-y-2 rounded-lg border border-border-main bg-[var(--panel-muted)] px-3 py-2">
-            <div className="text-[10px] uppercase tracking-widest text-text-muted">
+          <Panel surface="background" padding="sm" rounded="lg" className="space-y-2">
+            <div className="text-xs text-text-muted">
               {t("settings.general.darkPaletteTitle")}
             </div>
             <div className="space-y-1">
-              <div className="text-[9px] uppercase tracking-widest text-text-muted">
+              <div className="text-[11px]  text-text-muted">
                 {t("settings.general.palettePresetsLabel")}
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 {DARK_PALETTE_PRESETS.map((preset) => (
-                  <button
+                  <Button
                     key={preset.id}
                     type="button"
                     disabled={personalizationUiDisabled}
@@ -245,7 +241,9 @@ export function ThemeTab({
                         },
                       })
                     }
-                    className="px-2 py-1.5 text-[9px] rounded-md border border-border-main bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] transition-colors disabled:opacity-50"
+                    variant="secondary"
+                    size="sm"
+                    className="justify-start"
                   >
                     <span className="inline-flex items-center gap-1.5 text-text-main">
                       <span
@@ -254,12 +252,12 @@ export function ThemeTab({
                       />
                       {t(preset.labelKey)}
                     </span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
             <div className="grid grid-cols-[1fr_auto] items-center gap-2">
-              <label className="text-[10px] text-text-muted">
+              <label className="text-xs text-text-muted">
                 {t("settings.general.accentColorLabel")}
               </label>
               <input
@@ -278,7 +276,7 @@ export function ThemeTab({
               />
             </div>
             <div className="grid grid-cols-[1fr_auto] items-center gap-2">
-              <label className="text-[10px] text-text-muted">
+              <label className="text-xs text-text-muted">
                 {t("settings.general.panelColorLabel")}
               </label>
               <input
@@ -297,7 +295,7 @@ export function ThemeTab({
               />
             </div>
             <div className="grid grid-cols-[1fr_auto] items-center gap-2">
-              <label className="text-[10px] text-text-muted">
+              <label className="text-xs text-text-muted">
                 {t("settings.general.textColorLabel")}
               </label>
               <input
@@ -315,26 +313,25 @@ export function ThemeTab({
                 className="h-7 w-10 rounded border border-border-main bg-[var(--panel-muted)] p-0.5"
               />
             </div>
-            <button
+            <Button
               onClick={() =>
                 onUpdateUserPreferences({
                   dark_palette: { ...DEFAULT_DARK_PALETTE },
                 })
               }
               disabled={personalizationUiDisabled}
-              className="w-full px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-main rounded-md transition-colors disabled:opacity-50"
+              variant="secondary"
+              size="sm"
+              fullWidth
             >
               {t("settings.general.restoreDarkPalette")}
-            </button>
-          </div>
+            </Button>
+          </Panel>
         </div>
-      </div>
+      </Panel>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <label className="text-[10px] uppercase tracking-widest text-text-muted">
-            {t("settings.general.themeModeLabel")}
-          </label>
+        <Field label={t("settings.general.themeModeLabel")}>
           <StyledSelect
             disabled={personalizationUiDisabled}
             value={userPreferences?.theme_mode ?? "dark"}
@@ -348,12 +345,9 @@ export function ThemeTab({
             <option value="light">{t("settings.general.themeModeLight")}</option>
             <option value="system">{t("settings.general.themeModeSystem")}</option>
           </StyledSelect>
-        </div>
+        </Field>
 
-        <div className="space-y-1">
-          <label className="text-[10px] uppercase tracking-widest text-text-muted">
-            {t("settings.general.fontFamilyLabel")}
-          </label>
+        <Field label={t("settings.general.fontFamilyLabel")}>
           <StyledSelect
             disabled={personalizationUiDisabled}
             value={userPreferences?.font_family ?? "space-grotesk"}
@@ -369,11 +363,11 @@ export function ThemeTab({
             <option value="source-sans-3">{t("settings.general.fontFamilySourceSans")}</option>
             <option value="ibm-plex-sans">{t("settings.general.fontFamilyIbmPlex")}</option>
           </StyledSelect>
-        </div>
+        </Field>
       </div>
 
       <div className="space-y-1">
-        <label className="text-[10px] uppercase tracking-widest text-text-muted">
+        <label className="text-xs text-text-muted">
           {t("settings.general.fontSizeScaleLabel", {
             scale: userPreferences?.font_size_scale ?? 100,
           })}
@@ -394,11 +388,8 @@ export function ThemeTab({
         />
       </div>
 
-      <div className="space-y-1">
-        <label className="text-[10px] uppercase tracking-widest text-text-muted">
-          {t("settings.general.modelInstructionLabel")}
-        </label>
-        <textarea
+      <Field label={t("settings.general.modelInstructionLabel")}>
+        <TextArea
           value={modelInstructionDraft}
           onChange={(e) => setModelInstructionDraft(e.target.value)}
           onBlur={() =>
@@ -410,14 +401,13 @@ export function ThemeTab({
           maxLength={1200}
           rows={4}
           placeholder={t("settings.general.modelInstructionPlaceholder")}
-          className="w-full bg-[var(--panel-muted)] border border-border-main rounded-lg px-3 py-2 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
         />
-        <div className="text-[10px] text-text-muted flex items-center justify-between">
+        <div className="text-xs text-text-muted flex items-center justify-between">
           <span>{t("settings.general.modelInstructionHint")}</span>
           <span>{modelInstructionDraft.length}/1200</span>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button
+          <Button
             type="button"
             disabled={personalizationUiDisabled}
             onClick={() => {
@@ -425,11 +415,12 @@ export function ThemeTab({
               setModelInstructionDraft(next);
               onUpdateUserPreferences({ model_custom_instructions: next });
             }}
-            className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest border border-[var(--panel-border-strong)] bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-main rounded-md transition-colors disabled:opacity-50"
+            variant="secondary"
+            size="sm"
           >
             {t("settings.general.modelInstructionPresetExplainFirstLabel")}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             disabled={personalizationUiDisabled}
             onClick={() => {
@@ -437,134 +428,37 @@ export function ThemeTab({
               setModelInstructionDraft(next);
               onUpdateUserPreferences({ model_custom_instructions: next });
             }}
-            className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest border border-[var(--panel-border-strong)] bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-main rounded-md transition-colors disabled:opacity-50"
+            variant="secondary"
+            size="sm"
           >
             {t("settings.general.modelInstructionPresetTerseLabel")}
-          </button>
+          </Button>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <label className="text-[10px] uppercase tracking-widest text-text-muted">
-              {t("settings.general.maxFilesPerScanLabel")}
-            </label>
-            <InfoPopover
-              title={t("settings.general.maxFilesPerScanLabel")}
-              note={t("settings.general.maxFilesPerScanNote")}
-            />
-          </div>
-          <input
-            type="number"
-            min={50}
-            max={400}
-            step={10}
-            disabled={personalizationUiDisabled}
-            value={userPreferences?.scan_tuning.max_files_per_scan ?? 300}
-            onChange={(e) =>
-              onUpdateUserPreferences({
-                scan_tuning: { max_files_per_scan: Number(e.target.value) },
-              })
-            }
-            className="w-full bg-[var(--panel-muted)] border border-border-main rounded-lg px-3 py-2 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
-          />
-        </div>
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <label className="text-[10px] uppercase tracking-widest text-text-muted">
-              {t("settings.general.maxBatchSizeHintLabel")}
-            </label>
-            <InfoPopover
-              title={t("settings.general.maxBatchSizeHintLabel")}
-              note={t("settings.general.maxBatchSizeHintNote")}
-            />
-          </div>
-          <input
-            type="number"
-            min={1}
-            max={10}
-            step={1}
-            disabled={personalizationUiDisabled}
-            value={userPreferences?.scan_tuning.max_batch_size_hint ?? 3}
-            onChange={(e) =>
-              onUpdateUserPreferences({
-                scan_tuning: { max_batch_size_hint: Number(e.target.value) },
-              })
-            }
-            className="w-full bg-[var(--panel-muted)] border border-border-main rounded-lg px-3 py-2 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
-          />
-        </div>
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <label className="text-[10px] uppercase tracking-widest text-text-muted">
-              {t("settings.general.tokenBudgetHintLabel")}
-            </label>
-            <InfoPopover
-              title={t("settings.general.tokenBudgetHintLabel")}
-              note={t("settings.general.tokenBudgetHintNote")}
-            />
-          </div>
-          <input
-            type="number"
-            min={1500}
-            max={12000}
-            step={100}
-            disabled={personalizationUiDisabled}
-            value={userPreferences?.scan_tuning.token_budget_hint ?? 5000}
-            onChange={(e) =>
-              onUpdateUserPreferences({
-                scan_tuning: { token_budget_hint: Number(e.target.value) },
-              })
-            }
-            className="w-full bg-[var(--panel-muted)] border border-border-main rounded-lg px-3 py-2 text-xs text-text-main outline-none focus:border-[var(--focus-border)]"
-          />
-        </div>
-      </div>
-
-      <div className="text-[10px] text-text-muted">
-        {t("settings.general.scanTuningHint")}
-      </div>
-      <div className="rounded-md border border-border-main bg-[var(--panel-muted)] px-3 py-2 text-[10px] text-text-muted">
-        <div>
-          {t("settings.general.scanTuningPolicyCaps", {
-            filesCap: profileInitialScanLimit,
-            batchCap: profileBatchSizeCap,
-          })}
-        </div>
-        <div className="mt-1">
-          {scanTuningPolicyOverrideActive
-            ? t("settings.general.scanTuningPolicyOverride", {
-                files: effectiveMaxFilesPerScan,
-                requestedFiles: requestedMaxFilesPerScan,
-                batch: effectiveBatchSizeHint,
-                requestedBatch: requestedBatchSizeHint,
-              })
-            : t("settings.general.scanTuningPolicyNoOverride")}
-        </div>
-      </div>
+      </Field>
 
       {userPreferencesError && (
-        <div className="text-[10px] text-[color:var(--tone-critical-text)]">{userPreferencesError}</div>
+        <div className="text-xs text-[color:var(--tone-critical-text)]">{userPreferencesError}</div>
       )}
 
       <div className="flex flex-wrap gap-2">
-        <button
+        <Button
           onClick={() => void onRefreshUserPreferences()}
           disabled={!isDesktop || userPreferencesSaving}
-          className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-main rounded-md transition-colors disabled:opacity-50"
+          variant="secondary"
+          size="md"
         >
           {t("settings.general.refreshPreferences")}
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => void onResetUserPreferences()}
           disabled={!isDesktop || userPreferencesSaving}
-          className="px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50"
+          variant="primary"
+          size="md"
         >
           {userPreferencesSaving
             ? t("settings.general.savingPreferences")
             : t("settings.general.resetPreferences")}
-        </button>
+        </Button>
       </div>
     </div>
   );

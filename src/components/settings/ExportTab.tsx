@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { Download, RefreshCw } from "lucide-react";
 import { useI18n } from "../../i18n";
+import { Button } from "../ui/Button";
+import { Panel } from "../ui/Panel";
+import { SectionHeader } from "../ui/SectionHeader";
 
 export interface ExportTabProps {
   onExportPDF: () => void;
@@ -40,31 +43,33 @@ export function ExportTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-text-muted">
-        <Download className="w-4 h-4 text-[var(--accent-500)]" />
-        {t("settings.export.title")}
-      </div>
-      <div className="text-[10px] text-text-muted bg-[var(--panel-muted)] border border-border-main rounded-lg px-3 py-2">
+      <SectionHeader
+        title={t("settings.export.title")}
+        icon={<Download className="w-4 h-4 text-[var(--accent-500)]" />}
+      />
+      <Panel surface="muted" padding="sm" rounded="lg" className="text-xs text-text-muted">
         {t("settings.export.note")}
-      </div>
-      <button
+      </Panel>
+      <Button
         onClick={onExportPDF}
         disabled={exportPdfInProgress}
-        className="w-full px-3 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:opacity-60"
+        variant="primary"
+        size="md"
+        fullWidth
       >
         {exportPdfInProgress ? t("settings.export.exporting") : t("settings.export.exportPdf")}
-      </button>
+      </Button>
       {exportPdfInProgress && (
-        <div className="rounded-lg border border-border-main bg-[var(--panel-muted)] px-3 py-2 text-[10px] text-text-muted flex items-center gap-2">
+        <Panel surface="muted" padding="sm" rounded="lg" className="flex items-center gap-2 text-xs text-text-muted">
           <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--accent-500)] shrink-0" />
           <span className="transition-opacity duration-300">
             {exportStatusMessages[exportStatusMessageIndex]}
           </span>
-        </div>
+        </Panel>
       )}
       {/* Success feedback is shown via top-right toast to reduce clutter in this tab. */}
       {exportPdfError && !exportPdfInProgress && (
-        <div className="rounded-lg border border-[color:var(--tone-critical-border)] bg-[color:var(--tone-critical-bg)] px-3 py-2 text-[10px] text-[color:var(--tone-critical-text)] font-bold">
+        <div className="rounded-lg border border-[color:var(--tone-critical-border)] bg-[color:var(--tone-critical-bg)] px-3 py-2 text-xs text-[color:var(--tone-critical-text)] font-bold">
           {exportPdfError}
         </div>
       )}

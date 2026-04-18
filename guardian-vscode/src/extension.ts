@@ -6,6 +6,8 @@ let client: GuardianClient | undefined;
 let diagnosticProvider: GuardianDiagnosticProvider | undefined;
 let monitoring = false;
 let onSaveDisposable: vscode.Disposable | undefined;
+let consecutiveFailures = 0;
+const MAX_CONSECUTIVE_FAILURES = 3;
 
 export async function activate(
   context: vscode.ExtensionContext
@@ -76,6 +78,7 @@ export async function activate(
         return;
       }
 
+      consecutiveFailures = 0;
       monitoring = true;
 
       onSaveDisposable = vscode.workspace.onDidSaveTextDocument(
@@ -90,11 +93,21 @@ export async function activate(
               profile
             );
             diagnosticProvider!.update(document.uri, result.critiques);
-          } catch {
-            // Silently fail during monitoring to avoid notification spam
+            consecutiveFailures = 0;
+          } catch (err: unknown) {
+            consecutiveFailures++;
+            const message = err instanceof Error ? err.message : String(err);
             outputChannel.appendLine(
-              `Guardian: monitoring scan failed for ${document.uri.fsPath}`
+              `Guardian: monitoring scan failed for ${document.uri.fsPath}: ${message}`
             );
+            if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+              vscode.window.showWarningMessage(
+                `Guardian: monitoring disabled after ${MAX_CONSECUTIVE_FAILURES} consecutive failures. Last error: ${message}`
+              );
+              monitoring = false;
+              onSaveDisposable?.dispose();
+              onSaveDisposable = undefined;
+            }
           }
         }
       );
@@ -132,6 +145,7 @@ export function deactivate(): void {
   client = undefined;
   diagnosticProvider = undefined;
   monitoring = false;
+  consecutiveFailures = 0;
 }
 
 function isSupportedLanguage(languageId: string): boolean {

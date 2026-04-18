@@ -3,7 +3,7 @@
 > **Status:** Draft
 > **Author:** Guardian Team
 > **Date:** 2025-07-15
-> **Guardian Version:** 1.2.6+
+> **Guardian Version:** 1.3.0+
 
 ---
 

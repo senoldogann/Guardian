@@ -45,21 +45,21 @@ function StatPill({
   tone: "critical" | "warning" | "ai";
 }): ReactElement {
   const toneStyles = {
-    critical: "bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] border-[color:var(--tone-critical-border)]",
-    warning: "bg-[color:var(--tone-warning-bg)] text-[color:var(--tone-warning-text)] border-[color:var(--tone-warning-border)]",
-    ai: "bg-[color:var(--tone-ai-bg)] text-[color:var(--tone-ai-text)] border-[color:var(--tone-ai-border)]",
+    critical: "text-[color:var(--tone-critical-text)]",
+    warning: "text-[color:var(--tone-warning-text)]",
+    ai: "text-[color:var(--tone-ai-text)]",
   };
 
   return (
     <div
       className={clsx(
-        "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all",
+        "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all",
         toneStyles[tone],
       )}
     >
       <div className="shrink-0">{icon}</div>
       <span className="text-sm font-bold tabular-nums">{value}</span>
-      <span className="text-[10px] uppercase tracking-wider opacity-70">{label}</span>
+      <span className="text-[11px] opacity-60">{label}</span>
     </div>
   );
 }
@@ -79,14 +79,14 @@ export function Header({
     <header className="guardian-topbar z-20 justify-between gap-4">
       {/* Brand */}
       <div className="flex items-center gap-3">
-        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[var(--accent-500)] to-[color-mix(in_oklab,var(--accent-500)_70%,#6366f1_30%)] flex items-center justify-center shadow-lg shadow-[var(--accent-500)]/10">
-          <ShieldCheck className="h-5 w-5 text-white" />
+        <div className="h-8 w-8 rounded-lg bg-[var(--accent-500)] flex items-center justify-center">
+          <ShieldCheck className="h-4.5 w-4.5 text-white" />
         </div>
         <div className="min-w-0">
           <div className="text-sm font-bold text-text-main tracking-tight">
             Guardian
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] text-text-muted">
+          <div className="flex items-center gap-1.5 text-xs text-text-muted">
             <span
               className={clsx(
                 "inline-block h-1.5 w-1.5 rounded-full",

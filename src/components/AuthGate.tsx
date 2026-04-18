@@ -1,7 +1,11 @@
-import type { ReactElement } from "react";
+import { useRef, type ReactElement } from "react";
 import { Github } from "lucide-react";
 import { openExternal } from "../lib/tauri";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { useI18n } from "../i18n";
+import { Button } from "./ui/Button";
+import { DialogShell } from "./ui/DialogShell";
+import { Panel } from "./ui/Panel";
 
 export interface DeviceCodeResponse {
   device_code: string;
@@ -50,98 +54,127 @@ export function AuthGate({
   onCancel,
 }: AuthGateProps): ReactElement {
   const { t } = useI18n();
+  const authDeviceModalRef = useRef<HTMLDivElement | null>(null);
+  const authGateModalRef = useRef<HTMLDivElement | null>(null);
+  const authDeviceActionRef = useRef<HTMLButtonElement | null>(null);
+  const authSignInActionRef = useRef<HTMLButtonElement | null>(null);
+
+  useFocusTrap({
+    active: Boolean(authDevice),
+    containerRef: authDeviceModalRef,
+    onEscape: onCancel,
+    initialFocusRef: authSession ? undefined : authDeviceActionRef,
+  });
+
+  useFocusTrap({
+    active: showAuthGate,
+    containerRef: authGateModalRef,
+    onEscape: onCancel,
+    initialFocusRef: authSignInActionRef,
+  });
 
   return (
     <>
       {authDevice && (
-        <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm flex items-center justify-center">
-          <div className="max-w-lg w-[92%] bg-surface border border-border-main rounded-2xl p-6 shadow-2xl">
-            <h3 className="text-sm font-black uppercase tracking-widest text-text-muted mb-2">
-              {t("authGate.deviceLoginTitle")}
-            </h3>
-            <p className="text-xs text-text-muted mb-4">
-              {t("authGate.deviceLoginNote")}
-            </p>
-            <div className="flex items-center justify-between bg-background border border-border-main rounded-lg px-4 py-3 mb-4">
+        <DialogShell
+          open={Boolean(authDevice)}
+          onClose={onCancel}
+          title={t("authGate.deviceLoginTitle")}
+          description={t("authGate.deviceLoginNote")}
+          panelClassName="max-w-lg w-[92%]"
+          contentClassName="pt-4"
+        >
+          <div ref={authDeviceModalRef} className="space-y-4">
+            <Panel
+              surface="background"
+              padding="md"
+              rounded="xl"
+              className="flex items-center justify-between gap-4"
+            >
               <span className="text-lg font-black tracking-widest text-text-main">{authDevice.user_code}</span>
-              <button
+              <Button
                 onClick={() => openExternal(authDevice.verification_uri)}
-                className="px-3 py-1 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] hover:opacity-90 text-background rounded-md transition-colors cursor-pointer"
+                variant="primary"
+                size="sm"
               >
                 {t("authGate.openGithub")}
-              </button>
-            </div>
-            <div className="text-[10px] text-text-muted mb-4">
+              </Button>
+            </Panel>
+            <div className="text-xs text-text-muted">
               {t("authGate.codeExpires", {
                 time: formatCountdown(authCountdown ?? authDevice.expires_in),
               })}
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               {!authSession && (
-                <button
+                <Button
                   onClick={onCompleteLogin}
                   disabled={authLoading}
-                  className="px-4 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] hover:opacity-90 text-background rounded-md transition-colors disabled:opacity-50 cursor-pointer"
+                  variant="primary"
+                  size="md"
+                  ref={authDeviceActionRef}
                 >
                   {authLoading ? t("authGate.checking") : t("authGate.checkNow")}
-                </button>
+                </Button>
               )}
-              <button
-                onClick={onCancel}
-                className="px-4 py-2 text-xs font-bold uppercase tracking-widest bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-main rounded-md transition-colors cursor-pointer"
-              >
+              <Button onClick={onCancel} variant="secondary" size="md">
                 {t("authGate.cancel")}
-              </button>
+              </Button>
             </div>
             {authError && (
-              <div className="mt-3 text-[10px] text-rose-400">
+              <div className="text-xs text-rose-400">
                 {authError}
               </div>
             )}
             {authWarning && (
-              <div className="mt-2 text-[10px] text-amber-400">
+              <div className="text-xs text-amber-400">
                 {authWarning}
               </div>
             )}
           </div>
-        </div>
+        </DialogShell>
       )}
 
       {showAuthGate && (
-        <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-md flex items-center justify-center">
-          <div className="max-w-md w-[90%] bg-surface border border-border-main rounded-2xl p-6 shadow-2xl">
-            <div className="flex items-center gap-3 mb-3">
-              <Github className="w-5 h-5 text-[var(--accent-500)]" />
-              <h3 className="text-sm font-black uppercase tracking-widest text-text-main">
-                {t("authGate.signInTitle")}
-              </h3>
+        <DialogShell
+          open={showAuthGate}
+          dismissOnBackdrop={false}
+          showCloseButton={false}
+          title={t("authGate.signInTitle")}
+          description={t("authGate.signInNote")}
+          panelClassName="max-w-md w-[90%]"
+          contentClassName="pt-4"
+        >
+          <div ref={authGateModalRef} className="space-y-4">
+            <div className="flex justify-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-200)]">
+                <Github className="w-5 h-5 text-[var(--accent-500)]" />
+              </div>
             </div>
-            <p className="text-xs text-text-muted leading-relaxed mb-4">
-              {t("authGate.signInNote")}
-            </p>
-            <button
+            <Button
               onClick={onStartLogin}
               disabled={authLoading || !isDesktop}
-              className="w-full py-2.5 text-xs font-bold uppercase tracking-widest bg-[var(--accent-500)] hover:opacity-90 text-background rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              variant="primary"
+              size="md"
+              fullWidth
+              leadingIcon={<Github className="w-4 h-4" />}
+              ref={authSignInActionRef}
             >
-              <span className="inline-flex items-center justify-center gap-2">
-                <Github className="w-4 h-4" />
-                {t("authGate.signInButton")}
-              </span>
-            </button>
+              {t("authGate.signInButton")}
+            </Button>
             {authError && (
-              <div className="mt-3 text-[10px] text-rose-400">{authError}</div>
+              <div className="text-xs text-rose-400">{authError}</div>
             )}
             {!authError && authWarning && (
-              <div className="mt-2 text-[10px] text-amber-400">{authWarning}</div>
+              <div className="text-xs text-amber-400">{authWarning}</div>
             )}
             {!isDesktop && (
-              <div className="mt-2 text-[10px] text-amber-400">
+              <div className="text-xs text-amber-400">
                 {t("authGate.desktopRequired")}
               </div>
             )}
           </div>
-        </div>
+        </DialogShell>
       )}
     </>
   );

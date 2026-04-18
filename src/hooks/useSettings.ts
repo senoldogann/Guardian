@@ -173,7 +173,7 @@ import { useTheme } from "./useTheme";
 
 export function useSettings(
   exportPdfFn: (args: { logs: Record<string, Critique>; path: string }) => Promise<ExportAuditPdfResult>,
-  settingsOpen = false
+  settingsOpen: boolean
 ): UseSettingsReturn {
   const provider = useProviderConfig(settingsOpen);
   const scan = useScanProfile(settingsOpen);

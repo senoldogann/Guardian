@@ -2,6 +2,9 @@ import { useRef, type ReactElement } from "react";
 import { ShieldAlert } from "lucide-react";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { useI18n } from "../i18n";
+import { Button } from "./ui/Button";
+import { DialogShell } from "./ui/DialogShell";
+import { Panel } from "./ui/Panel";
 
 export interface StallOverlayProps {
   stalled: { file: string; reason: string } | null;
@@ -26,50 +29,47 @@ export function StallOverlay({ stalled, open, onResolve, onDismiss }: StallOverl
   const fileName = stalled.file.split("/").pop() || stalled.file;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center">
-      <div
-        ref={modalRef}
-        className="max-w-xl w-[90%] bg-surface border border-border-main rounded-2xl p-8 shadow-2xl shadow-black/25"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="guardian-stall-title"
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <ShieldAlert className="w-6 h-6 text-[var(--accent-500)] animate-pulse" />
-          <h2
-            id="guardian-stall-title"
-            className="text-lg font-black uppercase tracking-widest text-text-main"
-          >
-            {t("stall.title")}
-          </h2>
-        </div>
-        <p className="text-sm text-text-muted leading-relaxed">
-          {t("stall.notePrefix")}{" "}
-          <span className="font-bold break-all">{fileName}</span>.{" "}
-          {t("stall.noteSuffix")}
-        </p>
-        <p className="text-xs text-text-muted/70 mt-2 break-all">
-          {stalled.file}
-        </p>
-        <div className="mt-6 flex gap-3">
-          <button
+    <DialogShell
+      open={open && Boolean(stalled)}
+      onClose={onDismiss}
+      title={(
+        <span className="inline-flex items-center gap-3 text-text-main">
+          <ShieldAlert className="w-5 h-5 text-[var(--accent-500)] animate-pulse" />
+          {t("stall.title")}
+        </span>
+      )}
+      showCloseButton={false}
+      panelClassName="max-w-xl w-[90%]"
+      contentClassName="pt-4"
+    >
+      <div ref={modalRef} className="space-y-4">
+        <Panel surface="background" padding="md" rounded="xl" className="space-y-2">
+          <p className="text-sm text-text-muted leading-relaxed">
+            {t("stall.notePrefix")} {" "}
+            <span className="font-bold break-all">{fileName}</span>.{" "}
+            {t("stall.noteSuffix")}
+          </p>
+          <p className="text-xs text-text-muted/70 break-all">
+            {stalled.file}
+          </p>
+        </Panel>
+        <div className="flex flex-wrap gap-3">
+          <Button
             onClick={() => {
               onResolve();
             }}
-            className="px-4 py-2 bg-[var(--accent-500)] hover:opacity-90 text-background font-bold rounded-lg text-xs uppercase tracking-widest transition-colors"
+            variant="primary"
+            size="md"
             ref={resolveButtonRef}
           >
             {t("stall.resolve")}
-          </button>
-          <button
-            onClick={onDismiss}
-            className="px-4 py-2 bg-[var(--accent-200)] hover:opacity-90 text-text-main font-bold rounded-lg text-xs uppercase tracking-widest transition-colors"
-          >
+          </Button>
+          <Button onClick={onDismiss} variant="secondary" size="md">
             {t("stall.dismiss")}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </DialogShell>
   );
 }
 

@@ -6,6 +6,9 @@ import type { AiContextSnapshot } from "../types";
 import { basenameOf, copyToClipboard, formatTimestamp } from "../lib/uiFormat";
 import { useToast } from "../hooks/useToast";
 import { useI18n } from "../i18n";
+import { Badge } from "./ui/Badge";
+import { Button } from "./ui/Button";
+import { Panel } from "./ui/Panel";
 
 export interface AIContextPreviewProps {
   context: AiContextSnapshot | null;
@@ -24,7 +27,7 @@ export function AIContextPreview({
 }: AIContextPreviewProps): ReactElement {
   const toast = useToast();
   const { t } = useI18n();
-  const files = context?.files ?? [];
+  const files = useMemo(() => context?.files ?? [], [context]);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ContextFileFilter>("all");
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
@@ -110,7 +113,7 @@ export function AIContextPreview({
         </div>
         <div className="text-center space-y-1">
           <h3 className="font-bold text-sm text-text-muted">{t("aiContext.noCapturedTitle")}</h3>
-          <p className="text-[10px] text-text-muted font-mono italic">
+          <p className="text-xs text-text-muted font-mono italic">
             {t("aiContext.noCapturedNote")}
           </p>
         </div>
@@ -122,11 +125,11 @@ export function AIContextPreview({
     <div className="h-full flex flex-col overflow-hidden">
       <div className="shrink-0 flex items-start justify-between gap-4 px-6 py-4 border-b border-border-main bg-surface/20">
         <div className="space-y-1 min-w-0">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-text-muted">
+          <h2 className="text-xs font-medium text-text-muted">
             {t("aiContext.title")}
           </h2>
           {context && (
-            <div className="text-[10px] font-mono text-text-muted space-y-0.5">
+            <div className="text-xs font-mono text-text-muted space-y-0.5">
               <div className="truncate">
                 {t("aiContext.provider")}:{" "}
                 <span className="text-[var(--text-main)]">{context.provider_id}</span>{" "}
@@ -146,33 +149,31 @@ export function AIContextPreview({
             </div>
           )}
           {error && (
-            <div className="text-[10px] text-rose-400 font-mono">
+            <div className="text-xs text-rose-400 font-mono">
               {error}
             </div>
           )}
         </div>
 
         {onRefresh && (
-          <button
+          <Button
             onClick={() => void onRefreshClick()}
             disabled={loading}
-            className={clsx(
-              "guardian-focus-ring px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer",
-              "bg-background/60 text-text-muted border-border-main hover:bg-border-main",
-              loading && "opacity-50 cursor-not-allowed"
-            )}
+            variant="secondary"
+            size="md"
+            className="bg-background/60"
             title={t("aiContext.refreshTitle")}
+            leadingIcon={<RefreshCw className={clsx("w-3 h-3", loading && "animate-spin")} />}
           >
-            <RefreshCw className={clsx("w-3 h-3", loading && "animate-spin")} />
             {t("common.refresh")}
-          </button>
+          </Button>
         )}
       </div>
 
       <div className="flex-1 overflow-hidden">
         <div className="h-full flex flex-col px-6 py-4 gap-3">
           {(redactedCount > 0 || truncatedCount > 0) && (
-          <div className="guardian-subtle-card rounded-xl px-4 py-3 text-[10px] font-mono text-text-muted flex items-start gap-3">
+            <Panel surface="subtle" padding="sm" rounded="xl" className="flex items-start gap-3 text-xs font-mono text-text-muted">
               <div className="shrink-0 mt-0.5">
                 <EyeOff className="w-4 h-4 text-[var(--accent-500)]" />
               </div>
@@ -183,11 +184,11 @@ export function AIContextPreview({
                     {t("aiContext.redactionContext", { redacted: redactedCount, truncated: truncatedCount })}
                   </span>
                 </div>
-                <div className="mt-1 text-[10px] leading-relaxed">
+                <div className="mt-1 text-xs leading-relaxed">
                   {t("aiContext.redactionNote")}
                 </div>
               </div>
-            </div>
+            </Panel>
           )}
 
           <div className="flex-1 min-h-0 rounded-2xl border border-border-main bg-background/30 overflow-hidden flex">
@@ -213,19 +214,16 @@ export function AIContextPreview({
                           ? `${t("aiContext.filterRedacted")} ${redactedCount}`
                           : `${t("aiContext.filterTruncated")} ${truncatedCount}`;
                     return (
-                      <button
+                      <Button
                         key={key}
                         type="button"
                         onClick={() => setFilter(key)}
-                        className={clsx(
-                          "px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-colors",
-                          active
-                            ? "bg-surface/40 text-text-main border-border-main"
-                            : "bg-background/60 text-text-muted border-border-main hover:bg-border-main"
-                        )}
+                        variant={active ? "accent" : "secondary"}
+                        size="sm"
+                        className={active ? "bg-surface/40 text-text-main border-border-main" : "bg-background/60"}
                       >
                         {label}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
@@ -233,7 +231,7 @@ export function AIContextPreview({
 
               <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-2 space-y-2">
                 {filteredFiles.length === 0 ? (
-                  <div className="px-3 py-3 text-[10px] font-mono text-text-muted italic">
+                  <div className="px-3 py-3 text-xs font-mono text-text-muted italic">
                     {t("aiContext.noFilesMatch")}
                   </div>
                 ) : (
@@ -256,24 +254,24 @@ export function AIContextPreview({
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="text-xs font-bold truncate">{basenameOf(file.file_path)}</div>
-                            <div className="text-[10px] font-mono text-text-muted truncate">
+                            <div className="text-xs font-mono text-text-muted truncate">
                               {file.file_path}
                             </div>
                           </div>
                           <div className="shrink-0 flex flex-col items-end gap-1">
-                            <div className="text-[10px] font-mono text-text-muted tabular-nums">
+                            <div className="text-xs font-mono text-text-muted tabular-nums">
                               {file.token_estimate}
                             </div>
                             <div className="flex items-center gap-1">
                               {file.redacted && (
-                                <span className="px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-widest border bg-amber-500/10 text-amber-200 border-amber-500/20">
+                                <Badge variant="warning" size="sm">
                                   R
-                                </span>
+                                </Badge>
                               )}
                               {file.truncated && (
-                                <span className="px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase tracking-widest border bg-[var(--panel-muted)] text-text-muted border-border-main">
+                                <Badge variant="neutral" size="sm">
                                   T
-                                </span>
+                                </Badge>
                               )}
                             </div>
                           </div>
@@ -291,8 +289,8 @@ export function AIContextPreview({
                   <div className="w-16 h-16 rounded-2xl border border-border-main bg-background/40 flex items-center justify-center">
                     <FileText className="w-7 h-7 text-text-muted/80" />
                   </div>
-                  <div className="text-xs uppercase tracking-widest">{t("aiContext.selectFileTitle")}</div>
-                  <div className="text-[10px] text-text-muted max-w-md text-center">
+                  <div className="text-xs ">{t("aiContext.selectFileTitle")}</div>
+                  <div className="text-xs text-text-muted max-w-md text-center">
                     {t("aiContext.selectFileNote")}
                   </div>
                 </div>
@@ -304,46 +302,50 @@ export function AIContextPreview({
                         <div className="text-xs font-bold truncate" title={selectedFile.file_path}>
                           {selectedFile.file_path}
                         </div>
-                        <div className="text-[10px] font-mono text-text-muted">
+                        <div className="text-xs font-mono text-text-muted">
                           {t("aiContext.tokensEst")}: {selectedFile.token_estimate}
                         </div>
                       </div>
                       <div className="shrink-0 flex items-center gap-2">
-                        <button
+                        <Button
                           type="button"
                           onClick={onCopyFileContext}
-                          className="px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer bg-background/60 text-text-muted border-border-main hover:bg-border-main"
+                          variant="secondary"
+                          size="md"
+                          className="bg-background/60"
                           title={t("aiContext.copyFileContextTitle")}
+                          leadingIcon={<Copy className="w-3 h-3" />}
                         >
-                          <Copy className="w-3 h-3" />
                           {t("aiContext.copyFileContext")}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
                           onClick={onCopyFullPayload}
-                          className="px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-colors flex items-center gap-2 cursor-pointer bg-background/60 text-text-muted border-border-main hover:bg-border-main"
+                          variant="secondary"
+                          size="md"
+                          className="bg-background/60"
                           title={t("aiContext.copyFullPayloadTitle")}
+                          leadingIcon={<Copy className="w-3 h-3" />}
                         >
-                          <Copy className="w-3 h-3" />
                           {t("aiContext.copyFullPayload")}
-                        </button>
+                        </Button>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
                       {selectedFile.redacted && (
-                        <span className="px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-amber-500/10 text-amber-200 border-amber-500/20">
+                        <Badge variant="warning" size="md">
                           {t("aiContext.badgeRedacted")}
-                        </span>
+                        </Badge>
                       )}
                       {selectedFile.truncated && (
-                        <span className="px-2 py-1 rounded-md text-[9px] font-bold uppercase tracking-widest border bg-[var(--panel-muted)] text-text-muted border-border-main">
+                        <Badge variant="neutral" size="md">
                           {t("aiContext.badgeTruncated")}
-                        </span>
+                        </Badge>
                       )}
                     </div>
 
-                    <pre className="whitespace-pre-wrap break-words text-[10px] leading-relaxed font-mono text-[var(--text-main)] bg-background/60 border border-border-main rounded-lg p-3 overflow-x-auto custom-scrollbar">
+                    <pre className="whitespace-pre-wrap break-words text-xs leading-relaxed font-mono text-[var(--text-main)] bg-background/60 border border-border-main rounded-lg p-3 overflow-x-auto custom-scrollbar">
                       {selectedFile.content}
                     </pre>
                   </div>

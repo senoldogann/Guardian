@@ -408,7 +408,7 @@ None - fully backward compatible.
 - Validation Hardening: Stabilized update/status handling and protected UI paths against missing release data.
 
 ### Documentation
-- Operational Guide: Added private/public deployment runbook in `docs/PRIVATE_DISTRIBUTION_SETUP.md`.
+- Operational Guide: Refreshed the public release/distribution runbooks and removed the obsolete private-distribution setup guide.
 - README Updates: Documented distribution architecture, required GitHub secrets/variables, and website integration.
 
 ## [0.2.4] - 2026-02-05

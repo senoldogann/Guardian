@@ -1,6 +1,6 @@
 # Guardian Website
 
-Production-ready marketing and documentation website for Guardian desktop application.
+Production-ready marketing and documentation website for the Guardian desktop application and release catalog.
 
 ## 🚀 Features
 
@@ -25,6 +25,7 @@ Production-ready marketing and documentation website for Guardian desktop applic
 ## 🛠️ Development
 
 ### Quick Start
+
 ```bash
 cd website
 npm install
@@ -35,6 +36,7 @@ npm run dev
 Open [http://localhost:3000](http://localhost:3000)
 
 ### Available Scripts
+
 ```bash
 npm run dev              # Start development server
 npm run build            # Production build
@@ -63,7 +65,7 @@ GITHUB_RELEASE_REPO=guardian-distribution
 ### Optional
 ```bash
 # GitHub API token for higher rate limits (5000/hour vs 60/hour)
-GITHUB_PUBLIC_READ_TOKEN=ghp_xxx
+GITHUB_PUBLIC_READ_TOKEN=<optional_read_token>
 ```
 
 **Setup:**
@@ -99,10 +101,6 @@ netlify deploy --prod
 docker build -t guardian-website .
 docker run -p 3000:3000 guardian-website
 ```
-
-**Full guide:** See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
-
----
 
 ## 📊 Performance
 
@@ -198,10 +196,9 @@ guardian/website/
 ├── e2e/                   # End-to-end tests
 ├── scripts/               # Build scripts
 │   └── optimize-media.sh  # Media optimization
-├── docs/                  # Documentation
-│   ├── DEPLOYMENT.md      # Deployment guide
-│   └── MEDIA_OPTIMIZATION.md
-└── content/               # Markdown content
+└── content/
+	├── docs/              # Localized MDX documentation content
+	└── i18n/              # Website UI dictionaries
 ```
 
 ---
@@ -238,16 +235,12 @@ npm run optimize:media
 - Videos: `-optimized.mp4` (desktop), `-mobile.mp4` (mobile)
 - Images: `.webp` (modern), `-optimized.png` (fallback)
 
-**Full guide:** See [docs/MEDIA_OPTIMIZATION.md](docs/MEDIA_OPTIMIZATION.md)
-
----
-
 ## 📚 Documentation
 
-- **Deployment**: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
-- **Media Optimization**: [docs/MEDIA_OPTIMIZATION.md](docs/MEDIA_OPTIMIZATION.md)
-- **Architecture**: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) *(coming soon)*
-- **Testing**: [docs/TESTING.md](docs/TESTING.md) *(coming soon)*
+- This website does not ship standalone `website/docs/*.md` guides; the docs experience is generated from route code plus `content/docs/` MDX files.
+- Product documentation content lives under `content/docs/en` and `content/docs/tr`.
+- Website UI copy dictionaries live under `content/i18n/en.json` and `content/i18n/tr.json`.
+- Broader platform and release documentation lives in the root `docs/` directory.
 
 ---
 
@@ -276,10 +269,11 @@ MIT License - see [LICENSE](../LICENSE) for details
 ## 🔗 Links
 
 - **Website**: https://guardianide.com
-- **Repository**: https://github.com/senoldogann/guardian-distribution
-- **Issues**: https://github.com/senoldogann/guardian-distribution/issues
+- **Repository**: https://github.com/senoldogann/Guardian
+- **Issues**: https://github.com/senoldogann/Guardian/issues
+- **Release Assets**: https://github.com/senoldogann/guardian-distribution
 - **Next.js Docs**: https://nextjs.org/docs
 
 ---
 
-**Last updated:** February 2026
+**Last updated:** April 2026

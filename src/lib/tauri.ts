@@ -22,7 +22,7 @@ export const invoke = async <T>(cmd: string, args?: InvokeArgs): Promise<T> => {
 
 export const listen = async <T>(event: string, handler: (event: { payload: T }) => void): Promise<UnlistenFn> => {
   if (!isTauriRuntime()) {
-    return async () => {};
+    return () => { };
   }
   return tauriListen<T>(event, handler);
 };

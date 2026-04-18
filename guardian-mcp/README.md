@@ -11,11 +11,12 @@ invoke security-scanning tools through the standard JSON-RPC 2.0 protocol.
 ## Available Tools
 
 | Tool | Description |
-|------|-------------|
+| ---- | ----------- |
 | `scan_file` | Scan a single file for security issues |
 | `list_critiques` | List findings from the most recent scan |
 | `get_scan_policy` | Return the current scan policy configuration |
 | `apply_fix` | Apply a suggested fix for a specific finding |
+| `classify_paths` | Walk a workspace and classify files by scan-policy eligibility |
 
 ## Building
 
@@ -76,5 +77,7 @@ specification (`2024-11-05`).
 
 ## Status
 
-This is a **scaffold** — tool implementations currently return placeholder
-responses. Full integration with `guardian-scan-policy` is planned.
+`guardian-mcp` is a working stateless MCP server.
+
+- `scan_file`, `get_scan_policy`, and `classify_paths` return live policy/classification data.
+- `list_critiques` and `apply_fix` intentionally delegate stateful scan/fix workflows to `guardian-cli` or the desktop app.

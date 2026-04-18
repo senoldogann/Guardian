@@ -19,7 +19,7 @@ impl WorkspaceEntry {
     fn is_running(&self) -> bool {
         // If the shutdown flag has not been set and we still hold a handle,
         // the watcher task is considered active.
-        self.handle.is_some() && !self.shutdown.load(Ordering::Relaxed)
+        self.handle.is_some() && !self.shutdown.load(Ordering::Acquire)
     }
 }
 
@@ -93,7 +93,7 @@ impl WorkspaceManager {
     async fn remove_workspace_inner(&self, workspace_id: &str) -> bool {
         let mut map = self.workspaces.write().await;
         if let Some(mut entry) = map.remove(workspace_id) {
-            entry.shutdown.store(true, Ordering::Relaxed);
+            entry.shutdown.store(true, Ordering::Release);
             if let Some(handle) = entry.handle.take() {
                 handle.abort();
             }
@@ -131,7 +131,7 @@ impl WorkspaceManager {
     pub async fn stop_all(&self) {
         let mut map = self.workspaces.write().await;
         for (id, entry) in map.iter_mut() {
-            entry.shutdown.store(true, Ordering::Relaxed);
+            entry.shutdown.store(true, Ordering::Release);
             if let Some(handle) = entry.handle.take() {
                 handle.abort();
             }

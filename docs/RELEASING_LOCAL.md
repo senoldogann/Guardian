@@ -1,7 +1,8 @@
 # Local Releasing + Public Distribution
 
-This repo (`senoldogann/Guardian`) does **not** run GitHub Actions. Releases are built locally and
-uploaded manually to the public distribution repo (`senoldogann/guardian-distribution`).
+The primary Guardian release path is local build + publish to the public distribution repo
+(`senoldogann/guardian-distribution`). GitHub Actions may still exist for CI or supporting
+automation, but they are not required for the local publishing flow documented here.
 
 Quick runbook:
 - `docs/LOCAL_RELEASE_RUNBOOK.md`
@@ -9,7 +10,7 @@ Quick runbook:
 Recommended (single command) flow:
 
 ```bash
-cd guardian
+cd Guardian
 scripts/release_all_local.sh
 ```
 
@@ -46,7 +47,7 @@ scripts/release_all_local.sh
 
 ## Terminology
 
-- **Source repo**: private/dev repo with code (`senoldogann/Guardian`)
+- **Source repo**: public code repo (`senoldogann/Guardian`)
 - **Distribution repo**: public repo that hosts release assets for downloads/updates
   (`senoldogann/guardian-distribution`)
 
@@ -63,14 +64,14 @@ scripts/release_all_local.sh
 Run all critical checks locally before producing any release artifacts:
 
 ```bash
-cd guardian
+cd Guardian
 npm run verify
 ```
 
 Optional security audit (recommended before every release):
 
 ```bash
-cd guardian/src-tauri
+cd Guardian/src-tauri
 cargo install cargo-audit --locked
 cargo audit
 ```
@@ -80,14 +81,14 @@ cargo audit
 ### macOS (Apple Silicon)
 
 ```bash
-cd guardian
+cd Guardian
 npm run tauri build -- --target aarch64-apple-darwin
 ```
 
 ### macOS (Intel)
 
 ```bash
-cd guardian
+cd Guardian
 npm run tauri build -- --target x86_64-apple-darwin
 ```
 
@@ -104,7 +105,7 @@ Build on a Windows/Linux machine (recommended) and collect the installer output 
 After building both macOS targets, gather artifacts and merge `latest.json`:
 
 ```bash
-scripts/collect_macos_artifacts.sh v1.0.0 ./artifacts \
+scripts/collect_macos_artifacts.sh vX.Y.Z ./artifacts \
   ./src-tauri/target/aarch64-apple-darwin/release/bundle \
   ./src-tauri/target/x86_64-apple-darwin/release/bundle
 ```
@@ -115,7 +116,7 @@ If you build on multiple machines, each bundle will contain its own `latest.json
 Merge them into a single file before publishing:
 
 ```bash
-scripts/merge_latest_json.sh v1.0.0 /tmp/latest.json \
+scripts/merge_latest_json.sh vX.Y.Z /tmp/latest.json \
   /path/to/mac/latest.json \
   /path/to/win/latest.json \
   /path/to/linux/latest.json
@@ -127,8 +128,8 @@ After you have the built installers and `latest.json` updater metadata, upload e
 distribution repo release tag:
 
 ```bash
-cd guardian
-scripts/release_local.sh v1.0.0 /path/to/your/artifacts
+cd Guardian
+scripts/release_local.sh vX.Y.Z /path/to/your/artifacts
 ```
 
 The script will:

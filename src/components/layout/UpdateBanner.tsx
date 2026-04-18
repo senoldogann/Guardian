@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useI18n } from "../../i18n";
 import type { UpdateCheckResult } from "../../types";
+import { Button } from "../ui/Button";
 
 function normalizeVersionLabel(version: string | null | undefined): string {
   const trimmed = version?.trim() ?? "";
@@ -42,7 +43,7 @@ export function UpdateBanner({
             className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-4 py-2 pr-2 rounded-full border border-border-main bg-surface/95 backdrop-blur-md shadow-xl shadow-black/10 text-text-main"
           >
             <div className="flex flex-col pl-2">
-              <span className="text-[10px] uppercase tracking-wider font-bold text-[var(--accent-500)]">
+              <span className="text-xs font-bold text-[var(--accent-500)]">
                 {t("app.updateAvailable")}
               </span>
               <span className="text-xs font-medium opacity-80 text-text-main">
@@ -55,33 +56,37 @@ export function UpdateBanner({
             <div className="h-6 w-px bg-border-main mx-1" />
 
             <div className="flex items-center gap-1">
-              <button
+              <Button
                 onClick={onDismiss}
-                className="px-3 py-1.5 text-xs font-medium text-text-muted hover:text-text-main hover:bg-[var(--panel-muted)] rounded-full transition-colors"
+                variant="ghost"
+                size="sm"
+                className="rounded-full"
               >
                 {t("app.later")}
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={onInstall}
                 disabled={updateInstalling}
-                className="px-4 py-1.5 text-xs font-bold text-background bg-[var(--accent-500)] hover:opacity-90 active:scale-95 rounded-full transition-all shadow-lg shadow-black/20 disabled:opacity-50 disabled:pointer-events-none"
+                variant="primary"
+                size="sm"
+                className="rounded-full shadow-lg shadow-black/20"
               >
                 {updateInstalling ? t("app.updating") : t("app.updateNow")}
-              </button>
+              </Button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       {updateChecking && !updateInfo && !updateDismissed && (
-        <div className="px-6 py-1 text-[10px] text-text-muted flex items-center gap-2">
+        <div className="px-6 py-1 text-xs text-text-muted flex items-center gap-2">
           <span className="inline-block h-2 w-2 rounded-full bg-border-main animate-pulse" />
           {t("app.checkingUpdates")}
         </div>
       )}
 
       {updateError && !updateDismissed && (
-        <div className="px-6 py-1 text-[10px] text-[color:var(--tone-critical-text)] bg-transparent">
+        <div className="px-6 py-1 text-xs text-[color:var(--tone-critical-text)] bg-transparent">
           {updateError}
         </div>
       )}
