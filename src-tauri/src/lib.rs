@@ -85,17 +85,32 @@ impl AuthState {
     }
 
     async fn get_user(&self) -> Option<auth::github::GithubUser> {
+        // Fast path: read lock only (allows concurrent readers)
+        {
+            let guard = self.session.read().await;
+            if let Some(session) = guard.as_ref() {
+                let age_hours = chrono::Utc::now()
+                    .signed_duration_since(session.verified_at)
+                    .num_hours();
+                if age_hours <= SESSION_MAX_HOURS {
+                    return Some(session.user.clone());
+                }
+            } else {
+                return None;
+            }
+        }
+        // Slow path: session expired — acquire write lock to clear it
         let mut guard = self.session.write().await;
+        // Re-check under write lock (another task may have already cleared/refreshed)
         if let Some(session) = guard.as_ref() {
             let age_hours = chrono::Utc::now()
                 .signed_duration_since(session.verified_at)
                 .num_hours();
-            if age_hours > SESSION_MAX_HOURS {
-                *guard = None;
-                return None;
+            if age_hours <= SESSION_MAX_HOURS {
+                return Some(session.user.clone());
             }
-            return Some(session.user.clone());
         }
+        *guard = None;
         None
     }
 }
@@ -1134,11 +1149,16 @@ fn append_issue_file_context(
     root: &str,
     storage: &tauri::State<'_, Arc<Mutex<storage::StorageManager>>>,
 ) {
-    let Ok(storage) = storage.lock() else {
-        return;
-    };
-    let Ok(issues) = storage.get_active_issues() else {
-        return;
+    // Minimize lock scope: only hold the Mutex for the DB query, then release
+    // before doing file I/O which can block.
+    let issues = {
+        let Ok(storage) = storage.lock() else {
+            return;
+        };
+        match storage.get_active_issues() {
+            Ok(issues) => issues,
+            Err(_) => return,
+        }
     };
 
     let mut critical_files: Vec<String> = Vec::new();
