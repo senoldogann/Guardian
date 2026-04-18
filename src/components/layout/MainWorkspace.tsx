@@ -218,6 +218,13 @@ export function MainWorkspace({
   const toast = useToast();
   const { t } = useI18n();
 
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+
+  const categoryFilteredLogs = useMemo(() => {
+    if (!categoryFilter) return filteredLogs;
+    return filteredLogs.filter((c) => c.category === categoryFilter);
+  }, [filteredLogs, categoryFilter]);
+
   const undoAvailableSet = useMemo(
     () => new Set<string>((fixHistory || []).map((entry) => normalizeUndoKey(entry.file_path))),
     [fixHistory],
@@ -229,7 +236,7 @@ export function MainWorkspace({
   const [scrollAreaHeight, setScrollAreaHeight] = useState(400);
   const expandedMeasuredHeight = useRef(CRITIQUE_EXPANDED_ESTIMATE);
   const shouldVirtualize =
-    baselineView !== "resolved" && filteredLogs.length >= VIRTUALIZE_THRESHOLD;
+    baselineView !== "resolved" && categoryFilteredLogs.length >= VIRTUALIZE_THRESHOLD;
 
   useEffect(() => {
     if (!shouldVirtualize) return;
@@ -249,21 +256,21 @@ export function MainWorkspace({
     expandedMeasuredHeight.current = CRITIQUE_EXPANDED_ESTIMATE;
     listRef.current?.resetAfterIndex(0);
     if (expandedLogKey) {
-      const idx = filteredLogs.findIndex((l) => critiqueStateKey(l) === expandedLogKey);
+      const idx = categoryFilteredLogs.findIndex((l) => critiqueStateKey(l) === expandedLogKey);
       if (idx >= 0) {
         requestAnimationFrame(() => listRef.current?.scrollToItem(idx, "smart"));
       }
     }
-  }, [expandedLogKey, filteredLogs, shouldVirtualize]);
+  }, [expandedLogKey, categoryFilteredLogs, shouldVirtualize]);
 
   const critiqueItemSize = useCallback(
     (index: number): number => {
-      const log = filteredLogs[index];
+      const log = categoryFilteredLogs[index];
       return expandedLogKey === critiqueStateKey(log)
         ? expandedMeasuredHeight.current
         : CRITIQUE_ROW_HEIGHT;
     },
-    [filteredLogs, expandedLogKey],
+    [categoryFilteredLogs, expandedLogKey],
   );
 
   const handleRowHeightMeasured = useCallback((index: number, height: number) => {
@@ -273,7 +280,7 @@ export function MainWorkspace({
 
   const critiqueItemData = useMemo<CritiqueListData>(
     () => ({
-      filteredLogs,
+      filteredLogs: categoryFilteredLogs,
       expandedLogKey,
       onToggleLog,
       onAskGuruForLog,
@@ -285,7 +292,7 @@ export function MainWorkspace({
       onRowHeightMeasured: handleRowHeightMeasured,
     }),
     [
-      filteredLogs,
+      categoryFilteredLogs,
       expandedLogKey,
       onToggleLog,
       onAskGuruForLog,
@@ -313,6 +320,45 @@ export function MainWorkspace({
           <div className="w-40 text-right shrink-0">{t("monitor.tableActions")}</div>
         </div>
 
+        {baselineView !== "resolved" && filteredLogs.length > 0 && (
+          <div className="flex items-center gap-1.5 px-6 py-2 border-b border-border-main overflow-x-auto shrink-0">
+            <button
+              onClick={() => setCategoryFilter(null)}
+              className={clsx(
+                "px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors border cursor-pointer",
+                !categoryFilter
+                  ? "bg-[var(--accent-200)] text-[var(--accent-500)] border-[var(--accent-400)]"
+                  : "bg-transparent text-text-muted border-transparent hover:bg-[var(--panel-muted)]",
+              )}
+            >
+              All
+            </button>
+            {(["Security", "Architecture", "Performance", "Reliability", "Maintainability", "TypeSafety"] as const).map((cat) => {
+              const count = filteredLogs.filter((c) => c.category === cat).length;
+              if (count === 0) return null;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setCategoryFilter((prev) => (prev === cat ? null : cat))}
+                  className={clsx(
+                    "px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors border flex items-center gap-1 cursor-pointer",
+                    categoryFilter === cat
+                      ? cat === "Security" ? "bg-red-500/20 text-red-400 border-red-500/30"
+                        : cat === "Performance" ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                        : cat === "Architecture" ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                        : cat === "Reliability" ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                        : cat === "TypeSafety" ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
+                        : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                      : "bg-transparent text-text-muted border-transparent hover:bg-[var(--panel-muted)]",
+                  )}
+                >
+                  {cat} <span className="opacity-50">({count})</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {showFloatingFilter && (
           <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 w-full max-w-xl px-4 pointer-events-none">
             <div className="guardian-elevated-card pointer-events-auto mx-auto max-w-md rounded-xl px-3 py-2 shadow-lg shadow-black/15">
@@ -337,7 +383,7 @@ export function MainWorkspace({
           </div>
         )}
 
-        {active && filteredLogs.length !== 0 && baselineView !== "resolved" && (
+        {active && categoryFilteredLogs.length !== 0 && baselineView !== "resolved" && (
           <div
             className={clsx(
               "pointer-events-none absolute inset-0 top-14 flex items-center justify-center transition-opacity opacity-20",
@@ -420,7 +466,7 @@ export function MainWorkspace({
                 </div>
               )}
             </div>
-          ) : filteredLogs.length === 0 ? (
+          ) : categoryFilteredLogs.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-text-muted gap-6">
               {active ? (
                 <GuardianActivity status={status} active={active} showLabel={false} />
@@ -445,7 +491,7 @@ export function MainWorkspace({
               ref={listRef}
               height={scrollAreaHeight}
               width="100%"
-              itemCount={filteredLogs.length}
+              itemCount={categoryFilteredLogs.length}
               itemSize={critiqueItemSize}
               itemData={critiqueItemData}
               overscanCount={5}
@@ -455,7 +501,7 @@ export function MainWorkspace({
             </VariableSizeList>
           ) : (
             <div className="space-y-2">
-              {filteredLogs.map((log, index) => (
+              {categoryFilteredLogs.map((log, index) => (
                 <CritiqueAccordionRow
                   key={critiqueStateKey(log)}
                   log={log}
