@@ -7,6 +7,7 @@ import { HeroSection } from "./home/HeroSection";
 import { DifferentiatorsSection } from "./home/DifferentiatorsSection";
 import { AgentObjectionSection } from "./home/AgentObjectionSection";
 import { FeaturesSection } from "./home/FeaturesSection";
+import { EcosystemSection } from "./home/EcosystemSection";
 import { DemoSection } from "./home/DemoSection";
 import { UseCasesSection } from "./home/UseCasesSection";
 import type { Locale } from "../lib/locale";
@@ -27,6 +28,7 @@ export function HomePageView({ dict, locale }: HomePageProps) {
         <HeroSection dict={dict} locale={locale} />
         <DifferentiatorsSection locale={locale} />
         <FeaturesSection locale={locale} />
+        <EcosystemSection locale={locale} />
         <UseCasesSection locale={locale} />
         <AgentObjectionSection locale={locale} />
         <DemoSection dict={dict} locale={locale} />
