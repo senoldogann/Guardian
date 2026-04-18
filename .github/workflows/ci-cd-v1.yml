@@ -266,18 +266,37 @@ jobs:
         with:
           node-version: "22.x"
 
-      - name: 🔒 NPM Audit (Root)
+      - name: 🔒 NPM Audit - Critical (Root)
+        run: npm audit --audit-level=critical
+
+      - name: 🔒 NPM Audit - Moderate (Root)
         run: npm audit --audit-level=moderate
         continue-on-error: true
 
-      - name: 🔒 NPM Audit (Website)
+      - name: 🔒 NPM Audit - Critical (Website)
+        run: |
+          cd website
+          npm audit --audit-level=critical
+
+      - name: 🔒 NPM Audit - Moderate (Website)
         run: |
           cd website
           npm audit --audit-level=moderate
         continue-on-error: true
 
+      - name: 🦀 Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: 🦀 Check Rust Formatting
+        run: cd src-tauri && cargo fmt --check
+
+      - name: 🦀 Run Clippy Lints
+        run: cd src-tauri && cargo clippy -- -D warnings
+
       - name: 🦀 Cargo Audit (Tauri)
         run: |
           cd src-tauri
-          cargo audit || true
+          cargo audit 2>&1 || true
         continue-on-error: true
