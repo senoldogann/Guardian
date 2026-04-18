@@ -427,7 +427,7 @@ async fn process_batch(
     );
 
     // Prepare Prompt Data
-    let (prompt_data, estimated_tokens, hash_by_path, context_files) = build_prompt_data(&items);
+    let (prompt_data, estimated_tokens, hash_by_path, context_files) = build_prompt_data(&items, std::path::Path::new(root));
     let enriched_project_context =
         merge_project_intent_with_recent_fix_history(project_intent_pack, root, &items);
     emit_ai_context(app, root, client, estimated_tokens, &context_files);
@@ -721,7 +721,7 @@ async fn process_items_per_file_fallback(
     for item in items {
         let single_items = vec![item];
         let (single_prompt, single_tokens, single_hash, single_context) =
-            build_prompt_data(&single_items);
+            build_prompt_data(&single_items, std::path::Path::new(root));
         emit_ai_context(app, root, client, single_tokens, &single_context);
         append_ai_request_history(root, client, single_tokens, &single_context);
         match client

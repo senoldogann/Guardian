@@ -787,7 +787,7 @@ pub(super) fn schedule_semantic_indexing(
     let mut context_by_path: HashMap<String, String> = HashMap::new();
     let mut hash_by_key: HashMap<String, String> = HashMap::new();
     for item in items {
-        let context = super::context::prepare_ai_context_file(item);
+        let context = super::context::prepare_ai_context_file(item, root_path);
         let abs_path = context.file_path.clone();
         let rel_path = normalize_rel_file_path(root_path, &abs_path);
         context_by_path.insert(abs_path.clone(), context.content.clone());

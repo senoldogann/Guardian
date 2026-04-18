@@ -119,7 +119,7 @@ pub(super) fn last_audited_content(path: &std::path::Path) -> Option<String> {
     lock.get(&key).map(|entry| entry.content.clone())
 }
 
-pub(super) fn prepare_ai_context_file(item: &BatchItem) -> AiContextFile {
+pub(super) fn prepare_ai_context_file(item: &BatchItem, root_path: &std::path::Path) -> AiContextFile {
     let max_content_lines = config::max_content_lines();
     let max_content_chars = config::max_content_chars();
     let filtered = filter_pii(&item.content);
@@ -153,10 +153,21 @@ pub(super) fn prepare_ai_context_file(item: &BatchItem) -> AiContextFile {
         truncated = re.1;
     }
 
+    // Enrich with import context
+    let file_path_str = item.path.to_string_lossy();
+    let imports = extract_local_imports(&filtered, &file_path_str);
+    let import_ctx = build_import_context(&imports, &file_path_str, root_path, 2000);
+    if !import_ctx.is_empty() {
+        joined.push_str(&import_ctx);
+        let re = truncate_context(joined, max_content_lines, max_content_chars, truncated);
+        joined = re.0;
+        truncated = re.1;
+    }
+
     let token_estimate = estimate_tokens(&joined);
 
     AiContextFile {
-        file_path: item.path.to_string_lossy().to_string(),
+        file_path: file_path_str.to_string(),
         token_estimate,
         redacted,
         truncated,
@@ -267,6 +278,7 @@ pub(super) fn truncate_context(
 
 pub(super) fn build_prompt_data(
     items: &[BatchItem],
+    root_path: &std::path::Path,
 ) -> (
     Vec<(String, String)>,
     u64,
@@ -279,7 +291,7 @@ pub(super) fn build_prompt_data(
     let mut context_files: Vec<AiContextFile> = Vec::with_capacity(items.len());
 
     for item in items.iter() {
-        let context_file = prepare_ai_context_file(item);
+        let context_file = prepare_ai_context_file(item, root_path);
         estimated_tokens += context_file.token_estimate;
         hash_by_path.insert(context_file.file_path.clone(), item.hash.clone());
         prompt_data.push((context_file.file_path.clone(), context_file.content.clone()));
@@ -340,4 +352,206 @@ pub(super) fn append_ai_request_history(
             })),
         },
     );
+}
+
+/// Extract import paths from source code (supports TS/JS, Rust, Python, Go)
+pub fn extract_local_imports(content: &str, file_path: &str) -> Vec<String> {
+    let mut imports = Vec::new();
+    let ext = std::path::Path::new(file_path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+        match ext {
+            "ts" | "tsx" | "js" | "jsx" | "mts" | "mjs" => {
+                if trimmed.starts_with("import ") || trimmed.starts_with("import{") {
+                    if let Some(from_idx) = trimmed.find(" from ") {
+                        let path_part = &trimmed[from_idx + 6..];
+                        let path = path_part
+                            .trim()
+                            .trim_matches(|c| c == '\'' || c == '"' || c == ';');
+                        if path.starts_with('.') || path.starts_with('/') {
+                            imports.push(path.to_string());
+                        }
+                    }
+                }
+                if trimmed.contains("require(") {
+                    if let Some(start) = trimmed.find("require(") {
+                        let rest = &trimmed[start + 8..];
+                        if let Some(end) = rest.find(')') {
+                            let path =
+                                rest[..end].trim().trim_matches(|c| c == '\'' || c == '"');
+                            if path.starts_with('.') || path.starts_with('/') {
+                                imports.push(path.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+            "rs" => {
+                if trimmed.starts_with("use crate::") {
+                    let module = trimmed
+                        .trim_start_matches("use crate::")
+                        .split("::")
+                        .next()
+                        .unwrap_or("")
+                        .trim_end_matches(';');
+                    if !module.is_empty() {
+                        imports.push(format!("crate::{}", module));
+                    }
+                }
+                if trimmed.starts_with("mod ") && trimmed.ends_with(';') {
+                    let module = trimmed
+                        .trim_start_matches("mod ")
+                        .trim_end_matches(';')
+                        .trim();
+                    if !module.is_empty() {
+                        imports.push(format!("mod::{}", module));
+                    }
+                }
+            }
+            "py" => {
+                if trimmed.starts_with("from .") || trimmed.starts_with("from ..") {
+                    let parts: Vec<&str> = trimmed.splitn(3, ' ').collect();
+                    if parts.len() >= 2 {
+                        imports.push(parts[1].to_string());
+                    }
+                }
+            }
+            "go" => {
+                if trimmed.starts_with("import ") || trimmed.starts_with('"') {
+                    let path = trimmed
+                        .trim_start_matches("import ")
+                        .trim()
+                        .trim_matches('"')
+                        .trim_matches('(');
+                    if !path.is_empty()
+                        && !path.contains("github.com")
+                        && !path.contains('/')
+                    {
+                        imports.push(path.to_string());
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
+
+    imports.dedup();
+    imports
+}
+
+/// Build a brief context snippet from imported local files.
+/// Returns a string like `"\n--- IMPORTED LOCAL DEPENDENCIES ---\n[from ./types]:\n..."`.
+pub fn build_import_context(
+    imports: &[String],
+    file_path: &str,
+    root_path: &std::path::Path,
+    max_chars: usize,
+) -> String {
+    if imports.is_empty() {
+        return String::new();
+    }
+
+    let file_dir = std::path::Path::new(file_path)
+        .parent()
+        .unwrap_or(std::path::Path::new(""));
+
+    let mut context = String::from("\n--- IMPORTED LOCAL DEPENDENCIES ---\n");
+    let mut chars_used = context.len();
+
+    for import_path in imports.iter().take(5) {
+        if import_path.starts_with("crate::") || import_path.starts_with("mod::") {
+            continue;
+        }
+
+        let resolved = file_dir.join(import_path);
+
+        let candidates = [
+            resolved.with_extension("ts"),
+            resolved.with_extension("tsx"),
+            resolved.with_extension("js"),
+            resolved.with_extension("jsx"),
+            resolved.join("index.ts"),
+            resolved.join("index.tsx"),
+        ];
+
+        for candidate in &candidates {
+            let full_path = root_path.join(candidate);
+            if full_path.exists() {
+                if let Ok(file_content) = std::fs::read_to_string(&full_path) {
+                    let signatures = extract_type_signatures(&file_content, 500);
+                    if !signatures.is_empty() {
+                        let entry = format!("[from {}]:\n{}\n", import_path, signatures);
+                        if chars_used + entry.len() > max_chars {
+                            break;
+                        }
+                        context.push_str(&entry);
+                        chars_used += entry.len();
+                    }
+                }
+                break;
+            }
+        }
+
+        if chars_used > max_chars {
+            break;
+        }
+    }
+
+    if context.len() > 40 {
+        context
+    } else {
+        String::new()
+    }
+}
+
+/// Extract type signatures from a source file (interfaces, types, function signatures)
+fn extract_type_signatures(content: &str, max_chars: usize) -> String {
+    let mut signatures = String::new();
+    let mut in_interface = false;
+    let mut brace_depth: i32 = 0;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+
+        if trimmed.starts_with("export interface ") || trimmed.starts_with("export type ") {
+            in_interface = true;
+            brace_depth = 0;
+        }
+
+        if in_interface {
+            signatures.push_str(trimmed);
+            signatures.push('\n');
+            brace_depth += trimmed.matches('{').count() as i32;
+            brace_depth -= trimmed.matches('}').count() as i32;
+            if brace_depth <= 0 && signatures.len() > 10 {
+                in_interface = false;
+            }
+        }
+
+        if (trimmed.starts_with("export function ")
+            || trimmed.starts_with("export const ")
+            || trimmed.starts_with("export async function "))
+            && !in_interface
+        {
+            let sig_line = if let Some(brace_pos) = trimmed.find('{') {
+                &trimmed[..brace_pos]
+            } else {
+                trimmed
+            };
+            signatures.push_str(sig_line.trim());
+            signatures.push_str(" { ... }\n");
+        }
+
+        if signatures.len() > max_chars {
+            signatures.truncate(max_chars);
+            signatures.push_str("\n...(truncated)");
+            break;
+        }
+    }
+
+    signatures
 }
