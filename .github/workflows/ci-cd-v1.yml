@@ -30,7 +30,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: 🏗️ Build guardian-cli (release)
-        run: cargo build --release --manifest-path guardian-cli/Cargo.toml
+        run: cargo build --release --manifest-path guardian-cli/Cargo.toml --target-dir guardian-cli/target
 
       - name: 🚦 Run Release Gate CI Smoke
         run: bash scripts/ci/release_gate_ci_smoke.sh

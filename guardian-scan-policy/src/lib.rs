@@ -3,18 +3,13 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ScanProfile {
+    #[default]
     Source,
     Extended,
     Full,
-}
-
-impl Default for ScanProfile {
-    fn default() -> Self {
-        Self::Source
-    }
 }
 
 impl ScanProfile {
@@ -176,9 +171,10 @@ pub fn load_policy_for_root(
     Ok((policy, path))
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ReleaseDecision {
+    #[default]
     Pass,
     PassWithWarning,
     BlockUntilApproved,
@@ -193,12 +189,6 @@ impl ReleaseDecision {
             Self::BlockUntilApproved => "BLOCK_UNTIL_APPROVED",
             Self::Overridden => "OVERRIDDEN",
         }
-    }
-}
-
-impl Default for ReleaseDecision {
-    fn default() -> Self {
-        Self::Pass
     }
 }
 
