@@ -359,6 +359,7 @@ export function ThemeTab({
           >
             <option value="space-grotesk">{t("settings.general.fontFamilySpaceGrotesk")}</option>
             <option value="inter">{t("settings.general.fontFamilyInter")}</option>
+            <option value="poppins">{t("settings.general.fontFamilyPoppins")}</option>
             <option value="system-ui">{t("settings.general.fontFamilySystem")}</option>
             <option value="source-sans-3">{t("settings.general.fontFamilySourceSans")}</option>
             <option value="ibm-plex-sans">{t("settings.general.fontFamilyIbmPlex")}</option>

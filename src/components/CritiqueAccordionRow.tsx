@@ -201,7 +201,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                     </div>
                 </div>
 
-                <div className="w-52 shrink-0 flex items-center justify-end gap-2 translate-x-1">
+                <div className="w-64 shrink-0 flex items-center justify-end gap-1.5">
                     {(isCritical || isWarning) && (
                         <button
                             onClick={(event) => {
@@ -227,31 +227,13 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                     {log.suggested_diff && undoReady && (
                         <button
                             onClick={undoFix}
-                            className="flex items-center gap-1.5 text-xs font-bold text-text-main bg-[var(--panel-muted)] px-2.5 py-1.5 rounded-lg border border-border-main hover:bg-[var(--panel-bg)] transition-colors cursor-pointer z-10 min-w-[112px] justify-center whitespace-nowrap"
+                            className="flex items-center gap-1.5 text-xs font-bold text-text-main bg-[var(--panel-muted)] px-2.5 py-1.5 rounded-lg border border-border-main hover:bg-[var(--panel-bg)] transition-colors cursor-pointer z-10 min-w-[76px] justify-center whitespace-nowrap"
                             title={t("reviews.undoTitle")}
                         >
                             <RotateCcw className="w-3.5 h-3.5" /> {t("critique.undo")}
                         </button>
                     )}
-                    {log.category && (
-                        <span className={clsx(
-                            "px-1.5 py-0.5 rounded-md text-[11px] font-medium border shrink-0",
-                            log.category === "Security"
-                                ? "bg-red-500/10 text-red-400 border-red-500/20"
-                                : log.category === "Performance"
-                                    ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                                    : log.category === "Architecture"
-                                        ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
-                                        : log.category === "Reliability"
-                                            ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                                            : log.category === "TypeSafety"
-                                                ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
-                                                : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                        )}>
-                            <Tag className="w-2.5 h-2.5 inline mr-0.5" />
-                            {log.category}
-                        </span>
-                    )}
+
                     <span className={clsx(
                         "px-2 py-1 rounded-md text-xs font-medium border shrink-0 min-w-[84px] text-center",
                         isCritical ? "bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] border-[color:var(--tone-critical-border)]" :
@@ -260,11 +242,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                     )}>
                         {severityLabel}
                     </span>
-                    {log.confidence != null && (
-                        <span className="text-[11px] font-mono text-text-muted opacity-50 ml-1" title={`Confidence: ${Math.round(log.confidence * 100)}%`}>
-                            {Math.round(log.confidence * 100)}%
-                        </span>
-                    )}
+
                     {isExpanded ? <ChevronDown className="w-4 h-4 opacity-40" /> : <ChevronRight className="w-4 h-4 opacity-20 group-hover:opacity-60 transition-opacity" />}
                 </div>
             </div>

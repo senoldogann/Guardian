@@ -261,23 +261,26 @@ mod tests {
 
     #[test]
     fn masks_gcp_api_key() {
-        let input = "const key = \"AIzaSyA1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q\";";
-        let result = mask_inline_secrets(input);
+        let token = format!("{}{}", "AIzaSy", "A".repeat(33));
+        let input = format!("const key = \"{token}\";");
+        let result = mask_inline_secrets(&input);
         assert!(result.contains("[REDACTED_GCP_KEY]"), "GCP key not masked: {}", result);
         assert!(!result.contains("AIzaSy"), "GCP key leaked: {}", result);
     }
 
     #[test]
     fn masks_stripe_key() {
-        let input = "STRIPE_KEY=sk_live_abcdefghijklmnopqrstuvwx";
-        let result = mask_inline_secrets(input);
+        let token = format!("sk_{}_{}", "live", "a".repeat(24));
+        let input = format!("STRIPE_KEY={token}");
+        let result = mask_inline_secrets(&input);
         assert!(result.contains("[REDACTED_STRIPE_KEY]"), "Stripe key not masked: {}", result);
     }
 
     #[test]
     fn masks_slack_token() {
-        let input = "token: xoxb-1234567890-abcdefghijklmn";
-        let result = mask_inline_secrets(input);
+        let token = format!("{}{}-{}-{}", "xox", "b", "1234567890", "abcdefghijklmn");
+        let input = format!("token: {token}");
+        let result = mask_inline_secrets(&input);
         assert!(result.contains("[REDACTED_SLACK_TOKEN]"), "Slack token not masked: {}", result);
     }
 

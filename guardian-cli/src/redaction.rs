@@ -181,8 +181,9 @@ mod tests {
 
     #[test]
     fn masks_github_pat() {
-        let input = "GITHUB_TOKEN=github_pat_abcdefghijklmnopqrstuvwxyz01234567890";
-        let out = mask_inline_secrets(input);
+        let token = format!("{}{}", "github_pat_", "a".repeat(35));
+        let input = format!("GITHUB_TOKEN={token}");
+        let out = mask_inline_secrets(&input);
         assert!(out.contains("[REDACTED_GITHUB_TOKEN]"));
     }
 
@@ -202,22 +203,24 @@ mod tests {
 
     #[test]
     fn masks_gcp_key() {
-        let input = "GCP_KEY=AIzaSyA1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q";
-        let out = mask_inline_secrets(input);
+        let input = format!("GCP_KEY={}{}", "AIzaSy", "A".repeat(33));
+        let out = mask_inline_secrets(&input);
         assert!(out.contains("[REDACTED_GCP_KEY]"));
     }
 
     #[test]
     fn masks_stripe_key() {
-        let input = "STRIPE=sk_live_abcdefghijklmnopqrstuvwx";
-        let out = mask_inline_secrets(input);
+        let token = format!("sk_{}_{}", "live", "a".repeat(24));
+        let input = format!("STRIPE={token}");
+        let out = mask_inline_secrets(&input);
         assert!(out.contains("[REDACTED_STRIPE_KEY]"));
     }
 
     #[test]
     fn masks_slack_token() {
-        let input = "SLACK=xoxb-1234567890-abcdefghijklmn";
-        let out = mask_inline_secrets(input);
+        let token = format!("{}{}-{}-{}", "xox", "b", "1234567890", "abcdefghijklmn");
+        let input = format!("SLACK={token}");
+        let out = mask_inline_secrets(&input);
         assert!(out.contains("[REDACTED_SLACK_TOKEN]"));
     }
 

@@ -10,9 +10,10 @@ const MAX_MODEL_CUSTOM_INSTRUCTION_CHARS: usize = 1200;
 const DEFAULT_MODEL_CUSTOM_INSTRUCTION: &str =
     "Keep release-governance clarity first: explain risk and release impact before fix details, \
 and prefer minimal, policy-compliant, production-safe changes.";
-const ALLOWED_FONT_FAMILIES: [&str; 5] = [
+const ALLOWED_FONT_FAMILIES: [&str; 6] = [
     "space-grotesk",
     "inter",
+    "poppins",
     "system-ui",
     "source-sans-3",
     "ibm-plex-sans",

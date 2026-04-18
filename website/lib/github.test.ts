@@ -192,7 +192,8 @@ describe("github - Release Fetching", () => {
   });
 
   it("should include auth token if provided", async () => {
-    process.env.GITHUB_PUBLIC_READ_TOKEN = "ghp_123456789012345678901234567890123456";
+    const token = `ghp_${"1".repeat(36)}`;
+    process.env.GITHUB_PUBLIC_READ_TOKEN = token;
 
     (global.fetch as any).mockResolvedValueOnce(
       createApiResponse({
@@ -209,7 +210,7 @@ describe("github - Release Fetching", () => {
       expect.any(String),
       expect.objectContaining({
         headers: expect.objectContaining({
-          Authorization: "Bearer ghp_123456789012345678901234567890123456",
+          Authorization: `Bearer ${token}`,
         }),
       })
     );

@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useLocalStorage } from "./useLocalStorage";
 import { STORAGE_KEYS } from "../constants";
 import type { ThemeMode } from "./useTheme";
@@ -20,6 +21,8 @@ function resolveFontFamily(value: string | undefined): string {
   switch ((value ?? "").trim().toLowerCase()) {
     case "inter":
       return '"Inter", "Avenir Next", "Segoe UI", sans-serif';
+    case "poppins":
+      return '"Poppins", "Avenir Next", "Segoe UI", sans-serif';
     case "system-ui":
       return 'system-ui, -apple-system, "Segoe UI", sans-serif';
     case "source-sans-3":
@@ -78,9 +81,12 @@ export function useThemeManager(
     });
   }, [setTheme, updateUserPreferences]);
 
-  // Sync data-theme attribute
+  // Sync data-theme attribute and native window theme
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
+    invoke("set_window_theme", { isDark: theme === "dark" }).catch(() => {
+      // Tauri API olmayan ortamlarda (web preview) sessizce geç
+    });
   }, [theme]);
 
   // Apply palette CSS variables
@@ -96,15 +102,15 @@ export function useThemeManager(
       const palette =
         mode === "light"
           ? {
-              accent: normalizeHexColor(prefs.light_palette?.accent, "#0284c7"),
-              panel: normalizeHexColor(prefs.light_palette?.panel, "#ffffff"),
-              text: normalizeHexColor(prefs.light_palette?.text, "#0f172a"),
-            }
+            accent: normalizeHexColor(prefs.light_palette?.accent, "#0284c7"),
+            panel: normalizeHexColor(prefs.light_palette?.panel, "#ffffff"),
+            text: normalizeHexColor(prefs.light_palette?.text, "#0f172a"),
+          }
           : {
-              accent: normalizeHexColor(prefs.dark_palette?.accent, "#38bdf8"),
-              panel: normalizeHexColor(prefs.dark_palette?.panel, "#111827"),
-              text: normalizeHexColor(prefs.dark_palette?.text, "#edf2f7"),
-            };
+            accent: normalizeHexColor(prefs.dark_palette?.accent, "#38bdf8"),
+            panel: normalizeHexColor(prefs.dark_palette?.panel, "#111827"),
+            text: normalizeHexColor(prefs.dark_palette?.text, "#edf2f7"),
+          };
       const panelIsNearWhite = mode === "light" && isNearWhiteHex(palette.panel);
 
       const dynamicSurface =

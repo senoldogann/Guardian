@@ -1686,6 +1686,17 @@ fn get_app_version() -> String {
 }
 
 #[tauri::command]
+async fn set_window_theme(app: AppHandle, is_dark: bool) -> Result<(), String> {
+    use tauri::Theme;
+    if let Some(window) = app.get_webview_window("main") {
+        window
+            .set_theme(if is_dark { Some(Theme::Dark) } else { Some(Theme::Light) })
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
 async fn get_chat_history(
     path: String,
     limit: Option<u32>,
@@ -1932,7 +1943,8 @@ pub fn run() -> AnyhowResult<()> {
             set_user_preferences,
             reset_user_preferences,
             get_scan_profile_config,
-            set_scan_profile_config
+            set_scan_profile_config,
+            set_window_theme
         ])
         .run(tauri::generate_context!())
         .context("error while running tauri application")?;

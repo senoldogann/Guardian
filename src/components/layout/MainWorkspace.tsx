@@ -320,7 +320,7 @@ export function MainWorkspace({
           <div className="w-8 shrink-0">{t("monitor.tableIndex")}</div>
           <div className="w-48 shrink-0">{t("monitor.tableFilePath")}</div>
           <div className="flex-1 min-w-0 px-4">{t("monitor.tableMessage")}</div>
-          <div className="w-40 text-right shrink-0">{t("monitor.tableActions")}</div>
+          <div className="w-64 text-right shrink-0">{t("monitor.tableActions")}</div>
         </div>
 
         {baselineView !== "resolved" && filteredLogs.length > 0 && (

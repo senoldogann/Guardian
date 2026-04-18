@@ -96,6 +96,7 @@ export const tr: Messages = {
       fontFamilyLabel: "Yazı tipi ailesi",
       fontFamilySpaceGrotesk: "Space Grotesk",
       fontFamilyInter: "Inter",
+      fontFamilyPoppins: "Poppins",
       fontFamilySystem: "System UI",
       fontFamilySourceSans: "Source Sans 3",
       fontFamilyIbmPlex: "IBM Plex Sans",
