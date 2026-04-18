@@ -1,5 +1,5 @@
 [workspace]
-members = ["src-tauri", "guardian-cli", "guardian-scan-policy"]
+members = ["src-tauri", "guardian-cli", "guardian-scan-policy", "guardian-mcp"]
 resolver = "2"
 
 [workspace.dependencies]
