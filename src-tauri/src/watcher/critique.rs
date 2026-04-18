@@ -430,7 +430,10 @@ pub(super) fn calibrate_critique_for_precision(
     true
 }
 
-pub(super) fn should_surface_critique(critique: &crate::ai_client::Critique, profile: ScanProfile) -> bool {
+pub(super) fn should_surface_critique(
+    critique: &crate::ai_client::Critique,
+    profile: ScanProfile,
+) -> bool {
     let severity = critique.severity.trim().to_lowercase();
     // Critical is always shown.
     if severity == "critical" {

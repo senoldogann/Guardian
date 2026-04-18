@@ -291,7 +291,10 @@ pub(super) fn merge_project_intent_with_recent_fix_history(
         if !batch_paths.contains(&entry.file_path) {
             continue;
         }
-        recent_fix_history.push(format!("- `{}` patched at {}", entry.file_path, entry.applied_at));
+        recent_fix_history.push(format!(
+            "- `{}` patched at {}",
+            entry.file_path, entry.applied_at
+        ));
         if recent_fix_history.len() >= 8 {
             break;
         }
@@ -427,7 +430,8 @@ async fn process_batch(
     );
 
     // Prepare Prompt Data
-    let (prompt_data, estimated_tokens, hash_by_path, context_files) = build_prompt_data(&items, std::path::Path::new(root));
+    let (prompt_data, estimated_tokens, hash_by_path, context_files) =
+        build_prompt_data(&items, std::path::Path::new(root));
     let enriched_project_context =
         merge_project_intent_with_recent_fix_history(project_intent_pack, root, &items);
     emit_ai_context(app, root, client, estimated_tokens, &context_files);

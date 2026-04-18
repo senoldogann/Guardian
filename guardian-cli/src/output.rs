@@ -186,12 +186,12 @@ fn render_markdown(report: &ScanReport) -> String {
         "- Requires human approval: `{}`\n",
         report.requires_human_approval
     ));
-    out.push_str(&format!("- AI-heavy change: `{}`\n", report.ai_heavy_change));
+    out.push_str(&format!(
+        "- AI-heavy change: `{}`\n",
+        report.ai_heavy_change
+    ));
     if let Some(override_info) = &report.override_info {
-        let approver = override_info
-            .approver
-            .as_deref()
-            .unwrap_or("not provided");
+        let approver = override_info.approver.as_deref().unwrap_or("not provided");
         let reason = override_info.reason.as_deref().unwrap_or("not provided");
         out.push_str(&format!(
             "- Override: applied={}, approver=`{}`, reason=`{}`\n",

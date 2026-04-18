@@ -1,10 +1,12 @@
 use crate::baseline::{load_baseline, resolve_baseline_path, Baseline};
 use crate::evidence::{EvidenceFinding, EvidenceReport};
 use crate::guardian_lock::{self, LockMode};
-use crate::output::{render_report, write_report, Finding, ReleaseOverride, ReportFormat, ScanReport};
+use crate::output::{
+    render_report, write_report, Finding, ReleaseOverride, ReportFormat, ScanReport,
+};
 use crate::redaction::{is_sensitive_file, mask_inline_secrets};
-use crate::run_manifest::{FileInventoryEntry, ManifestLimits, RunManifest};
 use crate::rules_hash::get_rules_fingerprint;
+use crate::run_manifest::{FileInventoryEntry, ManifestLimits, RunManifest};
 use anyhow::{Context, Result};
 use guardian_scan_policy::{
     classify_ai_heavy_change, evaluate_release_decision, load_policy_for_root, DecisionInputs,
@@ -108,8 +110,8 @@ pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
         anyhow::bail!("--override-reason requires --approver.");
     }
 
-    let (policy, policy_path) = load_policy_for_root(&root, cfg.policy_path.as_deref())
-        .map_err(anyhow::Error::msg)?;
+    let (policy, policy_path) =
+        load_policy_for_root(&root, cfg.policy_path.as_deref()).map_err(anyhow::Error::msg)?;
 
     let rules_hash = get_rules_fingerprint(&root);
     if rules_hash.is_empty() {
@@ -617,8 +619,7 @@ fn collect_files(
 
         // Policy decisions must be based on workspace-relative paths. Using absolute paths can
         // accidentally match ignored segments from host directories (for example `/tmp` in CI).
-        let decision =
-            guardian_scan_policy::classify_path(Path::new(&rel_path), false, profile);
+        let decision = guardian_scan_policy::classify_path(Path::new(&rel_path), false, profile);
         if !decision.include {
             if inventory.len() < max_inventory {
                 inventory.push(FileInventoryEntry {
@@ -689,12 +690,14 @@ fn sha256_hex(bytes: &[u8]) -> String {
 fn write_json_pretty<T: serde::Serialize>(path: &Path, value: &T) -> Result<()> {
     if let Some(parent) = path.parent() {
         if !parent.as_os_str().is_empty() {
-            fs::create_dir_all(parent)
-                .with_context(|| format!("Failed to create output directory: {}", parent.display()))?;
+            fs::create_dir_all(parent).with_context(|| {
+                format!("Failed to create output directory: {}", parent.display())
+            })?;
         }
     }
     let payload = serde_json::to_string_pretty(value).context("JSON encode failed")?;
-    fs::write(path, payload).with_context(|| format!("Failed to write file: {}", path.display()))?;
+    fs::write(path, payload)
+        .with_context(|| format!("Failed to write file: {}", path.display()))?;
     Ok(())
 }
 
@@ -1259,7 +1262,10 @@ mod tests {
         let mut paths: Vec<String> = collected.scanned.into_iter().map(|f| f.rel_path).collect();
         paths.sort();
 
-        assert_eq!(paths, vec!["main.py".to_string(), "src/main.ts".to_string()]);
+        assert_eq!(
+            paths,
+            vec!["main.py".to_string(), "src/main.ts".to_string()]
+        );
     }
 
     #[test]
@@ -1329,7 +1335,8 @@ mod tests {
 
         let collected =
             collect_files(root, ScanProfile::Source, 50, 50_000, &HashSet::new()).unwrap();
-        let mut by_path: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+        let mut by_path: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
         for entry in collected.inventory {
             by_path.insert(entry.path_rel, entry.reason);
         }
@@ -1363,11 +1370,7 @@ mod tests {
             "const email = \"test@example.com\";\nconst key = \"{}\";\nconst x = a.unwrap();\n",
             openai_key
         );
-        write_file(
-            root,
-            "src/a.ts",
-            content.as_str(),
-        );
+        write_file(root, "src/a.ts", content.as_str());
 
         let report_path = root.join("report.json");
         let evidence_path = root.join("evidence.json");
@@ -1408,7 +1411,9 @@ mod tests {
         assert!(!first.evidence_preview.contains("test@example.com"));
         assert!(first.evidence_preview.contains("[REDACTED_OPENAI_KEY]"));
         assert!(!first.evidence_preview.contains(openai_key.as_str()));
-        assert!(!first.evidence_preview.contains(root.to_string_lossy().as_ref()));
+        assert!(!first
+            .evidence_preview
+            .contains(root.to_string_lossy().as_ref()));
     }
 
     #[test]
@@ -1782,10 +1787,12 @@ mod tests {
         let raw = fs::read_to_string(&report_path).unwrap();
         let report: ScanReport = serde_json::from_str(&raw).unwrap();
         assert_eq!(report.release_decision, ReleaseDecision::Overridden);
-        assert!(report
-            .override_info
-            .as_ref()
-            .expect("override info")
-            .applied);
+        assert!(
+            report
+                .override_info
+                .as_ref()
+                .expect("override info")
+                .applied
+        );
     }
 }

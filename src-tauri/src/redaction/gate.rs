@@ -264,7 +264,11 @@ mod tests {
         let token = format!("{}{}", "AIzaSy", "A".repeat(33));
         let input = format!("const key = \"{token}\";");
         let result = mask_inline_secrets(&input);
-        assert!(result.contains("[REDACTED_GCP_KEY]"), "GCP key not masked: {}", result);
+        assert!(
+            result.contains("[REDACTED_GCP_KEY]"),
+            "GCP key not masked: {}",
+            result
+        );
         assert!(!result.contains("AIzaSy"), "GCP key leaked: {}", result);
     }
 
@@ -273,7 +277,11 @@ mod tests {
         let token = format!("sk_{}_{}", "live", "a".repeat(24));
         let input = format!("STRIPE_KEY={token}");
         let result = mask_inline_secrets(&input);
-        assert!(result.contains("[REDACTED_STRIPE_KEY]"), "Stripe key not masked: {}", result);
+        assert!(
+            result.contains("[REDACTED_STRIPE_KEY]"),
+            "Stripe key not masked: {}",
+            result
+        );
     }
 
     #[test]
@@ -281,13 +289,21 @@ mod tests {
         let token = format!("{}{}-{}-{}", "xox", "b", "1234567890", "abcdefghijklmn");
         let input = format!("token: {token}");
         let result = mask_inline_secrets(&input);
-        assert!(result.contains("[REDACTED_SLACK_TOKEN]"), "Slack token not masked: {}", result);
+        assert!(
+            result.contains("[REDACTED_SLACK_TOKEN]"),
+            "Slack token not masked: {}",
+            result
+        );
     }
 
     #[test]
     fn masks_npm_token() {
         let input = "//registry.npmjs.org/:_authToken=npm_AbCdEfGhIjKlMnOpQrStUvWxYz1234567890";
         let result = mask_inline_secrets(input);
-        assert!(result.contains("[REDACTED_NPM_TOKEN]"), "npm token not masked: {}", result);
+        assert!(
+            result.contains("[REDACTED_NPM_TOKEN]"),
+            "npm token not masked: {}",
+            result
+        );
     }
 }

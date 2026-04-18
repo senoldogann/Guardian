@@ -48,4 +48,3 @@ pub fn resolve_baseline_path(root: &Path, candidate: Option<PathBuf>) -> Option<
     }
     None
 }
-

@@ -170,13 +170,8 @@ pub fn load_policy_for_root(
             err
         )
     })?;
-    let policy: GuardianPolicy = serde_yaml::from_str(&raw).map_err(|err| {
-        format!(
-            "Invalid policy YAML {}: {}",
-            path.to_string_lossy(),
-            err
-        )
-    })?;
+    let policy: GuardianPolicy = serde_yaml::from_str(&raw)
+        .map_err(|err| format!("Invalid policy YAML {}: {}", path.to_string_lossy(), err))?;
     policy.validate()?;
     Ok((policy, path))
 }
@@ -320,9 +315,7 @@ pub fn evaluate_release_decision(
         ));
     }
     if requires_human_approval && !inputs.human_approved {
-        blockers.push(
-            "AI-heavy intake requires human approval before release.".to_string(),
-        );
+        blockers.push("AI-heavy intake requires human approval before release.".to_string());
     }
 
     if blockers.is_empty() {
@@ -416,11 +409,12 @@ impl PathDecision {
 }
 
 const SOURCE_EXTENSIONS: &[&str] = &[
-    "rs", "ts", "tsx", "js", "jsx", "mjs", "cjs", "py", "go", "java", "kt", "swift",
-    "cs", "rb", "php", "c", "cc", "cpp", "h", "hpp", "sql", "vue", "svelte",
+    "rs", "ts", "tsx", "js", "jsx", "mjs", "cjs", "py", "go", "java", "kt", "swift", "cs", "rb",
+    "php", "c", "cc", "cpp", "h", "hpp", "sql", "vue", "svelte",
 ];
 
-const EXTENDED_EXTRA_EXTENSIONS: &[&str] = &["sh", "yml", "yaml", "toml", "json", "ini", "cfg", "conf"];
+const EXTENDED_EXTRA_EXTENSIONS: &[&str] =
+    &["sh", "yml", "yaml", "toml", "json", "ini", "cfg", "conf"];
 
 const COMMON_IGNORED_SEGMENTS: &[&str] = &[
     ".git",
@@ -502,10 +496,9 @@ const EXTENDED_SPECIAL_FILE_NAMES: &[&str] = &[
 ];
 
 const BINARY_EXTENSIONS: &[&str] = &[
-    "exe", "dll", "so", "dylib", "bin", "o", "a", "lib", "png", "jpg", "jpeg", "gif", "bmp",
-    "ico", "mp3", "mp4", "wav", "avi", "mov", "mkv", "zip", "tar", "gz", "rar", "7z", "bz2",
-    "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "wasm", "class", "jar", "pyc", "pyo",
-    "lockb",
+    "exe", "dll", "so", "dylib", "bin", "o", "a", "lib", "png", "jpg", "jpeg", "gif", "bmp", "ico",
+    "mp3", "mp4", "wav", "avi", "mov", "mkv", "zip", "tar", "gz", "rar", "7z", "bz2", "pdf", "doc",
+    "docx", "xls", "xlsx", "ppt", "pptx", "wasm", "class", "jar", "pyc", "pyo", "lockb",
 ];
 
 pub fn should_skip_path(path: &Path, is_chat: bool, profile: ScanProfile) -> bool {
@@ -619,7 +612,10 @@ fn has_allowed_source_extension(path: &Path) -> bool {
 
 fn has_allowed_extended_extension(path: &Path) -> bool {
     extension_lower(path)
-        .map(|ext| SOURCE_EXTENSIONS.contains(&ext.as_str()) || EXTENDED_EXTRA_EXTENSIONS.contains(&ext.as_str()))
+        .map(|ext| {
+            SOURCE_EXTENSIONS.contains(&ext.as_str())
+                || EXTENDED_EXTRA_EXTENSIONS.contains(&ext.as_str())
+        })
         .unwrap_or(false)
 }
 
@@ -728,8 +724,14 @@ mod tests {
 
     #[test]
     fn parse_profile_from_str() {
-        assert_eq!(ScanProfile::from_str("source").unwrap(), ScanProfile::Source);
-        assert_eq!(ScanProfile::from_str("extended").unwrap(), ScanProfile::Extended);
+        assert_eq!(
+            ScanProfile::from_str("source").unwrap(),
+            ScanProfile::Source
+        );
+        assert_eq!(
+            ScanProfile::from_str("extended").unwrap(),
+            ScanProfile::Extended
+        );
         assert_eq!(ScanProfile::from_str("full").unwrap(), ScanProfile::Full);
         assert!(ScanProfile::from_str("invalid").is_err());
     }

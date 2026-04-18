@@ -373,17 +373,15 @@ async fn start_monitoring(
         config::api_key_for_provider_or_empty(&provider.provider_id).map_err(|e| e.to_string())?;
     let scan_profile_cfg = load_scan_profile_config(&app)?;
     let scan_profile = normalize_scan_profile(&scan_profile_cfg.profile)?;
-    let user_preferences =
-        user_preferences::load_user_preferences(&app).unwrap_or_else(|err| {
-            warn!(
-                target: "guardian::settings",
-                "Falling back to default user preferences for monitoring start: {}",
-                err
-            );
-            user_preferences::UserPreferencesV1::default()
-        });
-    let effective_auto_verify =
-        auto_verify_enabled.unwrap_or(user_preferences.auto_verify_enabled);
+    let user_preferences = user_preferences::load_user_preferences(&app).unwrap_or_else(|err| {
+        warn!(
+            target: "guardian::settings",
+            "Falling back to default user preferences for monitoring start: {}",
+            err
+        );
+        user_preferences::UserPreferencesV1::default()
+    });
+    let effective_auto_verify = auto_verify_enabled.unwrap_or(user_preferences.auto_verify_enabled);
     let effective_language = language
         .unwrap_or_else(|| user_preferences.language.clone())
         .trim()
@@ -446,17 +444,15 @@ async fn add_monitored_workspace(
         config::api_key_for_provider_or_empty(&provider.provider_id).map_err(|e| e.to_string())?;
     let scan_profile_cfg = load_scan_profile_config(&app)?;
     let scan_profile = normalize_scan_profile(&scan_profile_cfg.profile)?;
-    let user_preferences =
-        user_preferences::load_user_preferences(&app).unwrap_or_else(|err| {
-            warn!(
-                target: "guardian::settings",
-                "Falling back to default user preferences for workspace add: {}",
-                err
-            );
-            user_preferences::UserPreferencesV1::default()
-        });
-    let effective_auto_verify =
-        auto_verify_enabled.unwrap_or(user_preferences.auto_verify_enabled);
+    let user_preferences = user_preferences::load_user_preferences(&app).unwrap_or_else(|err| {
+        warn!(
+            target: "guardian::settings",
+            "Falling back to default user preferences for workspace add: {}",
+            err
+        );
+        user_preferences::UserPreferencesV1::default()
+    });
+    let effective_auto_verify = auto_verify_enabled.unwrap_or(user_preferences.auto_verify_enabled);
     let effective_language = language
         .unwrap_or_else(|| user_preferences.language.clone())
         .trim()
@@ -1033,7 +1029,11 @@ async fn apply_fix_now(
 }
 
 #[tauri::command]
-async fn undo_fix(file_path: String, root: String, auth_state: tauri::State<'_, AuthState>) -> Result<String, String> {
+async fn undo_fix(
+    file_path: String,
+    root: String,
+    auth_state: tauri::State<'_, AuthState>,
+) -> Result<String, String> {
     if auth_state.get_user().await.is_none() {
         return Err("Authentication required to undo fixes.".to_string());
     }
@@ -1690,7 +1690,11 @@ async fn set_window_theme(app: AppHandle, is_dark: bool) -> Result<(), String> {
     use tauri::Theme;
     if let Some(window) = app.get_webview_window("main") {
         window
-            .set_theme(if is_dark { Some(Theme::Dark) } else { Some(Theme::Light) })
+            .set_theme(if is_dark {
+                Some(Theme::Dark)
+            } else {
+                Some(Theme::Light)
+            })
             .map_err(|e| e.to_string())?;
     }
     Ok(())

@@ -312,11 +312,17 @@ fn atomic_write(path: &Path, payload: &str) -> Result<(), String> {
     fs::create_dir_all(parent).map_err(|e| e.to_string())?;
 
     let mut temp = tempfile::NamedTempFile::new_in(parent).map_err(|e| e.to_string())?;
-    temp.write_all(payload.as_bytes()).map_err(|e| e.to_string())?;
+    temp.write_all(payload.as_bytes())
+        .map_err(|e| e.to_string())?;
     temp.flush().map_err(|e| e.to_string())?;
     temp.as_file().sync_all().map_err(|e| e.to_string())?;
-    temp.persist(path)
-        .map_err(|e| format!("Failed to atomically persist {}: {}", path.display(), e.error))?;
+    temp.persist(path).map_err(|e| {
+        format!(
+            "Failed to atomically persist {}: {}",
+            path.display(),
+            e.error
+        )
+    })?;
     Ok(())
 }
 
@@ -344,7 +350,10 @@ fn save_user_preferences_to_paths(
 pub fn load_user_preferences(app: &AppHandle) -> Result<UserPreferencesV1, String> {
     let primary_path = user_preferences_path(app)?;
     let backup_path = last_good_preferences_path(&primary_path);
-    Ok(load_user_preferences_from_paths(&primary_path, &backup_path))
+    Ok(load_user_preferences_from_paths(
+        &primary_path,
+        &backup_path,
+    ))
 }
 
 pub fn save_user_preferences(

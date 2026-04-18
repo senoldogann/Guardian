@@ -409,7 +409,18 @@ fn handle_classify_paths(arguments: &Value) -> Result<Value> {
     let mut files: Vec<Value> = Vec::new();
     let mut truncated = false;
 
-    walk_dir(root, root, profile, MAX_FILES, &mut total, &mut candidates, &mut skipped, &mut skip_reasons, &mut files, &mut truncated);
+    walk_dir(
+        root,
+        root,
+        profile,
+        MAX_FILES,
+        &mut total,
+        &mut candidates,
+        &mut skipped,
+        &mut skip_reasons,
+        &mut files,
+        &mut truncated,
+    );
 
     Ok(mcp_json_response(&json!({
         "workspace_path": workspace,
@@ -451,11 +462,27 @@ fn walk_dir<'a>(
         if path.is_dir() {
             // Skip common ignored directories early
             if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                if name.starts_with('.') || name == "node_modules" || name == "target" || name == "dist" || name == "build" {
+                if name.starts_with('.')
+                    || name == "node_modules"
+                    || name == "target"
+                    || name == "dist"
+                    || name == "build"
+                {
                     continue;
                 }
             }
-            walk_dir(&path, root, profile, max_files, total, candidates, skipped, skip_reasons, files, truncated);
+            walk_dir(
+                &path,
+                root,
+                profile,
+                max_files,
+                total,
+                candidates,
+                skipped,
+                skip_reasons,
+                files,
+                truncated,
+            );
             continue;
         }
 
@@ -478,7 +505,8 @@ fn walk_dir<'a>(
             *skipped += 1;
             let reason_str = decision.reason.map(|r| r.as_str()).unwrap_or("unknown");
             // Safety: SkipReason::as_str returns &'static str
-            let static_reason: &'static str = decision.reason.map(|r| r.as_str()).unwrap_or("unknown");
+            let static_reason: &'static str =
+                decision.reason.map(|r| r.as_str()).unwrap_or("unknown");
             *skip_reasons.entry(static_reason).or_insert(0) += 1;
             files.push(json!({
                 "path": relative.to_string_lossy(),

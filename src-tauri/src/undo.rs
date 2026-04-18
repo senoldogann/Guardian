@@ -68,12 +68,7 @@ fn looks_like_chat_or_tool_transcript(content: &str) -> bool {
     let lower = window.to_lowercase();
 
     // Strong markers — any single one is enough to reject
-    let strong_markers = [
-        "<invoke",
-        "tool_call",
-        "<minimax:",
-        "minimax:tool_call",
-    ];
+    let strong_markers = ["<invoke", "tool_call", "<minimax:", "minimax:tool_call"];
 
     if strong_markers.iter().any(|m| lower.contains(m)) {
         return true;

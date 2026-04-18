@@ -53,7 +53,11 @@ impl RunManifest {
         mut file_inventory: Vec<FileInventoryEntry>,
     ) -> Self {
         // Stable ordering for deterministic hashing.
-        file_inventory.sort_by(|a, b| a.path_rel.cmp(&b.path_rel).then_with(|| a.reason.cmp(&b.reason)));
+        file_inventory.sort_by(|a, b| {
+            a.path_rel
+                .cmp(&b.path_rel)
+                .then_with(|| a.reason.cmp(&b.reason))
+        });
 
         Self {
             schema_version: 1,
@@ -86,4 +90,3 @@ impl RunManifest {
         hex::encode(hasher.finalize())
     }
 }
-

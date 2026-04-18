@@ -405,8 +405,7 @@ fn embedding_model_for(provider: &str) -> String {
         "ollama" => DEFAULT_OLLAMA_EMBED_MODEL,
         _ => DEFAULT_OPENAI_EMBED_MODEL,
     };
-    crate::read_optional_env(key)
-        .unwrap_or_else(|| default.to_string())
+    crate::read_optional_env(key).unwrap_or_else(|| default.to_string())
 }
 
 fn is_offline_mode() -> bool {

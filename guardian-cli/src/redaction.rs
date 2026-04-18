@@ -13,14 +13,12 @@ static GITHUB_TOKEN: Lazy<Regex> =
 static GITHUB_PAT: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"\bgithub_pat_[A-Za-z0-9_]{30,}\b").unwrap());
 static AWS_ACCESS_KEY: Lazy<Regex> = Lazy::new(|| Regex::new(r"\bAKIA[0-9A-Z]{16}\b").unwrap());
-static GCP_API_KEY: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\bAIzaSy[0-9A-Za-z_-]{33}\b").unwrap());
+static GCP_API_KEY: Lazy<Regex> = Lazy::new(|| Regex::new(r"\bAIzaSy[0-9A-Za-z_-]{33}\b").unwrap());
 static STRIPE_KEY: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"\bsk_(?:live|test)_[0-9a-zA-Z]{24,}\b").unwrap());
 static SLACK_TOKEN: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"\bxox[bpars]-[0-9a-zA-Z-]{10,}\b").unwrap());
-static NPM_TOKEN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\bnpm_[A-Za-z0-9]{20,}\b").unwrap());
+static NPM_TOKEN: Lazy<Regex> = Lazy::new(|| Regex::new(r"\bnpm_[A-Za-z0-9]{20,}\b").unwrap());
 
 // ── Structured Secrets ─────────────────────────────────────────
 static PRIVATE_KEY_BLOCK: Lazy<Regex> = Lazy::new(|| {
@@ -43,8 +41,7 @@ static DATABASE_URL: Lazy<Regex> = Lazy::new(|| {
 // ── PII ────────────────────────────────────────────────────────
 static EMAIL: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"[\p{L}0-9._%+-]+@[\p{L}0-9.-]+\.[\p{L}0-9-]{2,}").unwrap());
-static PHONE_E164: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\+\d[\d\s().-]{6,}\d").unwrap());
+static PHONE_E164: Lazy<Regex> = Lazy::new(|| Regex::new(r"\+\d[\d\s().-]{6,}\d").unwrap());
 static PHONE_NANP: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r"(?:\+?1[-.\s]?)?(?:\(\d{3}\)|\d{3})[-.\s]\d{3}[-.\s]\d{4}\b").unwrap()
 });
@@ -152,9 +149,7 @@ pub fn mask_inline_secrets(content: &str) -> String {
             }
         })
         .to_string();
-    out = PHONE_NANP
-        .replace_all(&out, "[REDACTED_PHONE]")
-        .to_string();
+    out = PHONE_NANP.replace_all(&out, "[REDACTED_PHONE]").to_string();
 
     out
 }
@@ -173,8 +168,7 @@ mod tests {
 
     #[test]
     fn masks_openai_key() {
-        let input =
-            "key=sk-abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ";
+        let input = "key=sk-abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJ";
         let out = mask_inline_secrets(input);
         assert!(out.contains("[REDACTED_OPENAI_KEY]"));
     }
@@ -233,7 +227,8 @@ mod tests {
 
     #[test]
     fn masks_private_key_block() {
-        let input = "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAK...\n-----END RSA PRIVATE KEY-----";
+        let input =
+            "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAK...\n-----END RSA PRIVATE KEY-----";
         let out = mask_inline_secrets(input);
         assert!(out.contains("[REDACTED_PRIVATE_KEY]"));
         assert!(!out.contains("MIIEpAIBAAK"));

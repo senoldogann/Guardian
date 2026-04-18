@@ -998,7 +998,12 @@ JSON MODE:
         let user_prompt = format!("File: {}\n\nDiff:\n{}\n\nNOTE: If you detect a logical violation of the current task/plan, call it out in 'message' and explain why in 'chat_message'.", file_path, diff);
 
         let response = self
-            .send_chat(&full_system_prompt, &user_prompt, true, AiRequestClass::Audit)
+            .send_chat(
+                &full_system_prompt,
+                &user_prompt,
+                true,
+                AiRequestClass::Audit,
+            )
             .await?;
         let queue_wait_ms = response.queue_wait_ms;
         let content_str = response.value;

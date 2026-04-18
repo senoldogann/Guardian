@@ -3,8 +3,8 @@ mod evidence;
 mod guardian_lock;
 mod output;
 mod redaction;
-mod run_manifest;
 mod rules_hash;
+mod run_manifest;
 mod scan;
 
 use clap::{Parser, Subcommand, ValueEnum};

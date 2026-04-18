@@ -16,7 +16,10 @@ static EMBEDDED_PROMPTS: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|
 pub fn load_prompt(name: &str, workspace_root: Option<&std::path::Path>) -> String {
     // Check for workspace-level override
     if let Some(root) = workspace_root {
-        let override_path = root.join(".guardian").join("prompts").join(format!("{}.md", name));
+        let override_path = root
+            .join(".guardian")
+            .join("prompts")
+            .join(format!("{}.md", name));
         if override_path.exists() {
             if let Ok(content) = std::fs::read_to_string(&override_path) {
                 if !content.trim().is_empty() {
@@ -28,7 +31,8 @@ pub fn load_prompt(name: &str, workspace_root: Option<&std::path::Path>) -> Stri
     }
 
     // Fallback to embedded template
-    EMBEDDED_PROMPTS.get(name)
+    EMBEDDED_PROMPTS
+        .get(name)
         .map(|s| s.to_string())
         .unwrap_or_else(|| {
             warn!(target: "guardian::prompts", "Prompt template '{}' not found", name);

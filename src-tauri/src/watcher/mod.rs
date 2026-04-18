@@ -909,10 +909,10 @@ async fn audit_file_logic(
 
 #[cfg(test)]
 mod tests_protocol {
-    use super::*;
     use super::context::*;
     use super::critique::*;
     use super::pipeline::*;
+    use super::*;
     use serde_json::json;
     use std::collections::HashMap;
     use std::fs;
@@ -1070,7 +1070,10 @@ mod tests_protocol {
             token_budget_hint: 9_000,
         };
         assert_eq!(effective_batch_size_limit(ScanProfile::Source, &tuning), 3);
-        assert_eq!(effective_batch_size_limit(ScanProfile::Extended, &tuning), 4);
+        assert_eq!(
+            effective_batch_size_limit(ScanProfile::Extended, &tuning),
+            4
+        );
         assert_eq!(effective_batch_size_limit(ScanProfile::Full, &tuning), 4);
     }
 

@@ -43,8 +43,9 @@ pub(super) struct AuditedContentCacheEntry {
     pub(super) last_seen_epoch_ms: i64,
 }
 
-pub(super) static LAST_AUDITED_CONTENTS: Lazy<Arc<RwLock<HashMap<String, AuditedContentCacheEntry>>>> =
-    Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
+pub(super) static LAST_AUDITED_CONTENTS: Lazy<
+    Arc<RwLock<HashMap<String, AuditedContentCacheEntry>>>,
+> = Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
 pub(crate) fn last_ai_context_for_root(root: &str) -> Option<AiContextSnapshot> {
     let Ok(lock) = LAST_AI_CONTEXT.read() else {
@@ -119,7 +120,10 @@ pub(super) fn last_audited_content(path: &std::path::Path) -> Option<String> {
     lock.get(&key).map(|entry| entry.content.clone())
 }
 
-pub(super) fn prepare_ai_context_file(item: &BatchItem, root_path: &std::path::Path) -> AiContextFile {
+pub(super) fn prepare_ai_context_file(
+    item: &BatchItem,
+    root_path: &std::path::Path,
+) -> AiContextFile {
     let max_content_lines = config::max_content_lines();
     let max_content_chars = config::max_content_chars();
     let filtered = filter_pii(&item.content);
@@ -381,8 +385,7 @@ pub fn extract_local_imports(content: &str, file_path: &str) -> Vec<String> {
                     if let Some(start) = trimmed.find("require(") {
                         let rest = &trimmed[start + 8..];
                         if let Some(end) = rest.find(')') {
-                            let path =
-                                rest[..end].trim().trim_matches(|c| c == '\'' || c == '"');
+                            let path = rest[..end].trim().trim_matches(|c| c == '\'' || c == '"');
                             if path.starts_with('.') || path.starts_with('/') {
                                 imports.push(path.to_string());
                             }

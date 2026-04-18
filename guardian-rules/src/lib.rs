@@ -337,8 +337,7 @@ impl RuleEngine {
                     // Check preceding-line pattern
                     if let Some(ref prec) = rule.preceding_compiled {
                         let start = line_idx.saturating_sub(rule.preceding_lines);
-                        let suppressed = (start..line_idx)
-                            .any(|i| prec.is_match(lines[i]));
+                        let suppressed = (start..line_idx).any(|i| prec.is_match(lines[i]));
                         if suppressed {
                             continue;
                         }
@@ -451,7 +450,9 @@ mod tests {
         let content = r#"const API_KEY = "sk-abc123xxxxxxxxx";"#;
         let violations = engine.evaluate("config.ts", content);
         assert!(
-            violations.iter().any(|v| v.rule_id == "no-hardcoded-secrets"),
+            violations
+                .iter()
+                .any(|v| v.rule_id == "no-hardcoded-secrets"),
             "expected a hardcoded-secret violation, got: {violations:?}"
         );
     }
