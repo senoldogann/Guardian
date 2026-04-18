@@ -64,6 +64,11 @@ pub fn mask_inline_secrets(content: &str) -> String {
 
         static ref AWS_ACCESS_KEY: Regex = Regex::new(r"\bAKIA[0-9A-Z]{16}\b").unwrap();
 
+        static ref GCP_API_KEY: Regex = Regex::new(r"\bAIzaSy[0-9A-Za-z_-]{33}\b").unwrap();
+        static ref STRIPE_KEY: Regex = Regex::new(r"\bsk_(?:live|test)_[0-9a-zA-Z]{24,}\b").unwrap();
+        static ref SLACK_TOKEN: Regex = Regex::new(r"\bxox[bpars]-[0-9a-zA-Z-]{10,}\b").unwrap();
+        static ref NPM_TOKEN: Regex = Regex::new(r"\bnpm_[A-Za-z0-9]{36}\b").unwrap();
+
         static ref PRIVATE_KEY_BLOCK: Regex = Regex::new(r"(?s)-----BEGIN[ A-Z0-9_-]*PRIVATE KEY-----.*?-----END[ A-Z0-9_-]*PRIVATE KEY-----").unwrap();
         static ref JWT: Regex = Regex::new(r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b").unwrap();
 
@@ -126,6 +131,19 @@ pub fn mask_inline_secrets(content: &str) -> String {
 
     filtered = AWS_ACCESS_KEY
         .replace_all(&filtered, "[REDACTED_AWS_ACCESS_KEY]")
+        .to_string();
+
+    filtered = GCP_API_KEY
+        .replace_all(&filtered, "[REDACTED_GCP_KEY]")
+        .to_string();
+    filtered = STRIPE_KEY
+        .replace_all(&filtered, "[REDACTED_STRIPE_KEY]")
+        .to_string();
+    filtered = SLACK_TOKEN
+        .replace_all(&filtered, "[REDACTED_SLACK_TOKEN]")
+        .to_string();
+    filtered = NPM_TOKEN
+        .replace_all(&filtered, "[REDACTED_NPM_TOKEN]")
         .to_string();
 
     filtered = DATABASE_URL
@@ -239,5 +257,34 @@ mod tests {
         assert!(!masked.contains("+90 532 123 45 67"));
         assert!(!masked.contains("0532 123 45 67"));
         assert!(!masked.contains("(415) 555-2671"));
+    }
+
+    #[test]
+    fn masks_gcp_api_key() {
+        let input = "const key = \"AIzaSyA1B2C3D4E5F6G7H8I9J0K1L2M3N4O5P6Q\";";
+        let result = mask_inline_secrets(input);
+        assert!(result.contains("[REDACTED_GCP_KEY]"), "GCP key not masked: {}", result);
+        assert!(!result.contains("AIzaSy"), "GCP key leaked: {}", result);
+    }
+
+    #[test]
+    fn masks_stripe_key() {
+        let input = "STRIPE_KEY=sk_live_abcdefghijklmnopqrstuvwx";
+        let result = mask_inline_secrets(input);
+        assert!(result.contains("[REDACTED_STRIPE_KEY]"), "Stripe key not masked: {}", result);
+    }
+
+    #[test]
+    fn masks_slack_token() {
+        let input = "token: xoxb-1234567890-abcdefghijklmn";
+        let result = mask_inline_secrets(input);
+        assert!(result.contains("[REDACTED_SLACK_TOKEN]"), "Slack token not masked: {}", result);
+    }
+
+    #[test]
+    fn masks_npm_token() {
+        let input = "//registry.npmjs.org/:_authToken=npm_AbCdEfGhIjKlMnOpQrStUvWxYz1234567890";
+        let result = mask_inline_secrets(input);
+        assert!(result.contains("[REDACTED_NPM_TOKEN]"), "npm token not masked: {}", result);
     }
 }
