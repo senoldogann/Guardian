@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.0] - AI Pipeline Overhaul + MCP Server + Developer Ecosystem
+
+Published: Apr 18, 2026
+
+### 🎯 Highlights
+This is the largest release since v1.0.0. The AI analysis pipeline has been rebuilt for precision, the developer ecosystem expanded with MCP and CLI integration, and a comprehensive security/architecture audit addressed 60+ issues across the entire codebase.
+
+### 🧠 AI Pipeline Overhaul
+- **Evidence-Based Findings**: Critiques now include `line_start`, `line_end`, `evidence_snippet`, `category`, and `confidence` fields for verifiable, actionable results.
+- **Few-Shot Prompts**: System prompts upgraded with concrete good/bad examples, chain-of-thought reasoning, and language-specific rules (React hooks, Rust ownership, Go error handling, Python type hints).
+- **Prompt Template System**: Embedded prompts via `include_str!` with `{{VAR}}` substitution and workspace-level overrides (`prompts/` directory).
+- **Import Context Analysis**: Critiques now receive `build_import_context()` data showing local module relationships and type signatures.
+- **Performance Tuning**: Batch size 3→5, content limit 6K→8K chars, concurrency 1→2, flush interval 5s→3s.
+- **CLI Prompt Parity**: CLI batch scan now uses the same high-quality system prompt as desktop.
+
+### 🖥️ UI Enhancements
+- **Line Numbers**: Findings display exact line ranges (`L42-L58`).
+- **Category Badges**: Color-coded `security`, `performance`, `maintainability`, `correctness`, `style` tags.
+- **Confidence Indicator**: Visual percentage showing AI certainty per finding.
+- **Evidence Snippets**: Expandable code evidence directly in the critique row.
+- **DiffViewer**: Side-by-side diff display for suggested fixes.
+- **Category Filter Bar**: Filter findings by category with one click.
+
+### 🔌 MCP Server (NEW)
+- Guardian MCP server (`guardian-mcp`) with 5 production tools:
+  - `scan_file` — Scan a single file against policy with metadata
+  - `get_scan_policy` — Retrieve workspace or default scan policy
+  - `classify_paths` — Batch classify files by policy (up to 100)
+  - `list_critiques` — Guidance for accessing stored critiques
+  - `apply_fix` — Guidance for applying suggested fixes
+- Works with Cursor, Claude Desktop, and any MCP-compatible client.
+
+### 🔒 Security Hardening
+- **Thread-Safe Env**: Replaced `std::env::set_var` UB with `SecureEnvStore` atomic store.
+- **Secret Masking**: API keys wrapped in `SecretString` (zeroed on drop).
+- **Scoped FS**: Tauri permissions narrowed from global to workspace-only access.
+- **CSP Tightened**: Removed `unsafe-eval` from Content Security Policy.
+- **IPC Auth Gates**: Added auth checks to `apply_fix`, `apply_fix_now`, `undo_fix`, `confirm_fix`.
+- **Redaction Patterns**: Expanded from 5 to 19+ patterns (OpenAI, Anthropic, AWS, GCP, Stripe, Slack, npm, JWT, Private Keys, Database URLs, Email, Phone).
+- **CLI Redaction Parity**: CLI now matches desktop's full 19-pattern redaction.
+- **Transcript Detection**: 2-tier scoring (strong markers instant-reject, weak markers need ≥2) to avoid false positives.
+- **Path Safety**: CLI no longer leaks absolute paths on `strip_prefix` failure.
+
+### 🏗️ Architecture Refactoring
+- **App.tsx**: Decomposed from 1355→390 lines into focused components.
+- **SettingsModal**: Split from 1779→160 lines into 6 sub-components.
+- **watcher.rs**: Split 4004-line god module into 7 focused modules (`context`, `pipeline`, `critique`, `triage`, `state`, `events`, `debounce`).
+- **ProviderSpec Trait**: Extracted provider logic from monolithic AI client.
+- **Zustand Stores**: Created `authStore`, `workspaceStore`, `uiStore`, `toastStore`.
+- **useSettings**: Split into 6 focused sub-hooks.
+- **i18n**: Split inline translations into separate locale files.
+
+### 🌐 Website Updates
+- **6 New Doc Pages**: CLI guide, MCP Server setup, Secret Redaction reference (EN + TR).
+- **Ecosystem Section**: New homepage component showcasing CLI, MCP, VS Code, Redaction, Multi-Provider, Evidence.
+- **FAQ Expansion**: 2 new general questions + "Developer Tools" category (5 questions) in EN and TR.
+- **7 New Feature Descriptions**: Added to i18n for CLI, MCP, VS Code, rule engine, redaction, evidence, multi-provider.
+- **Translation Fixes**: Corrected Turkish translations.
+
+### 🧪 Testing
+- **139 Unit Tests**: Up from 68 (71 new tests added).
+- **28 CLI Tests**: Full redaction and scan coverage.
+- **11 Rules Engine Tests**: Deterministic rule evaluation.
+- **6 New E2E Groups**: Category Filters, Guru Chat, Keyboard Shortcuts, Evidence Display, Settings Extended, Accessibility.
+- **Coverage Gates**: 80% threshold enforced.
+
+### 🛠️ Developer Experience
+- **52 IPC Commands Documented**: Full API reference in `docs/IPC_COMMANDS.md`.
+- **Cargo Workspace**: All 5 crates unified under workspace.
+- **SQLite WAL**: Enabled WAL mode for concurrent read performance.
+- **CI Lint**: Added `rustfmt` and `clippy` checks to CI.
+- **Removed 5 Unused Deps**: Cleaned Cargo dependency tree.
+
+### 📦 Ecosystem
+- **guardian-cli**: Production-ready CLI scanner with full prompt parity.
+- **guardian-mcp**: MCP server for IDE integration.
+- **guardian-rules**: Deterministic rule engine (11 tests).
+- **guardian-vscode**: VS Code extension scaffold with diagnostics and MCP client.
+- **guardian-scan-policy**: Shared scan policy between desktop and CLI.
+
+---
+
 ## [1.2.6] - Approval Policy + Audit Compatibility + Review Precision
 
 Published: Apr 4, 2026
