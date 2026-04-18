@@ -18,6 +18,7 @@ use tracing::{debug, error, warn};
 #[derive(Debug, Clone)]
 pub struct AiClient {
     provider_id: String,
+    provider: Arc<dyn ProviderSpec>,
     client: Client,
     base_url: String,
     model: String,
@@ -172,6 +173,433 @@ fn normalize_ollama_base_url(value: &str) -> String {
     base
 }
 
+// ---------------------------------------------------------------------------
+// Provider trait & implementations
+// ---------------------------------------------------------------------------
+
+trait ProviderSpec: std::fmt::Debug + Send + Sync {
+    /// Human-readable label for error messages (e.g. "OpenAI").
+    fn display_name(&self) -> &str;
+
+    /// Whether a valid (non-placeholder) API key is required.
+    fn requires_api_key(&self) -> bool {
+        true
+    }
+
+    /// Return `Some` to bypass HTTP entirely (used by the mock provider).
+    fn mock_response(
+        &self,
+        _system_prompt: &str,
+        _user_prompt: &str,
+        _json_mode: bool,
+    ) -> Option<String> {
+        None
+    }
+
+    /// Build the full request URL.
+    fn build_url(&self, base_url: &str, model: &str) -> String;
+
+    /// Build the JSON request body.
+    fn build_body(
+        &self,
+        model: &str,
+        system_prompt: &str,
+        user_prompt: &str,
+        json_mode: bool,
+    ) -> serde_json::Value;
+
+    /// Apply provider-specific authentication headers.
+    fn apply_auth(
+        &self,
+        request: reqwest::RequestBuilder,
+        api_key: &str,
+    ) -> reqwest::RequestBuilder;
+
+    /// Extract text content from the provider's JSON response.
+    fn parse_response(&self, response_json: serde_json::Value) -> Result<String>;
+
+    /// Error context attached when the HTTP send itself fails.
+    fn send_error_context(&self, _url: &str) -> String {
+        format!("Failed to send {} request", self.display_name())
+    }
+
+    /// Error message when the provider returns a non-success status.
+    fn response_error_message(&self, error_text: &str) -> String {
+        format!("{} request failed: {}", self.display_name(), error_text)
+    }
+}
+
+// ---- Mock ----
+
+#[derive(Debug)]
+struct MockProvider;
+
+impl ProviderSpec for MockProvider {
+    fn display_name(&self) -> &str {
+        "Mock"
+    }
+
+    fn requires_api_key(&self) -> bool {
+        false
+    }
+
+    fn mock_response(
+        &self,
+        system_prompt: &str,
+        user_prompt: &str,
+        json_mode: bool,
+    ) -> Option<String> {
+        if json_mode {
+            let is_batch = system_prompt.contains("JSON ARRAY MODE")
+                || user_prompt.starts_with("Batch Analysis Request");
+            if is_batch {
+                return Some("[]".to_string());
+            }
+            return Some(
+                r#"{"file_path":"src/mock.ts","severity":"Info","message":"LGTM","suggestion":null,"chat_message":null,"suggested_diff":null}"#
+                    .to_string(),
+            );
+        }
+        Some("MOCK: OK".to_string())
+    }
+
+    fn build_url(&self, base_url: &str, _model: &str) -> String {
+        base_url.to_string()
+    }
+
+    fn build_body(
+        &self,
+        _model: &str,
+        _system_prompt: &str,
+        _user_prompt: &str,
+        _json_mode: bool,
+    ) -> serde_json::Value {
+        json!({})
+    }
+
+    fn apply_auth(
+        &self,
+        request: reqwest::RequestBuilder,
+        _api_key: &str,
+    ) -> reqwest::RequestBuilder {
+        request
+    }
+
+    fn parse_response(&self, _response_json: serde_json::Value) -> Result<String> {
+        Ok(String::new())
+    }
+}
+
+// ---- Ollama ----
+
+#[derive(Debug)]
+struct OllamaProvider;
+
+impl ProviderSpec for OllamaProvider {
+    fn display_name(&self) -> &str {
+        "AI"
+    }
+
+    fn requires_api_key(&self) -> bool {
+        false
+    }
+
+    fn build_url(&self, base_url: &str, _model: &str) -> String {
+        format!("{}/api/chat", base_url.trim_end_matches('/'))
+    }
+
+    fn build_body(
+        &self,
+        model: &str,
+        system_prompt: &str,
+        user_prompt: &str,
+        json_mode: bool,
+    ) -> serde_json::Value {
+        let mut payload = json!({
+            "model": model,
+            "messages": [
+                { "role": "system", "content": system_prompt },
+                { "role": "user", "content": user_prompt }
+            ],
+            "stream": false
+        });
+        if json_mode {
+            payload["format"] = json!("json");
+        }
+        payload
+    }
+
+    fn apply_auth(
+        &self,
+        request: reqwest::RequestBuilder,
+        api_key: &str,
+    ) -> reqwest::RequestBuilder {
+        let token = api_key.trim();
+        if !config::is_placeholder_key(token) {
+            request.bearer_auth(token)
+        } else {
+            request
+        }
+    }
+
+    fn parse_response(&self, response_json: serde_json::Value) -> Result<String> {
+        response_json["message"]["content"]
+            .as_str()
+            .map(|s| s.to_string())
+            .context("Invalid response format from AI")
+    }
+
+    fn send_error_context(&self, url: &str) -> String {
+        format!("Failed to send request to AI provider (url={})", url)
+    }
+
+    fn response_error_message(&self, error_text: &str) -> String {
+        format!("AI Request Failed: {}", error_text)
+    }
+}
+
+// ---- OpenAI ----
+
+#[derive(Debug)]
+struct OpenAiProvider;
+
+impl ProviderSpec for OpenAiProvider {
+    fn display_name(&self) -> &str {
+        "OpenAI"
+    }
+
+    fn build_url(&self, base_url: &str, _model: &str) -> String {
+        format!("{}/chat/completions", base_url.trim_end_matches('/'))
+    }
+
+    fn build_body(
+        &self,
+        model: &str,
+        system_prompt: &str,
+        user_prompt: &str,
+        json_mode: bool,
+    ) -> serde_json::Value {
+        let mut payload = json!({
+            "model": model,
+            "messages": [
+                { "role": "system", "content": system_prompt },
+                { "role": "user", "content": user_prompt }
+            ],
+            "temperature": 0.2
+        });
+        if json_mode {
+            payload["response_format"] = json!({ "type": "json_object" });
+        }
+        payload
+    }
+
+    fn apply_auth(
+        &self,
+        request: reqwest::RequestBuilder,
+        api_key: &str,
+    ) -> reqwest::RequestBuilder {
+        request.bearer_auth(api_key)
+    }
+
+    fn parse_response(&self, response_json: serde_json::Value) -> Result<String> {
+        response_json["choices"][0]["message"]["content"]
+            .as_str()
+            .map(|s| s.to_string())
+            .context("Invalid OpenAI response format")
+    }
+}
+
+// ---- Anthropic ----
+
+#[derive(Debug)]
+struct AnthropicProvider;
+
+impl ProviderSpec for AnthropicProvider {
+    fn display_name(&self) -> &str {
+        "Anthropic"
+    }
+
+    fn build_url(&self, base_url: &str, _model: &str) -> String {
+        format!("{}/messages", base_url.trim_end_matches('/'))
+    }
+
+    fn build_body(
+        &self,
+        model: &str,
+        system_prompt: &str,
+        user_prompt: &str,
+        _json_mode: bool,
+    ) -> serde_json::Value {
+        json!({
+            "model": model,
+            "max_tokens": 2048,
+            "system": system_prompt,
+            "messages": [
+                { "role": "user", "content": user_prompt }
+            ]
+        })
+    }
+
+    fn apply_auth(
+        &self,
+        request: reqwest::RequestBuilder,
+        api_key: &str,
+    ) -> reqwest::RequestBuilder {
+        request
+            .header("x-api-key", api_key)
+            .header("anthropic-version", "2023-06-01")
+    }
+
+    fn parse_response(&self, response_json: serde_json::Value) -> Result<String> {
+        let content = response_json["content"]
+            .as_array()
+            .context("Invalid Anthropic response format")?;
+        let mut collected = String::new();
+        for block in content {
+            if let Some(text) = block["text"].as_str() {
+                collected.push_str(text);
+            }
+        }
+        Ok(collected)
+    }
+}
+
+// ---- Gemini ----
+
+#[derive(Debug)]
+struct GeminiProvider;
+
+impl ProviderSpec for GeminiProvider {
+    fn display_name(&self) -> &str {
+        "Gemini"
+    }
+
+    fn build_url(&self, base_url: &str, model: &str) -> String {
+        let model_path = if model.starts_with("models/") {
+            model.to_string()
+        } else {
+            format!("models/{}", model)
+        };
+        format!(
+            "{}/{}:generateContent",
+            base_url.trim_end_matches('/'),
+            model_path
+        )
+    }
+
+    fn build_body(
+        &self,
+        _model: &str,
+        system_prompt: &str,
+        user_prompt: &str,
+        _json_mode: bool,
+    ) -> serde_json::Value {
+        json!({
+            "systemInstruction": {
+                "parts": [{ "text": system_prompt }]
+            },
+            "contents": [
+                { "role": "user", "parts": [{ "text": user_prompt }] }
+            ]
+        })
+    }
+
+    fn apply_auth(
+        &self,
+        request: reqwest::RequestBuilder,
+        api_key: &str,
+    ) -> reqwest::RequestBuilder {
+        request.header("x-goog-api-key", api_key)
+    }
+
+    fn parse_response(&self, response_json: serde_json::Value) -> Result<String> {
+        let candidates = response_json["candidates"]
+            .as_array()
+            .context("Invalid Gemini response format")?;
+        let mut collected = String::new();
+        if let Some(first) = candidates.first() {
+            if let Some(parts) = first["content"]["parts"].as_array() {
+                for part in parts {
+                    if let Some(text) = part["text"].as_str() {
+                        collected.push_str(text);
+                    }
+                }
+            }
+        }
+        Ok(collected)
+    }
+}
+
+// ---- GitHub Models ----
+
+#[derive(Debug)]
+struct GitHubModelsProvider;
+
+impl ProviderSpec for GitHubModelsProvider {
+    fn display_name(&self) -> &str {
+        "GitHub Models"
+    }
+
+    fn build_url(&self, base_url: &str, _model: &str) -> String {
+        format!(
+            "{}/inference/chat/completions",
+            base_url.trim_end_matches('/')
+        )
+    }
+
+    fn build_body(
+        &self,
+        model: &str,
+        system_prompt: &str,
+        user_prompt: &str,
+        json_mode: bool,
+    ) -> serde_json::Value {
+        let mut payload = json!({
+            "model": model,
+            "messages": [
+                { "role": "system", "content": system_prompt },
+                { "role": "user", "content": user_prompt }
+            ]
+        });
+        if json_mode {
+            payload["response_format"] = json!({ "type": "json_object" });
+        }
+        payload
+    }
+
+    fn apply_auth(
+        &self,
+        request: reqwest::RequestBuilder,
+        api_key: &str,
+    ) -> reqwest::RequestBuilder {
+        request
+            .header("accept", "application/vnd.github+json")
+            .header("x-github-api-version", "2022-11-28")
+            .bearer_auth(api_key)
+    }
+
+    fn parse_response(&self, response_json: serde_json::Value) -> Result<String> {
+        response_json["choices"][0]["message"]["content"]
+            .as_str()
+            .map(|s| s.to_string())
+            .context("Invalid GitHub Models response format")
+    }
+}
+
+// ---- Factory ----
+
+fn create_provider(provider_id: &str) -> Result<Arc<dyn ProviderSpec>> {
+    match provider_id {
+        "mock" => Ok(Arc::new(MockProvider)),
+        "ollama" => Ok(Arc::new(OllamaProvider)),
+        "openai" => Ok(Arc::new(OpenAiProvider)),
+        "anthropic" => Ok(Arc::new(AnthropicProvider)),
+        "gemini" => Ok(Arc::new(GeminiProvider)),
+        "github-models" => Ok(Arc::new(GitHubModelsProvider)),
+        other => anyhow::bail!("Provider '{}' is not supported.", other),
+    }
+}
+
 fn looks_like_low_confidence_suggested_diff(diff: &str) -> bool {
     let lower = diff.to_lowercase();
     let markers = [
@@ -264,6 +692,7 @@ impl AiClient {
         api_key: SecretString,
     ) -> Result<Self> {
         let normalized = provider_id.trim().to_lowercase();
+        let provider = create_provider(&normalized)?;
         let timeout_secs = config::provider_timeout_seconds(&normalized);
 
         let mut builder = Client::builder().timeout(Duration::from_secs(timeout_secs));
@@ -298,6 +727,7 @@ impl AiClient {
 
         Ok(Self {
             provider_id: normalized,
+            provider,
             client,
             base_url,
             model,
@@ -307,7 +737,7 @@ impl AiClient {
     }
 
     fn ensure_valid_api_key(&self) -> Result<()> {
-        if self.provider_id == "mock" || self.provider_id == "ollama" {
+        if !self.provider.requires_api_key() {
             return Ok(());
         }
         if config::is_placeholder_key(self.api_key.expose_secret()) && config::is_production() {
@@ -424,230 +854,46 @@ impl AiClient {
         let request_slot = self.acquire_request_slot(class).await?;
         let queue_wait_ms = request_slot.queue_wait_ms;
         let safe_user_prompt = crate::redaction::gate::mask_inline_secrets(user_prompt);
-        let provider = self.provider_id.as_str();
-        match provider {
-            "mock" => {
-                if json_mode {
-                    let is_batch = system_prompt.contains("JSON ARRAY MODE")
-                        || safe_user_prompt.starts_with("Batch Analysis Request");
-                    if is_batch {
-                        return Ok(AiCall {
-                            value: "[]".to_string(),
-                            queue_wait_ms,
-                        });
-                    }
-                    return Ok(AiCall {
-                        value: r#"{"file_path":"src/mock.ts","severity":"Info","message":"LGTM","suggestion":null,"chat_message":null,"suggested_diff":null}"#
-                            .to_string(),
-                        queue_wait_ms,
-                    });
-                }
 
-                Ok(AiCall {
-                    value: "MOCK: OK".to_string(),
-                    queue_wait_ms,
-                })
-            }
-            "ollama" => {
-                let mut payload = json!({
-                    "model": self.model,
-                    "messages": [
-                        { "role": "system", "content": system_prompt },
-                        { "role": "user", "content": safe_user_prompt }
-                    ],
-                    "stream": false
-                });
-                if json_mode {
-                    payload["format"] = json!("json");
-                }
-                let token = self.api_key.expose_secret().trim();
-                let url = format!("{}/api/chat", self.base_url.trim_end_matches('/'));
-                let mut request = self.client.post(&url);
-                if !config::is_placeholder_key(token) {
-                    request = request.bearer_auth(token);
-                }
-
-                let response = request.json(&payload).send().await.with_context(|| {
-                    format!("Failed to send request to AI provider (url={})", url)
-                })?;
-
-                if !response.status().is_success() {
-                    let error_text = response.text().await.unwrap_or_default();
-                    anyhow::bail!("AI Request Failed: {}", error_text);
-                }
-
-                let response_json: serde_json::Value = response.json().await?;
-                let content_str = response_json["message"]["content"]
-                    .as_str()
-                    .context("Invalid response format from AI")?;
-
-                Ok(AiCall {
-                    value: content_str.to_string(),
-                    queue_wait_ms,
-                })
-            }
-            "openai" => {
-                let mut payload = json!({
-                    "model": self.model,
-                    "messages": [
-                        { "role": "system", "content": system_prompt },
-                        { "role": "user", "content": safe_user_prompt }
-                    ],
-                    "temperature": 0.2
-                });
-                if json_mode {
-                    payload["response_format"] = json!({ "type": "json_object" });
-                }
-                let url = format!("{}/chat/completions", self.base_url.trim_end_matches('/'));
-                let response = self
-                    .client
-                    .post(&url)
-                    .bearer_auth(self.api_key.expose_secret())
-                    .json(&payload)
-                    .send()
-                    .await
-                    .context("Failed to send OpenAI request")?;
-                if !response.status().is_success() {
-                    let error_text = response.text().await.unwrap_or_default();
-                    anyhow::bail!("OpenAI request failed: {}", error_text);
-                }
-                let response_json: serde_json::Value = response.json().await?;
-                let content_str = response_json["choices"][0]["message"]["content"]
-                    .as_str()
-                    .context("Invalid OpenAI response format")?;
-                Ok(AiCall {
-                    value: content_str.to_string(),
-                    queue_wait_ms,
-                })
-            }
-            "anthropic" => {
-                let payload = json!({
-                    "model": self.model,
-                    "max_tokens": 2048,
-                    "system": system_prompt,
-                    "messages": [
-                        { "role": "user", "content": safe_user_prompt }
-                    ]
-                });
-                let url = format!("{}/messages", self.base_url.trim_end_matches('/'));
-                let response = self
-                    .client
-                    .post(&url)
-                    .header("x-api-key", self.api_key.expose_secret())
-                    .header("anthropic-version", "2023-06-01")
-                    .json(&payload)
-                    .send()
-                    .await
-                    .context("Failed to send Anthropic request")?;
-                if !response.status().is_success() {
-                    let error_text = response.text().await.unwrap_or_default();
-                    anyhow::bail!("Anthropic request failed: {}", error_text);
-                }
-                let response_json: serde_json::Value = response.json().await?;
-                let content = response_json["content"]
-                    .as_array()
-                    .context("Invalid Anthropic response format")?;
-                let mut collected = String::new();
-                for block in content {
-                    if let Some(text) = block["text"].as_str() {
-                        collected.push_str(text);
-                    }
-                }
-                Ok(AiCall {
-                    value: collected,
-                    queue_wait_ms,
-                })
-            }
-            "gemini" => {
-                let model_path = if self.model.starts_with("models/") {
-                    self.model.clone()
-                } else {
-                    format!("models/{}", self.model)
-                };
-                let payload = json!({
-                    "systemInstruction": {
-                        "parts": [{ "text": system_prompt }]
-                    },
-                    "contents": [
-                        { "role": "user", "parts": [{ "text": safe_user_prompt }] }
-                    ]
-                });
-                let url = format!(
-                    "{}/{}:generateContent",
-                    self.base_url.trim_end_matches('/'),
-                    model_path
-                );
-                let response = self
-                    .client
-                    .post(&url)
-                    .header("x-goog-api-key", self.api_key.expose_secret())
-                    .json(&payload)
-                    .send()
-                    .await
-                    .context("Failed to send Gemini request")?;
-                if !response.status().is_success() {
-                    let error_text = response.text().await.unwrap_or_default();
-                    anyhow::bail!("Gemini request failed: {}", error_text);
-                }
-                let response_json: serde_json::Value = response.json().await?;
-                let candidates = response_json["candidates"]
-                    .as_array()
-                    .context("Invalid Gemini response format")?;
-                let mut collected = String::new();
-                if let Some(first) = candidates.first() {
-                    if let Some(parts) = first["content"]["parts"].as_array() {
-                        for part in parts {
-                            if let Some(text) = part["text"].as_str() {
-                                collected.push_str(text);
-                            }
-                        }
-                    }
-                }
-                Ok(AiCall {
-                    value: collected,
-                    queue_wait_ms,
-                })
-            }
-            "github-models" => {
-                let mut payload = json!({
-                    "model": self.model,
-                    "messages": [
-                        { "role": "system", "content": system_prompt },
-                        { "role": "user", "content": safe_user_prompt }
-                    ]
-                });
-                if json_mode {
-                    payload["response_format"] = json!({ "type": "json_object" });
-                }
-                let url = format!(
-                    "{}/inference/chat/completions",
-                    self.base_url.trim_end_matches('/')
-                );
-                let response = self
-                    .client
-                    .post(&url)
-                    .header("accept", "application/vnd.github+json")
-                    .header("x-github-api-version", "2022-11-28")
-                    .bearer_auth(self.api_key.expose_secret())
-                    .json(&payload)
-                    .send()
-                    .await
-                    .context("Failed to send GitHub Models request")?;
-                if !response.status().is_success() {
-                    let error_text = response.text().await.unwrap_or_default();
-                    anyhow::bail!("GitHub Models request failed: {}", error_text);
-                }
-                let response_json: serde_json::Value = response.json().await?;
-                let content_str = response_json["choices"][0]["message"]["content"]
-                    .as_str()
-                    .context("Invalid GitHub Models response format")?;
-                Ok(AiCall {
-                    value: content_str.to_string(),
-                    queue_wait_ms,
-                })
-            }
-            other => anyhow::bail!("Provider '{}' is not supported.", other),
+        // Fast path: mock providers return canned responses without HTTP.
+        if let Some(mock_value) =
+            self.provider
+                .mock_response(system_prompt, &safe_user_prompt, json_mode)
+        {
+            return Ok(AiCall {
+                value: mock_value,
+                queue_wait_ms,
+            });
         }
+
+        let url = self.provider.build_url(&self.base_url, &self.model);
+        let payload =
+            self.provider
+                .build_body(&self.model, system_prompt, &safe_user_prompt, json_mode);
+
+        let request = self.client.post(&url);
+        let request = self
+            .provider
+            .apply_auth(request, self.api_key.expose_secret());
+
+        let response = request
+            .json(&payload)
+            .send()
+            .await
+            .with_context(|| self.provider.send_error_context(&url))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            anyhow::bail!("{}", self.provider.response_error_message(&error_text));
+        }
+
+        let response_json: serde_json::Value = response.json().await?;
+        let content_str = self.provider.parse_response(response_json)?;
+
+        Ok(AiCall {
+            value: content_str,
+            queue_wait_ms,
+        })
     }
 
     pub async fn analyze_diff(&self, file_path: &str, diff: &str) -> Result<AiCall<Critique>> {
