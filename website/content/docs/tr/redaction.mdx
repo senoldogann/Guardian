@@ -1,0 +1,56 @@
+---
+title: "Gizli Bilgi Redaksiyonu"
+summary: "Guardian, yapay zeka analizinden önce gizli bilgileri ve kişisel verileri nasıl korur"
+section: "Güvenlik"
+order: 8
+---
+
+## Genel Bakış
+
+Guardian, kodu herhangi bir yapay zeka sağlayıcısına göndermeden önce hassas verileri otomatik olarak tespit eder ve maskeler. Bu koruma hem masaüstü uygulamasında hem de CLI'da çalışır.
+
+## Korunan Kalıplar (19+)
+
+### API Anahtarları
+
+| Kalıp | Örnek | Maskelenen Değer |
+|-------|-------|------------------|
+| OpenAI | `sk-abc...xyz` | `[REDACTED_OPENAI_KEY]` |
+| OpenAI Project | `sk-proj-abc...` | `[REDACTED_OPENAI_KEY]` |
+| Anthropic | `sk-ant-abc...` | `[REDACTED_ANTHROPIC_KEY]` |
+| GitHub Token | `ghp_abc...`, `gho_`, `ghu_`, `ghs_` | `[REDACTED_GITHUB_TOKEN]` |
+| GitHub PAT | `github_pat_abc...` | `[REDACTED_GITHUB_TOKEN]` |
+| AWS Access Key | `AKIA0123456789ABCDEF` | `[REDACTED_AWS_ACCESS_KEY]` |
+| GCP API Key | `AIzaSyABC...` | `[REDACTED_GCP_KEY]` |
+| Stripe | `sk_live_abc...`, `sk_test_abc...` | `[REDACTED_STRIPE_KEY]` |
+| Slack Token | `xoxb-abc...`, `xoxp-`, `xoxa-` | `[REDACTED_SLACK_TOKEN]` |
+| npm Token | `npm_abc...` | `[REDACTED_NPM_TOKEN]` |
+
+### Yapılandırılmış Gizli Bilgiler
+
+| Kalıp | Açıklama |
+|-------|----------|
+| Private Key | PEM blokları (`-----BEGIN...PRIVATE KEY-----`) |
+| JWT | Base64 ile kodlanmış JWT token'ları |
+| KV Gizli Bilgiler | `api_key = "..."`, `token: '...'` |
+| Veritabanı URL'leri | `postgres://`, `mysql://`, `mongodb://` |
+
+### Kişisel Veriler
+
+| Kalıp | Açıklama |
+|-------|----------|
+| E-posta | Tüm e-posta adresleri |
+| Telefon (E.164) | Uluslararası format |
+| Telefon (NANP) | Kuzey Amerika formatı |
+| Telefon (TR) | Türk cep telefonu numaraları |
+
+## Hassas Dosya Tespiti
+
+Bu ad veya uzantılara sahip dosyalar yapay zeka analizinden otomatik olarak hariç tutulur:
+- `.env`, `.env.local`, `.env.production`
+- `.key`, `.pem`, `.p12`, `.pfx`
+- `id_rsa`, `id_ed25519`, `credentials`, `secrets`
+
+## Yapılandırma
+
+Redaksiyon her zaman açıktır ve devre dışı bırakılamaz. Bu bilinçli bir güvenlik tasarım kararıdır — Guardian, hiçbir yapay zeka sağlayıcısına maskelenmemiş gizli bilgi göndermez.

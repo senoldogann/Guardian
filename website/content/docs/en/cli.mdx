@@ -1,0 +1,77 @@
+---
+title: "CLI Tool"
+summary: "Run Guardian scans from terminal and CI/CD pipelines"
+section: "Features"
+order: 6
+---
+
+## Overview
+
+Guardian CLI (`guardian-cli`) brings code governance to your terminal and CI/CD pipelines.
+
+## Installation
+
+The CLI is included in the Guardian release. Download from the [Download page](/download) or build from source:
+
+```bash
+cargo install --path guardian-cli
+```
+
+## Basic Usage
+
+### Scan a project
+```bash
+guardian-cli scan /path/to/project
+```
+
+### Scan with JSON output
+```bash
+guardian-cli scan /path/to/project --format json --output report.json
+```
+
+### Scan with a specific profile
+```bash
+guardian-cli scan /path/to/project --profile extended
+```
+
+### Offline mode (no AI)
+```bash
+guardian-cli scan /path/to/project --offline
+```
+
+## Scan Profiles
+
+| Profile | Files | Description |
+|---------|-------|-------------|
+| `source` | ~200 | Source code only (default) |
+| `extended` | ~300 | Source + configs + scripts |
+| `full` | ~500 | Everything including docs |
+
+## CI/CD Integration
+
+### GitHub Actions
+```yaml
+- name: Guardian Scan
+  run: |
+    guardian-cli scan . --format json --output guardian-report.json
+    guardian-cli scan . --offline  # Policy-only check
+```
+
+### GitLab CI
+```yaml
+guardian-scan:
+  script:
+    - guardian-cli scan . --format json --output guardian-report.json
+  artifacts:
+    paths:
+      - guardian-report.json
+```
+
+## Output Formats
+
+- **Text** (default): Human-readable summary
+- **JSON**: Machine-readable with full finding details including evidence snippets, line numbers, confidence scores
+
+## Secret Redaction
+
+The CLI automatically redacts 19+ secret patterns before sending code to AI providers, matching the desktop app's protection level.

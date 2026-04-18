@@ -1,0 +1,57 @@
+---
+title: "MCP Server"
+summary: "Connect Guardian to any IDE via Model Context Protocol"
+section: "Features"
+order: 7
+---
+
+## Overview
+
+Guardian MCP Server (`guardian-mcp`) implements the [Model Context Protocol](https://modelcontextprotocol.io) for IDE integration.
+
+## What is MCP?
+
+MCP lets AI assistants in your editor access Guardian's code governance tools directly. Instead of switching to the desktop app, your AI assistant can scan files, check policies, and classify code in real time.
+
+## Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `scan_file` | Scan a single file — returns metadata, language, policy classification |
+| `get_scan_policy` | Load workspace policy configuration |
+| `classify_paths` | Walk a directory and classify all files by scan policy |
+| `list_critiques` | Guide to retrieving findings via CLI |
+| `apply_fix` | Guide to applying fixes via desktop app |
+
+## Setup with Cursor
+
+Add to your Cursor MCP configuration (`~/.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "guardian": {
+      "command": "guardian-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+## Setup with Claude Desktop
+
+Add to Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "guardian": {
+      "command": "/path/to/guardian-mcp"
+    }
+  }
+}
+```
+
+## Protocol
+
+Guardian MCP uses JSON-RPC 2.0 over stdin/stdout, compatible with MCP protocol version `2024-11-05`.

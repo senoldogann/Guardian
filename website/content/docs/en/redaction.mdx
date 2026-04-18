@@ -1,0 +1,56 @@
+---
+title: "Secret Redaction"
+summary: "How Guardian protects secrets and PII before AI analysis"
+section: "Security"
+order: 8
+---
+
+## Overview
+
+Guardian automatically detects and masks sensitive data before sending code to any AI provider. This runs both in the desktop app and CLI.
+
+## Protected Patterns (19+)
+
+### API Keys
+
+| Pattern | Example | Redacted As |
+|---------|---------|-------------|
+| OpenAI | `sk-abc...xyz` | `[REDACTED_OPENAI_KEY]` |
+| OpenAI Project | `sk-proj-abc...` | `[REDACTED_OPENAI_KEY]` |
+| Anthropic | `sk-ant-abc...` | `[REDACTED_ANTHROPIC_KEY]` |
+| GitHub Token | `ghp_abc...`, `gho_`, `ghu_`, `ghs_` | `[REDACTED_GITHUB_TOKEN]` |
+| GitHub PAT | `github_pat_abc...` | `[REDACTED_GITHUB_TOKEN]` |
+| AWS Access Key | `AKIA0123456789ABCDEF` | `[REDACTED_AWS_ACCESS_KEY]` |
+| GCP API Key | `AIzaSyABC...` | `[REDACTED_GCP_KEY]` |
+| Stripe | `sk_live_abc...`, `sk_test_abc...` | `[REDACTED_STRIPE_KEY]` |
+| Slack Token | `xoxb-abc...`, `xoxp-`, `xoxa-` | `[REDACTED_SLACK_TOKEN]` |
+| npm Token | `npm_abc...` | `[REDACTED_NPM_TOKEN]` |
+
+### Structured Secrets
+
+| Pattern | Description |
+|---------|-------------|
+| Private Keys | PEM blocks (`-----BEGIN...PRIVATE KEY-----`) |
+| JWT | Base64-encoded JWT tokens |
+| KV Secrets | `api_key = "..."`, `token: '...'` |
+| Database URLs | `postgres://`, `mysql://`, `mongodb://` |
+
+### PII
+
+| Pattern | Description |
+|---------|-------------|
+| Email | Any email address |
+| Phone (E.164) | International format |
+| Phone (NANP) | North American format |
+| Phone (TR) | Turkish mobile numbers |
+
+## Sensitive File Detection
+
+Files with these names or extensions are automatically excluded from AI analysis:
+- `.env`, `.env.local`, `.env.production`
+- `.key`, `.pem`, `.p12`, `.pfx`
+- `id_rsa`, `id_ed25519`, `credentials`, `secrets`
+
+## Configuration
+
+Redaction is always-on and cannot be disabled. This is a security design decision — Guardian will never send unredacted secrets to any AI provider.

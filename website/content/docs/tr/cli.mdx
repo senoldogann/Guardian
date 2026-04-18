@@ -1,0 +1,77 @@
+---
+title: "CLI Aracı"
+summary: "Terminal ve CI/CD pipeline'larından Guardian taramalarını çalıştırın"
+section: "Özellikler"
+order: 6
+---
+
+## Genel Bakış
+
+Guardian CLI (`guardian-cli`) kod yönetişimini terminalinize ve CI/CD pipeline'larınıza taşır.
+
+## Kurulum
+
+CLI, Guardian sürümüne dahildir. [İndirme sayfasından](/download) indirin veya kaynak koddan derleyin:
+
+```bash
+cargo install --path guardian-cli
+```
+
+## Temel Kullanım
+
+### Proje tarama
+```bash
+guardian-cli scan /path/to/project
+```
+
+### JSON çıktısıyla tarama
+```bash
+guardian-cli scan /path/to/project --format json --output report.json
+```
+
+### Belirli bir profille tarama
+```bash
+guardian-cli scan /path/to/project --profile extended
+```
+
+### Çevrimdışı mod (yapay zeka olmadan)
+```bash
+guardian-cli scan /path/to/project --offline
+```
+
+## Tarama Profilleri
+
+| Profil | Dosya | Açıklama |
+|--------|-------|----------|
+| `source` | ~200 | Yalnızca kaynak kod (varsayılan) |
+| `extended` | ~300 | Kaynak + yapılandırma + betikler |
+| `full` | ~500 | Dokümanlar dahil her şey |
+
+## CI/CD Entegrasyonu
+
+### GitHub Actions
+```yaml
+- name: Guardian Scan
+  run: |
+    guardian-cli scan . --format json --output guardian-report.json
+    guardian-cli scan . --offline  # Yalnızca politika kontrolü
+```
+
+### GitLab CI
+```yaml
+guardian-scan:
+  script:
+    - guardian-cli scan . --format json --output guardian-report.json
+  artifacts:
+    paths:
+      - guardian-report.json
+```
+
+## Çıktı Formatları
+
+- **Text** (varsayılan): Okunabilir özet
+- **JSON**: Kanıt parçacıkları, satır numaraları ve güven puanları dahil makine tarafından okunabilir tam bulgu detayları
+
+## Gizli Bilgi Redaksiyonu
+
+CLI, yapay zeka sağlayıcılarına kod göndermeden önce 19+ gizli bilgi kalıbını otomatik olarak maskeler; masaüstü uygulamasıyla aynı koruma seviyesini sunar.

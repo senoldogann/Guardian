@@ -1,0 +1,57 @@
+---
+title: "MCP Sunucusu"
+summary: "Model Context Protocol ile Guardian'ı herhangi bir IDE'ye bağlayın"
+section: "Özellikler"
+order: 7
+---
+
+## Genel Bakış
+
+Guardian MCP Sunucusu (`guardian-mcp`), IDE entegrasyonu için [Model Context Protocol](https://modelcontextprotocol.io) standardını uygular.
+
+## MCP Nedir?
+
+MCP, editörünüzdeki yapay zeka asistanlarının Guardian'ın kod yönetişim araçlarına doğrudan erişmesini sağlar. Masaüstü uygulamasına geçmek yerine yapay zeka asistanınız dosyaları tarayabilir, politikaları kontrol edebilir ve kodu gerçek zamanlı olarak sınıflandırabilir.
+
+## Mevcut Araçlar
+
+| Araç | Açıklama |
+|------|----------|
+| `scan_file` | Tek dosya tarama — metadata, dil ve politika sınıflandırması döner |
+| `get_scan_policy` | Çalışma alanı politika yapılandırmasını yükler |
+| `classify_paths` | Dizini tarar ve tüm dosyaları tarama politikasına göre sınıflandırır |
+| `list_critiques` | CLI üzerinden bulguları alma rehberi |
+| `apply_fix` | Masaüstü uygulaması üzerinden düzeltme uygulama rehberi |
+
+## Cursor ile Kurulum
+
+Cursor MCP yapılandırmanıza ekleyin (`~/.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "guardian": {
+      "command": "guardian-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+## Claude Desktop ile Kurulum
+
+Claude Desktop yapılandırmasına ekleyin:
+
+```json
+{
+  "mcpServers": {
+    "guardian": {
+      "command": "/path/to/guardian-mcp"
+    }
+  }
+}
+```
+
+## Protokol
+
+Guardian MCP, stdin/stdout üzerinden JSON-RPC 2.0 kullanır ve MCP protokol sürümü `2024-11-05` ile uyumludur.
