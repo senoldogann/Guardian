@@ -16,15 +16,15 @@ export const getProviderDefaults = (providerId: string) => {
 };
 
 export const DEFAULT_LIGHT_PALETTE = {
-  accent: "#0891b2",
+  accent: "#0284c7",
   panel: "#ffffff",
   text: "#0f172a",
 } as const;
 
 export const DEFAULT_DARK_PALETTE = {
-  accent: "#22d3ee",
-  panel: "#0f1520",
-  text: "#f1f5f9",
+  accent: "#38bdf8",
+  panel: "#111827",
+  text: "#edf2f7",
 } as const;
 
 export type PalettePreset = {
@@ -36,17 +36,17 @@ export type PalettePreset = {
 };
 
 export const LIGHT_PALETTE_PRESETS: PalettePreset[] = [
-  { id: "cloud", accent: "#0891b2", panel: "#ffffff", text: "#0f172a", labelKey: "settings.general.paletteCloud" },
-  { id: "stone", accent: "#6366f1", panel: "#fafafa", text: "#18181b", labelKey: "settings.general.paletteStone" },
-  { id: "mint", accent: "#059669", panel: "#f8fafb", text: "#1a2e28", labelKey: "settings.general.paletteMint" },
-  { id: "sand", accent: "#d97706", panel: "#fefcf9", text: "#3d2d1f", labelKey: "settings.general.paletteSand" },
+  { id: "cloud", accent: "#0284c7", panel: "#ffffff", text: "#0f172a", labelKey: "settings.general.paletteCloud" },
+  { id: "stone", accent: "#7c3aed", panel: "#fafafa", text: "#18181b", labelKey: "settings.general.paletteStone" },
+  { id: "mint", accent: "#059669", panel: "#f9fefb", text: "#14532d", labelKey: "settings.general.paletteMint" },
+  { id: "sand", accent: "#c2410c", panel: "#fffbf5", text: "#431407", labelKey: "settings.general.paletteSand" },
 ];
 
 export const DARK_PALETTE_PRESETS: PalettePreset[] = [
-  { id: "midnight", accent: "#22d3ee", panel: "#0f1520", text: "#f1f5f9", labelKey: "settings.general.paletteMidnight" },
-  { id: "graphite", accent: "#818cf8", panel: "#12121a", text: "#e8ecf4", labelKey: "settings.general.paletteGraphite" },
-  { id: "aurora", accent: "#34d399", panel: "#0c1514", text: "#deefe8", labelKey: "settings.general.paletteAurora" },
-  { id: "ember", accent: "#fb923c", panel: "#18130e", text: "#f1e6d8", labelKey: "settings.general.paletteEmber" },
+  { id: "midnight", accent: "#38bdf8", panel: "#111827", text: "#edf2f7", labelKey: "settings.general.paletteMidnight" },
+  { id: "graphite", accent: "#a78bfa", panel: "#110f1e", text: "#ede9fe", labelKey: "settings.general.paletteGraphite" },
+  { id: "aurora", accent: "#34d399", panel: "#0a1612", text: "#d1fae5", labelKey: "settings.general.paletteAurora" },
+  { id: "ember", accent: "#fb923c", panel: "#1c1410", text: "#fed7aa", labelKey: "settings.general.paletteEmber" },
 ];
 
 export const API_KEY_MASK = "••••••";

@@ -82,7 +82,7 @@ describe("useThemeManager", () => {
       theme_mode: "dark" as const,
       font_family: "inter",
       font_size_scale: 110,
-      dark_palette: { accent: "#22d3ee", panel: "#0f1520", text: "#f1f5f9" },
+      dark_palette: { accent: "#38bdf8", panel: "#111827", text: "#edf2f7" },
     };
 
     renderHook(() => useThemeManager(prefs, mockUpdatePrefs));

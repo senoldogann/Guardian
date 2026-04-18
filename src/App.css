@@ -2,6 +2,7 @@
 @import "tailwindcss";
 
 @theme {
+  --font-sans: var(--app-font-family);
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-border-main: var(--border-main);
@@ -17,58 +18,58 @@
     --app-font-scale: 1;
 
     /* ── Dark Theme — "Guardian Nova" ─────────────────────── */
-    --background: #080c13;
-    --surface: #0f1520;
-    --border-main: #1e293b;
-    --text-main: #f1f5f9;
-    --text-muted: #94a3b8;
-    --guide-bg-raw: #131b28;
-    --topbar-bg: color-mix(in oklab, #0f1520 92%, #080c13 8%);
-    --accent-500: #22d3ee;
-    --accent-400: color-mix(in oklab, var(--accent-500) 38%, transparent);
+    --background: #0b0f1a;
+    --surface: #111827;
+    --border-main: #1e2d44;
+    --text-main: #edf2f7;
+    --text-muted: #8b9bb5;
+    --guide-bg-raw: #141e30;
+    --topbar-bg: rgba(17, 24, 39, 0.88);
+    --accent-500: #38bdf8;
+    --accent-400: color-mix(in oklab, var(--accent-500) 36%, transparent);
     --accent-200: color-mix(in oklab, var(--accent-500) 12%, transparent);
     --stat-strong: #f8fafc;
-    --focus-border: color-mix(in oklab, var(--accent-500) 40%, var(--border-main) 60%);
-    --edge-muted: #334155;
-    --guardian-core-bg: color-mix(in oklab, var(--surface) 68%, var(--accent-500) 32%);
-    --guardian-ring: color-mix(in oklab, var(--accent-500) 36%, transparent);
+    --focus-border: color-mix(in oklab, var(--accent-500) 42%, var(--border-main) 58%);
+    --edge-muted: #2a3a52;
+    --guardian-core-bg: color-mix(in oklab, var(--surface) 66%, var(--accent-500) 34%);
+    --guardian-ring: color-mix(in oklab, var(--accent-500) 32%, transparent);
     --guardian-dot: var(--accent-500);
-    --guardian-shadow: color-mix(in oklab, var(--accent-500) 24%, transparent);
-    --scrollbar-thumb: rgba(148, 163, 184, 0.3);
-    --scrollbar-thumb-hover: rgba(148, 163, 184, 0.5);
+    --guardian-shadow: color-mix(in oklab, var(--accent-500) 22%, transparent);
+    --scrollbar-thumb: rgba(139, 155, 181, 0.28);
+    --scrollbar-thumb-hover: rgba(139, 155, 181, 0.46);
     --backdrop:
-      radial-gradient(1100px 700px at -10% -14%, rgba(34, 211, 238, 0.07), transparent 56%),
-      radial-gradient(900px 620px at 110% -10%, rgba(56, 189, 248, 0.05), transparent 62%),
-      radial-gradient(860px 620px at 50% 116%, rgba(15, 23, 42, 0.6), transparent 72%);
-    --code-block-bg: #0c1220;
+      radial-gradient(1100px 700px at -10% -14%, rgba(56, 189, 248, 0.06), transparent 56%),
+      radial-gradient(900px 620px at 110% -10%, rgba(99, 102, 241, 0.04), transparent 62%),
+      radial-gradient(860px 620px at 50% 116%, rgba(11, 15, 26, 0.7), transparent 72%);
+    --code-block-bg: #0d1424;
     --code-block-text: #e2e8f0;
-    --code-inline-bg: rgba(34, 211, 238, 0.1);
+    --code-inline-bg: rgba(56, 189, 248, 0.1);
     --code-inline-text: #e2e8f0;
-    --code-keyword: #67e8f9;
+    --code-keyword: #7dd3fc;
     --code-string: #6ee7b7;
-    --code-number: #fcd34d;
+    --code-number: #fde68a;
     --code-comment: #64748b;
-    --code-function: #7dd3fc;
+    --code-function: #93c5fd;
     --code-type: #a5f3fc;
-    --map-node-bg: #131b28;
-    --map-node-text: #f1f5f9;
-    --map-node-muted: #94a3b8;
-    --panel-bg: color-mix(in oklab, var(--surface) 88%, #162033 12%);
-    --panel-muted: color-mix(in oklab, var(--surface) 94%, #162033 6%);
-    --panel-border-strong: color-mix(in oklab, var(--border-main) 82%, var(--text-main) 18%);
-    --hero-glow: color-mix(in oklab, var(--accent-500) 14%, transparent);
-    --tone-critical-bg: rgba(239, 68, 68, 0.1);
-    --tone-critical-border: rgba(239, 68, 68, 0.28);
+    --map-node-bg: #141e30;
+    --map-node-text: #edf2f7;
+    --map-node-muted: #8b9bb5;
+    --panel-bg: color-mix(in oklab, var(--surface) 90%, #1a2540 10%);
+    --panel-muted: color-mix(in oklab, var(--surface) 95%, #1a2540 5%);
+    --panel-border-strong: color-mix(in oklab, var(--border-main) 80%, var(--text-main) 20%);
+    --hero-glow: color-mix(in oklab, var(--accent-500) 12%, transparent);
+    --tone-critical-bg: rgba(248, 113, 113, 0.1);
+    --tone-critical-border: rgba(248, 113, 113, 0.26);
     --tone-critical-text: #fca5a5;
-    --tone-warning-bg: rgba(245, 158, 11, 0.1);
-    --tone-warning-border: rgba(245, 158, 11, 0.28);
-    --tone-warning-text: #fcd34d;
-    --tone-success-bg: rgba(16, 185, 129, 0.1);
-    --tone-success-border: rgba(16, 185, 129, 0.28);
+    --tone-warning-bg: rgba(251, 191, 36, 0.1);
+    --tone-warning-border: rgba(251, 191, 36, 0.26);
+    --tone-warning-text: #fde68a;
+    --tone-success-bg: rgba(52, 211, 153, 0.1);
+    --tone-success-border: rgba(52, 211, 153, 0.26);
     --tone-success-text: #6ee7b7;
-    --tone-ai-bg: rgba(34, 211, 238, 0.08);
-    --tone-ai-border: rgba(34, 211, 238, 0.24);
-    --tone-ai-text: #67e8f9;
+    --tone-ai-bg: rgba(56, 189, 248, 0.08);
+    --tone-ai-border: rgba(56, 189, 248, 0.22);
+    --tone-ai-text: #7dd3fc;
     --workspace-chrome: color-mix(in oklab, var(--surface) 68%, var(--background) 32%);
   }
 
@@ -79,56 +80,57 @@
     --text-main: #0f172a;
     --text-muted: #64748b;
     --guide-bg-raw: #f1f5f9;
-    --topbar-bg: rgba(255, 255, 255, 0.82);
-    --accent-500: #0891b2;
-    --accent-400: color-mix(in oklab, var(--accent-500) 28%, transparent);
+    --topbar-bg: rgba(255, 255, 255, 0.86);
+    --accent-500: #0284c7;
+    --accent-400: color-mix(in oklab, var(--accent-500) 26%, transparent);
     --accent-200: color-mix(in oklab, var(--accent-500) 8%, transparent);
     --stat-strong: #0f172a;
-    --focus-border: color-mix(in oklab, var(--accent-500) 36%, var(--border-main) 64%);
+    --focus-border: color-mix(in oklab, var(--accent-500) 38%, var(--border-main) 62%);
     --edge-muted: #cbd5e1;
-    --guardian-core-bg: color-mix(in oklab, var(--surface) 82%, var(--accent-500) 18%);
-    --guardian-ring: color-mix(in oklab, var(--accent-500) 28%, transparent);
+    --guardian-core-bg: color-mix(in oklab, var(--surface) 84%, var(--accent-500) 16%);
+    --guardian-ring: color-mix(in oklab, var(--accent-500) 24%, transparent);
     --guardian-dot: var(--accent-500);
-    --guardian-shadow: color-mix(in oklab, var(--accent-500) 18%, transparent);
-    --scrollbar-thumb: rgba(100, 116, 139, 0.25);
-    --scrollbar-thumb-hover: rgba(100, 116, 139, 0.42);
+    --guardian-shadow: color-mix(in oklab, var(--accent-500) 16%, transparent);
+    --scrollbar-thumb: rgba(100, 116, 139, 0.22);
+    --scrollbar-thumb-hover: rgba(100, 116, 139, 0.38);
     --backdrop:
-      radial-gradient(960px 640px at -8% -10%, rgba(8, 145, 178, 0.06), transparent 56%),
-      radial-gradient(820px 560px at 106% -8%, rgba(14, 165, 233, 0.05), transparent 60%);
+      radial-gradient(960px 640px at -8% -10%, rgba(2, 132, 199, 0.05), transparent 56%),
+      radial-gradient(820px 560px at 106% -8%, rgba(99, 102, 241, 0.04), transparent 60%);
     --code-block-bg: #f1f5f9;
     --code-block-text: #1e293b;
-    --code-inline-bg: rgba(8, 145, 178, 0.08);
+    --code-inline-bg: rgba(2, 132, 199, 0.07);
     --code-inline-text: #0f172a;
-    --code-keyword: #0e7490;
+    --code-keyword: #0369a1;
     --code-string: #047857;
     --code-number: #b45309;
     --code-comment: #94a3b8;
-    --code-function: #0284c7;
-    --code-type: #0891b2;
+    --code-function: #1d4ed8;
+    --code-type: #0284c7;
     --map-node-bg: #1e293b;
     --map-node-text: #f8fafc;
     --map-node-muted: #cbd5e1;
-    --panel-bg: color-mix(in oklab, var(--surface) 94%, #f1f5f9 6%);
+    --panel-bg: color-mix(in oklab, var(--surface) 95%, #f1f5f9 5%);
     --panel-muted: color-mix(in oklab, var(--surface) 97%, #f1f5f9 3%);
-    --panel-border-strong: color-mix(in oklab, var(--border-main) 86%, var(--text-main) 14%);
-    --hero-glow: color-mix(in oklab, var(--accent-500) 8%, transparent);
+    --panel-border-strong: color-mix(in oklab, var(--border-main) 88%, var(--text-main) 12%);
+    --hero-glow: color-mix(in oklab, var(--accent-500) 7%, transparent);
     --tone-critical-bg: rgba(239, 68, 68, 0.06);
-    --tone-critical-border: rgba(239, 68, 68, 0.2);
+    --tone-critical-border: rgba(239, 68, 68, 0.18);
     --tone-critical-text: #dc2626;
-    --tone-warning-bg: rgba(245, 158, 11, 0.06);
-    --tone-warning-border: rgba(245, 158, 11, 0.2);
-    --tone-warning-text: #d97706;
-    --tone-success-bg: rgba(16, 185, 129, 0.06);
-    --tone-success-border: rgba(16, 185, 129, 0.2);
-    --tone-success-text: #059669;
-    --tone-ai-bg: rgba(8, 145, 178, 0.06);
-    --tone-ai-border: rgba(8, 145, 178, 0.2);
-    --tone-ai-text: #0891b2;
+    --tone-warning-bg: rgba(217, 119, 6, 0.06);
+    --tone-warning-border: rgba(217, 119, 6, 0.18);
+    --tone-warning-text: #b45309;
+    --tone-success-bg: rgba(5, 150, 105, 0.06);
+    --tone-success-border: rgba(5, 150, 105, 0.18);
+    --tone-success-text: #047857;
+    --tone-ai-bg: rgba(2, 132, 199, 0.06);
+    --tone-ai-border: rgba(2, 132, 199, 0.18);
+    --tone-ai-text: #0369a1;
     --workspace-chrome: color-mix(in oklab, var(--surface) 72%, var(--background) 28%);
   }
 
   html {
     font-size: calc(16px * var(--app-font-scale));
+    font-family: var(--app-font-family);
   }
 
   body {

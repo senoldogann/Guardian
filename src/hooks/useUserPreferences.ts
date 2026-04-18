@@ -66,14 +66,14 @@ export const DEFAULT_USER_PREFERENCES: UserPreferencesV1 = {
   theme_mode: "dark",
   language: "en",
   light_palette: {
-    accent: "#0891b2",
+    accent: "#0284c7",
     panel: "#ffffff",
     text: "#0f172a",
   },
   dark_palette: {
-    accent: "#22d3ee",
-    panel: "#0f1520",
-    text: "#f1f5f9",
+    accent: "#38bdf8",
+    panel: "#111827",
+    text: "#edf2f7",
   },
   font_size_scale: 100,
   font_family: "space-grotesk",
