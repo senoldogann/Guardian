@@ -98,6 +98,15 @@
     "english": "English",
     "turkish": "Turkish"
   },
+  "features": {
+    "cli": "Guardian CLI — Run security scans from terminal or CI/CD pipelines. Integrate with GitHub Actions, GitLab CI, and any build system.",
+    "mcpServer": "MCP Server — Connect Guardian to any IDE via the Model Context Protocol. Works with Cursor, Claude Desktop, VS Code, and more.",
+    "vscodeExtension": "VS Code Extension — Real-time code governance directly in your editor. Inline findings, quick fixes, and evidence display.",
+    "secretRedaction": "19+ Secret Patterns — Automatically redacts API keys (OpenAI, Anthropic, GCP, Stripe, Slack, AWS, npm), JWTs, database URLs, PII, and more before sending code to AI.",
+    "evidenceBasedFindings": "Evidence-Based Analysis — Every finding includes line numbers, code evidence snippets, confidence scores, and category classification.",
+    "ruleEngine": "Built-in Rule Engine — 11+ rules covering security, architecture, and quality patterns. Create custom rules with YAML configuration.",
+    "multiProviderAI": "Multi-Provider AI — Choose between OpenAI, Anthropic, Google Gemini, GitHub Models, and Ollama. Switch providers without losing context."
+  },
   "common": {
     "latestVersion": "Latest version",
     "releaseNotAvailable": "No release is available yet.",

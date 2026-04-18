@@ -27,7 +27,7 @@
       },
       "auth": {
         "title": "Release Öncesi İnsan Onayı",
-        "description": "pass, pass with warning, block veya reason ile override kararlarını kaydeder ve tam bir denetim izi oluşturur."
+        "description": "Geçir, uyarılı geçir, engelle veya gerekçe ile geçersiz kıl kararlarını kaydeder ve tam bir denetim izi oluşturur."
       }
     }
   },
@@ -95,8 +95,17 @@
   },
   "language": {
     "label": "Dil",
-    "english": "English",
+    "english": "İngilizce",
     "turkish": "Türkçe"
+  },
+  "features": {
+    "cli": "Guardian CLI — Terminal veya CI/CD pipeline'larından güvenlik taramaları çalıştırın. GitHub Actions, GitLab CI ve her build sistemi ile entegre olun.",
+    "mcpServer": "MCP Sunucusu — Model Context Protocol üzerinden Guardian'ı herhangi bir IDE'ye bağlayın. Cursor, Claude Desktop, VS Code ve daha fazlası ile çalışır.",
+    "vscodeExtension": "VS Code Eklentisi — Editörünüzde gerçek zamanlı kod yönetişimi. Satır içi bulgular, hızlı düzeltmeler ve kanıt görüntüleme.",
+    "secretRedaction": "19+ Gizli Bilgi Kalıbı — AI'ya kod göndermeden önce API anahtarlarını (OpenAI, Anthropic, GCP, Stripe, Slack, AWS, npm), JWT'leri, veritabanı URL'lerini, PII'yi ve daha fazlasını otomatik olarak maskeler.",
+    "evidenceBasedFindings": "Kanıt Tabanlı Analiz — Her bulgu satır numaraları, kod kanıt parçacıkları, güven skorları ve kategori sınıflandırması içerir.",
+    "ruleEngine": "Yerleşik Kural Motoru — Güvenlik, mimari ve kalite kalıplarını kapsayan 11+ kural. YAML yapılandırması ile özel kurallar oluşturun.",
+    "multiProviderAI": "Çoklu AI Sağlayıcı — OpenAI, Anthropic, Google Gemini, GitHub Models ve Ollama arasında seçim yapın. Bağlamı kaybetmeden sağlayıcı değiştirin."
   },
   "common": {
     "latestVersion": "Güncel sürüm",
