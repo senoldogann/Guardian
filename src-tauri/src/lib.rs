@@ -30,13 +30,14 @@ mod validation;
 use anyhow::{Context, Result as AnyhowResult};
 use guardian_scan_policy::{ReleaseDecision, ScanProfile};
 use keyring::{Entry, Error as KeyringError};
-use secrecy::ExposeSecret;
+use once_cell::sync::Lazy;
+use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock as StdRwLock};
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::sync::RwLock;
 use tracing::{error, info, warn};
@@ -127,6 +128,21 @@ struct EmbeddingRuntimeConfig {
     openai_model: Option<String>,
     ollama_model: Option<String>,
 }
+
+/// Thread-safe in-process embedding config store.
+/// Replaces unsafe `std::env::set_var` calls in async context.
+#[derive(Default, Clone)]
+struct EmbeddingRuntimeConfigStore {
+    mode: Option<String>,
+    provider: Option<String>,
+    openai_base_url: Option<String>,
+    ollama_base_url: Option<String>,
+    openai_model: Option<String>,
+    ollama_model: Option<String>,
+}
+
+static EMBEDDING_RUNTIME_STORE: Lazy<StdRwLock<EmbeddingRuntimeConfigStore>> =
+    Lazy::new(|| StdRwLock::new(EmbeddingRuntimeConfigStore::default()));
 
 #[derive(Serialize, Deserialize, Clone)]
 struct ScanProfileConfig {
@@ -360,7 +376,7 @@ async fn start_monitoring(
             app,
             watcher::WatcherRuntimeConfig {
                 target_path: path,
-                api_key: api_key.expose_secret().to_string(),
+                api_key,
                 model: provider.model,
                 host: provider.base_url,
                 provider_id: provider.provider_id,
@@ -689,13 +705,94 @@ async fn logout_github(
     Ok(())
 }
 
+/// Shared helper: checks cached token age, verifies with GitHub, and handles
+/// all verify outcomes (success, unauthorized, offline, other).
+async fn verify_and_store_session(
+    app: &AppHandle,
+    auth_state: &AuthState,
+    token: &str,
+) -> Result<Option<AuthSessionView>, String> {
+    const OFFLINE_MAX_HOURS: i64 = 72;
+
+    if let Ok(Some(cached)) = load_cached_user(app) {
+        if cached.token_hash.as_deref() == Some(token_hash(token).as_str()) {
+            if let Some(issued_at) = cached.issued_at.as_ref().or(cached.verified_at.as_ref()) {
+                if let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(issued_at) {
+                    let age_hours = chrono::Utc::now()
+                        .signed_duration_since(parsed.with_timezone(&chrono::Utc))
+                        .num_hours();
+                    if age_hours > TOKEN_ROTATION_HOURS {
+                        let _ = clear_auth_session(app);
+                        return Ok(None);
+                    }
+                }
+            }
+        }
+    }
+
+    match auth::github::verify_access_token(token).await {
+        Ok(user) => {
+            auth_state.set_session(user.clone()).await;
+            let _ = persist_auth_user(app, &user, token);
+            Ok(Some(AuthSessionView {
+                user,
+                verified: true,
+                warning: None,
+            }))
+        }
+        Err(auth::github::VerifyError::Unauthorized) => {
+            let _ = clear_auth_session(app);
+            Ok(None)
+        }
+        Err(auth::github::VerifyError::Offline(detail)) => {
+            if let Ok(Some(cached)) = load_cached_user(app) {
+                let current_hash = token_hash(token);
+                let cached_hash = cached.token_hash.unwrap_or_default();
+                if cached_hash != current_hash {
+                    return Ok(None);
+                }
+
+                let verified_at = cached.verified_at.clone().unwrap_or_default();
+                let verified_at = chrono::DateTime::parse_from_rfc3339(&verified_at)
+                    .map_err(|_| {
+                        "Offline cache expired. Connect to the internet to re-verify.".to_string()
+                    })?
+                    .with_timezone(&chrono::Utc);
+                let age_hours = chrono::Utc::now()
+                    .signed_duration_since(verified_at)
+                    .num_hours();
+                if age_hours > OFFLINE_MAX_HOURS {
+                    let _ = clear_auth_session(app);
+                    return Err(
+                        "Offline verification expired. Connect to the internet to re-verify."
+                            .to_string(),
+                    );
+                }
+
+                auth_state.set_session(cached.user.clone()).await;
+                return Ok(Some(AuthSessionView {
+                    user: cached.user,
+                    verified: false,
+                    warning: Some(format!(
+                        "Offline verification (last verified {}h ago). {}",
+                        age_hours, detail
+                    )),
+                }));
+            }
+            Ok(None)
+        }
+        Err(auth::github::VerifyError::Other(detail)) => {
+            Err(format!("GitHub verification failed: {}", detail))
+        }
+    }
+}
+
 #[tauri::command]
 async fn get_auth_session(
     app: AppHandle,
     auth_state: tauri::State<'_, AuthState>,
     cached_only: Option<bool>,
 ) -> Result<Option<AuthSessionView>, String> {
-    const OFFLINE_MAX_HOURS: i64 = 72;
     let cached_only = cached_only.unwrap_or(false);
     if auth_state.get_user().await.is_none() {
         if let Ok(Some(cached)) = load_cached_user(&app) {
@@ -730,76 +827,7 @@ async fn get_auth_session(
         }
         let token = load_access_token()?;
         if let Some(token) = token {
-            if let Ok(Some(cached)) = load_cached_user(&app) {
-                if cached.token_hash.as_deref() == Some(token_hash(&token).as_str()) {
-                    if let Some(issued_at) =
-                        cached.issued_at.as_ref().or(cached.verified_at.as_ref())
-                    {
-                        if let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(issued_at) {
-                            let age_hours = chrono::Utc::now()
-                                .signed_duration_since(parsed.with_timezone(&chrono::Utc))
-                                .num_hours();
-                            if age_hours > TOKEN_ROTATION_HOURS {
-                                let _ = clear_auth_session(&app);
-                                return Ok(None);
-                            }
-                        }
-                    }
-                }
-            }
-            match auth::github::verify_access_token(&token).await {
-                Ok(user) => {
-                    auth_state.set_session(user.clone()).await;
-                    let _ = persist_auth_user(&app, &user, &token);
-                    return Ok(Some(AuthSessionView {
-                        user,
-                        verified: true,
-                        warning: None,
-                    }));
-                }
-                Err(auth::github::VerifyError::Unauthorized) => {
-                    let _ = clear_auth_session(&app);
-                    return Ok(None);
-                }
-                Err(auth::github::VerifyError::Offline(detail)) => {
-                    if let Ok(Some(cached)) = load_cached_user(&app) {
-                        let current_hash = token_hash(&token);
-                        let cached_hash = cached.token_hash.unwrap_or_default();
-                        if cached_hash != current_hash {
-                            return Ok(None);
-                        }
-
-                        let verified_at = cached.verified_at.clone().unwrap_or_default();
-                        let verified_at = chrono::DateTime::parse_from_rfc3339(&verified_at)
-                            .map_err(|_| {
-                                "Offline cache expired. Connect to the internet to re-verify."
-                                    .to_string()
-                            })?
-                            .with_timezone(&chrono::Utc);
-                        let age_hours = chrono::Utc::now()
-                            .signed_duration_since(verified_at)
-                            .num_hours();
-                        if age_hours > OFFLINE_MAX_HOURS {
-                            let _ = clear_auth_session(&app);
-                            return Err("Offline verification expired. Connect to the internet to re-verify.".to_string());
-                        }
-
-                        auth_state.set_session(cached.user.clone()).await;
-                        return Ok(Some(AuthSessionView {
-                            user: cached.user,
-                            verified: false,
-                            warning: Some(format!(
-                                "Offline verification (last verified {}h ago). {}",
-                                age_hours, detail
-                            )),
-                        }));
-                    }
-                    return Ok(None);
-                }
-                Err(auth::github::VerifyError::Other(detail)) => {
-                    return Err(format!("GitHub verification failed: {}", detail));
-                }
-            }
+            return verify_and_store_session(&app, &auth_state, &token).await;
         }
     }
 
@@ -815,80 +843,9 @@ async fn refresh_auth_session(
     app: AppHandle,
     auth_state: tauri::State<'_, AuthState>,
 ) -> Result<Option<AuthSessionView>, String> {
-    const OFFLINE_MAX_HOURS: i64 = 72;
     let token = load_access_token()?;
     if let Some(token) = token {
-        if let Ok(Some(cached)) = load_cached_user(&app) {
-            if cached.token_hash.as_deref() == Some(token_hash(&token).as_str()) {
-                if let Some(issued_at) = cached.issued_at.as_ref().or(cached.verified_at.as_ref()) {
-                    if let Ok(parsed) = chrono::DateTime::parse_from_rfc3339(issued_at) {
-                        let age_hours = chrono::Utc::now()
-                            .signed_duration_since(parsed.with_timezone(&chrono::Utc))
-                            .num_hours();
-                        if age_hours > TOKEN_ROTATION_HOURS {
-                            let _ = clear_auth_session(&app);
-                            return Ok(None);
-                        }
-                    }
-                }
-            }
-        }
-        match auth::github::verify_access_token(&token).await {
-            Ok(user) => {
-                auth_state.set_session(user.clone()).await;
-                let _ = persist_auth_user(&app, &user, &token);
-                return Ok(Some(AuthSessionView {
-                    user,
-                    verified: true,
-                    warning: None,
-                }));
-            }
-            Err(auth::github::VerifyError::Unauthorized) => {
-                let _ = clear_auth_session(&app);
-                return Ok(None);
-            }
-            Err(auth::github::VerifyError::Offline(detail)) => {
-                if let Ok(Some(cached)) = load_cached_user(&app) {
-                    let current_hash = token_hash(&token);
-                    let cached_hash = cached.token_hash.unwrap_or_default();
-                    if cached_hash != current_hash {
-                        return Ok(None);
-                    }
-
-                    let verified_at = cached.verified_at.clone().unwrap_or_default();
-                    let verified_at = chrono::DateTime::parse_from_rfc3339(&verified_at)
-                        .map_err(|_| {
-                            "Offline cache expired. Connect to the internet to re-verify."
-                                .to_string()
-                        })?
-                        .with_timezone(&chrono::Utc);
-                    let age_hours = chrono::Utc::now()
-                        .signed_duration_since(verified_at)
-                        .num_hours();
-                    if age_hours > OFFLINE_MAX_HOURS {
-                        let _ = clear_auth_session(&app);
-                        return Err(
-                            "Offline verification expired. Connect to the internet to re-verify."
-                                .to_string(),
-                        );
-                    }
-
-                    auth_state.set_session(cached.user.clone()).await;
-                    return Ok(Some(AuthSessionView {
-                        user: cached.user,
-                        verified: false,
-                        warning: Some(format!(
-                            "Offline verification (last verified {}h ago). {}",
-                            age_hours, detail
-                        )),
-                    }));
-                }
-                return Ok(None);
-            }
-            Err(auth::github::VerifyError::Other(detail)) => {
-                return Err(format!("GitHub verification failed: {}", detail));
-            }
-        }
+        return verify_and_store_session(&app, &auth_state, &token).await;
     }
 
     Ok(None)
@@ -1243,10 +1200,7 @@ fn append_issue_file_context(
 }
 
 fn is_sensitive_path(path: &std::path::Path) -> bool {
-    path.file_name()
-        .and_then(|name| name.to_str())
-        .map(|name| name.starts_with(".env"))
-        .unwrap_or(false)
+    crate::redaction::gate::is_sensitive_file(path)
 }
 
 // Security: Detect binary files by extension and content analysis
@@ -1387,6 +1341,22 @@ async fn test_provider_connection(
 }
 
 fn read_optional_env(key: &str) -> Option<String> {
+    // Thread-safe in-process config store (replaces std::env::set_var)
+    if let Ok(store) = EMBEDDING_RUNTIME_STORE.read() {
+        let value = match key {
+            "GUARDIAN_EMBED_MODE" => store.mode.clone(),
+            "GUARDIAN_EMBED_PROVIDER" => store.provider.clone(),
+            "GUARDIAN_EMBED_BASE_URL_OPENAI" => store.openai_base_url.clone(),
+            "GUARDIAN_EMBED_BASE_URL_OLLAMA" => store.ollama_base_url.clone(),
+            "GUARDIAN_EMBED_MODEL" => store.openai_model.clone(),
+            "GUARDIAN_EMBED_MODEL_OLLAMA" => store.ollama_model.clone(),
+            _ => None,
+        };
+        if value.is_some() {
+            return value;
+        }
+    }
+    // Fallback to env vars (read-only, set at startup)
     std::env::var(key)
         .ok()
         .map(|v| v.trim().to_string())
@@ -1461,35 +1431,26 @@ async fn set_embedding_runtime_config(
     let openai_model = normalize_optional_model(config.openai_model);
     let ollama_model = normalize_optional_model(config.ollama_model);
 
-    match mode.as_str() {
-        "auto" => {
-            std::env::remove_var("GUARDIAN_EMBED_MODE");
-            std::env::remove_var("GUARDIAN_EMBED_PROVIDER");
+    // Thread-safe config update (no std::env::set_var — avoids UB in async)
+    {
+        let mut store = EMBEDDING_RUNTIME_STORE
+            .write()
+            .map_err(|_| "Failed to acquire embedding config lock".to_string())?;
+        match mode.as_str() {
+            "auto" => {
+                store.mode = None;
+                store.provider = None;
+            }
+            m @ ("openai" | "ollama" | "local") => {
+                store.mode = Some(m.to_string());
+                store.provider = Some(m.to_string());
+            }
+            _ => {}
         }
-        "openai" | "ollama" | "local" => {
-            std::env::set_var("GUARDIAN_EMBED_MODE", mode.as_str());
-            std::env::set_var("GUARDIAN_EMBED_PROVIDER", mode.as_str());
-        }
-        _ => {}
-    }
-
-    match openai_base_url {
-        Some(url) => std::env::set_var("GUARDIAN_EMBED_BASE_URL_OPENAI", url),
-        None => std::env::remove_var("GUARDIAN_EMBED_BASE_URL_OPENAI"),
-    }
-    match ollama_base_url {
-        Some(url) => std::env::set_var("GUARDIAN_EMBED_BASE_URL_OLLAMA", url),
-        None => std::env::remove_var("GUARDIAN_EMBED_BASE_URL_OLLAMA"),
-    }
-    std::env::remove_var("GUARDIAN_EMBED_BASE_URL");
-
-    match openai_model {
-        Some(model) => std::env::set_var("GUARDIAN_EMBED_MODEL", model),
-        None => std::env::remove_var("GUARDIAN_EMBED_MODEL"),
-    }
-    match ollama_model {
-        Some(model) => std::env::set_var("GUARDIAN_EMBED_MODEL_OLLAMA", model),
-        None => std::env::remove_var("GUARDIAN_EMBED_MODEL_OLLAMA"),
+        store.openai_base_url = openai_base_url;
+        store.ollama_base_url = ollama_base_url;
+        store.openai_model = openai_model;
+        store.ollama_model = ollama_model;
     }
 
     get_embedding_runtime_config().await
