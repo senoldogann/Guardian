@@ -5,6 +5,7 @@ import {
   HelpCircle,
   Download,
   MessageCircle,
+  Terminal,
   ChevronDown,
   type LucideIcon,
 } from "lucide-react";
@@ -47,6 +48,14 @@ const faqCategoriesEn: FaqCategory[] = [
         q: "What platforms does Guardian support?",
         a: "Guardian ships macOS builds (Apple Silicon and Intel) and Windows installers today. Linux installers will appear on the download page once they are published.",
       },
+      {
+        q: "Which AI providers does Guardian support?",
+        a: "Guardian supports OpenAI, Anthropic, Google Gemini, GitHub Models, and Ollama (local). You can switch providers at any time without losing your workspace context or scan history.",
+      },
+      {
+        q: "Does Guardian send my code to the cloud?",
+        a: "Only when you enable a cloud AI provider. Guardian redacts 19+ secret and PII patterns (API keys, JWTs, database URLs, emails, phone numbers) before sending any code to AI. You can also run fully offline with Ollama or use the offline scan mode.",
+      },
     ],
   },
   {
@@ -69,6 +78,33 @@ const faqCategoriesEn: FaqCategory[] = [
       {
         q: "How do I use web search with Guru?",
         a: "Add your Tavily key in Settings, then enable Web Search. To force web search for a single message, prefix your question with /web or include @web. If your message includes a URL, Guardian prefers focused URL extraction; otherwise it uses web search.",
+      },
+    ],
+  },
+  {
+    id: "developer-tools",
+    title: "Developer Tools",
+    icon: Terminal,
+    questions: [
+      {
+        q: "How do I use Guardian in CI/CD?",
+        a: "Install guardian-cli and add it to your pipeline: 'guardian-cli scan . --format json --output report.json'. It supports GitHub Actions, GitLab CI, and any build system. Use --offline for policy-only checks without AI.",
+      },
+      {
+        q: "What is the MCP Server?",
+        a: "The MCP (Model Context Protocol) server lets AI assistants in editors like Cursor and Claude Desktop access Guardian's governance tools directly. It can scan files, check policies, and classify code without leaving your editor.",
+      },
+      {
+        q: "Is there a VS Code extension?",
+        a: "Yes, guardian-vscode provides real-time code governance in VS Code with inline findings, quick fixes, and evidence display.",
+      },
+      {
+        q: "What secrets does Guardian redact?",
+        a: "Guardian detects and masks 19+ patterns including OpenAI, Anthropic, GitHub, AWS, GCP, Stripe, Slack, and npm tokens, JWTs, database URLs, private keys, emails, and phone numbers. Redaction is always-on and cannot be disabled.",
+      },
+      {
+        q: "Can I customize scan rules?",
+        a: "Yes. Guardian includes 11+ built-in rules covering security, architecture, and quality patterns. You can configure rules in guardian.policy.yaml and create custom rules with the YAML-based rule engine.",
       },
     ],
   },
@@ -119,6 +155,14 @@ const faqCategoriesTr: FaqCategory[] = [
         q: "Guardian hangi platformları destekliyor?",
         a: "Guardian bugün macOS (Apple Silicon ve Intel) ve Windows installer olarak yayınlanır. Linux yükleyicileri yayınlandıkça indirme sayfasında görünür.",
       },
+      {
+        q: "Guardian hangi AI sağlayıcılarını destekliyor?",
+        a: "Guardian OpenAI, Anthropic, Google Gemini, GitHub Models ve Ollama (lokal) destekler. Workspace bağlamınızı veya tarama geçmişinizi kaybetmeden istediğiniz zaman sağlayıcı değiştirebilirsiniz.",
+      },
+      {
+        q: "Guardian kodumu buluta gönderiyor mu?",
+        a: "Sadece bir cloud AI sağlayıcısı etkinleştirdiğinizde. Guardian, kodu AI'ya göndermeden önce 19+ gizli bilgi ve PII kalıbını (API anahtarları, JWT'ler, veritabanı URL'leri, e-postalar, telefon numaraları) otomatik maskeler. Ollama ile tamamen çevrimdışı da çalışabilirsiniz.",
+      },
     ],
   },
   {
@@ -141,6 +185,33 @@ const faqCategoriesTr: FaqCategory[] = [
       {
         q: "Guru ile web search nasıl kullanılır?",
         a: "Ayarlar'da Tavily anahtarınızı ekleyin ve Web Search'ü açın. Tek mesaj için web search zorlamak isterseniz sorunun başına /web ekleyin veya @web yazın. Mesajınızda bir URL varsa Guardian önce o sayfadan odaklı extract yapmayı tercih eder; yoksa search kullanır.",
+      },
+    ],
+  },
+  {
+    id: "developer-tools",
+    title: "Geliştirici Araçları",
+    icon: Terminal,
+    questions: [
+      {
+        q: "Guardian'ı CI/CD'de nasıl kullanırım?",
+        a: "guardian-cli kurun ve pipeline'ınıza ekleyin: 'guardian-cli scan . --format json --output report.json'. GitHub Actions, GitLab CI ve her build sistemi desteklenir. AI olmadan sadece policy kontrolü için --offline kullanın.",
+      },
+      {
+        q: "MCP Server nedir?",
+        a: "MCP (Model Context Protocol) sunucusu, Cursor ve Claude Desktop gibi editörlerdeki AI asistanların Guardian'ın yönetişim araçlarına doğrudan erişmesini sağlar. Editörünüzden çıkmadan dosya tarama, policy kontrolü ve kod sınıflandırma yapabilir.",
+      },
+      {
+        q: "VS Code eklentisi var mı?",
+        a: "Evet, guardian-vscode VS Code'da satır içi bulgular, hızlı düzeltmeler ve kanıt görüntüleme ile gerçek zamanlı kod yönetişimi sağlar.",
+      },
+      {
+        q: "Guardian hangi gizli bilgileri maskeler?",
+        a: "Guardian 19+ kalıbı tespit eder ve maskeler: OpenAI, Anthropic, GitHub, AWS, GCP, Stripe, Slack ve npm tokenları, JWT'ler, veritabanı URL'leri, private key'ler, e-postalar ve telefon numaraları. Maskeleme her zaman açıktır ve kapatılamaz.",
+      },
+      {
+        q: "Tarama kurallarını özelleştirebilir miyim?",
+        a: "Evet. Guardian güvenlik, mimari ve kalite kalıplarını kapsayan 11+ yerleşik kural içerir. Kuralları guardian.policy.yaml'da yapılandırabilir ve YAML tabanlı kural motoru ile özel kurallar oluşturabilirsiniz.",
       },
     ],
   },
