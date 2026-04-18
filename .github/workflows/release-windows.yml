@@ -80,7 +80,7 @@ jobs:
             args+=(--override-reason "${{ inputs.override_reason }}")
           fi
 
-          guardian-cli/target/release/guardian-cli scan \
+          target/release/guardian-cli scan \
             --root . \
             --offline \
             --no-baseline \
