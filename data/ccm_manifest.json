@@ -1,0 +1,5556 @@
+{
+  "files": {
+    "./.maestro/skills/azure-monitor-opentelemetry-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5061
+    },
+    "./website/components/ui/switch.tsx": {
+      "modified_sec": 1773537603,
+      "size": 1461
+    },
+    "./src-tauri/src/executor.rs": {
+      "modified_sec": 1773537603,
+      "size": 5896
+    },
+    "./.maestro/workflows/debug.md": {
+      "modified_sec": 1773537603,
+      "size": 1706
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/server-serialization.md": {
+      "modified_sec": 1773537603,
+      "size": 996
+    },
+    "./.maestro/skills/bun-development/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 14170
+    },
+    "./scripts/pilot_generate_ai_heavy_calibration.sh": {
+      "modified_sec": 1773592159,
+      "size": 868
+    },
+    "./.maestro/skills/azure-devops-cli/references/workflows-and-patterns.md": {
+      "modified_sec": 1773537603,
+      "size": 16427
+    },
+    "./.maestro/skills/azure-resource-manager-durabletask-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 12197
+    },
+    "./tsconfig.json": {
+      "modified_sec": 1773537603,
+      "size": 770
+    },
+    "./docs/PROJECT_DOCUMENTATION.md": {
+      "modified_sec": 1773537603,
+      "size": 7037
+    },
+    "./.maestro/skills/e2e-testing-patterns/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 14545
+    },
+    "./.maestro/skills/wcag-audit-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1533
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/stacks/nextjs.csv": {
+      "modified_sec": 1773537603,
+      "size": 12546
+    },
+    "./.maestro/workflows/create-prd-v2/steps-v/step-v-12-completeness-validation.md": {
+      "modified_sec": 1773537603,
+      "size": 8376
+    },
+    "./.maestro/skills/docs/vietnamese/SECURITY_GUARDRAILS.vi.md": {
+      "modified_sec": 1773537603,
+      "size": 3395
+    },
+    "./website/content/docs/en/reviews.mdx": {
+      "modified_sec": 1773581433,
+      "size": 3939
+    },
+    "./.maestro/workflows/bmad-agent-bmad-master.md": {
+      "modified_sec": 1773537603,
+      "size": 642
+    },
+    "./.maestro/skills/gstack/browse/test/fixtures/spa.html": {
+      "modified_sec": 1773537603,
+      "size": 638
+    },
+    "./.maestro/skills/agent-browser/references/session-management.md": {
+      "modified_sec": 1773537603,
+      "size": 3894
+    },
+    "./.maestro/workflows/bmad-party-mode.md": {
+      "modified_sec": 1773537603,
+      "size": 350
+    },
+    "./guardian-scan-policy/src/lib.rs": {
+      "modified_sec": 1773601176,
+      "size": 23777
+    },
+    "./.maestro/workflows/create-prd-v2/steps-c/step-10-nonfunctional.md": {
+      "modified_sec": 1773537603,
+      "size": 9355
+    },
+    "./.maestro/skills/go-concurrency-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1159
+    },
+    "./.maestro/workflows/create-prd-v2/steps-c/step-01b-continue.md": {
+      "modified_sec": 1773537603,
+      "size": 5388
+    },
+    "./.maestro/skills/react-best-practices/rules/rerender-memo.md": {
+      "modified_sec": 1773537603,
+      "size": 1148
+    },
+    "./docs/HERO_SCENARIO_VIDEO_PACKAGE.md": {
+      "modified_sec": 1773537603,
+      "size": 1491
+    },
+    "./.maestro/skills/agent-browser/templates/form-automation.sh": {
+      "modified_sec": 1773537603,
+      "size": 1590
+    },
+    "./.maestro/workflows/create-architecture-v2/data/domain-complexity.csv": {
+      "modified_sec": 1773537603,
+      "size": 1568
+    },
+    "./.maestro/workflows/bmad-tea-testarch-test-review.md": {
+      "modified_sec": 1773537603,
+      "size": 946
+    },
+    "./.maestro/skills/azure-ai-translation-document-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6827
+    },
+    "./.maestro/agents/devops-engineer.md": {
+      "modified_sec": 1773537603,
+      "size": 6343
+    },
+    "./website/app/[locale]/page.tsx": {
+      "modified_sec": 1773537603,
+      "size": 1171
+    },
+    "./src/components/layout/MainWorkspace.tsx": {
+      "modified_sec": 1776109232,
+      "size": 23799
+    },
+    "./.maestro/skills/expo-cicd-workflows/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3508
+    },
+    "./.maestro/skills/security-review/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3029
+    },
+    "./website/content/docs/en/configuration.mdx": {
+      "modified_sec": 1773537603,
+      "size": 7446
+    },
+    "./.maestro/skills/git-pushing/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1032
+    },
+    "./.maestro/skills/lint-and-validate/scripts/lint_runner.py": {
+      "modified_sec": 1773537603,
+      "size": 4969
+    },
+    "./.maestro/skills/azure-infra-engineer/references/troubleshooting.md": {
+      "modified_sec": 1773537603,
+      "size": 10185
+    },
+    "./.maestro/provider-packs/antigravity/rules/00-ARCHITECT-MANIFESTO.md": {
+      "modified_sec": 1773537603,
+      "size": 4670
+    },
+    "./.maestro/agents/documentation-writer.md": {
+      "modified_sec": 1773537603,
+      "size": 2589
+    },
+    "./docs/GUARDIAN_MVP_PHASE_TRACKER.md": {
+      "modified_sec": 1776109232,
+      "size": 60886
+    },
+    "./.maestro/agents/mobile-developer.md": {
+      "modified_sec": 1773537603,
+      "size": 12968
+    },
+    "./.maestro/skills/uv-package-manager/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 15900
+    },
+    "./.maestro/workflows/create-epics-and-stories-v2/steps/step-04-final-validation.md": {
+      "modified_sec": 1773537603,
+      "size": 5233
+    },
+    "./tests/e2e/app.spec.ts": {
+      "modified_sec": 1776109232,
+      "size": 9249
+    },
+    "./.maestro/skills/javascript-testing-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1395
+    },
+    "./.maestro/workflows/bmad-shard-doc.md": {
+      "modified_sec": 1773537603,
+      "size": 263
+    },
+    "./.maestro/skills/frontend-design/LICENSE.txt": {
+      "modified_sec": 1773537603,
+      "size": 10174
+    },
+    "./scripts/provider_config_validator.py": {
+      "modified_sec": 1773537603,
+      "size": 10845
+    },
+    "./website/e2e/error-handling.spec.ts": {
+      "modified_sec": 1773581768,
+      "size": 9298
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/stacks/shadcn.csv": {
+      "modified_sec": 1773537603,
+      "size": 15921
+    },
+    "./.maestro/skills/azure-eventgrid-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8465
+    },
+    "./.maestro/skills/secrets-management/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8149
+    },
+    "./.maestro/skills/nextjs-app-router-patterns/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 13320
+    },
+    "./.maestro/skills/agent-browser/templates/capture-workflow.sh": {
+      "modified_sec": 1773537603,
+      "size": 1967
+    },
+    "./website/components/download/download-primary-cta.tsx": {
+      "modified_sec": 1773537603,
+      "size": 1499
+    },
+    "./.maestro/skills/typescript-advanced-types/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 16904
+    },
+    "./.maestro/skills/azure-mgmt-apicenter-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 12645
+    },
+    "./.maestro/skills/webapp-testing/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4033
+    },
+    "./.maestro/workflows/create-prd-v2/workflow.md": {
+      "modified_sec": 1773537603,
+      "size": 5894
+    },
+    "./.maestro/workflows/ship.md": {
+      "modified_sec": 1773537603,
+      "size": 265
+    },
+    "./.maestro/skills/api-patterns/response.md": {
+      "modified_sec": 1773537603,
+      "size": 921
+    },
+    "./.maestro/skills/exa-search/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 988
+    },
+    "./.maestro/skills/azure-search-documents-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9373
+    },
+    "./.github/dependabot.yml": {
+      "modified_sec": 1776109233,
+      "size": 1557
+    },
+    "./.maestro/workflows/brainstorm.md": {
+      "modified_sec": 1773537603,
+      "size": 1825
+    },
+    "./.maestro/skills/frontend-dev-guidelines/resources/component-patterns.md": {
+      "modified_sec": 1773537603,
+      "size": 10804
+    },
+    "./website/components/site-footer.tsx": {
+      "modified_sec": 1773537603,
+      "size": 8042
+    },
+    "./.maestro/skills/SKILL_INDEX.md": {
+      "modified_sec": 1775306321,
+      "size": 68470
+    },
+    "./.maestro/skills/writing-skills/references/templates/technique.md": {
+      "modified_sec": 1773537603,
+      "size": 779
+    },
+    "./index.html": {
+      "modified_sec": 1773537603,
+      "size": 376
+    },
+    "./.maestro/skills/agent-browser/templates/authenticated-session.sh": {
+      "modified_sec": 1773537603,
+      "size": 4235
+    },
+    "./docs/TOKEN_SECURITY.md": {
+      "modified_sec": 1773537603,
+      "size": 5164
+    },
+    "./src/components/AIContextPreview.tsx": {
+      "modified_sec": 1773574953,
+      "size": 16356
+    },
+    "./scripts/dependency_analyzer.py": {
+      "modified_sec": 1773592994,
+      "size": 6605
+    },
+    "./public/tauri.svg": {
+      "modified_sec": 1773537603,
+      "size": 2599
+    },
+    "./.maestro/skills/rust-async-patterns/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 12298
+    },
+    "./.dockerignore": {
+      "modified_sec": 1773537603,
+      "size": 567
+    },
+    "./.maestro/skills/architecture/patterns-reference.md": {
+      "modified_sec": 1773537603,
+      "size": 2307
+    },
+    "./guardian-cli/Cargo.toml": {
+      "modified_sec": 1773537603,
+      "size": 510
+    },
+    "./.maestro/skills/web-artifacts-builder/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3123
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/advanced-init-once.md": {
+      "modified_sec": 1773537603,
+      "size": 958
+    },
+    "./.maestro/workflows/create-epics-and-stories-v2/steps/step-01-validate-prerequisites.md": {
+      "modified_sec": 1773537603,
+      "size": 9150
+    },
+    "./.maestro/workflows/bmad-bmm-create-excalidraw-wireframe.md": {
+      "modified_sec": 1773537603,
+      "size": 954
+    },
+    "./.maestro/workflows/bmad-bmm-create-architecture.md": {
+      "modified_sec": 1773537603,
+      "size": 523
+    },
+    "./.maestro/skills/mobile-design/platform-android.md": {
+      "modified_sec": 1773537603,
+      "size": 19541
+    },
+    "./.maestro/skills/architecture/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1889
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/icons.csv": {
+      "modified_sec": 1773537603,
+      "size": 13385
+    },
+    "./src/lib/__tests__/error-handler.test.ts": {
+      "modified_sec": 1773537603,
+      "size": 7457
+    },
+    "./.maestro/SYSTEM.md": {
+      "modified_sec": 1773537603,
+      "size": 6086
+    },
+    "./.maestro/skills/nestjs-expert/references/patterns.md": {
+      "modified_sec": 1773537603,
+      "size": 2865
+    },
+    "./website/lib/seo.ts": {
+      "modified_sec": 1773537603,
+      "size": 2462
+    },
+    "./website/middleware.test.ts": {
+      "modified_sec": 1773653367,
+      "size": 367
+    },
+    "./.maestro/skills/react-best-practices/rules/async-suspense-boundaries.md": {
+      "modified_sec": 1773537603,
+      "size": 2510
+    },
+    "./.maestro/skills/frontend-ui-dark-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 14751
+    },
+    "./.maestro/agents/seo-specialist.md": {
+      "modified_sec": 1773537603,
+      "size": 2779
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rerender-lazy-state-init.md": {
+      "modified_sec": 1773537603,
+      "size": 2016
+    },
+    "./src/hooks/useAuth.ts": {
+      "modified_sec": 1773537603,
+      "size": 11094
+    },
+    "./.maestro/skills/brainstorming/dynamic-questioning.md": {
+      "modified_sec": 1773537603,
+      "size": 11619
+    },
+    "./.maestro/workflows/enhance.md": {
+      "modified_sec": 1773537603,
+      "size": 1148
+    },
+    "./.maestro/workflows/create-prd-v2/steps-c/step-11-polish.md": {
+      "modified_sec": 1773537603,
+      "size": 8133
+    },
+    "./scripts/decode_jwt.py": {
+      "modified_sec": 1773537603,
+      "size": 1709
+    },
+    "./website/components/ui/skeleton.test.tsx": {
+      "modified_sec": 1773537603,
+      "size": 2138
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/async-suspense-boundaries.md": {
+      "modified_sec": 1773537603,
+      "size": 2510
+    },
+    "./.maestro/skills/terraform-infrastructure/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3423
+    },
+    "./.maestro/skills/web-artifacts-builder/scripts/bundle-artifact.sh": {
+      "modified_sec": 1773537603,
+      "size": 1517
+    },
+    "./.maestro/skills/writing-skills/anthropic-best-practices.md": {
+      "modified_sec": 1773537603,
+      "size": 45599
+    },
+    "./.maestro/skills/docs/vietnamese/GETTING_STARTED.vi.md": {
+      "modified_sec": 1773537603,
+      "size": 5142
+    },
+    "./website/components/changelog/changelog-client.tsx": {
+      "modified_sec": 1773537603,
+      "size": 11134
+    },
+    "./.maestro/workflows/create-architecture-v2/data/project-types.csv": {
+      "modified_sec": 1773537603,
+      "size": 758
+    },
+    "./.maestro/skills/gstack/retro/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11736
+    },
+    "./.maestro/skills/frontend-dev-guidelines/resources/typescript-standards.md": {
+      "modified_sec": 1773537603,
+      "size": 8439
+    },
+    "./.maestro/skills/react-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3913
+    },
+    "./src/lib/uiFormat.ts": {
+      "modified_sec": 1773537603,
+      "size": 1203
+    },
+    "./guardian-cli/src/evidence.rs": {
+      "modified_sec": 1773537603,
+      "size": 1251
+    },
+    "./.maestro/skills/git-pushing/scripts/smart_commit.sh": {
+      "modified_sec": 1773537603,
+      "size": 374
+    },
+    "./.maestro/skills/app-builder/templates/flutter-app/TEMPLATE.md": {
+      "modified_sec": 1773537603,
+      "size": 1855
+    },
+    "./website/lib/seo.test.ts": {
+      "modified_sec": 1773537603,
+      "size": 4195
+    },
+    "./.maestro/skills/react-best-practices/rules/js-hoist-regexp.md": {
+      "modified_sec": 1773537603,
+      "size": 1028
+    },
+    "./scripts/context_optimizer.py": {
+      "modified_sec": 1773537603,
+      "size": 2972
+    },
+    "./.maestro/skills/react-best-practices/rules/rendering-animate-svg-wrapper.md": {
+      "modified_sec": 1773537603,
+      "size": 1185
+    },
+    "./.maestro/skills/gstack/ship/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 12050
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/js-index-maps.md": {
+      "modified_sec": 1773537603,
+      "size": 837
+    },
+    "./website/app/icon.svg": {
+      "modified_sec": 1773537603,
+      "size": 521
+    },
+    "./website/components/changelog/changelog-page-view.tsx": {
+      "modified_sec": 1773537603,
+      "size": 1333
+    },
+    "./scripts/merge_latest_json.sh": {
+      "modified_sec": 1773536148,
+      "size": 1602
+    },
+    "./src/components/__tests__/AIContextPreview.test.tsx": {
+      "modified_sec": 1773537603,
+      "size": 2193
+    },
+    "./.maestro/skills/react-modernization/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 11576
+    },
+    "./src-tauri/src/watcher.rs": {
+      "modified_sec": 1776109232,
+      "size": 136834
+    },
+    "./website/app/download/client-wrapper.tsx": {
+      "modified_sec": 1773537603,
+      "size": 445
+    },
+    "./.maestro/skills/systematic-debugging/test-pressure-2.md": {
+      "modified_sec": 1773537603,
+      "size": 2283
+    },
+    "./.maestro/skills/azure-web-pubsub-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7712
+    },
+    "./.maestro/workflows/bmad-index-docs.md": {
+      "modified_sec": 1773537603,
+      "size": 239
+    },
+    "./.maestro/skills/gstack/browse/test/commands.test.ts": {
+      "modified_sec": 1773537603,
+      "size": 20322
+    },
+    "./.maestro/skills/development/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6722
+    },
+    "./.maestro/skills/docs/CATEGORIZATION_IMPLEMENTATION.md": {
+      "modified_sec": 1773537603,
+      "size": 5311
+    },
+    "./.maestro/skills/azure-infra-engineer/references/quickstart.md": {
+      "modified_sec": 1773537603,
+      "size": 5984
+    },
+    "./docs/LOCAL_RELEASE_RUNBOOK.md": {
+      "modified_sec": 1773537603,
+      "size": 4526
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/server-after-nonblocking.md": {
+      "modified_sec": 1773537603,
+      "size": 2012
+    },
+    "./.maestro/skills/security-review/references/blockchain.md": {
+      "modified_sec": 1773537603,
+      "size": 1199
+    },
+    "./.maestro/skills/agent-browser/references/proxy-support.md": {
+      "modified_sec": 1773537603,
+      "size": 4265
+    },
+    "./website/content/docs/en/migration.mdx": {
+      "modified_sec": 1773581410,
+      "size": 2910
+    },
+    "./.maestro/skills/react-best-practices/rules/server-cache-lru.md": {
+      "modified_sec": 1773537603,
+      "size": 1353
+    },
+    "./.maestro/skills/azure-keyvault-secrets-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6260
+    },
+    "./.maestro/skills/gstack/browse/test/fixtures/responsive.html": {
+      "modified_sec": 1773537603,
+      "size": 1420
+    },
+    "./benchmarks/review_precision/sample.baseline.jsonl": {
+      "modified_sec": 1773585723,
+      "size": 888
+    },
+    "./.maestro/skills/azure-devops-cli/references/boards-and-iterations.md": {
+      "modified_sec": 1773537603,
+      "size": 5575
+    },
+    "./.maestro/skills/cloud-architect/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7766
+    },
+    "./.maestro/skills/writing-skills/references/anti-rationalization/README.md": {
+      "modified_sec": 1773537603,
+      "size": 7285
+    },
+    "./.maestro/skills/app-builder/templates/electron-desktop/TEMPLATE.md": {
+      "modified_sec": 1773537603,
+      "size": 1823
+    },
+    "./.maestro/skills/react-best-practices/rules/rerender-defer-reads.md": {
+      "modified_sec": 1773537603,
+      "size": 973
+    },
+    "./.maestro/skills/typescript-advanced-types/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1398
+    },
+    "./.maestro/skills/workflow_bundles_readme.md": {
+      "modified_sec": 1773537603,
+      "size": 6782
+    },
+    "./.maestro/workflows/bmad-agent-bmm-architect.md": {
+      "modified_sec": 1773537603,
+      "size": 635
+    },
+    "./.maestro/skills/react-best-practices/rules/_template.md": {
+      "modified_sec": 1773537603,
+      "size": 631
+    },
+    "./.maestro/skills/vexor-cli/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2767
+    },
+    "./website/components/theme-provider.tsx": {
+      "modified_sec": 1773537603,
+      "size": 2948
+    },
+    "./website/content/docs/tr/configuration.mdx": {
+      "modified_sec": 1773537603,
+      "size": 7708
+    },
+    "./src-tauri/src/user_preferences.rs": {
+      "modified_sec": 1776109232,
+      "size": 16342
+    },
+    "./website/components/error-boundary.a11y.test.tsx": {
+      "modified_sec": 1773537603,
+      "size": 498
+    },
+    "./.maestro/skills/deployment-pipeline-design/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8913
+    },
+    "./.maestro/skills/react-best-practices/rules/async-dependencies.md": {
+      "modified_sec": 1773537603,
+      "size": 942
+    },
+    "./.maestro/skills/senior-architect/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4541
+    },
+    "./.maestro/telemetry/events.jsonl": {
+      "modified_sec": 1776109232,
+      "size": 141887
+    },
+    "./.maestro/skills/react-best-practices/rules/rendering-hydration-no-flicker.md": {
+      "modified_sec": 1773537603,
+      "size": 2308
+    },
+    "./.maestro/skills/frontend-design/visual-effects.md": {
+      "modified_sec": 1773537603,
+      "size": 8362
+    },
+    "./.maestro/provider-packs/copilot/github/prompts/plan-eng-review.prompt.md": {
+      "modified_sec": 1773537603,
+      "size": 481
+    },
+    "./website/lib/cookie-consent.tsx": {
+      "modified_sec": 1773537603,
+      "size": 3612
+    },
+    "./.maestro/skills/k8s-manifest-generator/references/service-spec.md": {
+      "modified_sec": 1773537603,
+      "size": 13629
+    },
+    "./.maestro/skills/ui-ux-designer/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9438
+    },
+    "./.maestro/workflows/bmad-bmm-create-prd.md": {
+      "modified_sec": 1773537603,
+      "size": 327
+    },
+    "./website/components/download/download-page-view.tsx": {
+      "modified_sec": 1773537603,
+      "size": 2063
+    },
+    "./.maestro/skills/security-requirement-extraction/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 24156
+    },
+    "./docs/PLAN.md": {
+      "modified_sec": 1773537603,
+      "size": 1292
+    },
+    "./.maestro/skills/docs/vietnamese/SKILL_ANATOMY.vi.md": {
+      "modified_sec": 1773537603,
+      "size": 14378
+    },
+    "./scripts/pilot_generate_rollout_trend.sh": {
+      "modified_sec": 1773588331,
+      "size": 897
+    },
+    "./.maestro/skills/docs/microsoft-skills-attribution.json": {
+      "modified_sec": 1773537603,
+      "size": 21481
+    },
+    "./.maestro/skills/go-rod-master/examples/concurrent_pages.go": {
+      "modified_sec": 1773537603,
+      "size": 1806
+    },
+    "./.maestro/skills/writing-skills/persuasion-principles.md": {
+      "modified_sec": 1773537603,
+      "size": 5908
+    },
+    "./website/lib/download.test.ts": {
+      "modified_sec": 1773537603,
+      "size": 10621
+    },
+    "./.maestro/workflows/bmad-bmm-create-ux-design.md": {
+      "modified_sec": 1773537603,
+      "size": 357
+    },
+    "./.maestro/skills/python-performance-optimization/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1427
+    },
+    "./website/next-env.d.ts": {
+      "modified_sec": 1773537603,
+      "size": 262
+    },
+    "./website/app/sitemap.ts": {
+      "modified_sec": 1773537603,
+      "size": 1709
+    },
+    "./.maestro/skills/concise-planning/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1474
+    },
+    "./.maestro/skills/azure-resource-manager-postgresql-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 15099
+    },
+    "./.maestro/skills/azure-compute-batch-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11055
+    },
+    "./.maestro/skills/github-actions-templates/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7699
+    },
+    "./scripts/skill_profile_support.py": {
+      "modified_sec": 1773537603,
+      "size": 5004
+    },
+    "./src/hooks/useKeyManagement.ts": {
+      "modified_sec": 1773537603,
+      "size": 3691
+    },
+    "./.maestro/skills/azure-ai-vision-imageanalysis-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8085
+    },
+    "./.maestro/skills/system-design/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2485
+    },
+    "./website/components/global-error-boundary.tsx": {
+      "modified_sec": 1773537603,
+      "size": 527
+    },
+    "./.maestro/skills/react-native-architecture/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 17048
+    },
+    "./website/lib/analytics.ts": {
+      "modified_sec": 1773537603,
+      "size": 4600
+    },
+    "./docs/GUARDIAN_MOATS_IMPLEMENTATION_PLAN.md": {
+      "modified_sec": 1773580876,
+      "size": 2131
+    },
+    "./.maestro/skills/prometheus-configuration/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10731
+    },
+    "./.maestro/skills/react-best-practices/rules/rerender-functional-setstate.md": {
+      "modified_sec": 1773537603,
+      "size": 2968
+    },
+    "./.maestro/workflows/bmad-brainstorming.md": {
+      "modified_sec": 1773537603,
+      "size": 348
+    },
+    "./.maestro/skills/context-window-management/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1577
+    },
+    "./src/hooks/useBaselineController.ts": {
+      "modified_sec": 1773537603,
+      "size": 5100
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rerender-simple-expression-in-memo.md": {
+      "modified_sec": 1773537603,
+      "size": 1018
+    },
+    "./src/components/CritiqueAccordionRow.tsx": {
+      "modified_sec": 1776109232,
+      "size": 17193
+    },
+    "./.maestro/skills/software-architecture/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3697
+    },
+    "./.maestro/provider-packs/copilot/github/prompts/browse.prompt.md": {
+      "modified_sec": 1773537603,
+      "size": 420
+    },
+    "./src-tauri/src/main.rs": {
+      "modified_sec": 1773537603,
+      "size": 342
+    },
+    "./.maestro/skills/mobile-design/platform-ios.md": {
+      "modified_sec": 1773537603,
+      "size": 17127
+    },
+    "./.maestro/skills/docs/vietnamese/TRANSLATION_PLAN.vi.md": {
+      "modified_sec": 1773537603,
+      "size": 2936
+    },
+    "./guardian-cli/src/rules_hash.rs": {
+      "modified_sec": 1773537603,
+      "size": 1234
+    },
+    "./.maestro/skills/azure-mgmt-weightsandbiases-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10647
+    },
+    "./.maestro/skills/vulnerability-scanner/checklists.md": {
+      "modified_sec": 1773537603,
+      "size": 2746
+    },
+    "./scripts/governance_replay.py": {
+      "modified_sec": 1773580516,
+      "size": 9178
+    },
+    "./website/lib/releases-source.ts": {
+      "modified_sec": 1773537603,
+      "size": 2341
+    },
+    "./.maestro/skills/react-best-practices/rules/rendering-svg-precision.md": {
+      "modified_sec": 1773537603,
+      "size": 588
+    },
+    "./.maestro/skills/shadcn-ui/references/learn.md": {
+      "modified_sec": 1773537603,
+      "size": 3625
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/server-cache-lru.md": {
+      "modified_sec": 1773537603,
+      "size": 1353
+    },
+    "./.maestro/skills/react-best-practices/rules/rendering-conditional-render.md": {
+      "modified_sec": 1773537603,
+      "size": 980
+    },
+    "./.maestro/skills/writing-plans/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3426
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/stacks/react.csv": {
+      "modified_sec": 1773537603,
+      "size": 13016
+    },
+    "./.maestro/skills/azure-functions/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1420
+    },
+    "./.maestro/skills/azure-infra-engineer/scripts/deploy_azure_resources.ts": {
+      "modified_sec": 1773537603,
+      "size": 3950
+    },
+    "./.maestro/skills/frontend-dev-guidelines/resources/common-patterns.md": {
+      "modified_sec": 1773537603,
+      "size": 8369
+    },
+    "./website/lib/github.ts": {
+      "modified_sec": 1773537603,
+      "size": 8515
+    },
+    "./.maestro/provider-packs/copilot/github/prompts/retro.prompt.md": {
+      "modified_sec": 1773537603,
+      "size": 306
+    },
+    "./website/lib/circuit-breaker.ts": {
+      "modified_sec": 1773537603,
+      "size": 6694
+    },
+    "./.maestro/skills/testing-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6013
+    },
+    "./package-lock.json": {
+      "modified_sec": 1776109232,
+      "size": 292650
+    },
+    "./src/components/ChatView.tsx": {
+      "modified_sec": 1776109232,
+      "size": 49205
+    },
+    "./docs/CI_PR_INTEGRATION.md": {
+      "modified_sec": 1773537603,
+      "size": 1498
+    },
+    "./.maestro/skills/api-endpoint-builder/README.md": {
+      "modified_sec": 1773537603,
+      "size": 757
+    },
+    "./.maestro/skills/senior-architect/scripts/project_architect.py": {
+      "modified_sec": 1773537603,
+      "size": 3136
+    },
+    "./.maestro/skills/security-review/references/testing.md": {
+      "modified_sec": 1773537603,
+      "size": 1084
+    },
+    "./.maestro/skills/debugging-strategies/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1289
+    },
+    "./.maestro/skills/git-advanced-workflows/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9623
+    },
+    "./scripts/publish_distribution_local.sh": {
+      "modified_sec": 1773536230,
+      "size": 5644
+    },
+    "./.maestro/provider-packs/antigravity/rules/templates/.maestro.state.template.json": {
+      "modified_sec": 1773537603,
+      "size": 292
+    },
+    "./.maestro/skills/typescript-expert/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 14470
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/stacks/flutter.csv": {
+      "modified_sec": 1773537603,
+      "size": 10469
+    },
+    "./.maestro/skills/nestjs-expert/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 21289
+    },
+    "./scripts/provider_smoke_matrix.py": {
+      "modified_sec": 1773537603,
+      "size": 3545
+    },
+    "./website/components/home/UseCasesSection.tsx": {
+      "modified_sec": 1773615300,
+      "size": 7489
+    },
+    "./src-tauri/src/config.rs": {
+      "modified_sec": 1773596616,
+      "size": 18045
+    },
+    "./src/components/__tests__/DiagramView.test.ts": {
+      "modified_sec": 1773537603,
+      "size": 754
+    },
+    "./src/components/FixProposalsView.tsx": {
+      "modified_sec": 1776109232,
+      "size": 20771
+    },
+    "./.maestro/skills/azure-ai-contentsafety-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5684
+    },
+    "./website/lib/csp-monitor.ts": {
+      "modified_sec": 1773537603,
+      "size": 4600
+    },
+    "./.maestro/skills/senior-architect/references/system_design_workflows.md": {
+      "modified_sec": 1773537603,
+      "size": 1620
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/client-passive-event-listeners.md": {
+      "modified_sec": 1773537603,
+      "size": 1644
+    },
+    "./.maestro/skills/nestjs-expert/references/common-issues.md": {
+      "modified_sec": 1773537603,
+      "size": 6022
+    },
+    "./docs/GUARDIAN_EXCELLENCE_TRACKER.md": {
+      "modified_sec": 1773580975,
+      "size": 4230
+    },
+    "./.maestro/skills/azure-appconfiguration-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8351
+    },
+    "./.maestro/workflows/create-prd-v2/steps-v/step-v-03-density-validation.md": {
+      "modified_sec": 1773537603,
+      "size": 5903
+    },
+    "./.maestro/skills/azure-ai-projects-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8395
+    },
+    "./.maestro/skills/mobile-design/mobile-performance.md": {
+      "modified_sec": 1773537603,
+      "size": 19305
+    },
+    "./.maestro/skills/systematic-debugging/condition-based-waiting-example.ts": {
+      "modified_sec": 1773537603,
+      "size": 5054
+    },
+    "./.maestro/skills/azure-ai-document-intelligence-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11052
+    },
+    "./.maestro/skills/azure-ai-ml-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5912
+    },
+    "./website/scripts/pre-launch-check.sh": {
+      "modified_sec": 1773600909,
+      "size": 7588
+    },
+    "./.maestro/skills/azure-servicebus-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10372
+    },
+    "./.maestro/skills/docs/COMMUNITY_GUIDELINES.md": {
+      "modified_sec": 1773537603,
+      "size": 1380
+    },
+    "./docs/RELEASE_CHECKLIST.md": {
+      "modified_sec": 1773537603,
+      "size": 3299
+    },
+    "./src/hooks/useToast.ts": {
+      "modified_sec": 1773537603,
+      "size": 2177
+    },
+    "./.maestro/skills/frontend-dev-guidelines/resources/file-organization.md": {
+      "modified_sec": 1773537603,
+      "size": 11871
+    },
+    "./.maestro/skills/terraform-skill/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 15782
+    },
+    "./.maestro/skills/api-patterns/rest.md": {
+      "modified_sec": 1773537603,
+      "size": 1280
+    },
+    "./.maestro/skills/writing-skills/references/templates/pattern.md": {
+      "modified_sec": 1773537603,
+      "size": 635
+    },
+    "./.maestro/workflows/create-prd-v2/steps-v/step-v-07-implementation-leakage-validation.md": {
+      "modified_sec": 1773537603,
+      "size": 7162
+    },
+    "./.maestro/skills/azure-messaging-webpubsubservice-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5762
+    },
+    "./docs/AZURE_PLATFORM_BASELINE.md": {
+      "modified_sec": 1773537603,
+      "size": 1412
+    },
+    "./website/app/download/download-client.tsx": {
+      "modified_sec": 1773616897,
+      "size": 12290
+    },
+    "./scripts/bump_version.sh": {
+      "modified_sec": 1773536108,
+      "size": 3215
+    },
+    "./scripts/policy_guard.py": {
+      "modified_sec": 1773537603,
+      "size": 3402
+    },
+    "./.maestro/skills/test-driven-development/testing-anti-patterns.md": {
+      "modified_sec": 1773537603,
+      "size": 8251
+    },
+    "./.maestro/skills/react-best-practices/rules/js-cache-function-results.md": {
+      "modified_sec": 1773537603,
+      "size": 1949
+    },
+    "./.maestro/skills/react-best-practices/rules/bundle-preload.md": {
+      "modified_sec": 1773537603,
+      "size": 1149
+    },
+    "./src/vite-env.d.ts": {
+      "modified_sec": 1773537603,
+      "size": 123
+    },
+    "./.maestro/skills/systematic-debugging/test-pressure-3.md": {
+      "modified_sec": 1773537603,
+      "size": 2692
+    },
+    "./.maestro/skills/debugger/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1338
+    },
+    "./src-tauri/src/tests_watcher.rs": {
+      "modified_sec": 1773537603,
+      "size": 1253
+    },
+    "./.maestro/skills/react-state-management/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11913
+    },
+    "./.maestro/skills/find-bugs/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2830
+    },
+    "./.maestro/skills/azure-storage-blob-rust/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3276
+    },
+    "./.maestro/skills/workflow- bundlesREADME.md": {
+      "modified_sec": 1773537603,
+      "size": 6782
+    },
+    "./website/scripts/check-copy-consistency.mjs": {
+      "modified_sec": 1773581526,
+      "size": 3615
+    },
+    "./website/lib/i18n.ts": {
+      "modified_sec": 1773616937,
+      "size": 2567
+    },
+    "./.maestro/skills/app-builder/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3276
+    },
+    "./website/components/error-boundary.tsx": {
+      "modified_sec": 1773537603,
+      "size": 9717
+    },
+    "./scripts/pilot_rollout_trend.py": {
+      "modified_sec": 1773588315,
+      "size": 14222
+    },
+    "./vitest.config.ts": {
+      "modified_sec": 1773537603,
+      "size": 796
+    },
+    "./.maestro/skills/kaizen/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 17569
+    },
+    "./src/components/__tests__/ChatView.test.tsx": {
+      "modified_sec": 1773537603,
+      "size": 2337
+    },
+    "./.maestro/skills/security-bluebook-builder/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2053
+    },
+    "./src-tauri/src/lib.rs": {
+      "modified_sec": 1776109232,
+      "size": 64792
+    },
+    "./website/lib/download.ts": {
+      "modified_sec": 1773537603,
+      "size": 3865
+    },
+    "./website/app/globals.css": {
+      "modified_sec": 1773615286,
+      "size": 8608
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/async-api-routes.md": {
+      "modified_sec": 1773537603,
+      "size": 1125
+    },
+    "./.maestro/skills/azure-servicebus-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8006
+    },
+    "./.maestro/skills/vercel-react-best-practices/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6165
+    },
+    "./website/components/docs/pro-layout.tsx": {
+      "modified_sec": 1773537603,
+      "size": 16316
+    },
+    "./scripts/apply_skill_profile.py": {
+      "modified_sec": 1773537603,
+      "size": 2846
+    },
+    "./website/next.config.mjs": {
+      "modified_sec": 1776109232,
+      "size": 2463
+    },
+    "./.maestro/skills/react-best-practices/rules/js-length-check-first.md": {
+      "modified_sec": 1773537603,
+      "size": 1752
+    },
+    "./.maestro/skills/azure-devops-cli/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4003
+    },
+    "./.maestro/skills/workflow-patterns/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 13432
+    },
+    "./website/app/layout.tsx": {
+      "modified_sec": 1773586134,
+      "size": 3182
+    },
+    "./.maestro/skills/python-fastapi-development/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4852
+    },
+    "./.maestro/skills/monorepo-management/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1271
+    },
+    "./.maestro/workflows/bmad-agent-bmm-sm.md": {
+      "modified_sec": 1773537603,
+      "size": 614
+    },
+    "./.maestro/workflows/bmad-tea-testarch-trace.md": {
+      "modified_sec": 1773537603,
+      "size": 972
+    },
+    "./.maestro/skills/app-builder/templates/nextjs-fullstack/TEMPLATE.md": {
+      "modified_sec": 1773537603,
+      "size": 1620
+    },
+    "./.maestro/skills/gstack/CHANGELOG.md": {
+      "modified_sec": 1773537603,
+      "size": 1379
+    },
+    "./.maestro/skills/go-concurrency-patterns/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 13471
+    },
+    "./.maestro/provider-packs/opencode/commands/plan-eng-review.md": {
+      "modified_sec": 1773537603,
+      "size": 295
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rerender-functional-setstate.md": {
+      "modified_sec": 1773537603,
+      "size": 2968
+    },
+    "./.maestro/skills/expo-ui-swift-ui/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1658
+    },
+    "./.maestro/skills/azure-identity-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9678
+    },
+    "./.maestro/skills/azure-infra-engineer/references/patterns.md": {
+      "modified_sec": 1773537603,
+      "size": 7867
+    },
+    "./.maestro/skills/mobile-design/mobile-testing.md": {
+      "modified_sec": 1773537603,
+      "size": 11027
+    },
+    "./.maestro/skills/react-best-practices/rules/rerender-lazy-state-init.md": {
+      "modified_sec": 1773537603,
+      "size": 2016
+    },
+    "./.maestro/workflows/bmad-agent-bmm-quick-flow-solo-dev.md": {
+      "modified_sec": 1773537603,
+      "size": 665
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/bundle-barrel-imports.md": {
+      "modified_sec": 1773537603,
+      "size": 2370
+    },
+    "./docs/WORLD_CLASS_OPERATIONS.md": {
+      "modified_sec": 1773537603,
+      "size": 1538
+    },
+    "./scripts/init-project.sh": {
+      "modified_sec": 1773537603,
+      "size": 153
+    },
+    "./LICENSE": {
+      "modified_sec": 1773537603,
+      "size": 1068
+    },
+    "./.maestro/skills/slo-implementation/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9025
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rendering-hydration-no-flicker.md": {
+      "modified_sec": 1773537603,
+      "size": 2308
+    },
+    "./.maestro/skills/azure-deployment-preflight/references/ERROR-HANDLING.md": {
+      "modified_sec": 1773537603,
+      "size": 8896
+    },
+    "./.maestro/skills/docs/vietnamese/README.vi.md": {
+      "modified_sec": 1773537603,
+      "size": 13942
+    },
+    "./website/components/home/product-hunt-badge.tsx": {
+      "modified_sec": 1776109232,
+      "size": 1470
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rerender-derived-state.md": {
+      "modified_sec": 1773537603,
+      "size": 728
+    },
+    "./.maestro/skills/python-packaging/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 18137
+    },
+    "./website/.env.example": {
+      "modified_sec": 1773537603,
+      "size": 271
+    },
+    "./.maestro/skills/azure-ai-voicelive-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7350
+    },
+    "./.maestro/skills/react-best-practices/rules/server-cache-react.md": {
+      "modified_sec": 1773537603,
+      "size": 681
+    },
+    "./.maestro/skills/native-data-fetching/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11643
+    },
+    "./.maestro/skills/writing-skills/references/templates/reference.md": {
+      "modified_sec": 1773537603,
+      "size": 466
+    },
+    "./.maestro/skills/senior-architect/scripts/architecture_diagram_generator.py": {
+      "modified_sec": 1773537603,
+      "size": 3199
+    },
+    "./src-tauri/src/updates.rs": {
+      "modified_sec": 1773537603,
+      "size": 2765
+    },
+    "./.maestro/skills/javascript-testing-patterns/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 25843
+    },
+    "./.maestro/skills/gstack/.gitignore": {
+      "modified_sec": 1773537603,
+      "size": 60
+    },
+    "./.maestro/workflows/bmad-agent-cis-design-thinking-coach.md": {
+      "modified_sec": 1773537603,
+      "size": 671
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/js-tosorted-immutable.md": {
+      "modified_sec": 1773537603,
+      "size": 1782
+    },
+    "./scripts/generate_governance_summary.py": {
+      "modified_sec": 1773580912,
+      "size": 3761
+    },
+    "./.maestro/skills/azure-resource-manager-playwright-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9545
+    },
+    "./.maestro/skills/tailwind-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6938
+    },
+    "./.maestro/workflows/create-prd-v2/steps-v/step-v-13-report-complete.md": {
+      "modified_sec": 1773537603,
+      "size": 8230
+    },
+    "./.maestro/skills/security-audit/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5195
+    },
+    "./.maestro/skills/react-best-practices/rules/js-tosorted-immutable.md": {
+      "modified_sec": 1773537603,
+      "size": 1782
+    },
+    "./.maestro/workflows/create-epics-and-stories-v2/steps/step-02-design-epics.md": {
+      "modified_sec": 1773537603,
+      "size": 7947
+    },
+    "./.maestro/workflows/bmad-agent-bmm-ux-designer.md": {
+      "modified_sec": 1773537603,
+      "size": 641
+    },
+    "./.maestro/skills/docs/SMART_AUTO_CATEGORIZATION.md": {
+      "modified_sec": 1773537603,
+      "size": 5933
+    },
+    "./.maestro/skills/writing-skills/render-graphs.js": {
+      "modified_sec": 1773537603,
+      "size": 4857
+    },
+    "./.maestro/skills/azure-monitor-query-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5941
+    },
+    "./.maestro/skills/azure-search-documents-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 14116
+    },
+    "./.maestro/skill-registry/registry.json": {
+      "modified_sec": 1776109232,
+      "size": 272379
+    },
+    "./.maestro/workflows/bmad-cis-storytelling.md": {
+      "modified_sec": 1773537603,
+      "size": 1087
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/client-localstorage-schema.md": {
+      "modified_sec": 1773537603,
+      "size": 1950
+    },
+    "./.maestro/agents/penetration-tester.md": {
+      "modified_sec": 1773537603,
+      "size": 4851
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/stacks/vue.csv": {
+      "modified_sec": 1773537603,
+      "size": 11056
+    },
+    "./docs/features/NEURAL_GOVERNANCE.md": {
+      "modified_sec": 1773537603,
+      "size": 1311
+    },
+    "./.maestro/skills/tdd-orchestrator/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10272
+    },
+    "./.maestro/skills/service-mesh-expert/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2428
+    },
+    "./.maestro/provider-radar/state.json": {
+      "modified_sec": 1773537603,
+      "size": 7329
+    },
+    "./.maestro/workflows/bmad-bmm-retrospective.md": {
+      "modified_sec": 1773537603,
+      "size": 1023
+    },
+    "./.github/workflows/release-windows.yml": {
+      "modified_sec": 1776109232,
+      "size": 25123
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/react-performance.csv": {
+      "modified_sec": 1773537603,
+      "size": 14822
+    },
+    "./.maestro/provider-packs/opencode/commands/plan-ceo-review.md": {
+      "modified_sec": 1773537603,
+      "size": 288
+    },
+    "./.maestro/skills/senior-fullstack/references/architecture_patterns.md": {
+      "modified_sec": 1773537603,
+      "size": 1618
+    },
+    "./.maestro/skills/react-best-practices/rules/advanced-event-handler-refs.md": {
+      "modified_sec": 1773537603,
+      "size": 1478
+    },
+    "./.maestro/skills/nodejs-backend-patterns/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 24643
+    },
+    "./.maestro/skills/k8s-manifest-generator/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1455
+    },
+    "./.maestro/skills/project-development/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 14703
+    },
+    "./website/app/api/health/route.ts": {
+      "modified_sec": 1773537603,
+      "size": 2906
+    },
+    "./.maestro/provider-packs/copilot/github/prompts/ship.prompt.md": {
+      "modified_sec": 1773537603,
+      "size": 310
+    },
+    "./.maestro/provider-packs/copilot/github/copilot-instructions.md": {
+      "modified_sec": 1773537603,
+      "size": 1051
+    },
+    "./src-tauri/src/agent_protocol/mod.rs": {
+      "modified_sec": 1773537603,
+      "size": 70
+    },
+    "./.maestro/skills/docs/vietnamese/VISUAL_GUIDE.vi.md": {
+      "modified_sec": 1773537603,
+      "size": 27275
+    },
+    "./.maestro/skills/cloud-devops/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5454
+    },
+    "./.maestro/skills/docs/WORKFLOWS.md": {
+      "modified_sec": 1773537603,
+      "size": 10939
+    },
+    "./.maestro/workflows/bmad-tea-testarch-atdd.md": {
+      "modified_sec": 1773537603,
+      "size": 931
+    },
+    "./.maestro/skills/gstack/browse/src/write-commands.ts": {
+      "modified_sec": 1773537603,
+      "size": 6038
+    },
+    "./.maestro/skills/rag-implementation/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4284
+    },
+    "./.maestro/skills/azure-monitor-opentelemetry-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8443
+    },
+    "./src-tauri/src/guardian_lock.rs": {
+      "modified_sec": 1773537603,
+      "size": 7156
+    },
+    "./.maestro/skills/frontend-dev-guidelines/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8121
+    },
+    "./.github/workflows/guardian-scan.yml": {
+      "modified_sec": 1776109233,
+      "size": 4162
+    },
+    "./src/components/__tests__/StallOverlay.test.tsx": {
+      "modified_sec": 1773537603,
+      "size": 2915
+    },
+    "./.maestro/skills/security-auditor/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10063
+    },
+    "./website/lib/token-audit.ts": {
+      "modified_sec": 1773537603,
+      "size": 6245
+    },
+    "./.maestro/skills/app-builder/templates/python-fastapi/TEMPLATE.md": {
+      "modified_sec": 1773537603,
+      "size": 1785
+    },
+    "./website/components/error-boundary.test.tsx": {
+      "modified_sec": 1773537603,
+      "size": 6909
+    },
+    "./.maestro/skills/writing-skills/references/templates/tier-3-platform.md": {
+      "modified_sec": 1773537603,
+      "size": 463
+    },
+    "./scripts/sync_agents.py": {
+      "modified_sec": 1773537603,
+      "size": 19920
+    },
+    "./.maestro/skills/typescript-expert/scripts/ts_diagnostic.py": {
+      "modified_sec": 1773537603,
+      "size": 6219
+    },
+    "./.maestro/skills/wiki-researcher/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3270
+    },
+    "./.maestro/skills/mobile-design/scripts/mobile_audit.py": {
+      "modified_sec": 1773537603,
+      "size": 35976
+    },
+    "./website/app/api/deploy/route.ts": {
+      "modified_sec": 1773537603,
+      "size": 3428
+    },
+    "./.maestro/skills/gstack/review/checklist.md": {
+      "modified_sec": 1773537603,
+      "size": 6894
+    },
+    "./guardian-scan-policy/Cargo.toml": {
+      "modified_sec": 1773537603,
+      "size": 161
+    },
+    "./.maestro/skills/gstack/setup": {
+      "modified_sec": 1773537603,
+      "size": 1818
+    },
+    "./src/hooks/useFocusTrap.ts": {
+      "modified_sec": 1773537603,
+      "size": 3280
+    },
+    "./scripts/build_skill_registry.py": {
+      "modified_sec": 1773537603,
+      "size": 6939
+    },
+    "./.maestro/skills/api-patterns/documentation.md": {
+      "modified_sec": 1773537603,
+      "size": 549
+    },
+    "./.maestro/skills/senior-fullstack/scripts/project_scaffolder.py": {
+      "modified_sec": 1773537603,
+      "size": 3141
+    },
+    "./website/components/home/HeroSection.tsx": {
+      "modified_sec": 1776109232,
+      "size": 5298
+    },
+    "./.maestro/skills/ui-visual-validator/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9805
+    },
+    "./.maestro/workflows/bmad-bmm-create-excalidraw-dataflow.md": {
+      "modified_sec": 1773537603,
+      "size": 950
+    },
+    "./scripts/prune_memory.py": {
+      "modified_sec": 1773537603,
+      "size": 8588
+    },
+    "./website/content/docs/tr/auth.mdx": {
+      "modified_sec": 1773581387,
+      "size": 4191
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rerender-memo-with-default-value.md": {
+      "modified_sec": 1773537603,
+      "size": 1173
+    },
+    "./.maestro/skills/devops-troubleshooter/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9635
+    },
+    "./.maestro/skills/requesting-code-review/code-reviewer.md": {
+      "modified_sec": 1773537603,
+      "size": 3385
+    },
+    "./.maestro/workflows/create-epics-and-stories-v2/workflow.md": {
+      "modified_sec": 1773537603,
+      "size": 3631
+    },
+    "./.maestro/skills/docs/CI_DRIFT_FIX.md": {
+      "modified_sec": 1773537603,
+      "size": 1312
+    },
+    "./.maestro/skills/wcag-audit-patterns/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 11965
+    },
+    "./.maestro/skills/workflow-orchestration-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9733
+    },
+    "./.maestro/workflows/create-architecture-v2/workflow.md": {
+      "modified_sec": 1773537603,
+      "size": 2114
+    },
+    "./.maestro/skills/azure-search-documents-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6733
+    },
+    "./.maestro/skills/api-security-best-practices/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 23458
+    },
+    "./.maestro/skills/frontend-slides/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11539
+    },
+    "./.maestro/skills/server-management/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3845
+    },
+    "./guardian-scan-policy/Cargo.lock": {
+      "modified_sec": 1773537603,
+      "size": 3331
+    },
+    "./.maestro/skills/tailwind-design-system/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1248
+    },
+    "./website/package-lock.json": {
+      "modified_sec": 1776109232,
+      "size": 412225
+    },
+    "./.maestro/skills/docs/BUNDLES.md": {
+      "modified_sec": 1773537603,
+      "size": 20165
+    },
+    "./.maestro/skills/writing-skills/references/tier-2-expanded/README.md": {
+      "modified_sec": 1773537603,
+      "size": 1834
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/js-cache-storage.md": {
+      "modified_sec": 1773537603,
+      "size": 1651
+    },
+    "./website/components/download-page-view.tsx": {
+      "modified_sec": 1773537603,
+      "size": 5195
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/web-interface.csv": {
+      "modified_sec": 1773537603,
+      "size": 7472
+    },
+    "./.maestro/skills/ui-ux-pro-max/scripts/design_system.py": {
+      "modified_sec": 1773537603,
+      "size": 20874
+    },
+    "./scripts/fix_agent_tools.py": {
+      "modified_sec": 1773537603,
+      "size": 1844
+    },
+    "./.maestro/skills/app-builder/feature-building.md": {
+      "modified_sec": 1773537603,
+      "size": 1123
+    },
+    "./.maestro/workflows/bmad-agent-bmm-quinn.md": {
+      "modified_sec": 1773537603,
+      "size": 623
+    },
+    "./.maestro/skills/api-patterns/trpc.md": {
+      "modified_sec": 1773537603,
+      "size": 801
+    },
+    "./.maestro/skills/app-builder/scaffolding.md": {
+      "modified_sec": 1773537603,
+      "size": 3609
+    },
+    "./docs/reports/AUDIT_REPORT_2026.md": {
+      "modified_sec": 1773537603,
+      "size": 4549
+    },
+    "./.maestro/workflows/bmad-bmm-qa-automate.md": {
+      "modified_sec": 1773537603,
+      "size": 908
+    },
+    "./.maestro/workflows/bmad-tea-testarch-test-design.md": {
+      "modified_sec": 1773537603,
+      "size": 1038
+    },
+    "./.maestro/skills/gitops-workflow/references/argocd-setup.md": {
+      "modified_sec": 1773537603,
+      "size": 2894
+    },
+    "./.maestro/workflows/create-architecture-v2/steps/step-08-complete.md": {
+      "modified_sec": 1773537603,
+      "size": 3195
+    },
+    "./.maestro/skills/microservices-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1401
+    },
+    "./.maestro/skills/azure-monitor-opentelemetry-exporter-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6196
+    },
+    "./website/app/[locale]/changelog/page.tsx": {
+      "modified_sec": 1773537603,
+      "size": 1054
+    },
+    "./.maestro/skills/workflow-automation/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2316
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/stacks/swiftui.csv": {
+      "modified_sec": 1773537603,
+      "size": 10872
+    },
+    "./website/lib/changelog.ts": {
+      "modified_sec": 1773537603,
+      "size": 6090
+    },
+    "./.maestro/workflows/bmad-agent-bmm-analyst.md": {
+      "modified_sec": 1773537603,
+      "size": 629
+    },
+    "./.maestro/workflows/create-prd-v2/steps-v/step-v-02-format-detection.md": {
+      "modified_sec": 1773537603,
+      "size": 6642
+    },
+    "./.maestro/skills/agent-browser/references/video-recording.md": {
+      "modified_sec": 1773537603,
+      "size": 3246
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/js-cache-function-results.md": {
+      "modified_sec": 1773537603,
+      "size": 1949
+    },
+    "./.maestro/skills/azure-mgmt-fabric-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10758
+    },
+    "./.maestro/skills/react-best-practices/rules/rerender-derived-state.md": {
+      "modified_sec": 1773537603,
+      "size": 724
+    },
+    "./.maestro/skills/azure-eventhub-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10090
+    },
+    "./.maestro/skills/azure-eventgrid-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 13252
+    },
+    "./scripts/pilot_ai_heavy_calibration.py": {
+      "modified_sec": 1773592144,
+      "size": 15802
+    },
+    "./scripts/skill_profile_validator.py": {
+      "modified_sec": 1773537603,
+      "size": 896
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/server-dedup-props.md": {
+      "modified_sec": 1773537603,
+      "size": 2060
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/bundle-conditional.md": {
+      "modified_sec": 1773537603,
+      "size": 949
+    },
+    "./.maestro/workflows/bmad-tea-teach-me-testing.md": {
+      "modified_sec": 1773537603,
+      "size": 382
+    },
+    "./.maestro/agents/debugger.md": {
+      "modified_sec": 1773537603,
+      "size": 7935
+    },
+    "./.maestro/skills/senior-architect/scripts/dependency_analyzer.py": {
+      "modified_sec": 1773537603,
+      "size": 3146
+    },
+    "./.maestro/workflows/sprint-planning-v2/workflow.yaml": {
+      "modified_sec": 1773537603,
+      "size": 2347
+    },
+    "./.maestro/skills/docs/EXAMPLES.md": {
+      "modified_sec": 1773537603,
+      "size": 19544
+    },
+    "./.maestro/provider-packs/antigravity/rules/50-security-and-testing.md": {
+      "modified_sec": 1773537603,
+      "size": 2535
+    },
+    "./.maestro/skills/gitops-workflow/references/sync-policies.md": {
+      "modified_sec": 1773537603,
+      "size": 2767
+    },
+    "./.maestro/skills/go-rod-master/examples/request_hijacking.go": {
+      "modified_sec": 1773537603,
+      "size": 2436
+    },
+    "./website/components/home/DifferentiatorsSection.tsx": {
+      "modified_sec": 1773615325,
+      "size": 12369
+    },
+    "./.prettierrc.json": {
+      "modified_sec": 1773537603,
+      "size": 90
+    },
+    "./playwright.config.ts": {
+      "modified_sec": 1773537603,
+      "size": 376
+    },
+    "./.maestro/skills/docs/vietnamese/QUALITY_BAR.vi.md": {
+      "modified_sec": 1773537603,
+      "size": 2977
+    },
+    "./.maestro/skills/semgrep-rule-creator/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6628
+    },
+    "./.maestro/skills/playwright-skill/lib/helpers.js": {
+      "modified_sec": 1773537603,
+      "size": 12605
+    },
+    "./src-tauri/src/kernel/bus.rs": {
+      "modified_sec": 1773537603,
+      "size": 1313
+    },
+    "./.maestro/workflows/create-architecture-v2/steps/step-07-validation.md": {
+      "modified_sec": 1773537603,
+      "size": 11898
+    },
+    "./website/components/markdown-block.tsx": {
+      "modified_sec": 1773613181,
+      "size": 3267
+    },
+    "./.maestro/skills/azure-eventhub-rust/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3447
+    },
+    "./.maestro/skills/azure-mgmt-fabric-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6311
+    },
+    "./.maestro/skills/observability-engineer/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 12982
+    },
+    "./.maestro/skills/web-performance-optimization/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 16130
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/client-event-listeners.md": {
+      "modified_sec": 1773537603,
+      "size": 1969
+    },
+    "./.maestro/workflows/create-prd-v2/steps-c/step-09-functional.md": {
+      "modified_sec": 1773537603,
+      "size": 9548
+    },
+    "./website/.gitignore": {
+      "modified_sec": 1773537603,
+      "size": 68
+    },
+    "./.maestro/skills/architecture-decision-records/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 13014
+    },
+    "./.maestro/provider-packs/opencode/commands/retro.md": {
+      "modified_sec": 1773537603,
+      "size": 193
+    },
+    "./.maestro/skills/ui-ux-pro-max/scripts/search.py": {
+      "modified_sec": 1773537603,
+      "size": 3296
+    },
+    "./src/components/__tests__/FixProposalsView.test.tsx": {
+      "modified_sec": 1773537603,
+      "size": 2690
+    },
+    "./src/test/tauriMock.ts": {
+      "modified_sec": 1773537603,
+      "size": 669
+    },
+    "./.maestro/skills/azure-ai-formrecognizer-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10357
+    },
+    "./src-tauri/src/baseline/mod.rs": {
+      "modified_sec": 1773537603,
+      "size": 84
+    },
+    "./.maestro/skills/azure-ai-document-intelligence-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9208
+    },
+    "./.maestro/skills/bash-defensive-patterns/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 11027
+    },
+    "./.maestro/skills/azure-identity-rust/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3499
+    },
+    "./website/content/docs/tr/updates.mdx": {
+      "modified_sec": 1773581492,
+      "size": 5617
+    },
+    "./.maestro/skills/go-rod-master/references/api-reference.md": {
+      "modified_sec": 1773537603,
+      "size": 6279
+    },
+    "./.maestro/skills/monorepo-architect/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2169
+    },
+    "./website/components/structured-data.tsx": {
+      "modified_sec": 1773537603,
+      "size": 329
+    },
+    "./.maestro/skills/docs/vietnamese/SOURCES.vi.md": {
+      "modified_sec": 1773537603,
+      "size": 2295
+    },
+    "./.maestro/skills/azure-resource-manager-cosmosdb-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7618
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/js-combine-iterations.md": {
+      "modified_sec": 1773537603,
+      "size": 753
+    },
+    "./.maestro/workflows/bmad-bmb-module.md": {
+      "modified_sec": 1773537603,
+      "size": 313
+    },
+    "./scripts/maestro_telemetry.py": {
+      "modified_sec": 1773537603,
+      "size": 3364
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/js-set-map-lookups.md": {
+      "modified_sec": 1773537603,
+      "size": 532
+    },
+    "./.maestro/skills/api-design-principles/references/graphql-schema-design.md": {
+      "modified_sec": 1773537603,
+      "size": 9005
+    },
+    "./.maestro/skills/vexor/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 643
+    },
+    "./.maestro/workflows/bmad-agent-cis-storyteller.md": {
+      "modified_sec": 1773537603,
+      "size": 653
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/js-length-check-first.md": {
+      "modified_sec": 1773537603,
+      "size": 1747
+    },
+    "./.maestro/skills/rag-engineer/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3008
+    },
+    "./.maestro/skills/react-best-practices/README.md": {
+      "modified_sec": 1773537603,
+      "size": 3360
+    },
+    "./.maestro/skills/azure-appconfiguration-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5598
+    },
+    "./.maestro/workflows/create-prd-v2/steps-c/step-01-init.md": {
+      "modified_sec": 1773537603,
+      "size": 8092
+    },
+    "./website/components/docs/latest-release-notes.test.tsx": {
+      "modified_sec": 1773613451,
+      "size": 1774
+    },
+    "./.vscode/extensions.json": {
+      "modified_sec": 1773537603,
+      "size": 80
+    },
+    "./.maestro/skills/monorepo-management/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 12557
+    },
+    "./.maestro/skills/workflow-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1265
+    },
+    "./.maestro/skills/frontend-design/animation-guide.md": {
+      "modified_sec": 1773537603,
+      "size": 8035
+    },
+    "./.github/workflows/release-notes-sync.yml": {
+      "modified_sec": 1773614431,
+      "size": 1793
+    },
+    "./.maestro/skills/azure-ai-agents-persistent-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3641
+    },
+    "./.maestro/provider-packs/antigravity/rules/01-safety-and-persistence.md": {
+      "modified_sec": 1773537603,
+      "size": 1585
+    },
+    "./scripts/verify_all.py": {
+      "modified_sec": 1773537603,
+      "size": 1710
+    },
+    "./.maestro/workflows/bmad-agent-cis-creative-problem-solver.md": {
+      "modified_sec": 1773537603,
+      "size": 677
+    },
+    "./.maestro/skills/testing-qa/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4870
+    },
+    "./website/lib/deployment.ts": {
+      "modified_sec": 1773537603,
+      "size": 5997
+    },
+    "./.maestro/skills/zod-validation-expert/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9608
+    },
+    "./.maestro/skills/azure-storage-blob-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5924
+    },
+    "./.maestro/skills/web-security-testing/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3999
+    },
+    "./.maestro/skills/writing-skills/references/standards/metadata-standard.md": {
+      "modified_sec": 1773537603,
+      "size": 1471
+    },
+    "./.maestro/workflows/create-prd-v2/steps-v/step-v-05-measurability-validation.md": {
+      "modified_sec": 1773537603,
+      "size": 7269
+    },
+    "./.maestro/skills/azure-communication-chat-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9596
+    },
+    "./.maestro/skills/azure-communication-callingserver-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2902
+    },
+    "./.maestro/workflows/create-prd-v2/steps-c/step-02-discovery.md": {
+      "modified_sec": 1773537603,
+      "size": 8552
+    },
+    "./README.md": {
+      "modified_sec": 1773537603,
+      "size": 4686
+    },
+    "./src/components/layout/ControlSidebar.tsx": {
+      "modified_sec": 1776109232,
+      "size": 34744
+    },
+    "./.maestro/skills/azure-cosmos-db-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8981
+    },
+    "./.maestro/skills/azure-devops-cli/references/org-and-security.md": {
+      "modified_sec": 1773537603,
+      "size": 9256
+    },
+    "./.maestro/skills/react-best-practices/rules/rendering-activity.md": {
+      "modified_sec": 1773537603,
+      "size": 564
+    },
+    "./.maestro/skills/fastapi-templates/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1257
+    },
+    "./.maestro/workflows/create-architecture-v2/steps/step-01b-continue.md": {
+      "modified_sec": 1773537603,
+      "size": 6002
+    },
+    "./.maestro/skills/typescript-pro/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2095
+    },
+    "./.maestro/skills/zustand-store-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1811
+    },
+    "./.maestro/skills/gstack/browse/test/fixtures/basic.html": {
+      "modified_sec": 1773537603,
+      "size": 914
+    },
+    "./scripts/pilot_weekly_ops.sh": {
+      "modified_sec": 1773600303,
+      "size": 3258
+    },
+    "./.maestro/skills/ui-skills/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 675
+    },
+    "./.maestro/skills/react-modernization/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1300
+    },
+    "./.metadata_never_index": {
+      "modified_sec": 1776193774,
+      "size": 0
+    },
+    "./src-tauri/src/history_logger.rs": {
+      "modified_sec": 1773537603,
+      "size": 4796
+    },
+    "./.maestro/workflows/create-prd-v2/steps-v/step-v-10-smart-validation.md": {
+      "modified_sec": 1773537603,
+      "size": 6950
+    },
+    "./.maestro/skills/api-design-principles/assets/rest-api-template.py": {
+      "modified_sec": 1773537603,
+      "size": 5323
+    },
+    "./.maestro/workflows/bmad-agent-bmm-pm.md": {
+      "modified_sec": 1773537603,
+      "size": 614
+    },
+    "./.maestro/workflows/ui-ux-pro-max.md": {
+      "modified_sec": 1773537603,
+      "size": 8466
+    },
+    "./.maestro/skills/azure-mgmt-botservice-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9683
+    },
+    "./.maestro/skills/azure-ai-translation-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7280
+    },
+    "./.maestro/provider-packs/antigravity/rules/10-parallel-execution.md": {
+      "modified_sec": 1773537603,
+      "size": 1542
+    },
+    "./.maestro/skills/azure-deployment-preflight/references/REPORT-TEMPLATE.md": {
+      "modified_sec": 1773537603,
+      "size": 7458
+    },
+    "./src/components/Header.tsx": {
+      "modified_sec": 1776109232,
+      "size": 5301
+    },
+    "./.maestro/agents/current-docs-researcher.md": {
+      "modified_sec": 1773537603,
+      "size": 1506
+    },
+    "./scripts/generate_skill_index.py": {
+      "modified_sec": 1773537603,
+      "size": 2901
+    },
+    "./scripts/review_precision_benchmark.py": {
+      "modified_sec": 1773585763,
+      "size": 7322
+    },
+    "./.maestro/workflows/create-prd-v2/steps-v/step-v-02b-parity-check.md": {
+      "modified_sec": 1773537603,
+      "size": 6561
+    },
+    "./scripts/pilot_validate_ci_gate_flow.py": {
+      "modified_sec": 1773537603,
+      "size": 5100
+    },
+    "./src/lib/tauri.ts": {
+      "modified_sec": 1773537603,
+      "size": 1385
+    },
+    "./.maestro/telemetry/runs.json": {
+      "modified_sec": 1776109232,
+      "size": 45955
+    },
+    "./.maestro/skills/track-management/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 13557
+    },
+    "./.maestro/skills/systematic-debugging/defense-in-depth.md": {
+      "modified_sec": 1773537603,
+      "size": 3650
+    },
+    "./.maestro/skills/azure-keyvault-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6756
+    },
+    "./.maestro/provider-packs/antigravity/rules/05-self-reflection.md": {
+      "modified_sec": 1773537603,
+      "size": 3758
+    },
+    "./docs/pilot/APPROVER_ROSTER.shadow.json": {
+      "modified_sec": 1773537603,
+      "size": 360
+    },
+    "./.maestro/skills/api-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2552
+    },
+    "./src-tauri/src/skills/scanner.rs": {
+      "modified_sec": 1773537603,
+      "size": 3367
+    },
+    "./.maestro/workflows/bmad-cis-design-thinking.md": {
+      "modified_sec": 1773537603,
+      "size": 1075
+    },
+    "./website/app/[locale]/docs/[slug]/page.tsx": {
+      "modified_sec": 1773613136,
+      "size": 3156
+    },
+    "./.maestro/workflows/bmad-bmm-check-implementation-readiness.md": {
+      "modified_sec": 1773537603,
+      "size": 488
+    },
+    "./.maestro/skills/mobile-design/touch-psychology.md": {
+      "modified_sec": 1773537603,
+      "size": 16848
+    },
+    "./.maestro/skills/azure-storage-queue-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 13133
+    },
+    "./.maestro/provider-packs/antigravity/rules/02-research-and-anti-loop.md": {
+      "modified_sec": 1773537603,
+      "size": 2650
+    },
+    "./.maestro/skills/observability-monitoring-monitor-setup/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2259
+    },
+    "./website/app/[locale]/download/page.tsx": {
+      "modified_sec": 1773537603,
+      "size": 1142
+    },
+    "./.maestro/skills/frontend-design/decision-trees.md": {
+      "modified_sec": 1773537603,
+      "size": 17265
+    },
+    "./website/content/docs/en/security.mdx": {
+      "modified_sec": 1773581469,
+      "size": 6049
+    },
+    "./new_roadmap.md": {
+      "modified_sec": 1773537603,
+      "size": 119701
+    },
+    "./.maestro/skills/api-patterns/rate-limiting.md": {
+      "modified_sec": 1773537603,
+      "size": 726
+    },
+    "./.maestro/skills/react-best-practices/rules/rerender-dependencies.md": {
+      "modified_sec": 1773537603,
+      "size": 824
+    },
+    "./.maestro/skills/architecture/pattern-selection.md": {
+      "modified_sec": 1773537603,
+      "size": 2638
+    },
+    "./.maestro/skills/azure-security-keyvault-secrets-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11533
+    },
+    "./.maestro/skills/frontend-design/motion-graphics.md": {
+      "modified_sec": 1773537603,
+      "size": 7999
+    },
+    "./website/content/docs/tr/guru.mdx": {
+      "modified_sec": 1773537603,
+      "size": 7162
+    },
+    "./.maestro/skills/architect-review/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8249
+    },
+    "./.maestro/skills/nextjs-app-router-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1261
+    },
+    "./src/lib/__tests__/tauri.test.ts": {
+      "modified_sec": 1773537603,
+      "size": 1885
+    },
+    "./.maestro/skills/security-scanning-security-hardening/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10857
+    },
+    "./website/components/ui/command-header.tsx": {
+      "modified_sec": 1773586750,
+      "size": 14720
+    },
+    "./.maestro/skills/senior-fullstack/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4489
+    },
+    "./.maestro/skills/manifest/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3516
+    },
+    "./.maestro/skills/azure-data-tables-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5629
+    },
+    "./.maestro/skills/systematic-debugging/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9943
+    },
+    "./scripts/generate_dashboard_lite.py": {
+      "modified_sec": 1773537603,
+      "size": 11843
+    },
+    "./website/app/[locale]/contact/page.tsx": {
+      "modified_sec": 1773613566,
+      "size": 6379
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rendering-animate-svg-wrapper.md": {
+      "modified_sec": 1773537603,
+      "size": 1185
+    },
+    "./.maestro/skills/deployment-validation-config-validate/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 14208
+    },
+    "./.maestro/skills/lint-and-validate/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1822
+    },
+    "./.maestro/workflows/create-prd-v2/steps-c/step-08-scoping.md": {
+      "modified_sec": 1773537603,
+      "size": 8223
+    },
+    "./.maestro/skills/azure-monitor-opentelemetry-exporter-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8585
+    },
+    "./scripts/override_debt_ledger.py": {
+      "modified_sec": 1773580549,
+      "size": 6269
+    },
+    "./src-tauri/src/undo.rs": {
+      "modified_sec": 1773537603,
+      "size": 10361
+    },
+    "./.maestro/skills/senior-fullstack/references/development_workflows.md": {
+      "modified_sec": 1773537603,
+      "size": 1618
+    },
+    "./.maestro/skills/k8s-security-policies/references/rbac-patterns.md": {
+      "modified_sec": 1773537603,
+      "size": 4076
+    },
+    "./src/components/StallOverlay.tsx": {
+      "modified_sec": 1773537603,
+      "size": 2657
+    },
+    "./.maestro/skills/app-builder/templates/astro-static/TEMPLATE.md": {
+      "modified_sec": 1773537603,
+      "size": 1706
+    },
+    "./.gitignore": {
+      "modified_sec": 1773537603,
+      "size": 875
+    },
+    "./.maestro/skills/azure-ai-anomalydetector-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8412
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/js-batch-dom-css.md": {
+      "modified_sec": 1773537603,
+      "size": 3266
+    },
+    "./.maestro/skills/wiki-onboarding/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4149
+    },
+    "./.maestro/workflows/create-prd-v2/steps-e/step-e-02-review.md": {
+      "modified_sec": 1773537603,
+      "size": 7948
+    },
+    "./.maestro/skills/azure-mgmt-botservice-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7690
+    },
+    "./.maestro/skills/gstack/browse/src/browser-manager.ts": {
+      "modified_sec": 1773537603,
+      "size": 8177
+    },
+    "./.maestro/workflows/create-prd-v2/steps-c/step-07-project-type.md": {
+      "modified_sec": 1773537603,
+      "size": 9205
+    },
+    "./.maestro/skills/executing-plans/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2333
+    },
+    "./.maestro/skills/mobile-design/mobile-backend.md": {
+      "modified_sec": 1773537603,
+      "size": 14686
+    },
+    "./.maestro/skills/azure-eventhub-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10484
+    },
+    "./.maestro/skills/gstack/browse/test/test-server.ts": {
+      "modified_sec": 1773537603,
+      "size": 1385
+    },
+    "./.maestro/skills/api-patterns/api-style.md": {
+      "modified_sec": 1773537603,
+      "size": 1155
+    },
+    "./src-tauri/src/rag_lite.rs": {
+      "modified_sec": 1773537603,
+      "size": 14041
+    },
+    "./.maestro/skills/devcontainer-setup/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7842
+    },
+    "./.maestro/skills/azure-eventhub-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7234
+    },
+    "./.maestro/skills/react-flow-node-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2029
+    },
+    "./.maestro/skills/shadcn-ui/references/chart.md": {
+      "modified_sec": 1773537603,
+      "size": 8297
+    },
+    "./website/vitest.config.ts": {
+      "modified_sec": 1773537603,
+      "size": 1066
+    },
+    "./.maestro/provider-packs/antigravity/.maestro.state.template.json": {
+      "modified_sec": 1773537603,
+      "size": 292
+    },
+    "./.maestro/workflows/bmad-agent-bmm-dev.md": {
+      "modified_sec": 1773537603,
+      "size": 617
+    },
+    "./.maestro/skills/tdd-workflow/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2924
+    },
+    "./.maestro/skills/receiving-code-review/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6442
+    },
+    "./.maestro/skills/api-security-testing/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3606
+    },
+    "./.maestro/skills/react-best-practices/rules/async-api-routes.md": {
+      "modified_sec": 1773537603,
+      "size": 1125
+    },
+    "./.maestro/skills/azure-devops-cli/references/pipelines-and-builds.md": {
+      "modified_sec": 1773537603,
+      "size": 4807
+    },
+    "./.maestro/provider-packs/opencode/commands/browse.md": {
+      "modified_sec": 1773537603,
+      "size": 293
+    },
+    "./.maestro/skills/architecture/context-discovery.md": {
+      "modified_sec": 1773537603,
+      "size": 1591
+    },
+    "./.maestro/skills/tailwind-design-system/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 18541
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/products.csv": {
+      "modified_sec": 1773537603,
+      "size": 29790
+    },
+    "./.maestro/skills/azure-ai-textanalytics-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6682
+    },
+    "./docs/pilot/PILOT_REPO_MANIFEST.json": {
+      "modified_sec": 1773537603,
+      "size": 699
+    },
+    "./.maestro/skills/azure-ai-vision-imageanalysis-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6697
+    },
+    "./.maestro/skills/react-nextjs-development/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5404
+    },
+    "./website/components/privacy/CookieSettingsModal.tsx": {
+      "modified_sec": 1773537603,
+      "size": 6075
+    },
+    "./.maestro/skills/agents-md/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4098
+    },
+    "./website/e2e/homepage.spec.ts": {
+      "modified_sec": 1773586157,
+      "size": 7375
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/stacks/html-tailwind.csv": {
+      "modified_sec": 1773537603,
+      "size": 11361
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rendering-content-visibility.md": {
+      "modified_sec": 1773537603,
+      "size": 815
+    },
+    "./.maestro/workflows/create-prd-v2/steps-v/step-v-09-project-type-validation.md": {
+      "modified_sec": 1773537603,
+      "size": 8766
+    },
+    "./.github/workflows/ci-cd-v1.yml": {
+      "modified_sec": 1776109233,
+      "size": 7395
+    },
+    "./.maestro/skills/api-patterns/security-testing.md": {
+      "modified_sec": 1773537603,
+      "size": 2892
+    },
+    "./docs/GOVERNANCE_OUTPUT_CONTRACT.md": {
+      "modified_sec": 1776109232,
+      "size": 3822
+    },
+    "./.maestro/workflows/bmad-cis-innovation-strategy.md": {
+      "modified_sec": 1773537603,
+      "size": 1115
+    },
+    "./.maestro/evals/registry.json": {
+      "modified_sec": 1773537603,
+      "size": 2381
+    },
+    "./.maestro/skills/kubernetes-architect/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9902
+    },
+    "./.maestro/skills/azure-platform-master/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5229
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/async-parallel.md": {
+      "modified_sec": 1773537603,
+      "size": 654
+    },
+    "./.maestro/agents/performance-optimizer.md": {
+      "modified_sec": 1773537603,
+      "size": 4428
+    },
+    "./.maestro/skills/README.md": {
+      "modified_sec": 1773537603,
+      "size": 6544
+    },
+    "./scripts/write_tauri_latest_json.sh": {
+      "modified_sec": 1776109232,
+      "size": 1681
+    },
+    "./.maestro/workflows/bmad-bmm-create-story.md": {
+      "modified_sec": 1773537603,
+      "size": 981
+    },
+    "./.maestro/provider-packs/copilot/github/agents/provider-maintainer.agent.md": {
+      "modified_sec": 1773537603,
+      "size": 679
+    },
+    "./.maestro/provider-packs/copilot/github/agents/release-ship.agent.md": {
+      "modified_sec": 1773537603,
+      "size": 544
+    },
+    "./.maestro/skills/azure-keyvault-keys-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6270
+    },
+    "./.maestro/skills/azure-maps-search-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 15189
+    },
+    "./.maestro/skills/openapi-spec-generation/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 24564
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rendering-usetransition-loading.md": {
+      "modified_sec": 1773537603,
+      "size": 2074
+    },
+    "./.maestro/skills/javascript-mastery/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 12776
+    },
+    "./.maestro/skills/rust-async-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1155
+    },
+    "./.maestro/skills/shadcn-ui/references/reference.md": {
+      "modified_sec": 1773537603,
+      "size": 14320
+    },
+    "./scripts/quickstart.py": {
+      "modified_sec": 1773537603,
+      "size": 2670
+    },
+    "./website/components/ui/sheet.tsx": {
+      "modified_sec": 1773537603,
+      "size": 4168
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/colors.csv": {
+      "modified_sec": 1773537603,
+      "size": 13023
+    },
+    "./.maestro/skills/senior-fullstack/scripts/code_quality_analyzer.py": {
+      "modified_sec": 1773537603,
+      "size": 3154
+    },
+    "./.maestro/skills/azure-eventhub-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6878
+    },
+    "./.maestro/skills/app-builder/tech-stack.md": {
+      "modified_sec": 1773537603,
+      "size": 886
+    },
+    "./.maestro/skills/agent-browser/references/snapshot-refs.md": {
+      "modified_sec": 1773537603,
+      "size": 4108
+    },
+    "./.maestro/skills/azure-identity-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11132
+    },
+    "./.maestro/skills/python-packaging/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1374
+    },
+    "./.maestro/skills/azure-mgmt-apimanagement-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6820
+    },
+    "./.maestro/skills/azure-appconfiguration-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 12973
+    },
+    "./src/components/DiagramView.tsx": {
+      "modified_sec": 1776109232,
+      "size": 14439
+    },
+    "./src/components/__tests__/ReleaseDecisionPanel.test.tsx": {
+      "modified_sec": 1773537603,
+      "size": 3574
+    },
+    "./.maestro/provider-packs/copilot/github/prompts/plan-ceo-review.prompt.md": {
+      "modified_sec": 1773537603,
+      "size": 443
+    },
+    "./src-tauri/src/release_decision.rs": {
+      "modified_sec": 1776109232,
+      "size": 28618
+    },
+    "./.maestro/skills/writing-skills/references/cso/README.md": {
+      "modified_sec": 1773537603,
+      "size": 6384
+    },
+    "./.maestro/skills/observability-monitoring-monitor-setup/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 14372
+    },
+    "./website/README.md": {
+      "modified_sec": 1773537603,
+      "size": 6705
+    },
+    "./.maestro/skills/react-best-practices/rules/bundle-defer-third-party.md": {
+      "modified_sec": 1773537603,
+      "size": 920
+    },
+    "./.maestro/skills/react-best-practices/rules/_sections.md": {
+      "modified_sec": 1773537603,
+      "size": 1554
+    },
+    "./.maestro/skills/react-best-practices/rules/async-parallel.md": {
+      "modified_sec": 1773537603,
+      "size": 654
+    },
+    "./.maestro/skills/nodejs-best-practices/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8455
+    },
+    "./public/vite.svg": {
+      "modified_sec": 1773537603,
+      "size": 1497
+    },
+    "./.maestro/workflows/orchestrate.md": {
+      "modified_sec": 1773537603,
+      "size": 7304
+    },
+    "./src-tauri/icons/android/values/ic_launcher_background.xml": {
+      "modified_sec": 1773537603,
+      "size": 115
+    },
+    "./.maestro/skills/shadcn-ui/references/ui-reference.md": {
+      "modified_sec": 1773537603,
+      "size": 41463
+    },
+    "./.maestro/workflows/create-architecture-v2/steps/step-02-context.md": {
+      "modified_sec": 1773537603,
+      "size": 8883
+    },
+    "./.maestro/skills/react-best-practices/rules/js-batch-dom-css.md": {
+      "modified_sec": 1773537603,
+      "size": 1902
+    },
+    "./.maestro/skills/react-best-practices/rules/bundle-barrel-imports.md": {
+      "modified_sec": 1773537603,
+      "size": 2370
+    },
+    "./.maestro/skills/docs/USAGE.md": {
+      "modified_sec": 1773537603,
+      "size": 11130
+    },
+    "./docs/pilot/PILOT_REPO_MANIFEST.real.json": {
+      "modified_sec": 1773587781,
+      "size": 1091
+    },
+    "./.maestro/skills/app-builder/templates/react-native-app/TEMPLATE.md": {
+      "modified_sec": 1773537603,
+      "size": 1939
+    },
+    "./.maestro/workflows/bmad-bmm-correct-course.md": {
+      "modified_sec": 1773537603,
+      "size": 1003
+    },
+    "./.maestro/skills/gstack/browse/src/read-commands.ts": {
+      "modified_sec": 1773537603,
+      "size": 7782
+    },
+    "./.maestro/skills/bash-pro/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 18369
+    },
+    "./src/hooks/useLocalStorage.ts": {
+      "modified_sec": 1773537603,
+      "size": 3272
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rerender-memo.md": {
+      "modified_sec": 1773537603,
+      "size": 1148
+    },
+    "./.maestro/skills/docs/AUDIT.md": {
+      "modified_sec": 1773537603,
+      "size": 3358
+    },
+    "./scripts/codex-safe.sh": {
+      "modified_sec": 1773537603,
+      "size": 131
+    },
+    "./.maestro/skills/azure-infra-engineer/scripts/setup_monitoring.ts": {
+      "modified_sec": 1773537603,
+      "size": 5631
+    },
+    "./.maestro/skills/azure-ai-voicelive-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 12911
+    },
+    "./website/lib/validation.ts": {
+      "modified_sec": 1773537603,
+      "size": 9369
+    },
+    "./.maestro/skills/azure-servicebus-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6557
+    },
+    "./guardian-cli/src/run_manifest.rs": {
+      "modified_sec": 1773537603,
+      "size": 2587
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/bundle-preload.md": {
+      "modified_sec": 1773537603,
+      "size": 1149
+    },
+    "./website/components/ui/button.test.tsx": {
+      "modified_sec": 1773537603,
+      "size": 3942
+    },
+    "./website/app/[locale]/not-found.tsx": {
+      "modified_sec": 1773537603,
+      "size": 4305
+    },
+    "./.maestro/skills/docs/vietnamese/BUNDLES.vi.md": {
+      "modified_sec": 1773537603,
+      "size": 5588
+    },
+    "./.maestro/skills/go-playwright/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4891
+    },
+    "./src-tauri/src/skills/hasher.rs": {
+      "modified_sec": 1773537603,
+      "size": 1585
+    },
+    "./.maestro/skills/shadcn-ui/references/official-ui-reference.md": {
+      "modified_sec": 1773537603,
+      "size": 51787
+    },
+    "./.maestro/provider-packs/copilot/github/agents/browser-qa.agent.md": {
+      "modified_sec": 1773537603,
+      "size": 437
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rerender-move-effect-to-event.md": {
+      "modified_sec": 1773537603,
+      "size": 1268
+    },
+    "./website/app/[locale]/faq/page.tsx": {
+      "modified_sec": 1773537603,
+      "size": 1082
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/js-hoist-regexp.md": {
+      "modified_sec": 1773537603,
+      "size": 1028
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/stacks/svelte.csv": {
+      "modified_sec": 1773537603,
+      "size": 11063
+    },
+    "./.maestro/skills/service-mesh-observability/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10859
+    },
+    "./scripts/release_local.sh": {
+      "modified_sec": 1773536250,
+      "size": 2582
+    },
+    "./.maestro/skills/azure-resource-manager-sql-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9459
+    },
+    "./website/app/api/releases/route.ts": {
+      "modified_sec": 1773537603,
+      "size": 879
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rerender-derived-state-no-effect.md": {
+      "modified_sec": 1773537603,
+      "size": 1201
+    },
+    "./.maestro/skills/azure-messaging-webpubsub-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8676
+    },
+    "./.maestro/workflows/bmad-review-adversarial-general.md": {
+      "modified_sec": 1773537603,
+      "size": 242
+    },
+    "./.maestro/provider-packs/antigravity/rules/40-api-design.md": {
+      "modified_sec": 1773537603,
+      "size": 5904
+    },
+    "./.maestro/skills/webapp-testing/LICENSE.txt": {
+      "modified_sec": 1773537603,
+      "size": 11357
+    },
+    "./.maestro/skills/react-best-practices/rules/async-defer-await.md": {
+      "modified_sec": 1773537603,
+      "size": 2028
+    },
+    "./src/App.css": {
+      "modified_sec": 1776109232,
+      "size": 15390
+    },
+    "./scripts/setup-runner.sh": {
+      "modified_sec": 1773536287,
+      "size": 3868
+    },
+    "./.maestro/skills/azure-mgmt-apimanagement-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9432
+    },
+    "./.maestro/skills/zeroize-audit/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 21057
+    },
+    "./benchmarks/review_precision/README.md": {
+      "modified_sec": 1773585715,
+      "size": 1106
+    },
+    "./.maestro/skills/azure-security-keyvault-keys-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11011
+    },
+    "./.maestro/skills/writing-skills/examples.md": {
+      "modified_sec": 1773537603,
+      "size": 4122
+    },
+    "./.maestro/skills/fastapi-router-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1684
+    },
+    "./.maestro/skills/writing-skills/testing-skills-with-subagents.md": {
+      "modified_sec": 1773537603,
+      "size": 12557
+    },
+    "./.maestro/skills/frontend-design/scripts/ux_audit.py": {
+      "modified_sec": 1773537603,
+      "size": 39456
+    },
+    "./.maestro/skills/azure-monitor-ingestion-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7202
+    },
+    "./scripts/pilot_exit_gate_check.py": {
+      "modified_sec": 1773600210,
+      "size": 14939
+    },
+    "./.maestro/skills/gstack/plan-eng-review/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 12573
+    },
+    "./website/components/docs/docs-shell.tsx": {
+      "modified_sec": 1773537603,
+      "size": 1916
+    },
+    "./.maestro/workflows/status.md": {
+      "modified_sec": 1773537603,
+      "size": 1372
+    },
+    "./.maestro/skills/go-rod-master/examples/basic_scrape.go": {
+      "modified_sec": 1773537603,
+      "size": 1288
+    },
+    "./.maestro/agents/game-developer.md": {
+      "modified_sec": 1773537603,
+      "size": 4740
+    },
+    "./.maestro/skills/architecture/examples.md": {
+      "modified_sec": 1773537603,
+      "size": 2430
+    },
+    "./.maestro/skills/react-best-practices/rules/js-combine-iterations.md": {
+      "modified_sec": 1773537603,
+      "size": 753
+    },
+    "./.maestro/skills/performance-optimizer/README.md": {
+      "modified_sec": 1773537603,
+      "size": 465
+    },
+    "./.maestro/provider-packs/opencode/commands/verify.md": {
+      "modified_sec": 1773537603,
+      "size": 192
+    },
+    "./.maestro/skills/azure-identity-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6899
+    },
+    "./docs/RELEASING_LOCAL.md": {
+      "modified_sec": 1773537603,
+      "size": 4234
+    },
+    "./.maestro/workflows/create-prd-v2/steps-c/step-04-journeys.md": {
+      "modified_sec": 1773537603,
+      "size": 9416
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/stacks/react-native.csv": {
+      "modified_sec": 1773537603,
+      "size": 10035
+    },
+    "./.maestro/skills/git-commit-formatter/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1231
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rendering-hoist-jsx.md": {
+      "modified_sec": 1773537603,
+      "size": 1039
+    },
+    "./src-tauri/capabilities/default.json": {
+      "modified_sec": 1773537603,
+      "size": 891
+    },
+    "./.maestro/skills/differential-review/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6404
+    },
+    "./.maestro/skills/azure-storage-queue-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5151
+    },
+    "./.maestro/skills/systematic-debugging/test-academic.md": {
+      "modified_sec": 1773537603,
+      "size": 653
+    },
+    "./docs/reports/PHASE6_TOKEN_PERFORMANCE.md": {
+      "modified_sec": 1773537603,
+      "size": 1492
+    },
+    "./.maestro/skills/azure-ai-openai-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 12842
+    },
+    "./.maestro/workflows/sprint-planning-v2/checklist.md": {
+      "modified_sec": 1773537603,
+      "size": 1298
+    },
+    "./src/lib/__tests__/exportAuditPdf.test.ts": {
+      "modified_sec": 1773537603,
+      "size": 1902
+    },
+    "./.maestro/skills/react-best-practices/rules/server-after-nonblocking.md": {
+      "modified_sec": 1773537603,
+      "size": 2012
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/stacks/nuxtjs.csv": {
+      "modified_sec": 1773537603,
+      "size": 16539
+    },
+    "./.maestro/skills/frontend-developer/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7311
+    },
+    "./.maestro/skills/fix-review/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1830
+    },
+    "./.maestro/skills/frontend-security-coder/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11487
+    },
+    "./.maestro/provider-packs/antigravity/rules/03-skill-resolution.md": {
+      "modified_sec": 1773537603,
+      "size": 1729
+    },
+    "./.maestro/skills/track-management/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1318
+    },
+    "./.maestro/skills/app-builder/templates/express-api/TEMPLATE.md": {
+      "modified_sec": 1773537603,
+      "size": 1759
+    },
+    "./.maestro/skills/e2e-testing-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1428
+    },
+    "./.maestro/skills/react-best-practices/AGENTS.md": {
+      "modified_sec": 1773537603,
+      "size": 60535
+    },
+    "./.maestro/skills/react-native-architecture/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1265
+    },
+    "./src/__tests__/App.test.tsx": {
+      "modified_sec": 1773537603,
+      "size": 9513
+    },
+    "./.maestro/skills/azure-ai-contentunderstanding-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7887
+    },
+    "./.maestro/skills/react-best-practices/rules/bundle-conditional.md": {
+      "modified_sec": 1773537603,
+      "size": 866
+    },
+    "./.maestro/skills/azure-communication-callautomation-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8456
+    },
+    "./.maestro/skills/typescript-expert/references/tsconfig-strict.json": {
+      "modified_sec": 1773537603,
+      "size": 3426
+    },
+    "./.maestro/workflows/bmad-agent-cis-innovation-strategist.md": {
+      "modified_sec": 1773537603,
+      "size": 671
+    },
+    "./.maestro/skills/senior-fullstack/references/tech_stack_guide.md": {
+      "modified_sec": 1773537603,
+      "size": 1613
+    },
+    "./.maestro/skills/azure-communication-common-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9732
+    },
+    "./.maestro/workflows/bmad-bmm-create-excalidraw-flowchart.md": {
+      "modified_sec": 1773537603,
+      "size": 995
+    },
+    "./.maestro/provider-packs/providers.json": {
+      "modified_sec": 1773537603,
+      "size": 2655
+    },
+    "./src-tauri/.gitignore": {
+      "modified_sec": 1773537603,
+      "size": 166
+    },
+    "./.maestro/agents/backend-specialist.md": {
+      "modified_sec": 1773537603,
+      "size": 8640
+    },
+    "./docs/PRIVATE_DISTRIBUTION_SETUP.md": {
+      "modified_sec": 1773537603,
+      "size": 1669
+    },
+    "./.maestro/skills/react-flow-architect/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 15992
+    },
+    "./.maestro/skills/app-builder/templates/chrome-extension/TEMPLATE.md": {
+      "modified_sec": 1773537603,
+      "size": 1966
+    },
+    "./.maestro/skills/docs/SEC_SKILLS.md": {
+      "modified_sec": 1773537603,
+      "size": 81498
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/advanced-event-handler-refs.md": {
+      "modified_sec": 1773537603,
+      "size": 1483
+    },
+    "./.maestro/workflows/bmad-tea-testarch-automate.md": {
+      "modified_sec": 1773537603,
+      "size": 971
+    },
+    "./.maestro/skills/azure-speech-to-text-rest-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10560
+    },
+    "./vite.config.ts": {
+      "modified_sec": 1773537603,
+      "size": 891
+    },
+    "./website/app/[locale]/privacy-policy/page.tsx": {
+      "modified_sec": 1773537603,
+      "size": 5567
+    },
+    "./src-tauri/src/ci/mod.rs": {
+      "modified_sec": 1773537603,
+      "size": 71
+    },
+    "./.maestro/skills/playwright-skill/run.js": {
+      "modified_sec": 1773537603,
+      "size": 5788
+    },
+    "./website/test/setup.ts": {
+      "modified_sec": 1773537603,
+      "size": 1160
+    },
+    "./src/components/ErrorBoundary.tsx": {
+      "modified_sec": 1773537603,
+      "size": 2871
+    },
+    "./src-tauri/src/skills/web_search.rs": {
+      "modified_sec": 1773537603,
+      "size": 20055
+    },
+    "./.maestro/skills/react-best-practices/metadata.json": {
+      "modified_sec": 1773537603,
+      "size": 921
+    },
+    "./.github/actions/guardian/action.yml": {
+      "modified_sec": 1773537603,
+      "size": 4527
+    },
+    "./.maestro/skills/react-best-practices/rules/js-index-maps.md": {
+      "modified_sec": 1773537603,
+      "size": 837
+    },
+    "./scripts/common_utils.py": {
+      "modified_sec": 1773537603,
+      "size": 805
+    },
+    "./.maestro/skills/azure-ai-contentsafety-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7753
+    },
+    "./.maestro/skills/react-best-practices/rules/rerender-transitions.md": {
+      "modified_sec": 1773537603,
+      "size": 1055
+    },
+    "./.maestro/workflows/create-prd-v2/data/prd-purpose.md": {
+      "modified_sec": 1773537603,
+      "size": 7246
+    },
+    "./.maestro/skills/azure-monitor-query-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 13075
+    },
+    "./.maestro/skills/reference-builder/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5233
+    },
+    "./guardian-cli/src/main.rs": {
+      "modified_sec": 1773537603,
+      "size": 6341
+    },
+    "./.maestro/provider-packs/copilot/github/instructions/shared-workflows.instructions.md": {
+      "modified_sec": 1773537603,
+      "size": 665
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/js-min-max-loop.md": {
+      "modified_sec": 1773537603,
+      "size": 2290
+    },
+    "./.maestro/skills/python-development-python-scaffold/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7892
+    },
+    "./.maestro/skills/e2e-testing/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3448
+    },
+    "./.maestro/skills/frontend-mobile-security-xss-scan/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9300
+    },
+    "./.maestro/skills/mobile-design/mobile-debugging.md": {
+      "modified_sec": 1773537603,
+      "size": 4250
+    },
+    "./.maestro/skills/design-orchestration/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3518
+    },
+    "./.maestro/skills/search-specialist/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2229
+    },
+    "./website/middleware.ts": {
+      "modified_sec": 1773653354,
+      "size": 1125
+    },
+    "./.maestro/workflows/review.md": {
+      "modified_sec": 1773537603,
+      "size": 281
+    },
+    "./.maestro/skills/architecture/trade-off-analysis.md": {
+      "modified_sec": 1773537603,
+      "size": 1579
+    },
+    "./AGENTS.md": {
+      "modified_sec": 1773537603,
+      "size": 3452
+    },
+    "./scripts/verify_audit.py": {
+      "modified_sec": 1773536307,
+      "size": 2210
+    },
+    "./.maestro/skills/react-best-practices/rules/js-early-exit.md": {
+      "modified_sec": 1773537603,
+      "size": 1133
+    },
+    "./.maestro/skills/frontend-dev-guidelines/resources/complete-examples.md": {
+      "modified_sec": 1773537603,
+      "size": 24524
+    },
+    "./.maestro/skills/gstack/browse/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8927
+    },
+    "./.maestro/skills/react-best-practices/rules/client-swr-dedup.md": {
+      "modified_sec": 1773537603,
+      "size": 1159
+    },
+    "./scripts/provider_doc_radar.py": {
+      "modified_sec": 1773537603,
+      "size": 6380
+    },
+    "./src-tauri/src/validation.rs": {
+      "modified_sec": 1773537603,
+      "size": 26340
+    },
+    "./src/constants/index.ts": {
+      "modified_sec": 1776109232,
+      "size": 2526
+    },
+    "./.maestro/skills/frontend-dev-guidelines/resources/routing-guide.md": {
+      "modified_sec": 1773537603,
+      "size": 7193
+    },
+    "./website/app/og/route.tsx": {
+      "modified_sec": 1773537603,
+      "size": 4449
+    },
+    "./.maestro/skills/react-ui-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6650
+    },
+    "./.maestro/skills/systematic-debugging/CREATION-LOG.md": {
+      "modified_sec": 1773537603,
+      "size": 4268
+    },
+    "./.maestro/skills/environment-setup-guide/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11460
+    },
+    "./.maestro/skills/gstack/VERSION": {
+      "modified_sec": 1773537603,
+      "size": 6
+    },
+    "./website/package.json": {
+      "modified_sec": 1776109232,
+      "size": 2274
+    },
+    "./scripts/collect_macos_artifacts.sh": {
+      "modified_sec": 1776109232,
+      "size": 2228
+    },
+    "./.maestro/skills/production-code-audit/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 15897
+    },
+    "./website/content/docs/tr/reviews.mdx": {
+      "modified_sec": 1773581444,
+      "size": 4079
+    },
+    "./.maestro/skills/azure-security-keyvault-keys-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11981
+    },
+    "./website/components/changelog/timeline-view.tsx": {
+      "modified_sec": 1773537603,
+      "size": 7314
+    },
+    "./website/lib/vitals.ts": {
+      "modified_sec": 1773537603,
+      "size": 11977
+    },
+    "./.maestro/workflows/create-prd-v2/templates/prd-template.md": {
+      "modified_sec": 1773537603,
+      "size": 164
+    },
+    "./website/app/[locale]/layout.tsx": {
+      "modified_sec": 1773537603,
+      "size": 748
+    },
+    "./src-tauri/src/skills/knowledge.rs": {
+      "modified_sec": 1773537603,
+      "size": 3373
+    },
+    "./.maestro/skills/bug-hunter/README.md": {
+      "modified_sec": 1773537603,
+      "size": 375
+    },
+    "./.maestro/skills/gstack/README.md": {
+      "modified_sec": 1773537603,
+      "size": 20365
+    },
+    "./.maestro/skills/ui-ux-pro-max/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 12696
+    },
+    "./.maestro/skills/react-best-practices/rules/js-set-map-lookups.md": {
+      "modified_sec": 1773537603,
+      "size": 532
+    },
+    "./docs/ENTERPRISE_FULLSTACK_BASELINE.md": {
+      "modified_sec": 1773537603,
+      "size": 1728
+    },
+    "./scripts/codex-review.sh": {
+      "modified_sec": 1773537603,
+      "size": 170
+    },
+    "./.maestro/skills/performance-optimizer/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8522
+    },
+    "./.maestro/skills/azure-storage-file-share-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 12013
+    },
+    "./.maestro/provider-packs/antigravity/rules/GEMINI.md": {
+      "modified_sec": 1773537603,
+      "size": 1543
+    },
+    "./.maestro/skills/find-skills/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4661
+    },
+    "./.maestro/provider-packs/antigravity/agent.gitignore": {
+      "modified_sec": 1773537603,
+      "size": 469
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rendering-svg-precision.md": {
+      "modified_sec": 1773537603,
+      "size": 588
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/server-cache-react.md": {
+      "modified_sec": 1773537603,
+      "size": 2228
+    },
+    "./.maestro/skills/performance-engineer/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10834
+    },
+    "./.maestro/skills/docker-expert/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 14061
+    },
+    "./.maestro/skills/writing-skills/references/tier-3-platform/README.md": {
+      "modified_sec": 1773537603,
+      "size": 2740
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rendering-activity.md": {
+      "modified_sec": 1773537603,
+      "size": 564
+    },
+    "./src-tauri/tauri.conf.json": {
+      "modified_sec": 1776109232,
+      "size": 2382
+    },
+    "./releases.json": {
+      "modified_sec": 1773537603,
+      "size": 11752
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/ui-reasoning.csv": {
+      "modified_sec": 1773537603,
+      "size": 31071
+    },
+    "./.maestro/skills/tavily-web/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 966
+    },
+    "./docs/COPY_CONSISTENCY_CHECKLIST.md": {
+      "modified_sec": 1773537603,
+      "size": 1172
+    },
+    "./website/content/i18n/tr.json": {
+      "modified_sec": 1773616926,
+      "size": 4237
+    },
+    "./.maestro/skills/python-performance-optimization/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 21162
+    },
+    "./.maestro/skills/go-rod-master/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 17915
+    },
+    "./.maestro/skills/api-design-principles/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 13019
+    },
+    "./.maestro/provider-packs/antigravity/rules/100-tech-stack.md": {
+      "modified_sec": 1773537603,
+      "size": 3236
+    },
+    "./.maestro/workflows/bmad-bmb-agent.md": {
+      "modified_sec": 1773537603,
+      "size": 314
+    },
+    "./.maestro/skills/writing-skills/graphviz-conventions.dot": {
+      "modified_sec": 1773537603,
+      "size": 5970
+    },
+    "./.maestro/skills/senior-architect/references/tech_decision_guide.md": {
+      "modified_sec": 1773537603,
+      "size": 1616
+    },
+    "./.maestro/agents/orchestrator.md": {
+      "modified_sec": 1773537603,
+      "size": 13915
+    },
+    "./scripts/pilot_generate_weekly_report.sh": {
+      "modified_sec": 1773580922,
+      "size": 1793
+    },
+    "./.maestro/agents/frontend-specialist.md": {
+      "modified_sec": 1773537603,
+      "size": 25399
+    },
+    "./.maestro/skills/playwright-skill/API_REFERENCE.md": {
+      "modified_sec": 1773537603,
+      "size": 16366
+    },
+    "./.maestro/skills/azure-identity-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5419
+    },
+    "./.maestro/skills/azure-ai-agents-persistent-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10971
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/stacks/nuxt-ui.csv": {
+      "modified_sec": 1773537603,
+      "size": 14010
+    },
+    "./website/app/error.tsx": {
+      "modified_sec": 1773537603,
+      "size": 864
+    },
+    "./.maestro/skills/expo-api-routes/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8704
+    },
+    "./.maestro/skills/go-playwright/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 3203
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/styles.csv": {
+      "modified_sec": 1773537603,
+      "size": 40970
+    },
+    "./.maestro/skills/frontend-dev-guidelines/resources/loading-and-error-states.md": {
+      "modified_sec": 1773537603,
+      "size": 12036
+    },
+    "./.maestro/skills/azure-keyvault-keys-rust/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4052
+    },
+    "./src-tauri/src/redaction/gate.rs": {
+      "modified_sec": 1773537603,
+      "size": 8937
+    },
+    "./nginx.conf": {
+      "modified_sec": 1773537603,
+      "size": 690
+    },
+    "./.maestro/workflows/bmad-bmm-create-product-brief.md": {
+      "modified_sec": 1773537603,
+      "size": 413
+    },
+    "./.maestro/workflows/plan-ceo-review.md": {
+      "modified_sec": 1773537603,
+      "size": 320
+    },
+    "./tsconfig.node.json": {
+      "modified_sec": 1773537603,
+      "size": 213
+    },
+    "./.maestro/skills/bash-defensive-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1712
+    },
+    "./.maestro/skills/systematic-debugging/root-cause-tracing.md": {
+      "modified_sec": 1773537603,
+      "size": 5327
+    },
+    "./.maestro/skills/fixing-accessibility/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4718
+    },
+    "./website/app/not-found.tsx": {
+      "modified_sec": 1773537603,
+      "size": 3438
+    },
+    "./scripts/verify.sh": {
+      "modified_sec": 1773536293,
+      "size": 682
+    },
+    "./.maestro/provider-packs/copilot/github/prompts/review.prompt.md": {
+      "modified_sec": 1773537603,
+      "size": 425
+    },
+    "./.maestro/skills/rust-security-auditor/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 86
+    },
+    "./src-tauri/src/storage/mod.rs": {
+      "modified_sec": 1773537603,
+      "size": 30528
+    },
+    "./website/eslint.config.mjs": {
+      "modified_sec": 1773537603,
+      "size": 770
+    },
+    "./.maestro/skills/k8s-manifest-generator/assets/deployment-template.yaml": {
+      "modified_sec": 1773537603,
+      "size": 5226
+    },
+    "./.maestro/skills/network-engineer/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9655
+    },
+    "./website/app/loading.tsx": {
+      "modified_sec": 1773537603,
+      "size": 997
+    },
+    "./.maestro/skills/azure-deployment-preflight/references/VALIDATION-COMMANDS.md": {
+      "modified_sec": 1773537603,
+      "size": 8379
+    },
+    "./.maestro/skills/azure-ai-projects-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7034
+    },
+    "./.maestro/skills/ui-ux-pro-max/scripts/core.py": {
+      "modified_sec": 1773537603,
+      "size": 10357
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/ux-guidelines.csv": {
+      "modified_sec": 1773537603,
+      "size": 18766
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/js-early-exit.md": {
+      "modified_sec": 1773537603,
+      "size": 1133
+    },
+    "./src-tauri/icons/android/mipmap-anydpi-v26/ic_launcher.xml": {
+      "modified_sec": 1773537603,
+      "size": 261
+    },
+    "./.maestro/skills/react-best-practices/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5283
+    },
+    "./.maestro/skills/go-rod-master/examples/stealth_page.go": {
+      "modified_sec": 1773537603,
+      "size": 2861
+    },
+    "./.maestro/workflows/bmad-cis-problem-solving.md": {
+      "modified_sec": 1773537603,
+      "size": 1086
+    },
+    "./.maestro/workflows/create-prd-v2/steps-c/step-05-domain.md": {
+      "modified_sec": 1773537603,
+      "size": 7309
+    },
+    "./website/components/docs/latest-release-notes.tsx": {
+      "modified_sec": 1773613127,
+      "size": 2747
+    },
+    "./.maestro/workflows/bmad-bmm-quick-dev.md": {
+      "modified_sec": 1773537603,
+      "size": 343
+    },
+    "./.maestro/skills/azure-ai-voicelive-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8974
+    },
+    "./.maestro/skills/memory-safety-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1178
+    },
+    "./.maestro/workflows/create-prd-v2/steps-v/step-v-08-domain-compliance-validation.md": {
+      "modified_sec": 1773537603,
+      "size": 7863
+    },
+    "./.maestro/skills/writing-skills/references/templates/discipline.md": {
+      "modified_sec": 1773537603,
+      "size": 934
+    },
+    "./.maestro/skills/k8s-security-policies/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7698
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rendering-conditional-render.md": {
+      "modified_sec": 1773537603,
+      "size": 980
+    },
+    "./website/playwright.config.ts": {
+      "modified_sec": 1773537603,
+      "size": 2194
+    },
+    "./scripts/pilot_collect_leak_prevented_cases.py": {
+      "modified_sec": 1773537603,
+      "size": 4391
+    },
+    "./website/lib/utils.ts": {
+      "modified_sec": 1773537603,
+      "size": 171
+    },
+    "./.maestro/skills/frontend-dev-guidelines/resources/data-fetching.md": {
+      "modified_sec": 1773537603,
+      "size": 19817
+    },
+    "./.maestro/skills/docs/SKILLS_DATE_TRACKING.md": {
+      "modified_sec": 1773537603,
+      "size": 4755
+    },
+    "./.maestro/skills/app-builder/templates/monorepo-turborepo/TEMPLATE.md": {
+      "modified_sec": 1773537603,
+      "size": 1880
+    },
+    "./.maestro/skills/nestjs-expert/references/checklist.md": {
+      "modified_sec": 1773537603,
+      "size": 2271
+    },
+    "./.maestro/skills/lint-and-validate/scripts/type_coverage.py": {
+      "modified_sec": 1773537603,
+      "size": 6480
+    },
+    "./.maestro/skills/gstack/browse/src/server.ts": {
+      "modified_sec": 1773537603,
+      "size": 9436
+    },
+    "./.maestro/workflows/bmad-editorial-review-prose.md": {
+      "modified_sec": 1773537603,
+      "size": 252
+    },
+    "./website/postcss.config.mjs": {
+      "modified_sec": 1773537603,
+      "size": 102
+    },
+    "./website/content/docs/en/troubleshooting.mdx": {
+      "modified_sec": 1773581501,
+      "size": 8585
+    },
+    "./docs/pilot/APPROVER_ROSTER.json": {
+      "modified_sec": 1773537603,
+      "size": 323
+    },
+    "./.maestro/skills/azure-cosmos-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6862
+    },
+    "./src/hooks/useGuardianEvents.ts": {
+      "modified_sec": 1773593548,
+      "size": 6568
+    },
+    "./.maestro/workflows/bmad-bmm-research.md": {
+      "modified_sec": 1773537603,
+      "size": 400
+    },
+    "./website/components/ui/direct-download-button.tsx": {
+      "modified_sec": 1773537603,
+      "size": 3969
+    },
+    "./website/components/faq/faq-page-view.tsx": {
+      "modified_sec": 1776109232,
+      "size": 16018
+    },
+    "./scripts/release_all_local.sh": {
+      "modified_sec": 1776109232,
+      "size": 10596
+    },
+    "./.maestro/skills/docs/SKILL_TEMPLATE.md": {
+      "modified_sec": 1773537603,
+      "size": 1010
+    },
+    "./.maestro/skills/mobile-design/decision-trees.md": {
+      "modified_sec": 1773537603,
+      "size": 16320
+    },
+    "./guardian-cli/src/guardian_lock.rs": {
+      "modified_sec": 1773537603,
+      "size": 7411
+    },
+    "./.maestro/skills/expo-dev-client/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3515
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rerender-dependencies.md": {
+      "modified_sec": 1773537603,
+      "size": 824
+    },
+    "./.maestro/workflows/create-prd-v2/steps-v/step-v-06-traceability-validation.md": {
+      "modified_sec": 1773537603,
+      "size": 7409
+    },
+    "./.maestro/skills/react-best-practices/rules/server-serialization.md": {
+      "modified_sec": 1773537603,
+      "size": 996
+    },
+    "./.maestro/skills/github-workflow-automation/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 21687
+    },
+    "./.maestro/policy/policy.json": {
+      "modified_sec": 1773537603,
+      "size": 1089
+    },
+    "./src-tauri/Cargo.toml": {
+      "modified_sec": 1776109232,
+      "size": 1937
+    },
+    "./.maestro/skills/docs/vietnamese/SECURITY.vi.md": {
+      "modified_sec": 1773537603,
+      "size": 938
+    },
+    "./website/lib/health-check.ts": {
+      "modified_sec": 1773537603,
+      "size": 9078
+    },
+    "./.maestro/skills/azure-cosmos-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7448
+    },
+    "./website/content/docs/tr/migration.mdx": {
+      "modified_sec": 1773581420,
+      "size": 3103
+    },
+    "./.maestro/skills/systematic-debugging/test-pressure-1.md": {
+      "modified_sec": 1773537603,
+      "size": 1900
+    },
+    "./.maestro/skills/api-design-principles/references/rest-best-practices.md": {
+      "modified_sec": 1773537603,
+      "size": 7571
+    },
+    "./.maestro/skills/nestjs-expert/references/decision-trees.md": {
+      "modified_sec": 1773537603,
+      "size": 2374
+    },
+    "./.maestro/skills/parallel-agents/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5362
+    },
+    "./.maestro/skills/azure-mgmt-applicationinsights-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 17402
+    },
+    "./.maestro/skills/k8s-manifest-generator/assets/service-template.yaml": {
+      "modified_sec": 1773537603,
+      "size": 3711
+    },
+    "./.maestro/skills/docs/vietnamese/FAQ.vi.md": {
+      "modified_sec": 1773537603,
+      "size": 7584
+    },
+    "./website/lib/api-client.ts": {
+      "modified_sec": 1773537603,
+      "size": 12481
+    },
+    "./.maestro/workflows/plan-eng-review.md": {
+      "modified_sec": 1773537603,
+      "size": 327
+    },
+    "./.maestro/skills/k8s-manifest-generator/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 12355
+    },
+    "./scripts/pilot_dryrun.py": {
+      "modified_sec": 1773537603,
+      "size": 11178
+    },
+    "./website/vitest.d.ts": {
+      "modified_sec": 1773537603,
+      "size": 187
+    },
+    "./scripts/ci/render_guardian_pr_comment.mjs": {
+      "modified_sec": 1773536321,
+      "size": 1835
+    },
+    "./.maestro/skills/azure-ai-projects-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4776
+    },
+    "./scripts/publish_distribution.sh": {
+      "modified_sec": 1773536195,
+      "size": 7615
+    },
+    "./.maestro/skills/memory-safety-patterns/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 13334
+    },
+    "./scripts/skill_registry_validator.py": {
+      "modified_sec": 1773537603,
+      "size": 2268
+    },
+    "./.maestro/skills/mobile-design/mobile-color-system.md": {
+      "modified_sec": 1773537603,
+      "size": 10211
+    },
+    "./scripts/eval_registry_validator.py": {
+      "modified_sec": 1773537603,
+      "size": 1649
+    },
+    "./Dockerfile": {
+      "modified_sec": 1773537603,
+      "size": 1280
+    },
+    "./.maestro/skills/design-md/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7944
+    },
+    "./.maestro/skills/docs/GETTING_STARTED.md": {
+      "modified_sec": 1773537603,
+      "size": 5932
+    },
+    "./.maestro/skills/nextjs-best-practices/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3857
+    },
+    "./.env.example": {
+      "modified_sec": 1773596665,
+      "size": 1382
+    },
+    "./.maestro/skills/test-automator/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11128
+    },
+    "./.maestro/skills/uv-package-manager/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1417
+    },
+    "./docs/pilot/PILOT_REPO_MANIFEST.example.json": {
+      "modified_sec": 1773537603,
+      "size": 642
+    },
+    "./src-tauri/src/kernel/mod.rs": {
+      "modified_sec": 1773537603,
+      "size": 13
+    },
+    "./website/content/docs/tr/security.mdx": {
+      "modified_sec": 1773581476,
+      "size": 6278
+    },
+    "./.maestro/skills/docs/VISUAL_GUIDE.md": {
+      "modified_sec": 1773537603,
+      "size": 25282
+    },
+    "./.maestro/skills/wiki-qa/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1295
+    },
+    "./.maestro/agents/security-auditor.md": {
+      "modified_sec": 1773537603,
+      "size": 4711
+    },
+    "./.maestro/workflows/bmad-help.md": {
+      "modified_sec": 1773537603,
+      "size": 242
+    },
+    "./src/hooks/useSettings.ts": {
+      "modified_sec": 1776109232,
+      "size": 63499
+    },
+    "./.maestro/skills/webapp-testing/scripts/with_server.py": {
+      "modified_sec": 1773537603,
+      "size": 3693
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/server-parallel-fetching.md": {
+      "modified_sec": 1773537603,
+      "size": 1554
+    },
+    "./.maestro/workflows/bmad-tea-testarch-nfr.md": {
+      "modified_sec": 1773537603,
+      "size": 986
+    },
+    "./.maestro/skills/app-builder/templates/nuxt-app/TEMPLATE.md": {
+      "modified_sec": 1773537603,
+      "size": 2137
+    },
+    "./.maestro/skills/azure-containerregistry-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6121
+    },
+    "./.maestro/skills/app-builder/templates/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1715
+    },
+    "./website/app/[locale]/docs/page.tsx": {
+      "modified_sec": 1773537603,
+      "size": 623
+    },
+    "./src/components/AuthGate.tsx": {
+      "modified_sec": 1773575089,
+      "size": 5628
+    },
+    "./scripts/init_project.py": {
+      "modified_sec": 1773537603,
+      "size": 5919
+    },
+    "./website/app/api/vitals/route.ts": {
+      "modified_sec": 1773537603,
+      "size": 958
+    },
+    "./guardian-cli/src/baseline.rs": {
+      "modified_sec": 1773537603,
+      "size": 1512
+    },
+    "./.maestro/skills/frontend-dev-guidelines/resources/styling-guide.md": {
+      "modified_sec": 1773537603,
+      "size": 7905
+    },
+    "./.maestro/skills/research-engineer/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 78
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/charts.csv": {
+      "modified_sec": 1773537603,
+      "size": 7680
+    },
+    "./.maestro/skills/fastapi-templates/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 16197
+    },
+    "./.maestro/skills/azd-deployment/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8078
+    },
+    "./website/lib/design-system.ts": {
+      "modified_sec": 1773537603,
+      "size": 2072
+    },
+    "./.maestro/skills/wiki-page-writer/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2884
+    },
+    "./.maestro/skills/python-security-auditor/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 90
+    },
+    "./.maestro/workflows/create-architecture-v2/steps/step-04-decisions.md": {
+      "modified_sec": 1773537603,
+      "size": 10531
+    },
+    "./.maestro/skills/gstack/CLAUDE.md": {
+      "modified_sec": 1773537603,
+      "size": 1419
+    },
+    "./website/components/ui/button.tsx": {
+      "modified_sec": 1773537603,
+      "size": 2147
+    },
+    "./.maestro/workflows/create-architecture-v2/architecture-decision-template.md": {
+      "modified_sec": 1773537603,
+      "size": 337
+    },
+    "./.maestro/workflows/bmad-agent-tea-tea.md": {
+      "modified_sec": 1773537603,
+      "size": 617
+    },
+    "./.maestro/skills/azure-storage-file-datalake-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5483
+    },
+    "./.maestro/skills/api-design-principles/assets/api-design-checklist.md": {
+      "modified_sec": 1773537603,
+      "size": 3884
+    },
+    "./.maestro/skills/gstack/TODO.md": {
+      "modified_sec": 1773537603,
+      "size": 4188
+    },
+    "./.maestro/workflows/create-prd-v2/data/domain-complexity.csv": {
+      "modified_sec": 1773537603,
+      "size": 5610
+    },
+    "./.maestro/skills/gitops-workflow/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6430
+    },
+    "./.maestro/skills/gstack/browse/src/buffers.ts": {
+      "modified_sec": 1773537603,
+      "size": 1058
+    },
+    "./src-tauri/src/triage.rs": {
+      "modified_sec": 1773537603,
+      "size": 9271
+    },
+    "./.maestro/workflows/create-architecture-v2/steps/step-06-structure.md": {
+      "modified_sec": 1773537603,
+      "size": 11439
+    },
+    "./src-tauri/src/semantic_index.rs": {
+      "modified_sec": 1773537603,
+      "size": 18256
+    },
+    "./.maestro/skills/web-artifacts-builder/scripts/init-artifact.sh": {
+      "modified_sec": 1773537603,
+      "size": 9924
+    },
+    "./.maestro/skills/variant-analysis/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5633
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rendering-hydration-suppress-warning.md": {
+      "modified_sec": 1773537603,
+      "size": 872
+    },
+    "./.maestro/provider-packs/copilot/github/agents/founder-plan.agent.md": {
+      "modified_sec": 1773537603,
+      "size": 684
+    },
+    "./.maestro/skills/frontend-mobile-development-component-scaffold/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11625
+    },
+    "./website/content/docs/en/updates.mdx": {
+      "modified_sec": 1773581484,
+      "size": 5964
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/landing.csv": {
+      "modified_sec": 1773537603,
+      "size": 14372
+    },
+    "./.maestro/skills/python-pro/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7285
+    },
+    "./.maestro/skills/api-patterns/scripts/api_validator.py": {
+      "modified_sec": 1773537603,
+      "size": 7593
+    },
+    "./.maestro/skills/gstack/browse/src/cli.ts": {
+      "modified_sec": 1773537603,
+      "size": 8060
+    },
+    "./.codex/config.toml": {
+      "modified_sec": 1773537603,
+      "size": 947
+    },
+    "./.maestro/workflows/bmad-agent-cis-brainstorming-coach.md": {
+      "modified_sec": 1773537603,
+      "size": 665
+    },
+    "./.maestro/skills/rust-pro/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7435
+    },
+    "./website/app/api/csp-report/route.ts": {
+      "modified_sec": 1773537603,
+      "size": 2848
+    },
+    "./.maestro/workflows/create-prd-v2/steps-c/step-12-complete.md": {
+      "modified_sec": 1773537603,
+      "size": 5172
+    },
+    "./.maestro/workflows/retro.md": {
+      "modified_sec": 1773537603,
+      "size": 215
+    },
+    "./.maestro/skills/gstack/browse/test/snapshot.test.ts": {
+      "modified_sec": 1773537603,
+      "size": 8919
+    },
+    "./.maestro/skills/docs/vietnamese/CONTRIBUTING.vi.md": {
+      "modified_sec": 1773537603,
+      "size": 7123
+    },
+    "./.maestro/skills/terraform-specialist/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9062
+    },
+    "./src/components/__tests__/CritiqueAccordionRow.test.tsx": {
+      "modified_sec": 1773576663,
+      "size": 1334
+    },
+    "./.maestro/skills/react-best-practices/rules/rendering-content-visibility.md": {
+      "modified_sec": 1773537603,
+      "size": 815
+    },
+    "./docs/MIGRATION_GUIDE_PHASE6.md": {
+      "modified_sec": 1773537603,
+      "size": 2326
+    },
+    "./.maestro/skills/azure-eventgrid-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4636
+    },
+    "./.maestro/skills/docs/SOURCES.md": {
+      "modified_sec": 1773537603,
+      "size": 16449
+    },
+    "./.maestro/agents/explorer-agent.md": {
+      "modified_sec": 1773537603,
+      "size": 3982
+    },
+    "./docker-compose.yml": {
+      "modified_sec": 1773537603,
+      "size": 623
+    },
+    "./.maestro/skills/azure-devops-cli/references/advanced-usage.md": {
+      "modified_sec": 1773537603,
+      "size": 5415
+    },
+    "./website/lib/locale.ts": {
+      "modified_sec": 1773537603,
+      "size": 844
+    },
+    "./.maestro/skills/azure-ai-transcription-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1819
+    },
+    "./.maestro/skills/azure-communication-sms-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8193
+    },
+    "./.maestro/skills/gstack/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2787
+    },
+    "./docs/SETTINGS_PERSONALIZATION_GUIDE.md": {
+      "modified_sec": 1776109232,
+      "size": 2761
+    },
+    "./guardian-cli/src/output.rs": {
+      "modified_sec": 1773537603,
+      "size": 10138
+    },
+    "./.maestro/skills/systematic-debugging/condition-based-waiting.md": {
+      "modified_sec": 1773537603,
+      "size": 3516
+    },
+    "./scripts/coverage_gate.mjs": {
+      "modified_sec": 1773536135,
+      "size": 1942
+    },
+    "./.maestro/skills/github-automation/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11368
+    },
+    "./.maestro/workflows/bmad-agent-bmb-workflow-builder.md": {
+      "modified_sec": 1773537603,
+      "size": 656
+    },
+    "./.maestro/skills/kubernetes-deployment/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3343
+    },
+    "./scripts/bootstrap_providers.py": {
+      "modified_sec": 1773537603,
+      "size": 4450
+    },
+    "./.maestro/skills/python-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9644
+    },
+    "./website/e2e/download.spec.ts": {
+      "modified_sec": 1773581759,
+      "size": 6441
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/bundle-dynamic-imports.md": {
+      "modified_sec": 1773537603,
+      "size": 791
+    },
+    "./src-tauri/icons/icon.icns": {
+      "modified_sec": 1773537603,
+      "size": 1435183
+    },
+    "./.maestro/skills/azure-ai-contentsafety-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7858
+    },
+    "./.maestro/provider-packs/copilot/github/instructions/provider-adapters.instructions.md": {
+      "modified_sec": 1773537603,
+      "size": 1026
+    },
+    "./.maestro/skills/agent-browser/references/authentication.md": {
+      "modified_sec": 1773537603,
+      "size": 4443
+    },
+    "./src-tauri/src/skills/orchestrator.rs": {
+      "modified_sec": 1776109232,
+      "size": 8973
+    },
+    "./.maestro/skills/observability-monitoring-slo-implement/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 36268
+    },
+    "./website/components/contact/ContactForm.tsx": {
+      "modified_sec": 1773537603,
+      "size": 14432
+    },
+    "./.maestro/provider-packs/opencode/commands/research.md": {
+      "modified_sec": 1773537603,
+      "size": 352
+    },
+    "./.maestro/skills/gstack/browse/test/fixtures/forms.html": {
+      "modified_sec": 1773537603,
+      "size": 1878
+    },
+    "./.maestro/skills/create-branch/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5135
+    },
+    "./src-tauri/src/redaction/mod.rs": {
+      "modified_sec": 1773537603,
+      "size": 14
+    },
+    "./website/content/docs/en/guru.mdx": {
+      "modified_sec": 1773537603,
+      "size": 8239
+    },
+    "./scripts/secret_scan.sh": {
+      "modified_sec": 1773537778,
+      "size": 1274
+    },
+    "./.maestro/skills/typescript-expert/references/utility-types.ts": {
+      "modified_sec": 1773537603,
+      "size": 8629
+    },
+    "./.maestro/agents/test-engineer.md": {
+      "modified_sec": 1773537603,
+      "size": 3258
+    },
+    "./.maestro/workflows/create-prd-v2/steps-e/step-e-01-discovery.md": {
+      "modified_sec": 1773537603,
+      "size": 8302
+    },
+    "./.maestro/skills/test-fixing/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3022
+    },
+    "./src-tauri/src/auth/mod.rs": {
+      "modified_sec": 1773537603,
+      "size": 16
+    },
+    "./.maestro/skills/api-design-principles/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1528
+    },
+    "./.maestro/skills/app-builder/templates/cli-tool/TEMPLATE.md": {
+      "modified_sec": 1773537603,
+      "size": 1762
+    },
+    "./.maestro/skills/bug-hunter/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7597
+    },
+    "./.maestro/skills/javascript-pro/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1699
+    },
+    "./.maestro/skills/vulnerability-scanner/scripts/security_scan.py": {
+      "modified_sec": 1773537603,
+      "size": 18170
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rerender-use-ref-transient-values.md": {
+      "modified_sec": 1773537603,
+      "size": 1742
+    },
+    "./CHANGELOG.md": {
+      "modified_sec": 1776109232,
+      "size": 20359
+    },
+    "./.maestro/skills/react-best-practices/rules/advanced-use-latest.md": {
+      "modified_sec": 1773537603,
+      "size": 1191
+    },
+    "./.maestro/skills/react-best-practices/rules/js-cache-property-access.md": {
+      "modified_sec": 1773537603,
+      "size": 532
+    },
+    "./src/types/guardian.ts": {
+      "modified_sec": 1773537603,
+      "size": 93
+    },
+    "./.maestro/skills/azure-ai-translation-text-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7379
+    },
+    "./.maestro/skills/react-best-practices/rules/js-min-max-loop.md": {
+      "modified_sec": 1773537603,
+      "size": 2105
+    },
+    "./.maestro/skills/docs/vietnamese/SKILLS_README.vi.md": {
+      "modified_sec": 1773537603,
+      "size": 3890
+    },
+    "./website/lib/releases-client.ts": {
+      "modified_sec": 1773537603,
+      "size": 1347
+    },
+    "./.maestro/skills/azure-devops-cli/references/variables-and-agents.md": {
+      "modified_sec": 1773537603,
+      "size": 3805
+    },
+    "./.maestro/skills/azure-microsoft-playwright-testing-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8061
+    },
+    "./website/components/client-layout.tsx": {
+      "modified_sec": 1773537603,
+      "size": 1111
+    },
+    "./.maestro/skills/writing-skills/references/standards/README.md": {
+      "modified_sec": 1773537603,
+      "size": 3563
+    },
+    "./.maestro/skills/react-best-practices/rules/client-event-listeners.md": {
+      "modified_sec": 1773537603,
+      "size": 1969
+    },
+    "./.maestro/skills/terraform-module-library/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6107
+    },
+    "./.maestro/skills/senior-fullstack/scripts/fullstack_scaffolder.py": {
+      "modified_sec": 1773537603,
+      "size": 3151
+    },
+    "./.maestro/provider-packs/copilot/github/agents/prelanding-review.agent.md": {
+      "modified_sec": 1773537603,
+      "size": 602
+    },
+    "./website/components/home/DemoSection.tsx": {
+      "modified_sec": 1773615335,
+      "size": 10518
+    },
+    "./.maestro/skills/gstack/package.json": {
+      "modified_sec": 1773537603,
+      "size": 792
+    },
+    "./docs/GUARDIAN_SETTINGS_PERSONALIZATION_3SPRINT_PLAN.md": {
+      "modified_sec": 1776109232,
+      "size": 11980
+    },
+    "./.maestro/skills/security-scanning-security-dependencies/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1871
+    },
+    "./.maestro/skills/azure-resource-manager-mysql-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 13265
+    },
+    "./.maestro/skills/systematic-debugging/find-polluter.sh": {
+      "modified_sec": 1773537603,
+      "size": 1528
+    },
+    "./.maestro/skills/writing-skills/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3926
+    },
+    "./.maestro/skills/azure-infra-engineer/scripts/configure_bicep_template.ts": {
+      "modified_sec": 1773537603,
+      "size": 4010
+    },
+    "./scripts/codex-fast.sh": {
+      "modified_sec": 1773537603,
+      "size": 97
+    },
+    "./docs/archive/PLAN-vibe-guard.md": {
+      "modified_sec": 1773537603,
+      "size": 1819
+    },
+    "./.maestro/skills/shadcn-ui/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 47836
+    },
+    "./.maestro/agents/database-architect.md": {
+      "modified_sec": 1773537603,
+      "size": 6901
+    },
+    "./.maestro/skills/readme/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 19885
+    },
+    "./src/components/ReleaseDecisionPanel.tsx": {
+      "modified_sec": 1776109232,
+      "size": 8493
+    },
+    "./docs/archive/PLAN-guardian-website-redesign.md": {
+      "modified_sec": 1773537603,
+      "size": 2168
+    },
+    "./.maestro/skills/writing-skills/gotchas.md": {
+      "modified_sec": 1773537603,
+      "size": 3804
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/async-dependencies.md": {
+      "modified_sec": 1773537603,
+      "size": 1293
+    },
+    "./src-tauri/src/ai_client.rs": {
+      "modified_sec": 1776109232,
+      "size": 51940
+    },
+    "./.maestro/workflows/create-prd-v2/steps-v/step-v-04-brief-coverage-validation.md": {
+      "modified_sec": 1773537603,
+      "size": 7350
+    },
+    "./src/App.tsx": {
+      "modified_sec": 1776109232,
+      "size": 51777
+    },
+    "./website/app/api/releases/latest/route.ts": {
+      "modified_sec": 1773537603,
+      "size": 1093
+    },
+    "./.maestro/skills/writing-skills/references/tier-1-simple/README.md": {
+      "modified_sec": 1773537603,
+      "size": 1431
+    },
+    "./.maestro/workflows/bmad-tea-testarch-ci.md": {
+      "modified_sec": 1773537603,
+      "size": 926
+    },
+    "./scripts/codex-research.sh": {
+      "modified_sec": 1773537603,
+      "size": 64
+    },
+    "./src-tauri/src/context.rs": {
+      "modified_sec": 1773537603,
+      "size": 15334
+    },
+    "./.maestro/skills/writing-skills/references/testing/README.md": {
+      "modified_sec": 1773537603,
+      "size": 5867
+    },
+    "./website/content/docs/en/get-started.mdx": {
+      "modified_sec": 1773613147,
+      "size": 4198
+    },
+    "./.maestro/skills/azure-data-tables-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9067
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/bundle-defer-third-party.md": {
+      "modified_sec": 1773537603,
+      "size": 920
+    },
+    "./src-tauri/build.rs": {
+      "modified_sec": 1773537603,
+      "size": 39
+    },
+    "./.maestro/skills/openapi-spec-generation/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1212
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/server-auth-actions.md": {
+      "modified_sec": 1773537603,
+      "size": 2649
+    },
+    "./.maestro/workflows/bmad-bmb-workflow.md": {
+      "modified_sec": 1773537603,
+      "size": 350
+    },
+    "./.maestro/workflows/bmad-bmm-create-excalidraw-diagram.md": {
+      "modified_sec": 1773537603,
+      "size": 1002
+    },
+    "./src/lib/error/index.ts": {
+      "modified_sec": 1773537603,
+      "size": 1317
+    },
+    "./.maestro/skills/frontend-design/scripts/accessibility_checker.py": {
+      "modified_sec": 1773537603,
+      "size": 5983
+    },
+    "./.maestro/skills/azure-devops-cli/references/repos-and-prs.md": {
+      "modified_sec": 1773537603,
+      "size": 6725
+    },
+    "./.maestro/skills/expo-ui-jetpack-compose/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2050
+    },
+    "./.maestro/skills/nodejs-backend-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1370
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/client-swr-dedup.md": {
+      "modified_sec": 1773537603,
+      "size": 1159
+    },
+    "./scripts/skill_router_cli.py": {
+      "modified_sec": 1773537603,
+      "size": 5853
+    },
+    "./.maestro/skills/open-source-context/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 82
+    },
+    "./website/content/i18n/en.json": {
+      "modified_sec": 1773616912,
+      "size": 4054
+    },
+    "./.maestro/skills/playwright-skill/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 13914
+    },
+    "./.maestro/workflows/create.md": {
+      "modified_sec": 1773537603,
+      "size": 1247
+    },
+    "./.maestro/skills/azure-monitor-ingestion-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5401
+    },
+    "./src/assets/react.svg": {
+      "modified_sec": 1773537603,
+      "size": 4126
+    },
+    "./.maestro/skills/clean-code/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4396
+    },
+    "./src-tauri/src/auth/github.rs": {
+      "modified_sec": 1773537603,
+      "size": 8025
+    },
+    "./.maestro/skills/fastapi-pro/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6436
+    },
+    "./scripts/provider_radar_validator.py": {
+      "modified_sec": 1773537603,
+      "size": 938
+    },
+    "./.maestro/workflows/bmad-bmm-code-review.md": {
+      "modified_sec": 1773537603,
+      "size": 1161
+    },
+    "./scripts/pilot_validate_readiness.py": {
+      "modified_sec": 1773537603,
+      "size": 6549
+    },
+    "./.maestro/skills/bash-linux/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4267
+    },
+    "./src/test/setup.ts": {
+      "modified_sec": 1773537603,
+      "size": 2999
+    },
+    "./.maestro/skills/plan-writing/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4027
+    },
+    "./docs/PHASE5_PILOT_ROLLOUT_PLAYBOOK.md": {
+      "modified_sec": 1773600227,
+      "size": 7817
+    },
+    "./.maestro/workflows/bmad-bmm-sprint-status.md": {
+      "modified_sec": 1773537603,
+      "size": 967
+    },
+    "./.maestro/skills/security-requirement-extraction/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1146
+    },
+    "./.maestro/skills/python-testing-patterns/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 21557
+    },
+    "./.maestro/skills/verification-before-completion/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4338
+    },
+    "./.maestro/skills/baseline-ui/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3531
+    },
+    "./.maestro/skills/azure-storage-blob-java/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10122
+    },
+    "./.maestro/skills/security-scanning-security-dependencies/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 17051
+    },
+    "./.maestro/skills/mobile-developer/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8677
+    },
+    "./.maestro/skills/docs/SECURITY_GUARDRAILS.md": {
+      "modified_sec": 1773537603,
+      "size": 2130
+    },
+    "./website/content/docs/en/auth.mdx": {
+      "modified_sec": 1773581380,
+      "size": 4044
+    },
+    "./src-tauri/Cargo.lock": {
+      "modified_sec": 1776109232,
+      "size": 184142
+    },
+    "./.maestro/workflows/create-epics-and-stories-v2/steps/step-03-create-stories.md": {
+      "modified_sec": 1773537603,
+      "size": 8501
+    },
+    "./.maestro/skills/senior-architect/references/architecture_patterns.md": {
+      "modified_sec": 1773537603,
+      "size": 1618
+    },
+    "./.maestro/skills/docs/QUALITY_BAR.md": {
+      "modified_sec": 1773537603,
+      "size": 2454
+    },
+    "./website/content/docs/tr/troubleshooting.mdx": {
+      "modified_sec": 1773581508,
+      "size": 7159
+    },
+    "./.maestro/skills/observability-monitoring-slo-implement/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1857
+    },
+    "./.maestro/provider-packs/antigravity/rules/30-error-handling.md": {
+      "modified_sec": 1773537603,
+      "size": 4058
+    },
+    "./website/components/ui/scroll-area.tsx": {
+      "modified_sec": 1773537603,
+      "size": 395
+    },
+    "./.maestro/skills/gstack/browse/src/meta-commands.ts": {
+      "modified_sec": 1773537603,
+      "size": 7297
+    },
+    "./.maestro/workflows/bmad-tea-testarch-framework.md": {
+      "modified_sec": 1773537603,
+      "size": 977
+    },
+    "./.maestro/skills/frontend-design/ux-psychology.md": {
+      "modified_sec": 1773537603,
+      "size": 15756
+    },
+    "./.maestro/skills/app-builder/templates/nextjs-static/TEMPLATE.md": {
+      "modified_sec": 1773537603,
+      "size": 2044
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/async-defer-await.md": {
+      "modified_sec": 1773537603,
+      "size": 2028
+    },
+    "./.maestro/skills/typescript-expert/references/typescript-cheatsheet.md": {
+      "modified_sec": 1773537603,
+      "size": 7424
+    },
+    "./.maestro/workflows/create-epics-and-stories-v2/templates/epics-template.md": {
+      "modified_sec": 1773537603,
+      "size": 1049
+    },
+    "./src-tauri/src/provider.rs": {
+      "modified_sec": 1773537603,
+      "size": 12340
+    },
+    "./website/lib/token-validator.ts": {
+      "modified_sec": 1773537603,
+      "size": 7742
+    },
+    "./.maestro/workflows/sprint-planning-v2/instructions.md": {
+      "modified_sec": 1773537603,
+      "size": 8001
+    },
+    "./.maestro/skills/azure-mgmt-mongodbatlas-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10887
+    },
+    "./.maestro/skills/nextjs-supabase-auth/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1533
+    },
+    "./.maestro/workflows/create-prd-v2/steps-e/step-e-03-edit.md": {
+      "modified_sec": 1773537603,
+      "size": 7415
+    },
+    "./.maestro/skills/gstack/BROWSER.md": {
+      "modified_sec": 1773537603,
+      "size": 11724
+    },
+    "./.maestro/skills/pr-writer/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4966
+    },
+    "./.maestro/skills/docs/LICENSE-MICROSOFT": {
+      "modified_sec": 1773537603,
+      "size": 1140
+    },
+    "./docs/PROVIDER_PROFILES.md": {
+      "modified_sec": 1773537603,
+      "size": 1959
+    },
+    "./.maestro/skills/azure-storage-blob-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 12358
+    },
+    "./.maestro/skills/azure-ai-projects-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10837
+    },
+    "./.maestro/provider-radar/watchlist.json": {
+      "modified_sec": 1773537603,
+      "size": 2763
+    },
+    "./scripts/skill.sh": {
+      "modified_sec": 1773537603,
+      "size": 10212
+    },
+    "./.maestro/workflows/create-architecture-v2/steps/step-01-init.md": {
+      "modified_sec": 1773537603,
+      "size": 6568
+    },
+    "./guardian-cli/src/scan.rs": {
+      "modified_sec": 1773538000,
+      "size": 57142
+    },
+    "./.maestro/workflows/create-prd-v2/steps-c/step-06-innovation.md": {
+      "modified_sec": 1773537603,
+      "size": 9060
+    },
+    "./.maestro/skills/azure-infra-engineer/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10908
+    },
+    "./.maestro/skills/react-best-practices/rules/js-cache-storage.md": {
+      "modified_sec": 1773537603,
+      "size": 1651
+    },
+    "./.maestro/workflows/bmad-agent-bmb-module-builder.md": {
+      "modified_sec": 1773537603,
+      "size": 650
+    },
+    "./.maestro/skills/azure-storage-file-share-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5055
+    },
+    "./.maestro/workflows/create-prd-v2/steps-e/step-e-01b-legacy-conversion.md": {
+      "modified_sec": 1773537603,
+      "size": 6797
+    },
+    "./.prettierignore": {
+      "modified_sec": 1773537603,
+      "size": 96
+    },
+    "./.maestro/skills/azure-cosmos-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11170
+    },
+    "./.maestro/skills/azure-resource-manager-redis-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11222
+    },
+    "./.maestro/skills/frontend-design/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6731
+    },
+    "./.maestro/workflows/bmad-bmm-sprint-planning.md": {
+      "modified_sec": 1773537603,
+      "size": 1069
+    },
+    "./.maestro/skills/mobile-design/mobile-typography.md": {
+      "modified_sec": 1773537603,
+      "size": 10717
+    },
+    "./docs/pilot/PILOT_ROLLOUT_STATUS_2026-03-15.md": {
+      "modified_sec": 1773592795,
+      "size": 2784
+    },
+    "./.maestro/workflows/test.md": {
+      "modified_sec": 1773537603,
+      "size": 2663
+    },
+    "./website/components/ui/skeleton.tsx": {
+      "modified_sec": 1773537603,
+      "size": 385
+    },
+    "./website/content/docs/tr/get-started.mdx": {
+      "modified_sec": 1773613157,
+      "size": 4449
+    },
+    "./.maestro/workflows/bmad-bmm-create-epics-and-stories.md": {
+      "modified_sec": 1773537603,
+      "size": 713
+    },
+    "./.maestro/skills/microservices-patterns/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 18007
+    },
+    "./.maestro/skills/playwright-skill/package.json": {
+      "modified_sec": 1773537603,
+      "size": 652
+    },
+    "./.maestro/skills/azure-mgmt-apicenter-py/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 6410
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rerender-transitions.md": {
+      "modified_sec": 1773537603,
+      "size": 1055
+    },
+    "./.maestro/skills/frontend-design/typography-system.md": {
+      "modified_sec": 1773537603,
+      "size": 8523
+    },
+    "./.maestro/workflows/bmad-agent-bmm-tech-writer.md": {
+      "modified_sec": 1773537603,
+      "size": 653
+    },
+    "./.maestro/workflows/create-prd-v2/steps-v/step-v-01-discovery.md": {
+      "modified_sec": 1773537603,
+      "size": 7109
+    },
+    "./.maestro/provider-packs/opencode/commands/review.md": {
+      "modified_sec": 1773537603,
+      "size": 286
+    },
+    "./website/lib/github.test.ts": {
+      "modified_sec": 1773537603,
+      "size": 11721
+    },
+    "./.maestro/ARCHITECTURE.md": {
+      "modified_sec": 1773537603,
+      "size": 2024
+    },
+    "./scripts/pilot_autopilot.sh": {
+      "modified_sec": 1773537603,
+      "size": 2043
+    },
+    "./.maestro/skills/react-best-practices/rules/rendering-hoist-jsx.md": {
+      "modified_sec": 1773537603,
+      "size": 1039
+    },
+    "./src-tauri/src/baseline/manager.rs": {
+      "modified_sec": 1773537603,
+      "size": 10943
+    },
+    "./.maestro/skills/vibe-code-auditor/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 15499
+    },
+    "./.maestro/skills/performance-profiling/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3225
+    },
+    "./.maestro/skills/react-best-practices/rules/bundle-dynamic-imports.md": {
+      "modified_sec": 1773537603,
+      "size": 791
+    },
+    "./src/lib/critiqueStateKey.ts": {
+      "modified_sec": 1773537603,
+      "size": 216
+    },
+    "./docs/RELEASE_APPROVAL_POLICY.md": {
+      "modified_sec": 1776109232,
+      "size": 3776
+    },
+    "./scripts/build_release.sh": {
+      "modified_sec": 1773536086,
+      "size": 1323
+    },
+    "./.maestro/skills/github-issue-creator/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3712
+    },
+    "./.maestro/skill-registry/overrides.json": {
+      "modified_sec": 1773537603,
+      "size": 4323
+    },
+    "./.maestro/skills/security-review/references/patterns.md": {
+      "modified_sec": 1773537603,
+      "size": 5699
+    },
+    "./src/hooks/useMonitoringController.ts": {
+      "modified_sec": 1773537603,
+      "size": 6162
+    },
+    "./.maestro/workflows/bmad-bmm-quick-spec.md": {
+      "modified_sec": 1773537603,
+      "size": 363
+    },
+    "./.maestro/skills/k8s-manifest-generator/references/deployment-spec.md": {
+      "modified_sec": 1773537603,
+      "size": 17067
+    },
+    "./.maestro/skills/docs/DATE_TRACKING_IMPLEMENTATION.md": {
+      "modified_sec": 1773537603,
+      "size": 4333
+    },
+    "./.maestro/skills/distributed-tracing/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 10619
+    },
+    "./src/main.tsx": {
+      "modified_sec": 1773537603,
+      "size": 329
+    },
+    "./website/tsconfig.json": {
+      "modified_sec": 1773537603,
+      "size": 802
+    },
+    "./.maestro/workflows/preview.md": {
+      "modified_sec": 1773537603,
+      "size": 1170
+    },
+    "./.maestro/skills/frontend-dev-guidelines/resources/performance.md": {
+      "modified_sec": 1773537603,
+      "size": 9639
+    },
+    "./.maestro/provider-packs/copilot/github/agents/retro.agent.md": {
+      "modified_sec": 1773537603,
+      "size": 333
+    },
+    "./.maestro/skills/brainstorming/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5189
+    },
+    "./scripts/checklist.py": {
+      "modified_sec": 1773537603,
+      "size": 4857
+    },
+    "./website/components/theme-toggle.tsx": {
+      "modified_sec": 1773537603,
+      "size": 2478
+    },
+    "./.maestro/workflows/bmad-agent-cis-presentation-master.md": {
+      "modified_sec": 1773537603,
+      "size": 665
+    },
+    "./docs/pilot/APPROVER_ROSTER.template.json": {
+      "modified_sec": 1773537603,
+      "size": 323
+    },
+    "./.maestro/skills/docs/vietnamese/EXAMPLES.vi.md": {
+      "modified_sec": 1773537603,
+      "size": 3009
+    },
+    "./docs/governance/AGENTS.md": {
+      "modified_sec": 1773537603,
+      "size": 1942
+    },
+    "./.maestro/provider-packs/antigravity/rules/20-observability.md": {
+      "modified_sec": 1773537603,
+      "size": 769
+    },
+    "./website/components/home/AgentObjectionSection.tsx": {
+      "modified_sec": 1773615311,
+      "size": 5100
+    },
+    "./.maestro/skills/mobile-design/mobile-navigation.md": {
+      "modified_sec": 1773537603,
+      "size": 11855
+    },
+    "./website/lib/utils.test.ts": {
+      "modified_sec": 1773537603,
+      "size": 1123
+    },
+    "./website/content/docs/en/installation.mdx": {
+      "modified_sec": 1773581396,
+      "size": 2338
+    },
+    "./.maestro/workflows/bmad-bmm-document-project.md": {
+      "modified_sec": 1773537603,
+      "size": 1017
+    },
+    "./.maestro/skills/azure-deployment-preflight/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7490
+    },
+    "./.maestro/skills/api-patterns/graphql.md": {
+      "modified_sec": 1773537603,
+      "size": 977
+    },
+    "./src/lib/exportAuditPdf.ts": {
+      "modified_sec": 1773537603,
+      "size": 3069
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/prompts.csv": {
+      "modified_sec": 1773537603,
+      "size": 17421
+    },
+    "./.maestro/workflows/plan.md": {
+      "modified_sec": 1773537603,
+      "size": 1983
+    },
+    "./src-tauri/src/skills/mod.rs": {
+      "modified_sec": 1773537603,
+      "size": 94
+    },
+    "./.maestro/workflows/create-prd-v2/steps-e/step-e-04-complete.md": {
+      "modified_sec": 1773537603,
+      "size": 5162
+    },
+    "./.maestro/project-providers.json": {
+      "modified_sec": 1773537603,
+      "size": 46
+    },
+    "./.maestro/skills/gstack/browse/src/snapshot.ts": {
+      "modified_sec": 1773537603,
+      "size": 6313
+    },
+    "./.maestro/skills/powershell-windows/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3611
+    },
+    "./.maestro/skills/dx-optimizer/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2339
+    },
+    "./.maestro/skills/docs/SKILL_ANATOMY.md": {
+      "modified_sec": 1773537603,
+      "size": 10539
+    },
+    "./.maestro/skills/postmortem-writing/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 12540
+    },
+    "./.maestro/skills/app-builder/templates/nextjs-saas/TEMPLATE.md": {
+      "modified_sec": 1773537603,
+      "size": 2266
+    },
+    "./scripts/run_eval_suite.py": {
+      "modified_sec": 1773537603,
+      "size": 3801
+    },
+    "./.maestro/skills/expo-tailwind-setup/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 11914
+    },
+    "./.maestro/skills/azure-keyvault-certificates-rust/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4541
+    },
+    "./.maestro/workflows/browse.md": {
+      "modified_sec": 1773537603,
+      "size": 316
+    },
+    "./.maestro/skills/docs/KIRO_INTEGRATION.md": {
+      "modified_sec": 1773537603,
+      "size": 8154
+    },
+    "./src/types/index.ts": {
+      "modified_sec": 1773537603,
+      "size": 5412
+    },
+    "./.maestro/workflows/bmad-bmm-dev-story.md": {
+      "modified_sec": 1773537603,
+      "size": 989
+    },
+    "./website/lib/docs.ts": {
+      "modified_sec": 1773537603,
+      "size": 3795
+    },
+    "./.maestro/skills/webapp-testing/scripts/playwright_runner.py": {
+      "modified_sec": 1773537603,
+      "size": 6531
+    },
+    "./src/i18n/index.tsx": {
+      "modified_sec": 1776109232,
+      "size": 67004
+    },
+    "./.maestro/workflows/create-prd-v2/data/project-types.csv": {
+      "modified_sec": 1773537603,
+      "size": 3144
+    },
+    "./website/content/docs/tr/monitoring.mdx": {
+      "modified_sec": 1773581461,
+      "size": 5208
+    },
+    "./.maestro/skills/wiki-architect/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2867
+    },
+    "./.maestro/skills/deployment-engineer/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9519
+    },
+    "./docs/pilot/POLICY_ACTION_BACKLOG.md": {
+      "modified_sec": 1773592243,
+      "size": 1852
+    },
+    "./.maestro/skills/gha-security-review/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8210
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/advanced-use-latest.md": {
+      "modified_sec": 1773537603,
+      "size": 1072
+    },
+    "./.maestro/skills/mobile-design/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9376
+    },
+    "./.maestro/skills/mobile-design/mobile-design-thinking.md": {
+      "modified_sec": 1773537603,
+      "size": 17227
+    },
+    "./.maestro/skills/performance-profiling/scripts/lighthouse_audit.py": {
+      "modified_sec": 1773537603,
+      "size": 2657
+    },
+    "./.maestro/skills/golang-pro/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7421
+    },
+    "./website/components/home-page.tsx": {
+      "modified_sec": 1773586757,
+      "size": 1361
+    },
+    "./.maestro/skills/requesting-code-review/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2862
+    },
+    "./.maestro/skills/api-endpoint-builder/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7088
+    },
+    "./.maestro/provider-packs/copilot/github/prompts/provider-maintainer.prompt.md": {
+      "modified_sec": 1773537603,
+      "size": 433
+    },
+    "./.maestro/skills/expo-deployment/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2071
+    },
+    "./.maestro/skills/python-testing-patterns/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1416
+    },
+    "./src-tauri/src/patcher.rs": {
+      "modified_sec": 1773537603,
+      "size": 7037
+    },
+    "./src/components/Toast.tsx": {
+      "modified_sec": 1773575114,
+      "size": 2768
+    },
+    "./.maestro/skills/azure-ai-voicelive-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 8384
+    },
+    "./.maestro/agents/project-planner.md": {
+      "modified_sec": 1773537603,
+      "size": 13629
+    },
+    "./.maestro/workflows/create-architecture-v2/steps/step-03-starter.md": {
+      "modified_sec": 1773537603,
+      "size": 12246
+    },
+    "./.maestro/skills/vulnerability-scanner/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7708
+    },
+    "./guardian-cli/Cargo.lock": {
+      "modified_sec": 1773537603,
+      "size": 56264
+    },
+    "./website/content/docs/en/monitoring.mdx": {
+      "modified_sec": 1773581453,
+      "size": 5226
+    },
+    "./scripts/ci/release_gate_ci_smoke.sh": {
+      "modified_sec": 1773537603,
+      "size": 2835
+    },
+    "./.maestro/skills/ui-ux-pro-max/data/typography.csv": {
+      "modified_sec": 1773537603,
+      "size": 31878
+    },
+    "./.maestro/skills/azure-cosmos-rust/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3286
+    },
+    "./.maestro/skills/fixing-motion-performance/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5565
+    },
+    "./.maestro/skills/test-driven-development/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 9926
+    },
+    "./.maestro/skills/using-superpowers/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3960
+    },
+    "./.maestro/skills/app-builder/agent-coordination.md": {
+      "modified_sec": 1773537603,
+      "size": 5555
+    },
+    "./.maestro/skills/k8s-security-policies/assets/network-policy-template.yaml": {
+      "modified_sec": 1773537603,
+      "size": 3157
+    },
+    "./website/scripts/optimize-media.sh": {
+      "modified_sec": 1770482178,
+      "size": 4609
+    },
+    "./src/components/OnboardingWizard.tsx": {
+      "modified_sec": 1773537603,
+      "size": 5142
+    },
+    "./.maestro/skills/debugging-strategies/resources/implementation-playbook.md": {
+      "modified_sec": 1773537603,
+      "size": 11944
+    },
+    "./guardian.policy.yaml": {
+      "modified_sec": 1773601279,
+      "size": 300
+    },
+    "./src/components/SettingsModal.tsx": {
+      "modified_sec": 1776109232,
+      "size": 83621
+    },
+    "./.maestro/skills/terraform-module-library/references/aws-modules.md": {
+      "modified_sec": 1773537603,
+      "size": 1307
+    },
+    "./website/e2e/docs.spec.ts": {
+      "modified_sec": 1773581850,
+      "size": 8568
+    },
+    "./.maestro/workflows/create-prd-v2/steps-v/step-v-11-holistic-quality-validation.md": {
+      "modified_sec": 1773537603,
+      "size": 8920
+    },
+    "./website/components/ui/animated-particles.tsx": {
+      "modified_sec": 1773537603,
+      "size": 3879
+    },
+    "./.maestro/skills/gstack/review/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2938
+    },
+    "./.maestro/provider-packs/copilot/github/agents/engineering-plan.agent.md": {
+      "modified_sec": 1773537603,
+      "size": 879
+    },
+    "./.github/workflows/release-macos-notarized.yml": {
+      "modified_sec": 1776109232,
+      "size": 10192
+    },
+    "./.maestro/skills/testing-patterns/scripts/test_runner.py": {
+      "modified_sec": 1773537603,
+      "size": 7078
+    },
+    "./.maestro/skills/frontend-design/color-system.md": {
+      "modified_sec": 1773537603,
+      "size": 9631
+    },
+    "./.maestro/workflows/deploy.md": {
+      "modified_sec": 1773537603,
+      "size": 3635
+    },
+    "./.maestro/skills/terraform-aws-modules/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 2484
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/rerender-defer-reads.md": {
+      "modified_sec": 1773537603,
+      "size": 973
+    },
+    "./.maestro/skills/gstack/browse/test/fixtures/snapshot.html": {
+      "modified_sec": 1773537603,
+      "size": 1584
+    },
+    "./.maestro/skills/enterprise-azure-fullstack-readiness/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5423
+    },
+    "./.maestro/skills/k8s-manifest-generator/assets/configmap-template.yaml": {
+      "modified_sec": 1773537603,
+      "size": 6222
+    },
+    "./.maestro/workflows/create-prd-v2/steps-c/step-03-success.md": {
+      "modified_sec": 1773537603,
+      "size": 9564
+    },
+    "./.maestro/workflows/bmad-agent-bmb-agent-builder.md": {
+      "modified_sec": 1773537603,
+      "size": 647
+    },
+    "./.maestro/skills/app-builder/project-detection.md": {
+      "modified_sec": 1773537603,
+      "size": 1323
+    },
+    "./website/app/robots.ts": {
+      "modified_sec": 1773537603,
+      "size": 343
+    },
+    "./package.json": {
+      "modified_sec": 1776109232,
+      "size": 2974
+    },
+    "./docs/DESKTOP_REDESIGN_LOG.md": {
+      "modified_sec": 1773577201,
+      "size": 4332
+    },
+    "./.maestro/skills/docs/FAQ.md": {
+      "modified_sec": 1773537603,
+      "size": 5723
+    },
+    "./eslint.config.mjs": {
+      "modified_sec": 1773537603,
+      "size": 1381
+    },
+    "./src/hooks/__tests__/useSettings.test.ts": {
+      "modified_sec": 1776109232,
+      "size": 14840
+    },
+    "./.maestro/provider-packs/opencode/commands/ship.md": {
+      "modified_sec": 1773537603,
+      "size": 244
+    },
+    "./website/scripts/lighthouse-audit.sh": {
+      "modified_sec": 1770485120,
+      "size": 4290
+    },
+    "./website/components/privacy/CookieBanner.tsx": {
+      "modified_sec": 1773537603,
+      "size": 4900
+    },
+    "./guardian-cli/src/redaction.rs": {
+      "modified_sec": 1773537603,
+      "size": 3046
+    },
+    "./.maestro/skills/gstack/plan-ceo-review/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 33590
+    },
+    "./website/components/home/FeaturesSection.tsx": {
+      "modified_sec": 1773613918,
+      "size": 11200
+    },
+    "./.maestro/skills/codex-review/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1031
+    },
+    "./.maestro/skills/commit/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 4160
+    },
+    "./.maestro/skills/vercel-react-best-practices/rules/js-cache-property-access.md": {
+      "modified_sec": 1773537603,
+      "size": 532
+    },
+    "./.maestro/skills/operational-guidelines/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 88
+    },
+    "./website/components/ui/typewriter.tsx": {
+      "modified_sec": 1773537603,
+      "size": 3776
+    },
+    "./.maestro/skills/agent-browser/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 12895
+    },
+    "./.maestro/skills/web-design-guidelines/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 1321
+    },
+    "./.maestro/skills/deployment-procedures/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 5832
+    },
+    "./.maestro/skills/web-artifacts-builder/LICENSE.txt": {
+      "modified_sec": 1773537603,
+      "size": 11357
+    },
+    "./docs/pilot/PILOT_REPO_MANIFEST.real.template.json": {
+      "modified_sec": 1773537603,
+      "size": 374
+    },
+    "./.maestro/skills/azure-keyvault-secrets-rust/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 3671
+    },
+    "./.maestro/skills/azure-postgres-ts/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 12644
+    },
+    "./.maestro/skills/azure-mgmt-arizeaiobservabilityeval-dotnet/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 7091
+    },
+    "./.maestro/skills/api-patterns/versioning.md": {
+      "modified_sec": 1773537603,
+      "size": 651
+    },
+    "./.maestro/workflows/create-architecture-v2/steps/step-05-patterns.md": {
+      "modified_sec": 1773537603,
+      "size": 11180
+    },
+    "./.maestro/skills/api-patterns/auth.md": {
+      "modified_sec": 1773537603,
+      "size": 576
+    },
+    "./.maestro/workflows/bmad-editorial-review-structure.md": {
+      "modified_sec": 1773537603,
+      "size": 304
+    },
+    "./website/app/faq/layout.tsx": {
+      "modified_sec": 1773537603,
+      "size": 380
+    },
+    "./.maestro/skills/gstack/LICENSE": {
+      "modified_sec": 1773537603,
+      "size": 1066
+    },
+    "./.maestro/skills/react-best-practices/rules/server-parallel-fetching.md": {
+      "modified_sec": 1773537603,
+      "size": 1515
+    },
+    "./.maestro/skills/security-scanning-security-sast/SKILL.md": {
+      "modified_sec": 1773537603,
+      "size": 14396
+    },
+    "./website/content/docs/tr/installation.mdx": {
+      "modified_sec": 1773581402,
+      "size": 2591
+    }
+  }
+}
