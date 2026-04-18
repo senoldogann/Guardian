@@ -340,7 +340,7 @@ export function ChatView({
         };
     }, [appendMessage, nowIso, t]);
 
-    const submitPrompt = async (prompt: string, forceWebSearch?: boolean): Promise<void> => {
+    const submitPrompt = useCallback(async (prompt: string, forceWebSearch?: boolean): Promise<void> => {
         if (chatLoading || !prompt.trim()) return;
 
         if (!path) {
@@ -390,7 +390,7 @@ export function ChatView({
         } finally {
             setChatLoading(false);
         }
-    };
+    }, [chatLoading, path, appendMessage, nowIso, t, webSearchEnabled, webSearchReady, webSearchDepth, locale]);
 
     const askGuru = async (): Promise<void> => {
         if (!chatInput.trim() || chatLoading) return;
@@ -436,7 +436,7 @@ export function ChatView({
 
         const webSearchOverride = typeof autoPrompt.useWebSearch === "boolean" ? autoPrompt.useWebSearch : undefined;
         void submitPrompt(autoPrompt.prompt, webSearchOverride);
-    }, [autoPrompt, onAutoPromptConsumed]);
+    }, [autoPrompt, onAutoPromptConsumed, submitPrompt]);
 
     const confirmFix = useCallback(async (index: number, filePath: string, diff: string): Promise<void> => {
         try {

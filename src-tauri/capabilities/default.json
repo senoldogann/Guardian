@@ -12,7 +12,13 @@
     "dialog:default",
     "updater:default",
     "fs:default",
-    "fs:allow-write-file",
+    {
+      "identifier": "fs:allow-write-file",
+      "allow": [
+        { "path": "$APP_DATA/**" },
+        { "path": "$DOWNLOAD/**" }
+      ]
+    },
     "fs:allow-download-write",
     "fs:allow-download-write-recursive",
     "fs:allow-download-read",
@@ -38,8 +44,26 @@
         }
       ]
     },
-    "fs:allow-read-dir",
-    "fs:allow-copy-file",
-    "fs:allow-remove"
+    {
+      "identifier": "fs:allow-read-dir",
+      "allow": [
+        { "path": "$APP_DATA/**" },
+        { "path": "$DOWNLOAD/**" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-copy-file",
+      "allow": [
+        { "path": "$APP_DATA/**" },
+        { "path": "$DOWNLOAD/**" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-remove",
+      "allow": [
+        { "path": "$APP_DATA/**" },
+        { "path": "$DOWNLOAD/**" }
+      ]
+    }
   ]
 }
