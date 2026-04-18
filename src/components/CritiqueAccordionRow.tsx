@@ -3,6 +3,7 @@ import { invoke } from "../lib/tauri";
 import clsx from "clsx";
 import { useToast } from "../hooks/useToast";
 import { useI18n } from "../i18n";
+import type { Critique } from "../types";
 import {
     ShieldAlert,
     BadgeInfo,
@@ -16,15 +17,6 @@ import {
     Bot,
     RotateCcw
 } from "lucide-react";
-
-export interface Critique {
-    file_path: string;
-    severity: "Info" | "Warning" | "Critical";
-    message: string;
-    suggestion?: string;
-    suggested_diff?: string;
-    finding_id?: string;
-}
 
 interface CritiqueAccordionRowProps {
     log: Critique;

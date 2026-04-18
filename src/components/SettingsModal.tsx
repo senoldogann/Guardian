@@ -18,43 +18,15 @@ import {
 import { openExternal } from "../lib/tauri";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { useI18n } from "../i18n";
-
-export type EmbeddingMode = "auto" | "openai" | "ollama" | "local";
-export type SettingsTab = "general" | "provider" | "embedding" | "web" | "updates" | "export";
-
-export interface ProviderConfig {
-  provider_id: string;
-  base_url: string;
-  model: string;
-}
-
-export interface ApiKeyStatus {
-  has_key: boolean;
-  source: string;
-  warning?: string | null;
-}
-
-export interface TavilyKeyStatus {
-  has_key: boolean;
-  source: string;
-}
-
-export interface EmbeddingRuntimeConfig {
-  mode: EmbeddingMode;
-  openai_base_url?: string | null;
-  ollama_base_url?: string | null;
-  openai_model?: string | null;
-  ollama_model?: string | null;
-}
-
-export interface UpdateCheckResult {
-  status: string;
-  current_version: string;
-  latest_version?: string | null;
-  notes?: string | null;
-  error?: string | null;
-  last_checked_at?: string | null;
-}
+import type {
+  EmbeddingMode,
+  SettingsTab,
+  ProviderConfig,
+  ApiKeyStatus,
+  TavilyKeyStatus,
+  EmbeddingRuntimeConfig,
+  UpdateCheckResult,
+} from "../types";
 
 const PROVIDER_OPTIONS = [
   { id: "ollama", label: "Ollama (Local/Hosted)", baseUrl: "http://localhost:11434" },

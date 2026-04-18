@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { exportAuditToPdf } from "../exportAuditPdf";
-import type { Critique } from "../../components/CritiqueAccordionRow";
+import type { Critique } from "../../types";
 
 let lastDoc: any;
 

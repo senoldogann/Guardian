@@ -1,16 +1,18 @@
 import { useState, useEffect, useCallback, useRef, startTransition } from "react";
 import { invoke, isTauriRuntime } from "../lib/tauri";
-import type { Critique } from "../components/CritiqueAccordionRow";
 import { STORAGE_KEYS } from "../constants";
 import type { ExportAuditPdfResult } from "../lib/exportAuditPdf";
 import { useToast } from "./useToast";
 import { useI18n } from "../i18n";
-
-export type ProviderConfig = {
-  provider_id: string;
-  base_url: string;
-  model: string;
-};
+import type {
+  Critique,
+  ProviderConfig,
+  ApiKeyStatus,
+  TavilyKeyStatus,
+  EmbeddingMode,
+  EmbeddingRuntimeConfig,
+  SettingsTab,
+} from "../types";
 
 export type ProviderConnectionTestResult = {
   ok: boolean;
@@ -19,29 +21,6 @@ export type ProviderConnectionTestResult = {
   model: string;
   message: string;
 };
-
-export type ApiKeyStatus = {
-  has_key: boolean;
-  source: string;
-  warning?: string | null;
-};
-
-export type TavilyKeyStatus = {
-  has_key: boolean;
-  source: string;
-};
-
-export type EmbeddingMode = "auto" | "openai" | "ollama" | "local";
-
-export type EmbeddingRuntimeConfig = {
-  mode: EmbeddingMode;
-  openai_base_url?: string | null;
-  ollama_base_url?: string | null;
-  openai_model?: string | null;
-  ollama_model?: string | null;
-};
-
-export type SettingsTab = "general" | "provider" | "embedding" | "web" | "updates" | "export";
 
 export type ScanProfile = "source" | "extended" | "full";
 

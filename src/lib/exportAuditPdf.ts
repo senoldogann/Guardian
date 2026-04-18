@@ -1,4 +1,4 @@
-import type { Critique } from "../components/CritiqueAccordionRow";
+import type { Critique } from "../types";
 import { isTauriRuntime } from "./tauri";
 
 type ExportAuditPdfOptions = {

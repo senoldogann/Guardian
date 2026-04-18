@@ -51,7 +51,7 @@ export interface TavilyKeyStatus {
   source: string;
 }
 
-export type SettingsTab = "provider" | "embedding" | "web" | "updates" | "export";
+export type SettingsTab = "general" | "provider" | "embedding" | "web" | "updates" | "export";
 
 export type EmbeddingMode = "auto" | "openai" | "ollama" | "local";
 

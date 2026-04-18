@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, type Mock } from "vitest";
 import { invoke } from "@tauri-apps/api/core";
-import { CritiqueAccordionRow, type Critique } from "../CritiqueAccordionRow";
+import { CritiqueAccordionRow } from "../CritiqueAccordionRow";
+import type { Critique } from "../../types";
 
 const invokeMock = invoke as unknown as Mock;
 
