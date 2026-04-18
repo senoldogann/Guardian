@@ -1282,7 +1282,7 @@ fn append_issue_file_context(
     }
 
     let mut files = Vec::new();
-    for file in critical_files.into_iter().chain(warning_files.into_iter()) {
+    for file in critical_files.into_iter().chain(warning_files) {
         if files.len() >= 3 {
             break;
         }

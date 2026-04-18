@@ -360,6 +360,7 @@ pub(super) fn append_ai_request_history(
 }
 
 /// Extract import paths from source code (supports TS/JS, Rust, Python, Go)
+#[allow(clippy::collapsible_match)]
 pub fn extract_local_imports(content: &str, file_path: &str) -> Vec<String> {
     let mut imports = Vec::new();
     let ext = std::path::Path::new(file_path)

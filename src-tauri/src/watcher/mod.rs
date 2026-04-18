@@ -523,7 +523,7 @@ This workspace is monitored by Guardian. Files under `.guardian/` are generated 
         }
 
         let mut reasons: Vec<(&'static str, usize)> = skipped_by_reason.into_iter().collect();
-        reasons.sort_by(|a, b| b.1.cmp(&a.1));
+        reasons.sort_by_key(|b| std::cmp::Reverse(b.1));
         let reasons_preview = reasons
             .into_iter()
             .take(6)
