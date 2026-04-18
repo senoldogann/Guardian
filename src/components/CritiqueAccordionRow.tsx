@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { useToast } from "../hooks/useToast";
 import { useI18n } from "../i18n";
 import type { Critique } from "../types";
+import { DiffViewer } from "./DiffViewer";
 import {
     ShieldAlert,
     BadgeInfo,
@@ -340,9 +341,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                         <div className="flex items-center gap-2 text-[10px] font-bold text-[var(--accent-500)] uppercase tracking-widest">
                                             <Hammer className="w-3 h-3" /> {t("critique.autopilotProposedFix")}
                                         </div>
-                                        <div className="bg-surface border border-border-main p-4 rounded-xl font-mono text-xs overflow-x-auto">
-                                            <pre className="text-text-main opacity-80">{log.suggested_diff}</pre>
-                                        </div>
+                                        <DiffViewer content={log.suggested_diff} maxLines={80} />
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
