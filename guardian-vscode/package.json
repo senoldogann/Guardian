@@ -1,0 +1,135 @@
+{
+  "name": "guardian-code-governance",
+  "displayName": "Guardian — AI Code Governance",
+  "description": "VS Code extension for Guardian AI code governance — scan files, view critiques, and monitor code quality in real time.",
+  "version": "0.1.0",
+  "publisher": "guardian",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "guardian",
+    "security",
+    "code-governance",
+    "linter",
+    "mcp"
+  ],
+  "activationEvents": [
+    "onLanguage:typescript",
+    "onLanguage:javascript",
+    "onLanguage:rust",
+    "onLanguage:python",
+    "onLanguage:go"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "guardian.scanCurrentFile",
+        "title": "Guardian: Scan Current File"
+      },
+      {
+        "command": "guardian.showCritiques",
+        "title": "Guardian: Show Critiques"
+      },
+      {
+        "command": "guardian.startMonitoring",
+        "title": "Guardian: Start Monitoring"
+      }
+    ],
+    "configuration": {
+      "title": "Guardian",
+      "properties": {
+        "guardian.serverPath": {
+          "type": "string",
+          "default": "guardian-mcp",
+          "description": "Path to the guardian-mcp server binary."
+        },
+        "guardian.serverUrl": {
+          "type": "string",
+          "default": "stdio",
+          "description": "Guardian MCP server connection mode. Use 'stdio' for local process or an HTTP URL for remote."
+        },
+        "guardian.scanProfile": {
+          "type": "string",
+          "default": "source",
+          "enum": [
+            "source",
+            "extended",
+            "full"
+          ],
+          "description": "Scan profile to use when scanning files."
+        },
+        "guardian.autoScanOnSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically scan files when saved."
+        },
+        "guardian.severityFilter": {
+          "type": "string",
+          "default": "low",
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "description": "Minimum severity level to show in diagnostics."
+        }
+      }
+    },
+    "languages": [
+      {
+        "id": "typescript",
+        "extensions": [
+          ".ts",
+          ".tsx"
+        ]
+      },
+      {
+        "id": "javascript",
+        "extensions": [
+          ".js",
+          ".jsx"
+        ]
+      },
+      {
+        "id": "rust",
+        "extensions": [
+          ".rs"
+        ]
+      },
+      {
+        "id": "python",
+        "extensions": [
+          ".py"
+        ]
+      },
+      {
+        "id": "go",
+        "extensions": [
+          ".go"
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  }
+}
