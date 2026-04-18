@@ -50,6 +50,16 @@ pub struct Critique {
     pub finding_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub why: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub line_start: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub line_end: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evidence_snippet: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f64>,
 }
 
 const DEFAULT_AI_REQUEST_CONCURRENCY_CLOUD: usize = 1;

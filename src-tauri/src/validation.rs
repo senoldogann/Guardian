@@ -56,6 +56,32 @@ const CRITIQUE_SCHEMA_JSON: &str = r#"{
             "type": ["string", "null"],
             "maxLength": 5000,
             "description": "Optional explanation of why this critique matters"
+        },
+        "line_start": {
+            "type": ["integer", "null"],
+            "minimum": 1,
+            "maximum": 999999
+        },
+        "line_end": {
+            "type": ["integer", "null"],
+            "minimum": 1,
+            "maximum": 999999
+        },
+        "evidence_snippet": {
+            "type": ["string", "null"],
+            "maxLength": 2000,
+            "description": "Exact problematic code excerpt"
+        },
+        "category": {
+            "type": ["string", "null"],
+            "enum": ["Security", "Architecture", "Performance", "Reliability", "Maintainability", "TypeSafety", null],
+            "description": "Finding category"
+        },
+        "confidence": {
+            "type": ["number", "null"],
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "description": "LLM confidence in this finding"
         }
     }
 }"#;
@@ -106,6 +132,29 @@ const BATCH_CRITIQUE_SCHEMA_JSON: &str = r#"{
                     "why": {
                         "type": ["string", "null"],
                         "maxLength": 5000
+                    },
+                    "line_start": {
+                        "type": ["integer", "null"],
+                        "minimum": 1,
+                        "maximum": 999999
+                    },
+                    "line_end": {
+                        "type": ["integer", "null"],
+                        "minimum": 1,
+                        "maximum": 999999
+                    },
+                    "evidence_snippet": {
+                        "type": ["string", "null"],
+                        "maxLength": 2000
+                    },
+                    "category": {
+                        "type": ["string", "null"],
+                        "enum": ["Security", "Architecture", "Performance", "Reliability", "Maintainability", "TypeSafety", null]
+                    },
+                    "confidence": {
+                        "type": ["number", "null"],
+                        "minimum": 0.0,
+                        "maximum": 1.0
                     }
                 }
             }
@@ -152,6 +201,29 @@ const BATCH_CRITIQUE_SCHEMA_JSON: &str = r#"{
                             "why": {
                                 "type": ["string", "null"],
                                 "maxLength": 5000
+                            },
+                            "line_start": {
+                                "type": ["integer", "null"],
+                                "minimum": 1,
+                                "maximum": 999999
+                            },
+                            "line_end": {
+                                "type": ["integer", "null"],
+                                "minimum": 1,
+                                "maximum": 999999
+                            },
+                            "evidence_snippet": {
+                                "type": ["string", "null"],
+                                "maxLength": 2000
+                            },
+                            "category": {
+                                "type": ["string", "null"],
+                                "enum": ["Security", "Architecture", "Performance", "Reliability", "Maintainability", "TypeSafety", null]
+                            },
+                            "confidence": {
+                                "type": ["number", "null"],
+                                "minimum": 0.0,
+                                "maximum": 1.0
                             }
                         }
                     }
@@ -194,6 +266,29 @@ const BATCH_CRITIQUE_SCHEMA_JSON: &str = r#"{
                             "why": {
                                 "type": ["string", "null"],
                                 "maxLength": 5000
+                            },
+                            "line_start": {
+                                "type": ["integer", "null"],
+                                "minimum": 1,
+                                "maximum": 999999
+                            },
+                            "line_end": {
+                                "type": ["integer", "null"],
+                                "minimum": 1,
+                                "maximum": 999999
+                            },
+                            "evidence_snippet": {
+                                "type": ["string", "null"],
+                                "maxLength": 2000
+                            },
+                            "category": {
+                                "type": ["string", "null"],
+                                "enum": ["Security", "Architecture", "Performance", "Reliability", "Maintainability", "TypeSafety", null]
+                            },
+                            "confidence": {
+                                "type": ["number", "null"],
+                                "minimum": 0.0,
+                                "maximum": 1.0
                             }
                         }
                     }
@@ -236,6 +331,29 @@ const BATCH_CRITIQUE_SCHEMA_JSON: &str = r#"{
                             "why": {
                                 "type": ["string", "null"],
                                 "maxLength": 5000
+                            },
+                            "line_start": {
+                                "type": ["integer", "null"],
+                                "minimum": 1,
+                                "maximum": 999999
+                            },
+                            "line_end": {
+                                "type": ["integer", "null"],
+                                "minimum": 1,
+                                "maximum": 999999
+                            },
+                            "evidence_snippet": {
+                                "type": ["string", "null"],
+                                "maxLength": 2000
+                            },
+                            "category": {
+                                "type": ["string", "null"],
+                                "enum": ["Security", "Architecture", "Performance", "Reliability", "Maintainability", "TypeSafety", null]
+                            },
+                            "confidence": {
+                                "type": ["number", "null"],
+                                "minimum": 0.0,
+                                "maximum": 1.0
                             }
                         }
                     }

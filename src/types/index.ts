@@ -120,6 +120,11 @@ export interface Critique {
   suggestion?: string;
   suggested_diff?: string;
   finding_id?: string;
+  line_start?: number;
+  line_end?: number;
+  evidence_snippet?: string;
+  category?: "Security" | "Architecture" | "Performance" | "Reliability" | "Maintainability" | "TypeSafety";
+  confidence?: number;
 }
 
 export interface BaselineFinding {
