@@ -1,0 +1,11 @@
+[package]
+name = "guardian-rules"
+version = "0.1.0"
+edition = "2021"
+description = "Deterministic rule engine for Guardian — pattern-based code analysis"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+regex.workspace = true
+serde_yaml = "0.9"
