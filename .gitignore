@@ -52,3 +52,35 @@ src-tauri/guardian.key.pub
 # Temporary Release Artifacts
 tmp_guardian_release_v1.1.0_latest.json
 dist-releases.raw.json
+
+# ─── Private / Internal (not for public repo) ───
+
+# Maestro AI agent framework (personal tooling)
+.maestro/
+.agents/
+.codex/
+AGENTS.md
+
+# Internal planning & analysis
+new_roadmap.md
+data/
+
+# Internal indexing markers
+.metadata_never_index
+
+# Maestro-specific scripts (depend on .maestro/)
+scripts/apply_skill_profile.py
+scripts/bootstrap_providers.py
+scripts/build_skill_registry.py
+scripts/checklist.py
+scripts/codex-*.sh
+scripts/context_optimizer.py
+scripts/decode_jwt.py
+scripts/eval_registry_validator.py
+scripts/generate_skill_index.py
+scripts/provider_*.py
+scripts/run_eval_suite.py
+scripts/skill.sh
+scripts/skill_*.py
+scripts/sync_agents.py
+scripts/verify_all.py

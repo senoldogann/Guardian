@@ -1,6 +1,0 @@
-node_modules/
-browse/dist/
-/tmp/
-*.log
-bun.lock
-*.bun-build
