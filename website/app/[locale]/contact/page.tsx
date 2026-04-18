@@ -2,7 +2,24 @@ import type { Metadata } from "next";
 import { ContactForm } from "@/components/contact/ContactForm";
 import { buildPageMetadata } from "../../../lib/seo";
 import { normalizeLocale, withLocale } from "../../../lib/locale";
-import { Mail, MapPin, Linkedin, Twitter } from "lucide-react";
+import { Mail, MapPin } from "lucide-react";
+
+// LinkedIn ve Twitter/X logolu SVG icon'ları (lucide-react'te kararsız, inline kullanıyoruz)
+function LinkedInIcon({ className }: { className?: string }) {
+  return (
+    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor" aria-hidden="true">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+    </svg>
+  );
+}
+
+function XIcon({ className }: { className?: string }) {
+  return (
+    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor" aria-hidden="true">
+      <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+    </svg>
+  );
+}
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -104,7 +121,7 @@ export default async function ContactPage({ params }: Props) {
                 rel="noopener noreferrer"
                 className="w-12 h-12 rounded-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:bg-[#0077b5] hover:text-white hover:border-transparent transition-all duration-300"
               >
-                <Linkedin className="w-5 h-5" />
+                <LinkedInIcon className="w-5 h-5" />
               </a>
               <a
                 href="https://twitter.com/senoldoganx"
@@ -112,7 +129,7 @@ export default async function ContactPage({ params }: Props) {
                 rel="noopener noreferrer"
                 className="w-12 h-12 rounded-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent transition-all duration-300"
               >
-                <Twitter className="w-5 h-5" />
+                <XIcon className="w-5 h-5" />
               </a>
             </div>
           </div>
