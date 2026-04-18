@@ -1,5 +1,14 @@
-import type { ReactElement } from "react";
+import {
+  type ReactElement,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 import clsx from "clsx";
+import { VariableSizeList, type ListChildComponentProps } from "react-window";
 import { CheckCircle2, ClipboardList, EyeOff, Search, Shield } from "lucide-react";
 import { CritiqueAccordionRow } from "../CritiqueAccordionRow";
 import { ChatView, type AutoPrompt } from "../ChatView";
@@ -23,6 +32,81 @@ import { critiqueStateKey } from "../../lib/critiqueStateKey";
 import { formatTimestamp } from "../../lib/uiFormat";
 import { useToast } from "../../hooks/useToast";
 import { useI18n } from "../../i18n";
+
+/* ── Virtualization constants ── */
+const CRITIQUE_ROW_HEIGHT = 72;
+const CRITIQUE_EXPANDED_ESTIMATE = 600;
+const VIRTUALIZE_THRESHOLD = 50;
+
+function normalizeUndoKey(value: string, root?: string): string {
+  let out = (value || "").trim().replace(/\\/g, "/");
+  if (!out) return "";
+  if (root) {
+    const rootNorm = root.trim().replace(/\\/g, "/").replace(/\/+$/, "");
+    if (rootNorm && (out === rootNorm || out.startsWith(`${rootNorm}/`))) {
+      out = out.slice(rootNorm.length);
+    }
+  }
+  out = out.replace(/^\.\/+/, "");
+  out = out.replace(/^\/+/, "");
+  return out;
+}
+
+interface CritiqueListData {
+  filteredLogs: Critique[];
+  expandedLogKey: string | null;
+  onToggleLog: (key: string) => void;
+  onAskGuruForLog: (log: Critique, useWebSearch?: boolean) => void;
+  path: string;
+  undoAvailableSet: Set<string>;
+  onRefreshFixHistory: () => Promise<void>;
+  baselineValid: boolean;
+  baselineIds: Set<string>;
+  onRowHeightMeasured: (index: number, height: number) => void;
+}
+
+function CritiqueVirtualRow({
+  index,
+  style,
+  data,
+}: ListChildComponentProps<CritiqueListData>): ReactElement {
+  const log = data.filteredLogs[index];
+  const key = critiqueStateKey(log);
+  const isExpanded = data.expandedLogKey === key;
+  const measureRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!isExpanded || !measureRef.current) return;
+    const actual = measureRef.current.getBoundingClientRect().height;
+    if (Math.abs(actual - ((style.height as number) ?? 0)) > 2) {
+      data.onRowHeightMeasured(index, actual);
+    }
+  });
+
+  return (
+    <div style={style}>
+      <div ref={measureRef} style={{ paddingBottom: 8 }}>
+        <CritiqueAccordionRow
+          log={log}
+          index={index + 1}
+          isExpanded={isExpanded}
+          onToggle={() => data.onToggleLog(key)}
+          onAskGuru={() => data.onAskGuruForLog(log, false)}
+          rootPath={data.path}
+          undoAvailable={data.undoAvailableSet.has(normalizeUndoKey(log.file_path, data.path))}
+          onFixHistoryRefresh={data.onRefreshFixHistory}
+          findingStatus={
+            data.baselineValid && log.finding_id
+              ? data.baselineIds.has(log.finding_id)
+                ? "active"
+                : "new"
+              : undefined
+          }
+        />
+      </div>
+    </div>
+  );
+}
 
 export interface MainWorkspaceProps {
   view: "monitor" | "chat" | "diagram" | "ai-context" | "reviews";
@@ -133,25 +217,87 @@ export function MainWorkspace({
 }: MainWorkspaceProps): ReactElement {
   const toast = useToast();
   const { t } = useI18n();
-  const normalizeUndoKey = (value: string, root?: string): string => {
-    let out = (value || "").trim().replace(/\\/g, "/");
-    if (!out) return "";
 
-    if (root) {
-      const rootNorm = root.trim().replace(/\\/g, "/").replace(/\/+$/, "");
-      if (rootNorm && (out === rootNorm || out.startsWith(`${rootNorm}/`))) {
-        out = out.slice(rootNorm.length);
+  const undoAvailableSet = useMemo(
+    () => new Set<string>((fixHistory || []).map((entry) => normalizeUndoKey(entry.file_path))),
+    [fixHistory],
+  );
+
+  /* ── Virtualization state ── */
+  const listRef = useRef<VariableSizeList<CritiqueListData>>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [scrollAreaHeight, setScrollAreaHeight] = useState(400);
+  const expandedMeasuredHeight = useRef(CRITIQUE_EXPANDED_ESTIMATE);
+  const shouldVirtualize =
+    baselineView !== "resolved" && filteredLogs.length >= VIRTUALIZE_THRESHOLD;
+
+  useEffect(() => {
+    if (!shouldVirtualize) return;
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const obs = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setScrollAreaHeight(entry.contentRect.height);
+      }
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [shouldVirtualize]);
+
+  useEffect(() => {
+    if (!shouldVirtualize) return;
+    expandedMeasuredHeight.current = CRITIQUE_EXPANDED_ESTIMATE;
+    listRef.current?.resetAfterIndex(0);
+    if (expandedLogKey) {
+      const idx = filteredLogs.findIndex((l) => critiqueStateKey(l) === expandedLogKey);
+      if (idx >= 0) {
+        requestAnimationFrame(() => listRef.current?.scrollToItem(idx, "smart"));
       }
     }
+  }, [expandedLogKey, filteredLogs, shouldVirtualize]);
 
-    out = out.replace(/^\.\/+/, "");
-    out = out.replace(/^\/+/, "");
-    return out;
-  };
-
-  const undoAvailableSet = new Set<string>(
-    (fixHistory || []).map((entry) => normalizeUndoKey(entry.file_path)),
+  const critiqueItemSize = useCallback(
+    (index: number): number => {
+      const log = filteredLogs[index];
+      return expandedLogKey === critiqueStateKey(log)
+        ? expandedMeasuredHeight.current
+        : CRITIQUE_ROW_HEIGHT;
+    },
+    [filteredLogs, expandedLogKey],
   );
+
+  const handleRowHeightMeasured = useCallback((index: number, height: number) => {
+    expandedMeasuredHeight.current = height;
+    listRef.current?.resetAfterIndex(index);
+  }, []);
+
+  const critiqueItemData = useMemo<CritiqueListData>(
+    () => ({
+      filteredLogs,
+      expandedLogKey,
+      onToggleLog,
+      onAskGuruForLog,
+      path,
+      undoAvailableSet,
+      onRefreshFixHistory,
+      baselineValid,
+      baselineIds,
+      onRowHeightMeasured: handleRowHeightMeasured,
+    }),
+    [
+      filteredLogs,
+      expandedLogKey,
+      onToggleLog,
+      onAskGuruForLog,
+      path,
+      undoAvailableSet,
+      onRefreshFixHistory,
+      baselineValid,
+      baselineIds,
+      handleRowHeightMeasured,
+    ],
+  );
+
   return (
     <main className="flex-1 flex overflow-hidden gap-3">
       <section
@@ -202,8 +348,10 @@ export function MainWorkspace({
         )}
 
         <div
+          ref={scrollContainerRef}
           className={clsx(
-            "flex-1 overflow-y-auto px-2 custom-scrollbar",
+            "flex-1 px-2 custom-scrollbar",
+            shouldVirtualize ? "overflow-hidden" : "overflow-y-auto",
             showFloatingFilter ? "pt-16 pb-2" : "py-2",
           )}
         >
@@ -292,6 +440,19 @@ export function MainWorkspace({
                 )}
               </div>
             </div>
+          ) : shouldVirtualize ? (
+            <VariableSizeList
+              ref={listRef}
+              height={scrollAreaHeight}
+              width="100%"
+              itemCount={filteredLogs.length}
+              itemSize={critiqueItemSize}
+              itemData={critiqueItemData}
+              overscanCount={5}
+              className="custom-scrollbar"
+            >
+              {CritiqueVirtualRow}
+            </VariableSizeList>
           ) : (
             <div className="space-y-2">
               {filteredLogs.map((log, index) => (
