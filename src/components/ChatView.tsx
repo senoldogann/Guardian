@@ -297,7 +297,11 @@ export function ChatView({
     }, [path, isDesktop, storageKey]);
 
     useEffect(() => {
-        const unlisten = listen<ReviewDecisionPayload>("guardian:review-decision", (event) => {
+        let mounted = true;
+        let unlistenFn: (() => void) | null = null;
+
+        listen<ReviewDecisionPayload>("guardian:review-decision", (event) => {
+            if (!mounted) return;
             const payload = event.payload;
 
             const status = payload.status;
@@ -333,10 +337,17 @@ export function ChatView({
                     timestamp: nowIso(),
                 });
             }
+        }).then((fn) => {
+            if (mounted) {
+                unlistenFn = fn;
+            } else {
+                fn();
+            }
         });
 
         return () => {
-            unlisten.then(f => f());
+            mounted = false;
+            unlistenFn?.();
         };
     }, [appendMessage, nowIso, t]);
 
