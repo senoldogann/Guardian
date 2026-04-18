@@ -355,6 +355,7 @@ fn extract_cargo_deps(raw: &str) -> Vec<String> {
     out
 }
 
+#[allow(clippy::vec_init_then_push)]
 fn discover_intent_summary(root: &Path) -> String {
     let mut parts: Vec<(String, PathBuf, usize)> = Vec::new();
 

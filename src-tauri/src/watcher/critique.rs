@@ -20,7 +20,7 @@ use super::ui_text;
 use super::verify::run_auto_verify;
 use super::BatchItem;
 
-pub(super) const MAX_AGENT_QUEUE_BYTES: u64 = 1 * 1024 * 1024;
+pub(super) const MAX_AGENT_QUEUE_BYTES: u64 = 1024 * 1024;
 pub(super) const MAX_AGENT_QUEUE_ARCHIVES: usize = 5;
 
 // GLOBAL STATE for active critiques to enable "real-time sync/delete"
@@ -585,6 +585,7 @@ pub(crate) fn active_critiques_for_root(root: &str) -> Vec<crate::ai_client::Cri
         .collect()
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) fn handle_critiques(
     app: &AppHandle,
     root: &str,
@@ -1055,7 +1056,7 @@ fn write_governance_summary(
     if let Ok(mut md_file) = fs::File::create(&summary_md_path) {
         let _ = writeln!(md_file, "# Guardian Governance Summary");
         let _ = writeln!(md_file, "Updated: {}", Utc::now().to_rfc3339());
-        let _ = writeln!(md_file, "");
+        let _ = writeln!(md_file);
         let _ = writeln!(md_file, "- Root: `{}`", root_path.to_string_lossy());
         let _ = writeln!(md_file, "- Workspace ID: `{}`", workspace_id);
         let _ = writeln!(md_file, "- Rules Hash: `{}`", rules_hash);
@@ -1069,7 +1070,7 @@ fn write_governance_summary(
             "- Counts: critical=`{}` warning=`{}` info=`{}` total=`{}`",
             critical, warning, info, total
         );
-        let _ = writeln!(md_file, "");
+        let _ = writeln!(md_file);
         let _ = writeln!(md_file, "## Agent Notes");
         let _ = writeln!(
             md_file,
@@ -1083,7 +1084,7 @@ fn write_governance_summary(
             md_file,
             "- LLM Agents: do not auto-approve releases from suggestions; require explicit human decision."
         );
-        let _ = writeln!(md_file, "");
+        let _ = writeln!(md_file);
         let _ = writeln!(md_file, "## Findings");
         if entries.is_empty() {
             let _ = writeln!(md_file, "- No active findings.");

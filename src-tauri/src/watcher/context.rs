@@ -280,6 +280,7 @@ pub(super) fn truncate_context(
     (joined, truncated)
 }
 
+#[allow(clippy::type_complexity)]
 pub(super) fn build_prompt_data(
     items: &[BatchItem],
     root_path: &std::path::Path,

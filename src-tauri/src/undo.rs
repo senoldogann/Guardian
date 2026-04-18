@@ -181,7 +181,7 @@ pub fn apply_fix_now(root: &str, file_path: &str, new_content: &str) -> Result<(
         UndoIndexEntry {
             applied_at: Utc::now().to_rfc3339(),
             backup_file: backup_name,
-            bytes: new_content.as_bytes().len() as u64,
+            bytes: new_content.len() as u64,
         },
     );
     write_undo_index(root, &index)?;

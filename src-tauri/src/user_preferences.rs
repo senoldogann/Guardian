@@ -124,10 +124,7 @@ fn normalize_web_search_depth(value: &str) -> String {
 
 fn normalize_font_family(value: &str) -> String {
     let normalized = value.trim().to_lowercase();
-    if ALLOWED_FONT_FAMILIES
-        .iter()
-        .any(|allowed| *allowed == normalized.as_str())
-    {
+    if ALLOWED_FONT_FAMILIES.contains(&normalized.as_str()) {
         normalized
     } else {
         "space-grotesk".to_string()

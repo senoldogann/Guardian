@@ -94,7 +94,7 @@ export const exportAuditToPdf = async ({
         await openPath(downloadsPath);
         folderOpened = true;
       } catch {
-        folderOpened = false;
+        // Klasör açılamadı, folderOpened false kalır
       }
     }
 

@@ -9,19 +9,14 @@ use tokio::time::{Duration, Instant};
 use tracing::{debug, warn};
 use url::Url;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SearchDepth {
     Auto,
+    #[default]
     Basic,
     Advanced,
     Fast,
     UltraFast,
-}
-
-impl Default for SearchDepth {
-    fn default() -> Self {
-        Self::Basic
-    }
 }
 
 impl SearchDepth {
@@ -53,17 +48,9 @@ impl SearchDepth {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct WebSearchOptions {
     pub depth: SearchDepth,
-}
-
-impl Default for WebSearchOptions {
-    fn default() -> Self {
-        Self {
-            depth: SearchDepth::default(),
-        }
-    }
 }
 
 pub struct WebSearch {
@@ -354,7 +341,7 @@ impl WebSearch {
 }
 
 fn normalize_search_query(raw: &str, max_chars: usize) -> (String, bool) {
-    let mut q = raw.trim().replace('\r', " ").replace('\n', " ");
+    let mut q = raw.trim().replace(['\r', '\n'], " ");
     q = q
         .split_whitespace()
         .filter(|part| !part.is_empty())
@@ -409,7 +396,7 @@ fn extract_include_domains(query: &str) -> Vec<String> {
 
     for token in query.split_whitespace() {
         let cleaned = token
-            .trim_start_matches(|c: char| matches!(c, '(' | '[' | '{' | '"' | '\''))
+            .trim_start_matches(['(', '[', '{', '"', '\''])
             .trim_end_matches(|c: char| {
                 matches!(c, ')' | ']' | '}' | '.' | ',' | '"' | '\'' | ';' | ':')
             });
@@ -435,7 +422,7 @@ fn extract_urls(query: &str) -> Vec<String> {
 
     for token in query.split_whitespace() {
         let cleaned = token
-            .trim_start_matches(|c: char| matches!(c, '(' | '[' | '{' | '"' | '\''))
+            .trim_start_matches(['(', '[', '{', '"', '\''])
             .trim_end_matches(|c: char| {
                 matches!(c, ')' | ']' | '}' | '.' | ',' | '"' | '\'' | ';' | ':')
             });
@@ -464,7 +451,7 @@ fn strip_urls(query: &str) -> String {
                 return false;
             }
             let cleaned = trimmed
-                .trim_start_matches(|c: char| matches!(c, '(' | '[' | '{' | '"' | '\''))
+                .trim_start_matches(['(', '[', '{', '"', '\''])
                 .trim_end_matches(|c: char| {
                     matches!(c, ')' | ']' | '}' | '.' | ',' | '"' | '\'' | ';' | ':')
                 });

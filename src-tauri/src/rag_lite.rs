@@ -49,9 +49,7 @@ fn extract_file_tokens(query: &str) -> Vec<String> {
     let normalized = query.replace("\\", "/");
     for raw in normalized.split_whitespace() {
         let token = clean_token(raw);
-        let token = token
-            .trim_end_matches(|c: char| c == '.' || c == ',' || c == ':' || c == ';')
-            .to_string();
+        let token = token.trim_end_matches(['.', ',', ':', ';']).to_string();
         if token.is_empty() {
             continue;
         }
@@ -132,7 +130,7 @@ fn is_within_root_cached(root_canon: &std::io::Result<PathBuf>, candidate: &Path
     let Ok(candidate_canon) = candidate.canonicalize() else {
         return false;
     };
-    candidate_canon.starts_with(&root_canon)
+    candidate_canon.starts_with(root_canon)
 }
 
 fn resolve_special_context_files(root: &str, query: &str) -> Vec<PathBuf> {

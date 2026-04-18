@@ -190,7 +190,7 @@ fn truncate_for_baseline(message: &str) -> String {
         return trimmed.to_string();
     }
     let mut out = trimmed[..MAX_CHARS].to_string();
-    out.push_str("…");
+    out.push('…');
     out
 }
 

@@ -114,7 +114,7 @@ pub(super) fn load_fix_proposals_snapshot(root: &str) -> FixProposalsSnapshot {
     };
 
     let reader = std::io::BufReader::new(file);
-    for line in reader.lines().flatten() {
+    for line in reader.lines().map_while(Result::ok) {
         let trimmed = line.trim();
         if trimmed.is_empty() {
             continue;

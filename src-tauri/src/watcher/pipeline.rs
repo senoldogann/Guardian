@@ -316,6 +316,7 @@ pub(super) fn merge_project_intent_with_recent_fix_history(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(super) async fn batch_processing_loop(
     mut rx: tokio::sync::mpsc::Receiver<BatchItem>,
     app: AppHandle,
@@ -386,6 +387,7 @@ pub(super) async fn batch_processing_loop(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn process_batch(
     batch: &mut Vec<BatchItem>,
     app: &AppHandle,
@@ -710,6 +712,7 @@ async fn process_batch(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn process_items_per_file_fallback(
     items: Vec<BatchItem>,
     app: &AppHandle,
