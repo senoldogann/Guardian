@@ -25,6 +25,16 @@ pub struct Finding {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub suggested_diff: Option<String>,
     pub is_new: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub line_start: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub line_end: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub evidence_snippet: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub confidence: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

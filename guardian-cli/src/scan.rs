@@ -87,6 +87,16 @@ struct AiCritique {
     suggestion: Option<String>,
     #[serde(default)]
     suggested_diff: Option<String>,
+    #[serde(default)]
+    category: Option<String>,
+    #[serde(default)]
+    line_start: Option<u32>,
+    #[serde(default)]
+    line_end: Option<u32>,
+    #[serde(default)]
+    evidence_snippet: Option<String>,
+    #[serde(default)]
+    confidence: Option<f64>,
 }
 
 pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
@@ -755,6 +765,11 @@ fn offline_scan(
                 suggestion,
                 suggested_diff: None,
                 is_new,
+                category: None,
+                line_start: None,
+                line_end: None,
+                evidence_snippet: None,
+                confidence: None,
             });
         }
     }
@@ -890,6 +905,11 @@ fn ai_scan(
                 suggestion: critique.suggestion,
                 suggested_diff: critique.suggested_diff,
                 is_new,
+                category: critique.category,
+                line_start: critique.line_start,
+                line_end: critique.line_end,
+                evidence_snippet: critique.evidence_snippet,
+                confidence: critique.confidence,
             });
         }
     }
@@ -908,16 +928,47 @@ fn ai_scan(
     Ok(out)
 }
 
+const GUARDIAN_SYSTEM_PROMPT: &str = "\
+You are 'Guardian CLI', an expert code review engine running in CI/headless mode.\n\
+\n\
+SEVERITY DISCIPLINE:\n\
+- Critical: Exploitable security vulnerabilities, data loss, crashes in production\n\
+- Warning: Architectural issues, reliability risks, significant tech debt\n\
+- Info: Minor improvements, style issues, type safety suggestions\n\
+\n\
+ANALYSIS APPROACH:\n\
+1. UNDERSTAND what the code does\n\
+2. IDENTIFY real issues (security, reliability, performance, architecture)\n\
+3. QUOTE evidence — include the problematic code in evidence_snippet\n\
+4. ASSESS severity using the discipline above\n\
+5. SUGGEST specific fixes for this codebase\n\
+\n\
+OUTPUT FORMAT — JSON array:\n\
+[\n\
+  {\n\
+    \"file_path\": \"path/to/file.ext\",\n\
+    \"severity\": \"Info\" | \"Warning\" | \"Critical\",\n\
+    \"category\": \"Security\" | \"Architecture\" | \"Performance\" | \"Reliability\" | \"Maintainability\" | \"TypeSafety\",\n\
+    \"line_start\": 42,\n\
+    \"line_end\": 45,\n\
+    \"evidence_snippet\": \"exact code excerpt\",\n\
+    \"message\": \"Clear description with WHY\",\n\
+    \"suggestion\": \"Specific fix\",\n\
+    \"confidence\": 0.0-1.0\n\
+  }\n\
+]\n\
+\n\
+RULES:\n\
+- Return ONLY a JSON array. No markdown, no commentary.\n\
+- Every finding MUST include evidence_snippet with the actual problematic code.\n\
+- Zero findings → return [].\n\
+- Focus on real bugs and security issues over style.";
+
 fn build_batch_prompt(files: &[ScannedFile]) -> (String, HashSet<String>) {
     let mut allowed = HashSet::new();
     let mut prompt = String::new();
-    prompt.push_str("You are Guardian, a strict security + architecture reviewer.\n");
-    prompt.push_str("Return ONLY a valid JSON array of objects with keys: file_path, severity, message, suggestion, suggested_diff.\n");
-    prompt.push_str("Rules:\n");
-    prompt.push_str("- file_path MUST exactly match one of the provided Path values.\n");
-    prompt.push_str("- severity MUST be one of: Info, Warning, Critical, LGTM.\n");
-    prompt.push_str("- message MUST include WHY (risk/impact).\n");
-    prompt.push_str("- suggested_diff, if present, MUST be FULL file content only (no diff markers, no markdown).\n\n");
+    prompt.push_str("Review the following files. ");
+    prompt.push_str("file_path MUST exactly match one of the provided Path values.\n\n");
 
     for (idx, file) in files.iter().enumerate() {
         allowed.insert(file.rel_path.clone());
@@ -954,7 +1005,7 @@ fn send_anthropic(
     let payload = serde_json::json!({
         "model": provider.model,
         "max_tokens": 2048,
-        "system": "You are Guardian. Output JSON only.",
+        "system": GUARDIAN_SYSTEM_PROMPT,
         "messages": [{ "role": "user", "content": prompt }]
     });
     let url = format!("{}/messages", provider.base_url.trim_end_matches('/'));
@@ -991,7 +1042,7 @@ fn send_openai(
     let payload = serde_json::json!({
         "model": provider.model,
         "messages": [
-            { "role": "system", "content": "You are Guardian. Output JSON only." },
+            { "role": "system", "content": GUARDIAN_SYSTEM_PROMPT },
             { "role": "user", "content": prompt }
         ],
         "temperature": 0.2
@@ -1029,7 +1080,7 @@ fn send_gemini(
         format!("models/{}", provider.model)
     };
     let payload = serde_json::json!({
-        "systemInstruction": { "parts": [{ "text": "You are Guardian. Output JSON only." }] },
+        "systemInstruction": { "parts": [{ "text": GUARDIAN_SYSTEM_PROMPT }] },
         "contents": [{ "role": "user", "parts": [{ "text": prompt }] }]
     });
     let url = format!(
@@ -1073,7 +1124,7 @@ fn send_ollama(
     let payload = serde_json::json!({
         "model": provider.model,
         "messages": [
-            { "role": "system", "content": "You are Guardian. Output JSON only." },
+            { "role": "system", "content": GUARDIAN_SYSTEM_PROMPT },
             { "role": "user", "content": prompt }
         ],
         "stream": false
