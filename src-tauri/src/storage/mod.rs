@@ -142,6 +142,14 @@ impl StorageManager {
         let sqlite_vec_register = register_sqlite_vec_auto_extension();
 
         let conn = Connection::open(&db_path).context("Failed to open SQLite connection")?;
+
+        conn.execute_batch(
+            "PRAGMA journal_mode=WAL;
+             PRAGMA synchronous=NORMAL;
+             PRAGMA foreign_keys=ON;",
+        )
+        .context("Failed to set SQLite performance pragmas")?;
+
         let mut semantic_ann_enabled = false;
 
         match sqlite_vec_register {
