@@ -571,7 +571,7 @@ fn collect_files(
         let abs_path = entry.into_path();
         let rel_path = match abs_path.strip_prefix(root) {
             Ok(rel) => rel.to_string_lossy().replace('\\', "/"),
-            Err(_) => abs_path.to_string_lossy().replace('\\', "/"),
+            Err(_) => continue,
         };
 
         if exclude_rel_paths.contains(&rel_path) {
