@@ -5,6 +5,11 @@
   "version": "0.1.0",
   "publisher": "guardian",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/senoldogann/Guardian",
+    "directory": "guardian-vscode"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },

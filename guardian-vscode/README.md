@@ -1,6 +1,6 @@
 # Guardian — AI Code Governance (VS Code Extension)
 
-VS Code extension that connects to the [Guardian](../README.md) MCP server to provide real-time code governance, security scanning, and critique reporting directly in your editor.
+VS Code extension that connects to the [Guardian](https://github.com/senoldogann/Guardian) MCP server to provide real-time code governance, security scanning, and critique reporting directly in your editor.
 
 ## Features
 
@@ -68,4 +68,4 @@ npm run package # Build .vsix for distribution
 
 ## License
 
-MIT — see [LICENSE](../LICENSE).
+MIT — see [LICENSE](https://github.com/senoldogann/Guardian/blob/main/LICENSE).
