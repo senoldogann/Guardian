@@ -273,6 +273,11 @@ mod tests {
             suggested_diff: None,
             finding_id: None,
             why: None,
+            line_start: None,
+            line_end: None,
+            evidence_snippet: None,
+            category: None,
+            confidence: None,
         }
     }
 

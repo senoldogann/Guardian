@@ -929,6 +929,11 @@ mod tests_protocol {
             suggested_diff: None,
             finding_id: None,
             why: None,
+            line_start: None,
+            line_end: None,
+            evidence_snippet: None,
+            category: None,
+            confidence: None,
         }
     }
 
@@ -1141,6 +1146,11 @@ mod tests_protocol {
             suggested_diff: None,
             finding_id: Some("finding-123".to_string()),
             why: None,
+            line_start: None,
+            line_end: None,
+            evidence_snippet: None,
+            category: None,
+            confidence: None,
         };
         let mut critiques = HashMap::new();
         critiques.insert(abs_str, critique);
@@ -1186,6 +1196,11 @@ mod tests_protocol {
             suggested_diff: None,
             finding_id: None,
             why: None,
+            line_start: None,
+            line_end: None,
+            evidence_snippet: None,
+            category: None,
+            confidence: None,
         };
 
         let out = normalize_batch_critique_file_paths(root, &[item], vec![critique]);
@@ -1312,6 +1327,11 @@ mod tests_protocol {
             suggested_diff: None,
             finding_id: None,
             why: None,
+            line_start: None,
+            line_end: None,
+            evidence_snippet: None,
+            category: None,
+            confidence: None,
         };
 
         let out = normalize_batch_critique_file_paths(root, &[item_a, item_b], vec![critique]);
