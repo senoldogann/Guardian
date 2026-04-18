@@ -724,7 +724,12 @@ fn truncate_content(content: &str) -> String {
     }
     let mut joined = lines.join("\n");
     if joined.len() > MAX_CHARS {
-        joined.truncate(MAX_CHARS);
+        // UTF-8 karakter sınırında kes
+        let mut end = MAX_CHARS;
+        while end > 0 && !joined.is_char_boundary(end) {
+            end -= 1;
+        }
+        joined.truncate(end);
         joined.push_str("\n... (truncated)");
     }
     joined
