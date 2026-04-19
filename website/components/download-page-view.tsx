@@ -2,12 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
-import { Download, Apple, Monitor, Laptop, Package } from "lucide-react";
+import { Download, Apple, Monitor, Laptop, Package, type LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import type { GithubAsset } from "../lib/github";
 import type { SiteDictionary } from "../lib/i18n";
 import { pickBestAsset, detectPlatform, type Platform } from "../lib/download";
 import { formatBytes } from "../lib/github";
+
+const PLATFORM_ICONS: Record<Platform, LucideIcon> = {
+    linux_x64: Laptop,
+    mac_arm64: Apple,
+    mac_x64: Apple,
+    unknown: Package,
+    windows_x64: Monitor,
+};
 
 type Props = {
     dict: SiteDictionary;
@@ -27,14 +35,7 @@ export function DownloadPageView({ dict, assets, latestTag }: Props) {
 
     const bestAsset = pickBestAsset(assets, platform);
 
-    const getIcon = (p: Platform) => {
-        if (p === "mac_arm64" || p === "mac_x64") return Apple;
-        if (p === "windows_x64") return Monitor;
-        if (p === "linux_x64") return Laptop;
-        return Package;
-    };
-
-    const PlatformIcon = getIcon(platform);
+    const PlatformIcon = PLATFORM_ICONS[platform];
 
     return (
         <div className="min-h-screen bg-background font-sans text-foreground">

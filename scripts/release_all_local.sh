@@ -151,21 +151,27 @@ else
 fi
 
 PKG_VERSION="$(node -p "require('./package.json').version")"
+VSCODE_VERSION="$(node -p "require('./guardian-vscode/package.json').version")"
 TAURI_VERSION="$(jq -r '.version // ""' src-tauri/tauri.conf.json)"
 CARGO_VERSION="$(grep -E '^version[[:space:]]*=[[:space:]]*"' src-tauri/Cargo.toml | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')"
+MCP_CARGO_VERSION="$(grep -E '^version[[:space:]]*=[[:space:]]*"' guardian-mcp/Cargo.toml | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')"
 
-if [[ "$PKG_VERSION" != "$VERSION" || "$TAURI_VERSION" != "$VERSION" || "$CARGO_VERSION" != "$VERSION" ]]; then
+if [[ "$PKG_VERSION" != "$VERSION" || "$VSCODE_VERSION" != "$VERSION" || "$TAURI_VERSION" != "$VERSION" || "$CARGO_VERSION" != "$VERSION" || "$MCP_CARGO_VERSION" != "$VERSION" ]]; then
   echo "Version mismatch detected. Syncing all version files to '$VERSION' ..."
   "$SCRIPT_DIR/bump_version.sh" "$VERSION"
   PKG_VERSION="$(node -p "require('./package.json').version")"
+  VSCODE_VERSION="$(node -p "require('./guardian-vscode/package.json').version")"
   TAURI_VERSION="$(jq -r '.version // ""' src-tauri/tauri.conf.json)"
   CARGO_VERSION="$(grep -E '^version[[:space:]]*=[[:space:]]*"' src-tauri/Cargo.toml | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')"
+  MCP_CARGO_VERSION="$(grep -E '^version[[:space:]]*=[[:space:]]*"' guardian-mcp/Cargo.toml | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')"
 fi
 
-if [[ "$PKG_VERSION" != "$VERSION" || "$TAURI_VERSION" != "$VERSION" || "$CARGO_VERSION" != "$VERSION" ]]; then
+if [[ "$PKG_VERSION" != "$VERSION" || "$VSCODE_VERSION" != "$VERSION" || "$TAURI_VERSION" != "$VERSION" || "$CARGO_VERSION" != "$VERSION" || "$MCP_CARGO_VERSION" != "$VERSION" ]]; then
   echo "Error: version sync failed."
   echo "  package.json:          $PKG_VERSION"
+  echo "  guardian-vscode:      $VSCODE_VERSION"
   echo "  src-tauri/Cargo.toml:  $CARGO_VERSION"
+  echo "  guardian-mcp/Cargo.toml: $MCP_CARGO_VERSION"
   echo "  src-tauri/tauri.conf:  $TAURI_VERSION"
   echo "  expected:              $VERSION"
   exit 1

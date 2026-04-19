@@ -12,6 +12,7 @@ fi
 
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/guardian-release-gate-smoke-XXXXXX")"
 trap 'rm -rf "$TMP_DIR"' EXIT
+ARTIFACT_DIR="${RELEASE_GATE_SMOKE_ARTIFACT_DIR:-}"
 
 cat > "$TMP_DIR/guardian.policy.yaml" <<'YAML'
 schema_version: 1
@@ -102,6 +103,13 @@ override_decision="$(decision_of "$(report_for override_mode)")"
 if [[ "$override_decision" != "OVERRIDDEN" ]]; then
   echo "[release-gate-smoke] expected override decision OVERRIDDEN, got $override_decision"
   exit 1
+fi
+
+if [[ -n "$ARTIFACT_DIR" ]]; then
+  mkdir -p "$ARTIFACT_DIR"
+  cp "$(report_for strict_block)" "$ARTIFACT_DIR/strict-block.json"
+  cp "$(report_for warn_mode)" "$ARTIFACT_DIR/warn-mode.json"
+  cp "$(report_for override_mode)" "$ARTIFACT_DIR/override-mode.json"
 fi
 
 echo "[release-gate-smoke] PASS"

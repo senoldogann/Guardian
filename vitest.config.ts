@@ -12,6 +12,7 @@ export default defineConfig({
     exclude: [
       "tests/e2e/**",
       "**/node_modules/**",
+      "guardian-vscode/**",
       "website/**",
       ".maestro/**",
       ".agents/**",

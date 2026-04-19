@@ -12,8 +12,8 @@ invoke security-scanning tools through the standard JSON-RPC 2.0 protocol.
 
 | Tool | Description |
 | ---- | ----------- |
-| `scan_file` | Scan a single file for security issues |
-| `list_critiques` | List findings from the most recent scan |
+| `scan_file` | Read `.guardian/critiques.json` for a single file and return structured critique results |
+| `list_critiques` | List snapshot-backed critiques for the current workspace with optional severity filtering |
 | `get_scan_policy` | Return the current scan policy configuration |
 | `apply_fix` | Apply a suggested fix for a specific finding |
 | `classify_paths` | Walk a workspace and classify files by scan-policy eligibility |
@@ -77,7 +77,9 @@ specification (`2024-11-05`).
 
 ## Status
 
-`guardian-mcp` is a working stateless MCP server.
+`guardian-mcp` is a snapshot-aware MCP server.
 
-- `scan_file`, `get_scan_policy`, and `classify_paths` return live policy/classification data.
-- `list_critiques` and `apply_fix` intentionally delegate stateful scan/fix workflows to `guardian-cli` or the desktop app.
+- `scan_file` and `list_critiques` read `.guardian/critiques.json` and return structured `status`, `kind`, `message`, `critique_count`, and `critiques` payloads.
+- Empty results, missing snapshots, invalid snapshots, and transport or parse failures are distinct states for clients to handle explicitly.
+- `get_scan_policy` and `classify_paths` continue to return live policy and classification data.
+- `apply_fix` still delegates stateful remediation flows to `guardian-cli` or the desktop app.

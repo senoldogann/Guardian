@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import type { Critique } from "./guardianClient";
+import type { Critique } from "./models";
 
 const SEVERITY_MAP: Record<string, vscode.DiagnosticSeverity> = {
   critical: vscode.DiagnosticSeverity.Error,

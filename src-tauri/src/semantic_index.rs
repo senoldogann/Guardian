@@ -232,7 +232,16 @@ fn embedding_execution_plan(mode: &str, has_openai_key: bool) -> EmbeddingExecut
     }
 }
 
+#[allow(unreachable_code)]
 async fn embed_text(text: &str) -> EmbeddingResult {
+    #[cfg(test)]
+    {
+        return EmbeddingResult {
+            vector: local_hash_embedding(text),
+            source_mode: "local-hash-test".to_string(),
+        };
+    }
+
     if is_offline_mode() {
         return EmbeddingResult {
             vector: local_hash_embedding(text),

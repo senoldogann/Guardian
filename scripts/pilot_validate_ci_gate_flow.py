@@ -110,12 +110,12 @@ def main() -> int:
             name="publish_distribution_needs_gate_and_build",
             passed=(
                 "publish-distribution:" in release
-                and (
-                    "needs: [release-gate, build-windows]" in release
-                    or "needs: [build-windows, release-gate]" in release
-                )
+                and "needs: [release-gate, build-windows, build-macos]" in release
+                and "needs.release-gate.result == 'success'" in release
+                and "inputs.release_target == 'macos' || needs.build-windows.result == 'success'" in release
+                and "inputs.release_target == 'windows' || needs.build-macos.result == 'success'" in release
             ),
-            detail="publish-distribution should require release-gate and build-windows.",
+            detail="publish-distribution should tolerate skipped platform builds while still requiring the selected build targets and release-gate.",
         ),
     ]
 

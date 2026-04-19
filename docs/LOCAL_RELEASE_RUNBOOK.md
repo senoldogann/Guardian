@@ -12,6 +12,8 @@ Kapsam:
 
 Release scripti artik version dosyalarini otomatik senkronlar:
 - `package.json`
+- `guardian-vscode/package.json`
+- `guardian-mcp/Cargo.toml`
 - `website/package.json`
 - `src-tauri/Cargo.toml`
 - `src-tauri/tauri.conf.json`
@@ -23,12 +25,19 @@ cd Guardian
 scripts/bump_version.sh patch   # veya minor/major/X.Y.Z
 ```
 
-Ardindan temel dogrulama:
+Ardindan zorunlu release dogrulamasi:
 
 ```bash
 cd Guardian
 npm run verify
 ```
+
+Bu gate artik su alanlari kapsar:
+- root app lint/test/coverage/build
+- `guardian-vscode` install + validate
+- `website` install + lint/copy/test/coverage/build
+- Rust workspace fmt/clippy/check/test
+- kritik npm audit'leri ve `cargo audit`
 
 ## 2) Gerekli Ortam Degiskenleri
 
@@ -74,7 +83,7 @@ Windows artifacts farkli makinede build ediliyorsa daha sonra artifacts klasorun
 Iki macOS target ciktilarini tek artifacts klasorunde topla:
 
 ```bash
-cd /Users/dogan/Desktop/new-idee/guardian
+cd Guardian
 scripts/collect_macos_artifacts.sh vX.Y.Z ./artifacts \
   ./src-tauri/target/aarch64-apple-darwin/release/bundle \
   ./src-tauri/target/x86_64-apple-darwin/release/bundle

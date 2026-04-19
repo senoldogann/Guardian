@@ -9,17 +9,16 @@ import { trackDownload } from "@/lib/analytics";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/lib/locale";
 import { withLocale } from "@/lib/locale";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export function DirectDownloadButton({ locale, label }: { locale: Locale; label: string }) {
     const [assets, setAssets] = React.useState<LatestReleaseClientPayload["assets"]>([]);
     const [version, setVersion] = React.useState<string>("");
     const [isLoading, setIsLoading] = React.useState(false);
-    const [mounted, setMounted] = React.useState(false);
+    const mounted = useHydrated();
     const router = useRouter();
 
     React.useEffect(() => {
-        setMounted(true);
-        // Pre-fetch assets to make the click response instant
         getLatestReleaseClient()
             .then(release => {
                 if (release) {

@@ -3,7 +3,11 @@
 src/**
 node_modules/**
 .gitignore
+eslint.config.mjs
 tsconfig.json
+tsconfig.test.json
 **/*.map
 **/*.ts
 !out/**
+out-test/**
+out/**/*.test.*

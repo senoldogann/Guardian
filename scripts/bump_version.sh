@@ -14,7 +14,9 @@ Examples:
 
 What it does:
   - Updates guardian/package.json version (and package-lock.json)
+  - Updates guardian-vscode/package.json version (and guardian-vscode/package-lock.json)
   - Updates guardian/website/package.json version (and website/package-lock.json)
+  - Updates guardian-mcp/Cargo.toml package version
   - Updates src-tauri/Cargo.toml package version
   - Updates src-tauri/tauri.conf.json version
   - Normalizes window title to "Guardian" so runtime version is always dynamic
@@ -90,6 +92,13 @@ if [[ -f "website/package.json" ]]; then
   )
 fi
 
+if [[ -f "guardian-vscode/package.json" ]]; then
+  (
+    cd guardian-vscode
+    npm version "$TARGET" --no-git-tag-version --allow-same-version >/dev/null
+  )
+fi
+
 TARGET_VERSION="$TARGET" node - <<'NODE'
 const fs = require("fs");
 const path = require("path");
@@ -108,6 +117,31 @@ cargo = cargo.replace(
 );
 fs.writeFileSync(cargoPath, cargo);
 
+const mcpCargoPath = path.join(root, "guardian-mcp", "Cargo.toml");
+if (fs.existsSync(mcpCargoPath)) {
+  let mcpCargo = fs.readFileSync(mcpCargoPath, "utf8");
+  mcpCargo = mcpCargo.replace(
+    /(\[package\][\s\S]*?^version\s*=\s*")[^"]+(")/m,
+    `$1${target}$2`
+  );
+  fs.writeFileSync(mcpCargoPath, mcpCargo);
+}
+
+const guardianClientPath = path.join(
+  root,
+  "guardian-vscode",
+  "src",
+  "guardianClient.ts"
+);
+if (fs.existsSync(guardianClientPath)) {
+  let guardianClient = fs.readFileSync(guardianClientPath, "utf8");
+  guardianClient = guardianClient.replace(
+    /const CLIENT_VERSION = "[^"]+";/,
+    `const CLIENT_VERSION = "${target}";`
+  );
+  fs.writeFileSync(guardianClientPath, guardianClient);
+}
+
 const tauriPath = path.join(root, "src-tauri", "tauri.conf.json");
 const tauri = JSON.parse(fs.readFileSync(tauriPath, "utf8"));
 tauri.version = target;
@@ -124,7 +158,10 @@ NODE
 
 echo "Updated files:"
 echo "  - package.json / package-lock.json"
+echo "  - guardian-vscode/package.json / guardian-vscode/package-lock.json"
 echo "  - website/package.json / website/package-lock.json"
+echo "  - guardian-mcp/Cargo.toml"
 echo "  - src-tauri/Cargo.toml"
+echo "  - guardian-vscode/src/guardianClient.ts"
 echo "  - src-tauri/tauri.conf.json"
 echo "Ready tag: v$TARGET"

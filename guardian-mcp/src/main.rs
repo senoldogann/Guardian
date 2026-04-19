@@ -3,7 +3,7 @@ use guardian_scan_policy::{classify_path, load_policy_for_root, GuardianPolicy, 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 // ── JSON-RPC 2.0 types ──────────────────────────────────────────────
@@ -33,6 +33,55 @@ struct JsonRpcError {
     message: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     data: Option<Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+struct SnapshotCritique {
+    file_path: String,
+    severity: String,
+    message: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    suggestion: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    chat_message: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    suggested_diff: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    finding_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    why: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    line_start: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    line_end: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    evidence_snippet: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    category: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    confidence: Option<f64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CritiquesSnapshotV1 {
+    protocol_version: u64,
+    #[serde(default)]
+    critiques: Vec<SnapshotCritique>,
+}
+
+#[derive(Debug)]
+struct SnapshotLoadError {
+    kind: &'static str,
+    message: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SeverityFilter {
+    All,
+    Low,
+    Medium,
+    High,
+    Critical,
 }
 
 impl JsonRpcResponse {
@@ -196,6 +245,170 @@ fn mcp_json_response(data: &Value) -> Value {
     })
 }
 
+fn canonicalize_if_exists(path: &Path) -> PathBuf {
+    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+}
+
+fn workspace_root_from_arguments(arguments: &Value, file_path: Option<&Path>) -> PathBuf {
+    if let Some(workspace) = arguments
+        .get("workspace_path")
+        .and_then(|value| value.as_str())
+    {
+        return canonicalize_if_exists(Path::new(workspace));
+    }
+
+    if let Some(path) = file_path {
+        let mut current = if path.is_dir() {
+            Some(path)
+        } else {
+            path.parent()
+        };
+
+        while let Some(candidate) = current {
+            if candidate.join(".guardian").join("critiques.json").exists()
+                || candidate.join("guardian.policy.yaml").exists()
+                || candidate.join(".git").exists()
+            {
+                return canonicalize_if_exists(candidate);
+            }
+            current = candidate.parent();
+        }
+    }
+
+    canonicalize_if_exists(&std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")))
+}
+
+fn resolve_file_path(root: &Path, raw_path: &str) -> PathBuf {
+    let path = Path::new(raw_path);
+    let resolved = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        root.join(path)
+    };
+    canonicalize_if_exists(&resolved)
+}
+
+fn absolutize_snapshot_path(root_path: &Path, file_path: &str) -> String {
+    let trimmed = file_path.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+
+    let path = Path::new(trimmed);
+    if path.is_absolute() {
+        canonicalize_if_exists(path).to_string_lossy().to_string()
+    } else {
+        canonicalize_if_exists(&root_path.join(trimmed.trim_start_matches("./")))
+            .to_string_lossy()
+            .to_string()
+    }
+}
+
+fn normalize_snapshot_severity(raw: &str) -> String {
+    match raw.trim().to_lowercase().as_str() {
+        "critical" | "high" => "Critical".to_string(),
+        "warning" | "medium" => "Warning".to_string(),
+        "info" | "low" => "Info".to_string(),
+        "lgtm" => "LGTM".to_string(),
+        other => other.to_string(),
+    }
+}
+
+fn parse_severity_filter(arguments: &Value) -> Result<SeverityFilter> {
+    let Some(raw_filter) = arguments.get("severity").and_then(|value| value.as_str()) else {
+        return Ok(SeverityFilter::All);
+    };
+
+    match raw_filter.trim().to_lowercase().as_str() {
+        "all" => Ok(SeverityFilter::All),
+        "low" | "info" => Ok(SeverityFilter::Low),
+        "medium" | "warning" => Ok(SeverityFilter::Medium),
+        "high" => Ok(SeverityFilter::High),
+        "critical" => Ok(SeverityFilter::Critical),
+        other => Err(anyhow!(
+            "unsupported severity filter '{}'. Use all|low|medium|high|critical.",
+            other
+        )),
+    }
+}
+
+fn critique_matches_filter(critique: &SnapshotCritique, filter: SeverityFilter) -> bool {
+    let severity = normalize_snapshot_severity(&critique.severity);
+    if severity == "LGTM" {
+        return false;
+    }
+
+    match filter {
+        SeverityFilter::All | SeverityFilter::Low => {
+            matches!(severity.as_str(), "Info" | "Warning" | "Critical")
+        }
+        SeverityFilter::Medium => matches!(severity.as_str(), "Warning" | "Critical"),
+        SeverityFilter::High | SeverityFilter::Critical => severity == "Critical",
+    }
+}
+
+fn load_snapshot_for_root(
+    root: &Path,
+) -> std::result::Result<(PathBuf, Vec<SnapshotCritique>), SnapshotLoadError> {
+    let snapshot_path = root.join(".guardian").join("critiques.json");
+    let raw = std::fs::read_to_string(&snapshot_path).map_err(|err| {
+        let kind = if err.kind() == std::io::ErrorKind::NotFound {
+            "snapshot_missing"
+        } else {
+            "snapshot_unreadable"
+        };
+        SnapshotLoadError {
+            kind,
+            message: format!(
+                "Could not read critique snapshot at {}: {}",
+                snapshot_path.to_string_lossy(),
+                err
+            ),
+        }
+    })?;
+
+    let mut parsed: CritiquesSnapshotV1 =
+        serde_json::from_str(&raw).map_err(|err| SnapshotLoadError {
+            kind: "snapshot_invalid",
+            message: format!(
+                "Critique snapshot is not valid JSON at {}: {}",
+                snapshot_path.to_string_lossy(),
+                err
+            ),
+        })?;
+
+    if parsed.protocol_version != 1 {
+        return Err(SnapshotLoadError {
+            kind: "snapshot_unsupported",
+            message: format!(
+                "Critique snapshot protocol_version={} is not supported. Expected 1.",
+                parsed.protocol_version
+            ),
+        });
+    }
+
+    for critique in &mut parsed.critiques {
+        critique.file_path = absolutize_snapshot_path(root, &critique.file_path);
+        critique.severity = normalize_snapshot_severity(&critique.severity);
+    }
+
+    parsed
+        .critiques
+        .retain(|critique| !critique.file_path.trim().is_empty() && critique.severity != "LGTM");
+
+    Ok((snapshot_path, parsed.critiques))
+}
+
+fn file_stats(path: &Path) -> (u64, usize) {
+    match std::fs::read_to_string(path) {
+        Ok(content) => (content.len() as u64, content.lines().count()),
+        Err(_) => match std::fs::metadata(path) {
+            Ok(meta) => (meta.len(), 0),
+            Err(_) => (0, 0),
+        },
+    }
+}
+
 fn parse_profile(arguments: &Value) -> ScanProfile {
     arguments
         .get("profile")
@@ -241,41 +454,62 @@ fn language_from_extension(path: &Path) -> &'static str {
 }
 
 fn handle_scan_file(arguments: &Value) -> Result<Value> {
-    let file_path = arguments
+    let raw_file_path = arguments
         .get("path")
         .and_then(|v| v.as_str())
         .ok_or_else(|| anyhow!("missing required argument: path"))?;
 
     let profile = parse_profile(arguments);
-    let path = Path::new(file_path);
+    let workspace_root = workspace_root_from_arguments(arguments, Some(Path::new(raw_file_path)));
+    let snapshot_path = workspace_root.join(".guardian").join("critiques.json");
+    let path = resolve_file_path(&workspace_root, raw_file_path);
+    let path_string = path.to_string_lossy().to_string();
 
-    let decision = classify_path(path, false, profile);
-    let language = language_from_extension(path);
-
-    let (file_size, line_count) = if path.exists() && path.is_file() {
-        match std::fs::read_to_string(path) {
-            Ok(content) => (content.len() as u64, content.lines().count()),
-            Err(_) => match std::fs::metadata(path) {
-                Ok(meta) => (meta.len(), 0),
-                Err(_) => (0, 0),
-            },
-        }
-    } else if !path.exists() {
+    if !path.exists() {
         return Ok(mcp_json_response(&json!({
-            "error": "file_not_found",
-            "file_path": file_path,
-            "message": format!("File does not exist: {}", file_path)
+            "status": "error",
+            "kind": "file_not_found",
+            "message": format!("File does not exist: {}", path_string),
+            "workspace_path": workspace_root.to_string_lossy(),
+            "snapshot_path": snapshot_path.to_string_lossy(),
+            "critiques": [],
+            "critique_count": 0,
+            "file": {
+                "path": path_string,
+                "scan_profile": profile.as_str(),
+            }
         })));
-    } else {
-        return Ok(mcp_json_response(&json!({
-            "error": "not_a_file",
-            "file_path": file_path,
-            "message": format!("Path is not a file: {}", file_path)
-        })));
-    };
+    }
 
-    let mut result = json!({
-        "file_path": file_path,
+    if !path.is_file() {
+        return Ok(mcp_json_response(&json!({
+            "status": "error",
+            "kind": "not_a_file",
+            "message": format!("Path is not a file: {}", path_string),
+            "workspace_path": workspace_root.to_string_lossy(),
+            "snapshot_path": snapshot_path.to_string_lossy(),
+            "critiques": [],
+            "critique_count": 0,
+            "file": {
+                "path": path_string,
+                "scan_profile": profile.as_str(),
+            }
+        })));
+    }
+
+    let classify_target = path.strip_prefix(&workspace_root).unwrap_or(path.as_path());
+    let decision = classify_path(classify_target, false, profile);
+    let language = language_from_extension(&path);
+    let (file_size, line_count) = file_stats(&path);
+    let skip_reason = decision.reason.map(|reason| reason.as_str().to_string());
+    let relative_path = path
+        .strip_prefix(&workspace_root)
+        .ok()
+        .map(|value| value.to_string_lossy().to_string());
+
+    let mut file_payload = json!({
+        "path": path_string,
+        "relative_path": relative_path,
         "file_size": file_size,
         "line_count": line_count,
         "language": language,
@@ -283,42 +517,136 @@ fn handle_scan_file(arguments: &Value) -> Result<Value> {
         "is_candidate": decision.include,
     });
 
-    if let Some(reason) = decision.reason {
-        result["skip_reason"] = json!(reason.as_str());
+    if let Some(reason) = skip_reason.as_deref() {
+        file_payload["skip_reason"] = json!(reason);
     }
 
-    Ok(mcp_json_response(&result))
+    match load_snapshot_for_root(&workspace_root) {
+        Ok((loaded_snapshot_path, critiques)) => {
+            let critiques_for_file: Vec<SnapshotCritique> = critiques
+                .into_iter()
+                .filter(|critique| critique.file_path == path_string)
+                .collect();
+
+            let critique_count = critiques_for_file.len();
+            let (status, kind, message) = if decision.include {
+                if critique_count == 0 {
+                    (
+                        "ok",
+                        "scan_result",
+                        format!("No active critiques found for {}.", path_string),
+                    )
+                } else {
+                    (
+                        "ok",
+                        "scan_result",
+                        format!(
+                            "Loaded {} active critique(s) for {}.",
+                            critique_count, path_string
+                        ),
+                    )
+                }
+            } else {
+                let reason = skip_reason.as_deref().unwrap_or("unknown_skip_reason");
+                (
+                    "warning",
+                    "policy_skip",
+                    format!(
+                        "File is outside the current scan profile ({}) and may not receive fresh critiques until policy/profile changes.",
+                        reason
+                    ),
+                )
+            };
+
+            Ok(mcp_json_response(&json!({
+                "status": status,
+                "kind": kind,
+                "message": message,
+                "workspace_path": workspace_root.to_string_lossy(),
+                "snapshot_path": loaded_snapshot_path.to_string_lossy(),
+                "critique_count": critique_count,
+                "critiques": critiques_for_file,
+                "file": file_payload,
+            })))
+        }
+        Err(snapshot_error) => {
+            let status = if snapshot_error.kind == "snapshot_missing" {
+                "warning"
+            } else {
+                "error"
+            };
+            Ok(mcp_json_response(&json!({
+                "status": status,
+                "kind": snapshot_error.kind,
+                "message": snapshot_error.message,
+                "workspace_path": workspace_root.to_string_lossy(),
+                "snapshot_path": snapshot_path.to_string_lossy(),
+                "critique_count": 0,
+                "critiques": [],
+                "file": file_payload,
+            })))
+        }
+    }
 }
 
-fn handle_list_critiques(arguments: &Value) -> Value {
-    let severity = arguments
-        .get("severity")
-        .and_then(|v| v.as_str())
-        .unwrap_or("all");
-    let workspace = arguments
-        .get("workspace_path")
-        .and_then(|v| v.as_str())
-        .unwrap_or(".");
+fn handle_list_critiques(arguments: &Value) -> Result<Value> {
+    let severity_filter = parse_severity_filter(arguments)?;
+    let workspace_root = workspace_root_from_arguments(arguments, None);
+    let snapshot_path = workspace_root.join(".guardian").join("critiques.json");
 
-    let cmd = if severity != "all" {
-        format!(
-            "guardian-cli scan --format json --min-severity {} {}",
-            severity, workspace
-        )
-    } else {
-        format!("guardian-cli scan --format json {}", workspace)
-    };
+    match load_snapshot_for_root(&workspace_root) {
+        Ok((loaded_snapshot_path, critiques)) => {
+            let filtered: Vec<SnapshotCritique> = critiques
+                .into_iter()
+                .filter(|critique| critique_matches_filter(critique, severity_filter))
+                .collect();
 
-    mcp_json_response(&json!({
-        "status": "stateless_server",
-        "message": "The Guardian MCP server is stateless and does not persist scan results between calls. To retrieve critiques, run the Guardian CLI directly.",
-        "suggested_command": cmd,
-        "alternatives": [
-            "Use the Guardian desktop app for interactive scanning with critique history",
-            "Run `guardian-cli scan --watch <path>` for continuous scanning",
-            "Use `guardian-cli scan --format json <path>` for machine-readable output"
-        ]
-    }))
+            let critique_count = filtered.len();
+            let message = if critique_count == 0 {
+                "Guardian critique snapshot loaded successfully, but no critiques matched the current filter."
+                    .to_string()
+            } else {
+                format!(
+                    "Loaded {} active critique(s) from the workspace snapshot.",
+                    critique_count
+                )
+            };
+
+            Ok(mcp_json_response(&json!({
+                "status": "ok",
+                "kind": "critiques_result",
+                "message": message,
+                "workspace_path": workspace_root.to_string_lossy(),
+                "snapshot_path": loaded_snapshot_path.to_string_lossy(),
+                "severity_filter": arguments
+                    .get("severity")
+                    .and_then(|value| value.as_str())
+                    .unwrap_or("all"),
+                "critique_count": critique_count,
+                "critiques": filtered,
+            })))
+        }
+        Err(snapshot_error) => {
+            let status = if snapshot_error.kind == "snapshot_missing" {
+                "warning"
+            } else {
+                "error"
+            };
+            Ok(mcp_json_response(&json!({
+                "status": status,
+                "kind": snapshot_error.kind,
+                "message": snapshot_error.message,
+                "workspace_path": workspace_root.to_string_lossy(),
+                "snapshot_path": snapshot_path.to_string_lossy(),
+                "severity_filter": arguments
+                    .get("severity")
+                    .and_then(|value| value.as_str())
+                    .unwrap_or("all"),
+                "critique_count": 0,
+                "critiques": [],
+            })))
+        }
+    }
 }
 
 fn handle_get_scan_policy(arguments: &Value) -> Value {
@@ -402,49 +730,58 @@ fn handle_classify_paths(arguments: &Value) -> Result<Value> {
     }
 
     const MAX_FILES: usize = 100;
-    let mut candidates = 0usize;
-    let mut skipped = 0usize;
-    let mut total = 0usize;
-    let mut skip_reasons: HashMap<&str, usize> = HashMap::new();
-    let mut files: Vec<Value> = Vec::new();
-    let mut truncated = false;
+    let mut summary = WalkSummary::default();
 
-    walk_dir(
-        root,
-        root,
-        profile,
-        MAX_FILES,
-        &mut total,
-        &mut candidates,
-        &mut skipped,
-        &mut skip_reasons,
-        &mut files,
-        &mut truncated,
-    );
+    walk_dir(root, root, profile, MAX_FILES, &mut summary);
 
     Ok(mcp_json_response(&json!({
         "workspace_path": workspace,
         "scan_profile": profile.as_str(),
-        "total_files": total,
-        "candidates": candidates,
-        "skipped": skipped,
-        "truncated": truncated,
-        "skipped_by_reason": skip_reasons,
-        "files": files,
+        "total_files": summary.total,
+        "candidates": summary.candidates,
+        "skipped": summary.skipped,
+        "truncated": summary.truncated,
+        "skipped_by_reason": summary.skip_reasons,
+        "files": summary.files,
     })))
 }
 
-fn walk_dir<'a>(
+#[derive(Default)]
+struct WalkSummary {
+    candidates: usize,
+    files: Vec<Value>,
+    skip_reasons: HashMap<&'static str, usize>,
+    skipped: usize,
+    total: usize,
+    truncated: bool,
+}
+
+impl WalkSummary {
+    fn record_candidate(&mut self, relative: &Path) {
+        self.candidates += 1;
+        self.files.push(json!({
+            "path": relative.to_string_lossy(),
+            "is_candidate": true,
+        }));
+    }
+
+    fn record_skipped(&mut self, relative: &Path, reason: &'static str) {
+        self.skipped += 1;
+        *self.skip_reasons.entry(reason).or_insert(0) += 1;
+        self.files.push(json!({
+            "path": relative.to_string_lossy(),
+            "is_candidate": false,
+            "skip_reason": reason,
+        }));
+    }
+}
+
+fn walk_dir(
     dir: &Path,
     root: &Path,
     profile: ScanProfile,
     max_files: usize,
-    total: &mut usize,
-    candidates: &mut usize,
-    skipped: &mut usize,
-    skip_reasons: &mut HashMap<&'a str, usize>,
-    files: &mut Vec<Value>,
-    truncated: &mut bool,
+    summary: &mut WalkSummary,
 ) {
     let entries = match std::fs::read_dir(dir) {
         Ok(e) => e,
@@ -452,8 +789,8 @@ fn walk_dir<'a>(
     };
 
     for entry in entries.flatten() {
-        if *total >= max_files {
-            *truncated = true;
+        if summary.total >= max_files {
+            summary.truncated = true;
             return;
         }
 
@@ -471,18 +808,7 @@ fn walk_dir<'a>(
                     continue;
                 }
             }
-            walk_dir(
-                &path,
-                root,
-                profile,
-                max_files,
-                total,
-                candidates,
-                skipped,
-                skip_reasons,
-                files,
-                truncated,
-            );
+            walk_dir(&path, root, profile, max_files, summary);
             continue;
         }
 
@@ -493,26 +819,16 @@ fn walk_dir<'a>(
         let relative = path.strip_prefix(root).unwrap_or(&path);
         let decision = classify_path(relative, false, profile);
 
-        *total += 1;
+        summary.total += 1;
 
         if decision.include {
-            *candidates += 1;
-            files.push(json!({
-                "path": relative.to_string_lossy(),
-                "is_candidate": true,
-            }));
+            summary.record_candidate(relative);
         } else {
-            *skipped += 1;
-            let reason_str = decision.reason.map(|r| r.as_str()).unwrap_or("unknown");
-            // Safety: SkipReason::as_str returns &'static str
-            let static_reason: &'static str =
-                decision.reason.map(|r| r.as_str()).unwrap_or("unknown");
-            *skip_reasons.entry(static_reason).or_insert(0) += 1;
-            files.push(json!({
-                "path": relative.to_string_lossy(),
-                "is_candidate": false,
-                "skip_reason": reason_str,
-            }));
+            let reason = decision
+                .reason
+                .map(|skip_reason| skip_reason.as_str())
+                .unwrap_or("unknown");
+            summary.record_skipped(relative, reason);
         }
     }
 }
@@ -527,11 +843,193 @@ fn handle_tool_call(params: &Value) -> Result<Value> {
 
     match tool_name {
         "scan_file" => handle_scan_file(&arguments),
-        "list_critiques" => Ok(handle_list_critiques(&arguments)),
+        "list_critiques" => handle_list_critiques(&arguments),
         "get_scan_policy" => Ok(handle_get_scan_policy(&arguments)),
         "apply_fix" => Ok(handle_apply_fix(&arguments)),
         "classify_paths" => handle_classify_paths(&arguments),
         other => Err(anyhow!("unknown tool: {}", other)),
+    }
+}
+
+#[allow(clippy::items_after_test_module)]
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_workspace(name: &str) -> PathBuf {
+        let suffix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time")
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("guardian-mcp-{name}-{suffix}"));
+        fs::create_dir_all(&dir).expect("create temp workspace");
+        dir
+    }
+
+    fn cleanup_workspace(path: &Path) {
+        let _ = fs::remove_dir_all(path);
+    }
+
+    fn parse_payload(response: Value) -> Value {
+        let text = response["content"][0]["text"]
+            .as_str()
+            .expect("mcp text payload");
+        serde_json::from_str(text).expect("json payload")
+    }
+
+    fn write_snapshot(root: &Path, raw: &str) {
+        let guardian_dir = root.join(".guardian");
+        fs::create_dir_all(&guardian_dir).expect("create guardian dir");
+        fs::write(guardian_dir.join("critiques.json"), raw).expect("write snapshot");
+    }
+
+    #[test]
+    fn list_critiques_returns_filtered_snapshot_rows() {
+        let root = temp_workspace("list-critiques-ok");
+        write_snapshot(
+            &root,
+            r#"{
+                "protocol_version": 1,
+                "critiques": [
+                    {
+                        "finding_id": "f-1",
+                        "file_path": "src/main.ts",
+                        "severity": "medium",
+                        "message": "Warn row",
+                        "line_start": 3,
+                        "line_end": 5
+                    },
+                    {
+                        "finding_id": "f-2",
+                        "file_path": "src/main.ts",
+                        "severity": "high",
+                        "message": "Critical row",
+                        "line_start": 9,
+                        "line_end": 10
+                    }
+                ]
+            }"#,
+        );
+
+        let response = handle_list_critiques(&json!({
+            "workspace_path": root.to_string_lossy(),
+            "severity": "high"
+        }))
+        .expect("tool response");
+        let payload = parse_payload(response);
+
+        assert_eq!(payload["status"], "ok");
+        assert_eq!(payload["critique_count"], 1);
+        assert_eq!(payload["critiques"][0]["finding_id"], "f-2");
+        assert_eq!(payload["critiques"][0]["severity"], "Critical");
+
+        let all_response = handle_list_critiques(&json!({
+            "workspace_path": root.to_string_lossy(),
+            "severity": "all"
+        }))
+        .expect("tool response");
+        let all_payload = parse_payload(all_response);
+
+        assert_eq!(all_payload["status"], "ok");
+        assert_eq!(all_payload["critique_count"], 2);
+        assert_eq!(all_payload["critiques"][0]["severity"], "Warning");
+        assert_eq!(all_payload["critiques"][1]["severity"], "Critical");
+
+        cleanup_workspace(&root);
+    }
+
+    #[test]
+    fn list_critiques_distinguishes_missing_snapshot() {
+        let root = temp_workspace("list-critiques-missing");
+        let response = handle_list_critiques(&json!({
+            "workspace_path": root.to_string_lossy()
+        }))
+        .expect("tool response");
+        let payload = parse_payload(response);
+
+        assert_eq!(payload["status"], "warning");
+        assert_eq!(payload["kind"], "snapshot_missing");
+        assert_eq!(payload["critique_count"], 0);
+
+        cleanup_workspace(&root);
+    }
+
+    #[test]
+    fn scan_file_returns_matching_critiques_for_requested_file() {
+        let root = temp_workspace("scan-file-ok");
+        let src_dir = root.join("src");
+        fs::create_dir_all(&src_dir).expect("create src dir");
+        let file_path = src_dir.join("main.ts");
+        fs::write(&file_path, "const value = 1;\n").expect("write source file");
+        write_snapshot(
+            &root,
+            r#"{
+                "protocol_version": 1,
+                "critiques": [
+                    {
+                        "finding_id": "f-1",
+                        "file_path": "src/main.ts",
+                        "severity": "Warning",
+                        "message": "Warn row",
+                        "line_start": 2,
+                        "line_end": 4
+                    },
+                    {
+                        "finding_id": "f-2",
+                        "file_path": "src/other.ts",
+                        "severity": "Critical",
+                        "message": "Other row"
+                    }
+                ]
+            }"#,
+        );
+
+        let response = handle_scan_file(&json!({
+            "workspace_path": root.to_string_lossy(),
+            "path": file_path.to_string_lossy(),
+            "profile": "source"
+        }))
+        .expect("tool response");
+        let payload = parse_payload(response);
+
+        assert_eq!(payload["status"], "ok");
+        assert_eq!(payload["kind"], "scan_result");
+        assert_eq!(payload["critique_count"], 1);
+        assert_eq!(payload["critiques"][0]["finding_id"], "f-1");
+        assert_eq!(
+            payload["file"]["path"],
+            canonicalize_if_exists(&file_path)
+                .to_string_lossy()
+                .to_string()
+        );
+
+        cleanup_workspace(&root);
+    }
+
+    #[test]
+    fn scan_file_returns_error_for_invalid_snapshot_json() {
+        let root = temp_workspace("scan-file-invalid-snapshot");
+        let src_dir = root.join("src");
+        fs::create_dir_all(&src_dir).expect("create src dir");
+        let file_path = src_dir.join("main.ts");
+        fs::write(&file_path, "const value = 1;\n").expect("write source file");
+        write_snapshot(&root, "not-json");
+
+        let response = handle_scan_file(&json!({
+            "workspace_path": root.to_string_lossy(),
+            "path": file_path.to_string_lossy(),
+            "profile": "source"
+        }))
+        .expect("tool response");
+        let payload = parse_payload(response);
+
+        assert_eq!(payload["status"], "error");
+        assert_eq!(payload["kind"], "snapshot_invalid");
+        assert_eq!(payload["critique_count"], 0);
+
+        cleanup_workspace(&root);
     }
 }
 

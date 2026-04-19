@@ -1,37 +1,48 @@
-# CI / PR Integration (Optional)
+# CI / PR Integration
 
-Guardian is a **desktop-first** product. Most users only need the desktop app.
+Guardian ships two complementary automation surfaces:
 
-For teams that want Guardian checks in **Pull Requests** (and optionally in the GitHub **Security** tab), we provide a small CLI called **`guardian-cli`** that is designed for CI.
+- Desktop app: interactive monitoring, Guru flows, and editor-first remediation
+- `guardian-cli`: headless scanner for PR automation, SARIF upload, and release gating
 
-## Who Needs This?
-- **Desktop-only users:** you can ignore this document.
-- **Teams using GitHub PRs:** this enables a PR summary comment + optional SARIF upload.
+## What the PR Workflow Does
 
-## What You Get
-1. **PR summary comment**
-   - Counts: files scanned, total findings, new findings, new critical
-   - Top new findings list (fast triage)
-2. **PR gate**
-   - Default: fail the workflow only if **new Critical** findings exist
-3. **SARIF upload (optional)**
-   - Findings appear under GitHub **Security / Code scanning**
+`.github/workflows/guardian-scan.yml` runs on every pull request to `main`, including dependency and lockfile changes.
 
-## Setup (GitHub Actions)
-We keep a ready-to-copy workflow template in this repo:
-- `.github/workflows/guardian-scan.yml`
+It produces:
 
-In your own repo, copy that workflow file as-is, then adjust:
+1. PR summary comment
+   - files scanned
+   - total findings
+   - new findings
+   - new critical findings
+2. PR gate
+   - default policy: block when new critical findings exist
+3. SARIF upload
+   - uploaded automatically when the token context permits it
+4. Standardized gate artifact
+   - `guardian-pr-gate-report.json`
+   - `guardian-report.json`
+   - `guardian.sarif`
+   - `guardian-run-manifest.json`
+   - `guardian-evidence.json`
+
+Artifact naming follows `guardian-scan-v<version>-<short_sha>` for release traceability.
+
+## Gate Policy
+
+- Critical findings: blocking
+- Moderate findings: tracked outside the PR gate policy unless a stricter profile is chosen
+- Restricted fork tokens: SARIF upload is skipped automatically, but the PR report artifact is still generated
+
+## Workflow Inputs You May Tune
+
 - `--scan-profile source|extended|full`
-- `--offline` (recommended for cost control) vs cloud provider mode
+- `--offline` for deterministic low-cost CI
 - `--pr-gate critical-only|new-only|off`
 
-### Notes on Cloud Providers in CI
-If you want AI-backed findings in CI:
-- Set provider/model/api key via GitHub Secrets (recommended).
-- Keep concurrency low and prefer `source` profile to control costs.
-
 ## Desktop vs CLI
-- Desktop app: real-time monitoring + Guru + reviews, optimized for interactive use.
-- `guardian-cli`: headless scanner for CI/PR automation.
+
+- Desktop app: real-time monitoring + Guru + review loops
+- `guardian-cli`: CI-safe scan surface for pull requests, release gates, and standardized artifact generation
 

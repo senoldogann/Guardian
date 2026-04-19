@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, useSyncExternalStore } from "react";
 
 type Theme = "light" | "dark" | "system";
 
@@ -19,63 +19,55 @@ function getInitialTheme(): Theme {
 }
 
 function getResolvedTheme(theme: Theme): "light" | "dark" {
+  if (typeof window === "undefined") {
+    return "light";
+  }
+
   if (theme === "system") {
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
   return theme;
 }
 
+function subscribeToSystemTheme(onStoreChange: () => void): () => void {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  const handleChange = (): void => {
+    onStoreChange();
+  };
+
+  mediaQuery.addEventListener("change", handleChange);
+
+  return (): void => {
+    mediaQuery.removeEventListener("change", handleChange);
+  };
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("light");
-  const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
-  const [mounted, setMounted] = useState(false);
+  const [theme, setThemeState] = useState<Theme>(() => getInitialTheme());
+  const systemTheme = useSyncExternalStore<"light" | "dark">(
+    subscribeToSystemTheme,
+    () => getResolvedTheme("system"),
+    () => "light"
+  );
+  const resolvedTheme: "light" | "dark" = theme === "system" ? systemTheme : theme === "dark" ? "dark" : "light";
 
-  // Initialize theme from localStorage
-  useEffect(() => {
-    const initialTheme = getInitialTheme();
-    setThemeState(initialTheme);
-    const resolved = getResolvedTheme(initialTheme);
-    setResolvedTheme(resolved);
-    
-    // Apply theme class immediately to prevent flash
-    document.documentElement.classList.remove("light", "dark");
-    document.documentElement.classList.add(resolved);
-    
-    setMounted(true);
-  }, []);
-
-  // Apply theme changes
   const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
     localStorage.setItem("theme", newTheme);
-    
-    const root = document.documentElement;
-    const resolved = getResolvedTheme(newTheme);
-    
-    root.classList.remove("light", "dark");
-    root.classList.add(resolved);
-    setResolvedTheme(resolved);
   }, []);
 
-  // Listen for system theme changes when in system mode
   useEffect(() => {
-    if (!mounted || theme !== "system") return;
+    const root = document.documentElement;
+    root.classList.remove("light", "dark");
+    root.classList.add(resolvedTheme);
+  }, [resolvedTheme]);
 
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = (e: MediaQueryListEvent) => {
-      const newTheme = e.matches ? "dark" : "light";
-      document.documentElement.classList.remove("light", "dark");
-      document.documentElement.classList.add(newTheme);
-      setResolvedTheme(newTheme);
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [theme, mounted]);
-
-  // Prevent hydration mismatch: always render same structure, just with different context values
   return (
-    <ThemeContext.Provider value={mounted ? { theme, setTheme, resolvedTheme } : { theme: "light", setTheme: () => {}, resolvedTheme: "light" }}>
+    <ThemeContext.Provider value={{ theme, setTheme, resolvedTheme }}>
       {children}
     </ThemeContext.Provider>
   );

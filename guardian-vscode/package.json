@@ -2,7 +2,7 @@
   "name": "guardian-code-governance",
   "displayName": "Guardian — AI Code Governance",
   "description": "VS Code extension for Guardian AI code governance — scan files, view critiques, and monitor code quality in real time.",
-  "version": "0.1.0",
+  "version": "1.3.0",
   "publisher": "guardian",
   "license": "MIT",
   "repository": {
@@ -55,11 +55,6 @@
           "type": "string",
           "default": "guardian-mcp",
           "description": "Path to the guardian-mcp server binary."
-        },
-        "guardian.serverUrl": {
-          "type": "string",
-          "default": "stdio",
-          "description": "Guardian MCP server connection mode. Use 'stdio' for local process or an HTTP URL for remote."
         },
         "guardian.scanProfile": {
           "type": "string",
@@ -126,15 +121,22 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "compile": "node -e \"require('node:fs').rmSync('out',{recursive:true,force:true})\" && tsc -p ./",
+    "compile:test": "node -e \"require('node:fs').rmSync('out-test',{recursive:true,force:true})\" && tsc -p ./tsconfig.test.json",
     "watch": "tsc -watch -p ./",
     "lint": "eslint src --ext ts",
-    "package": "vsce package"
+    "test": "npm run compile:test && node --test out-test/*.test.js",
+    "package": "vsce package",
+    "validate": "npm run lint && npm run test && npm run compile && npm run package"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@typescript-eslint/eslint-plugin": "^8.58.2",
+    "@typescript-eslint/parser": "^8.26.1",
     "@types/vscode": "^1.85.0",
     "@types/node": "^20.11.0",
-    "typescript": "^5.3.0",
-    "@vscode/vsce": "^2.22.0"
+    "@vscode/vsce": "^2.22.0",
+    "eslint": "^10.2.1",
+    "typescript": "^5.3.0"
   }
 }

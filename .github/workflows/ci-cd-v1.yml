@@ -1,6 +1,3 @@
-# Guardian CI/CD Pipeline
-# Uses GitHub-hosted runners (ubuntu-latest)
-
 name: 🚀 Guardian CI/CD
 
 on:
@@ -8,18 +5,39 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "**/package.json"
-      - "**/package-lock.json"
-      - "**/pnpm-lock.yaml"
-      - "**/yarn.lock"
-      - "**/bun.lockb"
-      - "**/Cargo.toml"
-      - "**/Cargo.lock"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: guardian-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22.x"
+
 jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      artifact_suffix: ${{ steps.meta.outputs.artifact_suffix }}
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: 🧾 Resolve build metadata
+        id: meta
+        run: |
+          VERSION="$(python3 -c "import json, pathlib; print(json.loads(pathlib.Path('package.json').read_text(encoding='utf-8'))['version'])")"
+          SHORT_SHA="${GITHUB_SHA::12}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "artifact_suffix=v${VERSION}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
   release-gate-ci-smoke:
+    needs: metadata
     runs-on: ubuntu-latest
 
     steps:
@@ -33,13 +51,46 @@ jobs:
         run: cargo build --release --manifest-path guardian-cli/Cargo.toml --target-dir guardian-cli/target
 
       - name: 🚦 Run Release Gate CI Smoke
+        id: smoke
+        continue-on-error: true
+        env:
+          RELEASE_GATE_SMOKE_ARTIFACT_DIR: .guardian/ci/release-gate
         run: bash scripts/ci/release_gate_ci_smoke.sh
 
-  test-and-build:
+      - name: 🧾 Write release gate report
+        if: always()
+        run: |
+          mkdir -p .guardian/ci/release-gate
+          report_status="pass"
+          command_status="pass"
+          if [[ "${{ steps.smoke.outcome }}" != "success" ]]; then
+            report_status="fail"
+            command_status="fail"
+          fi
+
+          python3 scripts/ci/write_gate_report.py \
+            --report-type release-gate \
+            --status "$report_status" \
+            --policy "strict=block,override=approved-only" \
+            --output .guardian/ci/release-gate/release-gate-ci-report.json \
+            --command release-gate-ci-smoke "$command_status" .guardian/ci/release-gate \
+            --note "Release gate smoke validates strict block, warn mode, and approved override flows."
+
+      - name: 📤 Upload release gate artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-gate-${{ needs.metadata.outputs.artifact_suffix }}
+          path: .guardian/ci/release-gate/
+          retention-days: 7
+
+      - name: ❌ Fail on smoke regression
+        if: steps.smoke.outcome != 'success'
+        run: exit 1
+
+  root-quality:
+    needs: metadata
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [22.x]
 
     steps:
       - name: 📥 Checkout Repository
@@ -47,29 +98,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🐧 Install Linux System Dependencies (Tauri/GTK)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            pkg-config \
-            libssl-dev \
-            libglib2.0-dev \
-            libgtk-3-dev \
-            librsvg2-dev \
-            patchelf \
-            libayatana-appindicator3-dev
-
-          # Ubuntu version compatibility for WebKit/JavaScriptCore/Soup
-          if ! sudo apt-get install -y libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev libsoup-3.0-dev; then
-            sudo apt-get install -y libwebkit2gtk-4.0-dev libjavascriptcoregtk-4.0-dev libsoup2.4-dev
-          fi
-
-      - name: 🟢 Setup Node.js ${{ matrix.node-version }}
+      - name: 🟢 Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: "npm"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: 📦 Install Root Dependencies
         run: npm ci
@@ -80,36 +114,30 @@ jobs:
       - name: 🧹 Check Formatting
         run: npm run format:check
 
-      - name: 🔎 Run Lint
+      - name: 🔎 Run Root Lint
         run: npm run lint
 
-      - name: 🧪 Run Unit Tests
+      - name: 🧪 Run Root Tests
         run: npm run test
 
-      - name: 📊 Generate Coverage Report + Gate
+      - name: 📊 Run Coverage + Gate
         run: |
           npm run test:coverage
           npm run coverage:gate
 
-      - name: 🔨 Build Desktop App
+      - name: 🔨 Build Desktop Frontend
         run: npm run build
 
-      - name: 🦀 Check Rust Code
-        run: cd src-tauri && cargo check
-
-      - name: 📤 Upload Build Artifacts
+      - name: 📤 Upload root build artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: guardian-build-v1.0.0
-          path: |
-            dist/
-            src-tauri/target/
+          name: guardian-root-build-${{ needs.metadata.outputs.artifact_suffix }}
+          path: dist/
           retention-days: 7
 
-  build-tauri:
+  rust-workspace-quality:
+    needs: metadata
     runs-on: ubuntu-latest
-    needs: test-and-build
-    if: github.ref == 'refs/heads/main'
 
     steps:
       - name: 📥 Checkout Repository
@@ -128,7 +156,249 @@ jobs:
             patchelf \
             libayatana-appindicator3-dev
 
-          # Ubuntu version compatibility for WebKit/JavaScriptCore/Soup
+          if ! sudo apt-get install -y libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev libsoup-3.0-dev; then
+            sudo apt-get install -y libwebkit2gtk-4.0-dev libjavascriptcoregtk-4.0-dev libsoup2.4-dev
+          fi
+
+      - name: 🦀 Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: 🧹 Check Rust Formatting
+        run: cargo fmt --all --check
+
+      - name: 🔎 Run Rust Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: 🧪 Run Rust Check
+        run: cargo check --workspace
+
+      - name: ✅ Run Rust Tests
+        run: cargo test --workspace
+
+  website-quality:
+    needs: metadata
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: 📦 Install Website Dependencies
+        run: cd website && npm ci
+
+      - name: 🧹 Run Website Lint
+        run: cd website && npm run lint
+
+      - name: 🧭 Website Copy Consistency Gate
+        run: cd website && npm run copy:check
+
+      - name: 🧪 Run Website Tests
+        run: cd website && npm run test:run
+
+      - name: 📊 Run Website Coverage
+        run: cd website && npm run test:coverage
+
+      - name: 🔨 Build Website
+        run: cd website && npm run build
+        env:
+          GITHUB_RELEASE_OWNER: ${{ secrets.GITHUB_RELEASE_OWNER }}
+          GITHUB_RELEASE_REPO: ${{ secrets.GITHUB_RELEASE_REPO }}
+          GITHUB_PUBLIC_READ_TOKEN: ${{ secrets.GITHUB_PUBLIC_READ_TOKEN }}
+
+      - name: 📤 Upload website build artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: guardian-website-${{ needs.metadata.outputs.artifact_suffix }}
+          path: website/.next/
+          retention-days: 7
+
+  guardian-vscode-quality:
+    needs: metadata
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: guardian-vscode/package-lock.json
+
+      - name: 📦 Install guardian-vscode dependencies
+        run: cd guardian-vscode && npm ci
+
+      - name: ✅ Validate guardian-vscode
+        run: cd guardian-vscode && npm run validate
+
+      - name: 📤 Upload guardian-vscode artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: guardian-vscode-${{ needs.metadata.outputs.artifact_suffix }}
+          path: guardian-vscode/*.vsix
+          retention-days: 7
+
+  security-scan:
+    needs: metadata
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            website/package-lock.json
+            guardian-vscode/package-lock.json
+
+      - name: 📦 Install JavaScript dependencies
+        run: |
+          npm ci
+          cd website && npm ci
+          cd ../guardian-vscode && npm ci
+
+      - name: 🦀 Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: 🛡️ Install cargo-audit
+        run: cargo install cargo-audit --locked
+
+      - name: 📁 Prepare security artifact directory
+        run: mkdir -p .guardian/ci/security
+
+      - name: 🔒 NPM Audit - Critical (Root)
+        id: npm_root_critical
+        continue-on-error: true
+        run: npm audit --audit-level=critical --json > .guardian/ci/security/npm-root-critical.json
+
+      - name: 🔒 NPM Audit - Moderate (Root)
+        id: npm_root_moderate
+        continue-on-error: true
+        run: npm audit --audit-level=moderate --json > .guardian/ci/security/npm-root-moderate.json
+
+      - name: 🔒 NPM Audit - Critical (Website)
+        id: npm_website_critical
+        continue-on-error: true
+        run: cd website && npm audit --audit-level=critical --json > ../.guardian/ci/security/npm-website-critical.json
+
+      - name: 🔒 NPM Audit - Moderate (Website)
+        id: npm_website_moderate
+        continue-on-error: true
+        run: cd website && npm audit --audit-level=moderate --json > ../.guardian/ci/security/npm-website-moderate.json
+
+      - name: 🔒 NPM Audit - Critical (guardian-vscode)
+        id: npm_vscode_critical
+        continue-on-error: true
+        run: cd guardian-vscode && npm audit --audit-level=critical --json > ../.guardian/ci/security/npm-guardian-vscode-critical.json
+
+      - name: 🔒 NPM Audit - Moderate (guardian-vscode)
+        id: npm_vscode_moderate
+        continue-on-error: true
+        run: cd guardian-vscode && npm audit --audit-level=moderate --json > ../.guardian/ci/security/npm-guardian-vscode-moderate.json
+
+      - name: 🦀 Cargo Audit (Workspace)
+        id: cargo_audit
+        continue-on-error: true
+        run: cargo audit --json > .guardian/ci/security/cargo-audit.json
+
+      - name: 🧾 Write security gate report
+        if: always()
+        run: |
+          root_critical_status="pass"
+          root_moderate_status="pass"
+          website_critical_status="pass"
+          website_moderate_status="pass"
+          vscode_critical_status="pass"
+          vscode_moderate_status="pass"
+          cargo_audit_status="pass"
+
+          if [[ "${{ steps.npm_root_critical.outcome }}" != "success" ]]; then root_critical_status="fail"; fi
+          if [[ "${{ steps.npm_root_moderate.outcome }}" != "success" ]]; then root_moderate_status="warning"; fi
+          if [[ "${{ steps.npm_website_critical.outcome }}" != "success" ]]; then website_critical_status="fail"; fi
+          if [[ "${{ steps.npm_website_moderate.outcome }}" != "success" ]]; then website_moderate_status="warning"; fi
+          if [[ "${{ steps.npm_vscode_critical.outcome }}" != "success" ]]; then vscode_critical_status="fail"; fi
+          if [[ "${{ steps.npm_vscode_moderate.outcome }}" != "success" ]]; then vscode_moderate_status="warning"; fi
+          if [[ "${{ steps.cargo_audit.outcome }}" != "success" ]]; then cargo_audit_status="fail"; fi
+
+          report_status="pass"
+          if [[ "$root_critical_status" == "fail" || "$website_critical_status" == "fail" || "$vscode_critical_status" == "fail" || "$cargo_audit_status" == "fail" ]]; then
+            report_status="fail"
+          elif [[ "$root_moderate_status" == "warning" || "$website_moderate_status" == "warning" || "$vscode_moderate_status" == "warning" ]]; then
+            report_status="warning"
+          fi
+
+          python3 scripts/ci/write_gate_report.py \
+            --report-type security-gate \
+            --status "$report_status" \
+            --policy "critical=block,moderate=track-14d,rust-advisory=block" \
+            --output .guardian/ci/security/security-gate-report.json \
+            --command npm-root-critical "$root_critical_status" .guardian/ci/security/npm-root-critical.json \
+            --command npm-root-moderate "$root_moderate_status" .guardian/ci/security/npm-root-moderate.json \
+            --command npm-website-critical "$website_critical_status" .guardian/ci/security/npm-website-critical.json \
+            --command npm-website-moderate "$website_moderate_status" .guardian/ci/security/npm-website-moderate.json \
+            --command npm-guardian-vscode-critical "$vscode_critical_status" .guardian/ci/security/npm-guardian-vscode-critical.json \
+            --command npm-guardian-vscode-moderate "$vscode_moderate_status" .guardian/ci/security/npm-guardian-vscode-moderate.json \
+            --command cargo-audit "$cargo_audit_status" .guardian/ci/security/cargo-audit.json \
+            --note "Critical findings block merges and releases." \
+            --note "Moderate npm findings stay non-blocking but must be remediated within 14 days."
+
+      - name: 📤 Upload security artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: security-gate-${{ needs.metadata.outputs.artifact_suffix }}
+          path: .guardian/ci/security/
+          retention-days: 7
+
+      - name: ❌ Fail on blocking security findings
+        if: steps.npm_root_critical.outcome != 'success' || steps.npm_website_critical.outcome != 'success' || steps.npm_vscode_critical.outcome != 'success' || steps.cargo_audit.outcome != 'success'
+        run: exit 1
+
+  build-tauri:
+    needs:
+      - metadata
+      - release-gate-ci-smoke
+      - root-quality
+      - rust-workspace-quality
+      - website-quality
+      - guardian-vscode-quality
+      - security-scan
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: 🐧 Install Linux System Dependencies (Tauri/GTK)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            pkg-config \
+            libssl-dev \
+            libglib2.0-dev \
+            libgtk-3-dev \
+            librsvg2-dev \
+            patchelf \
+            libayatana-appindicator3-dev
+
           if ! sudo apt-get install -y libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev libsoup-3.0-dev; then
             sudo apt-get install -y libwebkit2gtk-4.0-dev libjavascriptcoregtk-4.0-dev libsoup2.4-dev
           fi
@@ -136,8 +406,9 @@ jobs:
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "22.x"
-          cache: "npm"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: 🦀 Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -152,69 +423,20 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
-      - name: 📤 Upload Tauri Artifacts
+      - name: 📤 Upload Tauri artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: guardian-tauri-v1.0.0
-          path: |
-            src-tauri/target/release/bundle/
+          name: guardian-tauri-${{ needs.metadata.outputs.artifact_suffix }}
+          path: src-tauri/target/release/bundle/
           retention-days: 30
 
-  website-build:
-    runs-on: ubuntu-latest
-    needs: test-and-build
-
-    steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v6
-
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22.x"
-          cache: "npm"
-
-      - name: 📦 Install Website Dependencies
-        run: |
-          cd website
-          npm ci
-
-      - name: 🧭 Website Copy Consistency Gate
-        run: |
-          cd website
-          npm run copy:check
-
-      - name: 🧪 Run Website Tests
-        run: |
-          cd website
-          npm run test:run
-
-      - name: 📊 Website Coverage
-        run: |
-          cd website
-          npm run test:coverage
-        continue-on-error: true
-
-      - name: 🔨 Build Website
-        run: |
-          cd website
-          npm run build
-        env:
-          GITHUB_RELEASE_OWNER: ${{ secrets.GITHUB_RELEASE_OWNER }}
-          GITHUB_RELEASE_REPO: ${{ secrets.GITHUB_RELEASE_REPO }}
-          GITHUB_PUBLIC_READ_TOKEN: ${{ secrets.GITHUB_PUBLIC_READ_TOKEN }}
-
-      - name: 📤 Upload Website Build
-        uses: actions/upload-artifact@v6
-        with:
-          name: guardian-website-v1.0.0
-          path: website/.next/
-          retention-days: 7
-
   e2e-tests:
-    runs-on: ubuntu-latest
-    needs: [test-and-build, website-build]
+    needs:
+      - metadata
+      - root-quality
+      - website-quality
     if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
 
     steps:
       - name: 📥 Checkout Repository
@@ -223,8 +445,11 @@ jobs:
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: "22.x"
-          cache: "npm"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            website/package-lock.json
 
       - name: 📦 Install Dependencies
         run: |
@@ -240,81 +465,14 @@ jobs:
         run: npm run test:e2e
 
       - name: 🌐 Run E2E Tests (Website)
-        run: |
-          cd website
-          npm run test:e2e
+        run: cd website && npm run test:e2e
 
-      - name: 📤 Upload Test Results
-        uses: actions/upload-artifact@v6
+      - name: 📤 Upload E2E artifacts
         if: always()
+        uses: actions/upload-artifact@v6
         with:
-          name: playwright-report-v1.0.0
+          name: playwright-report-${{ needs.metadata.outputs.artifact_suffix }}
           path: |
             playwright-report/
             website/playwright-report/
           retention-days: 7
-
-  security-scan:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v6
-
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22.x"
-
-      - name: 🔒 NPM Audit - Critical (Root)
-        run: npm audit --audit-level=critical
-
-      - name: 🔒 NPM Audit - Moderate (Root)
-        run: npm audit --audit-level=moderate
-        continue-on-error: true
-
-      - name: 🔒 NPM Audit - Critical (Website)
-        run: |
-          cd website
-          npm audit --audit-level=critical
-
-      - name: 🔒 NPM Audit - Moderate (Website)
-        run: |
-          cd website
-          npm audit --audit-level=moderate
-        continue-on-error: true
-
-      - name: 🐧 Install Linux System Dependencies (Tauri/GTK)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            pkg-config \
-            libssl-dev \
-            libglib2.0-dev \
-            libgtk-3-dev \
-            librsvg2-dev \
-            patchelf \
-            libayatana-appindicator3-dev
-
-          # Ubuntu version compatibility for WebKit/JavaScriptCore/Soup
-          if ! sudo apt-get install -y libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev libsoup-3.0-dev; then
-            sudo apt-get install -y libwebkit2gtk-4.0-dev libjavascriptcoregtk-4.0-dev libsoup2.4-dev
-          fi
-
-      - name: 🦀 Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: 🦀 Check Rust Formatting
-        run: cd src-tauri && cargo fmt --check
-
-      - name: 🦀 Run Clippy Lints
-        run: cd src-tauri && cargo clippy -- -D warnings
-
-      - name: 🦀 Cargo Audit (Tauri)
-        run: |
-          cd src-tauri
-          cargo audit 2>&1 || true
-        continue-on-error: true

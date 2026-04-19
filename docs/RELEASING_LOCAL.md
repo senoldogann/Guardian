@@ -16,6 +16,8 @@ scripts/release_all_local.sh
 
 This script:
 - auto bumps/syncs versions (default: patch)
+- syncs `guardian-vscode/package.json` and `guardian-vscode/package-lock.json`
+- syncs `guardian-mcp/Cargo.toml`
 - runs `npm run verify`
 - runs Guardian release gate (`guardian-cli scan` + `guardian.policy.yaml`)
 - builds the macOS bundle(s)
@@ -68,13 +70,13 @@ cd Guardian
 npm run verify
 ```
 
-Optional security audit (recommended before every release):
-
-```bash
-cd Guardian/src-tauri
-cargo install cargo-audit --locked
-cargo audit
-```
+`npm run verify` now covers:
+- root app format, lint, tests, coverage gate, and build
+- `guardian-vscode` install + `npm run validate`
+- `website` install + lint + copy gate + tests + coverage + build
+- Rust workspace `fmt`, `clippy`, `check`, and `test`
+- critical npm audits for root, website, and `guardian-vscode`
+- `cargo audit` (auto-installed if missing)
 
 ## 2) Build Artifacts Locally
 

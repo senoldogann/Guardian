@@ -3,7 +3,7 @@
 ### Gelişmiş Mimari Yönetişim ve Kod Güvenliği Protokolü
 
 [![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](./CHANGELOG.md)
-[![CI/CD](https://img.shields.io/badge/CI%2FCD-Self--Hosted%20Runner-success.svg)](./scripts/setup-runner.sh)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-success.svg)](./.github/workflows/ci-cd-v1.yml)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Guardian is a sophisticated development supervisor engineered to maintain system integrity through real-time architectural oversight and automated remediation. It bridges the gap between static analysis and active governance.
@@ -24,10 +24,11 @@ Guardian, gerçek zamanlı mimari denetim ve otomatik iyileştirme yoluyla siste
 ## 🆕 What's New in v1.3.0
 
 ### Major Changes
-- ✅ **Self-Hosted CI/CD**: Zero GitHub Actions minutes with local runner
+- ✅ **GitHub-Hosted Quality Matrix**: Root app, Rust workspace, website, and `guardian-vscode` now gate independently
 - ✅ **Production Ready**: Stable 1.3.0 release
 - ✅ **Enhanced Security**: Improved CSP and authentication flow
 - ✅ **Website v1.3.0**: Public website with download/changelog/docs
+- ✅ **Supply-Chain Hardening**: Dependency and lockfile changes now trigger the full quality and security pipeline
 
 ---
 
@@ -70,62 +71,42 @@ cd website && npm run dev
 
 ---
 
-## 🔧 CI/CD Setup (Self-Hosted)
+## 🔧 CI/CD Setup (GitHub Actions)
 
-We use **self-hosted GitHub Actions runner** to avoid minutes limits. Setup in 3 steps:
-
-### 1. Run Setup Script
-```bash
-bash scripts/setup-runner.sh
-```
-
-### 2. Configure Runner
-```bash
-cd ~/github-runner-guardian
-./config.sh --url https://github.com/senoldogann/Guardian --token <GITHUB_TOKEN>
-```
-
-### 3. Start Runner
-```bash
-# Manual run
-./run.sh
-
-# Or install as service (recommended)
-./svc.sh install
-./svc.sh start
-```
-
-**✅ Your CI/CD is now live!**
+Guardian now uses **GitHub-hosted runners** for the default product pipeline. No local runner setup is required to validate pull requests or release candidates.
 
 ---
 
 ## 📊 CI/CD Pipeline
 
-Our zero-cost pipeline runs on your local machine:
+The main workflow lives in `.github/workflows/ci-cd-v1.yml` and produces versioned artifacts using `v<version>-<short_sha>` naming.
 
 | Stage | Description | Trigger |
 |-------|-------------|---------|
-| **Test & Build** | Unit tests, coverage, build | Every push |
-| **Tauri Build** | Desktop app compilation | Main branch |
-| **Website Build** | Next.js static generation | Main branch |
-| **E2E Tests** | Playwright browser tests | PR only |
-| **Security Scan** | npm audit, cargo audit | Every push |
+| **Root Quality** | Format, lint, test, coverage gate, desktop frontend build | Push + PR |
+| **Rust Workspace Quality** | `cargo fmt`, `clippy`, `check`, `test` across all workspace crates | Push + PR |
+| **Website Quality** | Lint, copy gate, tests, coverage, Next.js build | Push + PR |
+| **guardian-vscode Quality** | Lint, unit tests, compile, package `.vsix` | Push + PR |
+| **Security Gate** | Critical npm audits block, moderate npm audits tracked, cargo audit blocks | Push + PR |
+| **Release Gate Smoke** | Validates strict/warn/override release policy behavior | Push + PR |
+| **Tauri Build** | Signed desktop bundle build on `main` after all gates pass | `main` only |
+| **E2E Tests** | Playwright browser tests for desktop + website | PR only |
 
-**Workflow file:** `.github/workflows/ci-cd-v1.yml`
+The PR-specific scan workflow lives in `.github/workflows/guardian-scan.yml` and emits:
+- PR summary comment
+- SARIF upload when token context allows it
+- `guardian-pr-gate-report.json` in the scan artifact bundle
 
 ---
 
 ## 🧪 Testing
 
 ```bash
-# Unit tests
-npm run test
+# Full local release-grade verification
+npm run verify
 
-# Coverage
-npm run test:coverage
-
-# E2E tests
-npm run test:e2e
+# VS Code extension validation only
+cd guardian-vscode && npm run validate
 ```
 
 ---

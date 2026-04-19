@@ -3,14 +3,6 @@ name: "Guardian Scan (PR Summary)"
 on:
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "**/package.json"
-      - "**/package-lock.json"
-      - "**/pnpm-lock.yaml"
-      - "**/yarn.lock"
-      - "**/bun.lockb"
-      - "**/Cargo.toml"
-      - "**/Cargo.lock"
   workflow_dispatch:
 
 permissions:
@@ -27,6 +19,13 @@ jobs:
     steps:
       - name: "Checkout"
         uses: actions/checkout@v6
+
+      - name: "Resolve artifact suffix"
+        id: meta
+        run: |
+          VERSION="$(python3 -c "import json, pathlib; print(json.loads(pathlib.Path('package.json').read_text(encoding='utf-8'))['version'])")"
+          SHORT_SHA="${GITHUB_SHA::12}"
+          echo "artifact_suffix=v${VERSION}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: "Prepare runtime artifact paths"
         run: |
@@ -66,7 +65,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v4
         continue-on-error: true
         with:
-          sarif_file: ${{ env.GUARDIAN_SARIF }}
+          sarif_file: ${{ runner.temp }}/guardian.sarif
 
       - name: "Skip SARIF upload for restricted PR token"
         if: github.event_name == 'pull_request' && (github.actor == 'dependabot[bot]' || (github.event.pull_request.head.repo.fork == true && github.event.pull_request.head.repo.full_name != github.repository))
@@ -101,22 +100,59 @@ jobs:
       - name: "Collect artifacts"
         if: always()
         run: |
+          set -euo pipefail
           mkdir -p .guardian/ci
-          cp -f "$GUARDIAN_REPORT_JSON" .guardian/ci/guardian-report.json || true
-          cp -f "$GUARDIAN_SARIF" .guardian/ci/guardian.sarif || true
-          cp -f "$GUARDIAN_MANIFEST" .guardian/ci/guardian-run-manifest.json || true
-          cp -f "$GUARDIAN_EVIDENCE" .guardian/ci/guardian-evidence.json || true
+
+          for mapping in \
+            "$GUARDIAN_REPORT_JSON:.guardian/ci/guardian-report.json" \
+            "$GUARDIAN_MANIFEST:.guardian/ci/guardian-run-manifest.json" \
+            "$GUARDIAN_EVIDENCE:.guardian/ci/guardian-evidence.json"; do
+            src="${mapping%%:*}"
+            dest="${mapping##*:}"
+            if [[ ! -f "$src" ]]; then
+              echo "::error::Expected Guardian scan artifact missing: $src"
+              exit 1
+            fi
+            cp -f "$src" "$dest"
+          done
+
+          if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+            if [[ ! -f "$GUARDIAN_SARIF" ]]; then
+              echo "::error::Expected Guardian SARIF artifact missing: $GUARDIAN_SARIF"
+              exit 1
+            fi
+            cp -f "$GUARDIAN_SARIF" .guardian/ci/guardian.sarif
+          fi
+
+      - name: "Write PR gate report"
+        if: always()
+        run: |
+          report_status="pass"
+          command_status="pass"
+          if [[ "${{ steps.scan.outputs.exit_code }}" != "0" ]]; then
+            report_status="fail"
+            command_status="fail"
+          fi
+
+          python3 scripts/ci/write_gate_report.py \
+            --report-type pr-gate \
+            --status "$report_status" \
+            --policy "critical=block,moderate=track-14d" \
+            --output .guardian/ci/guardian-pr-gate-report.json \
+            --command guardian-cli-pr-gate "$command_status" .guardian/ci/guardian-report.json \
+            --note "SARIF upload can be skipped automatically for restricted PR token contexts."
 
       - name: "Upload scan artifacts"
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: guardian-scan
+          name: guardian-scan-${{ steps.meta.outputs.artifact_suffix }}
           path: |
             .guardian/ci/guardian-report.json
             .guardian/ci/guardian.sarif
             .guardian/ci/guardian-run-manifest.json
             .guardian/ci/guardian-evidence.json
+            .guardian/ci/guardian-pr-gate-report.json
             guardian-pr-comment.md
           retention-days: 7
 

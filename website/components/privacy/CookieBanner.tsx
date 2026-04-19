@@ -8,9 +8,11 @@ import { useCookieConsent } from "@/lib/cookie-consent";
 import { Button } from "@/components/ui/button";
 import { CookieSettingsModal } from "./CookieSettingsModal";
 import { withLocale } from "@/lib/locale";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export function CookieBanner() {
     const { showBanner, acceptAll, openSettings } = useCookieConsent();
+    const hydrated = useHydrated();
     const pathname = usePathname() || "/en";
     const locale = pathname.startsWith("/tr") ? "tr" : "en";
     const privacyHref = withLocale(locale, "/privacy-policy");
@@ -34,7 +36,7 @@ export function CookieBanner() {
     return (
         <>
             <AnimatePresence>
-                {showBanner && (
+                {hydrated && showBanner && (
                     <motion.div
                         initial={{ y: 100, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}

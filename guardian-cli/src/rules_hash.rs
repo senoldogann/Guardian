@@ -22,7 +22,7 @@ pub fn get_rules_fingerprint(workspace_root: &Path) -> String {
             continue;
         }
         let path = entry.into_path();
-        if !path.extension().is_some_and(|ext| ext == "md") {
+        if path.extension().is_none_or(|ext| ext != "md") {
             continue;
         }
         let rel = path.strip_prefix(&rules_dir).unwrap_or(&path);

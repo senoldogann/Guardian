@@ -14,6 +14,7 @@ VS Code extension that connects to the [Guardian](https://github.com/senoldogann
 - **Language support** — TypeScript, JavaScript, Rust, Python, Go
 - **Configurable severity filter** — show only findings above a chosen threshold
 - **MCP stdio transport** — communicates with `guardian-mcp` over JSON-RPC 2.0
+- **Explicit failure handling** — empty results, snapshot warnings, parse failures, and transport failures surface as different editor states
 
 ## Prerequisites
 
@@ -28,7 +29,7 @@ VS Code extension that connects to the [Guardian](https://github.com/senoldogann
 ```bash
 cd guardian-vscode
 npm install
-npm run compile
+npm run validate
 ```
 
 To run in development mode, press **F5** in VS Code with this folder open — it will launch an Extension Development Host.
@@ -38,7 +39,6 @@ To run in development mode, press **F5** in VS Code with this folder open — it
 | Setting | Default | Description |
 |---|---|---|
 | `guardian.serverPath` | `guardian-mcp` | Path to the `guardian-mcp` binary |
-| `guardian.serverUrl` | `stdio` | Connection mode (`stdio` for local, or an HTTP URL) |
 | `guardian.scanProfile` | `source` | Scan profile: `source`, `extended`, or `full` |
 | `guardian.autoScanOnSave` | `false` | Automatically scan files when saved |
 | `guardian.severityFilter` | `low` | Minimum severity shown in diagnostics |
@@ -50,19 +50,26 @@ guardian-vscode/
 ├── src/
 │   ├── extension.ts          # Activate/deactivate, command registration
 │   ├── guardianClient.ts     # MCP JSON-RPC client (stdio transport)
-│   └── diagnostics.ts        # VS Code diagnostic provider
+│   ├── resultParsers.ts      # Snapshot-backed MCP payload parsing
+│   ├── feedback.ts           # Notification planning for domain vs client errors
+│   ├── diagnostics.ts        # VS Code diagnostic provider
+│   └── models.ts             # Shared result and critique models
 ├── package.json               # Extension manifest
 ├── tsconfig.json              # TypeScript configuration
+├── tsconfig.test.json         # Test compilation target
+├── eslint.config.mjs          # Local lint configuration
 └── .vscodeignore              # Packaging ignore patterns
 ```
 
-The extension spawns `guardian-mcp` as a child process and communicates via newline-delimited JSON-RPC 2.0 over stdin/stdout — the same protocol used by MCP (Model Context Protocol).
+The extension currently supports only local `stdio` transport. It spawns `guardian-mcp` as a child process and communicates via newline-delimited JSON-RPC 2.0 over stdin/stdout. `guardian-mcp` returns snapshot-backed critique payloads, and the extension keeps domain warnings separate from parse and transport failures.
 
 ## Development
 
 ```bash
 npm run watch   # Recompile on changes
 npm run lint    # Run ESLint
+npm run test    # Run parser + feedback unit tests
+npm run validate # Lint + test + compile + package
 npm run package # Build .vsix for distribution
 ```
 

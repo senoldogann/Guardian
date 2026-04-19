@@ -46,16 +46,20 @@ jobs:
           expected="${expected#v}"
 
           pkg_version="$(node -p "require('./package.json').version")"
+          vscode_version="$(node -p "require('./guardian-vscode/package.json').version")"
           website_version="$(node -p "require('./website/package.json').version")"
           tauri_version="$(node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json','utf8'));console.log(j.version||'')")"
           cargo_version="$(grep -E '^version[[:space:]]*=[[:space:]]*\"' src-tauri/Cargo.toml | head -n1 | sed -E 's/.*\"([^\"]+)\".*/\1/')"
+          mcp_version="$(grep -E '^version[[:space:]]*=[[:space:]]*"' guardian-mcp/Cargo.toml | head -n1 | sed -E 's/.*"([^"]+)".*/\1/')"
 
-          if [[ "$pkg_version" != "$expected" || "$website_version" != "$expected" || "$tauri_version" != "$expected" || "$cargo_version" != "$expected" ]]; then
+          if [[ "$pkg_version" != "$expected" || "$vscode_version" != "$expected" || "$website_version" != "$expected" || "$tauri_version" != "$expected" || "$cargo_version" != "$expected" || "$mcp_version" != "$expected" ]]; then
             echo "Release version mismatch. Tag: v$expected"
             echo "package.json: $pkg_version"
+            echo "guardian-vscode/package.json: $vscode_version"
             echo "website/package.json: $website_version"
             echo "src-tauri/tauri.conf.json: $tauri_version"
             echo "src-tauri/Cargo.toml: $cargo_version"
+            echo "guardian-mcp/Cargo.toml: $mcp_version"
             echo "Run: bash scripts/bump_version.sh $expected"
             exit 1
           fi
@@ -369,6 +373,7 @@ jobs:
   publish-distribution:
     runs-on: ubuntu-latest
     needs: [release-gate, build-windows, build-macos]
+    if: ${{ always() && needs.release-gate.result == 'success' && (inputs.release_target == 'macos' || needs.build-windows.result == 'success') && (inputs.release_target == 'windows' || needs.build-macos.result == 'success') }}
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v6

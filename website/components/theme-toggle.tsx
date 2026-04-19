@@ -4,8 +4,8 @@ import { Moon, Sun, Monitor } from "lucide-react";
 import { useTheme } from "./theme-provider";
 import { trackThemeToggle } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
 import type { SiteDictionary } from "@/lib/i18n";
+import { useHydrated } from "@/lib/use-hydrated";
 
 interface ThemeToggleProps {
   className?: string;
@@ -14,11 +14,7 @@ interface ThemeToggleProps {
 
 export function ThemeToggle({ className, dict }: ThemeToggleProps) {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useHydrated();
 
   const themes: { value: "light" | "dark" | "system"; icon: React.ReactNode; label: string }[] = [
     { value: "light", icon: <Sun className="w-4 h-4" aria-hidden="true" />, label: dict.theme.light },

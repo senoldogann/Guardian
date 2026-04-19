@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Shield, X } from "lucide-react";
 import { useCookieConsent } from "@/lib/cookie-consent";
@@ -9,17 +8,9 @@ import { Switch } from "@/components/ui/switch";
 
 export function CookieSettingsModal() {
     const { isSettingsOpen, closeSettings, preferences, savePreferences, resetConsent, hasConsented } = useCookieConsent();
-    const [localPrefs, setLocalPrefs] = useState(preferences);
-
-    // Sync local state when open
-    useEffect(() => {
-        if (isSettingsOpen) {
-            setLocalPrefs(preferences);
-        }
-    }, [isSettingsOpen, preferences]);
 
     const handleSave = () => {
-        savePreferences(localPrefs);
+        savePreferences(preferences);
         closeSettings();
     };
 

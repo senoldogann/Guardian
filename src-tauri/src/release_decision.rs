@@ -679,13 +679,13 @@ gate:
 
         let desktop =
             get_release_decision(root.to_string_lossy().as_ref()).expect("desktop decision");
-        assert_eq!(desktop.ai_heavy_change, true);
-        assert_eq!(desktop.requires_human_approval, true);
+        assert!(desktop.ai_heavy_change);
+        assert!(desktop.requires_human_approval);
         assert_eq!(desktop.decision, ReleaseDecision::BlockUntilApproved);
 
         let cli = run_cli_decision(root, None, None);
-        assert_eq!(cli.ai_heavy_change, true);
-        assert_eq!(cli.requires_human_approval, true);
+        assert!(cli.ai_heavy_change);
+        assert!(cli.requires_human_approval);
         assert_eq!(cli.release_decision, ReleaseDecision::BlockUntilApproved);
         assert_eq!(cli.exit_code, 1);
     }

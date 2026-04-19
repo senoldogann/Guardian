@@ -11,18 +11,12 @@ function LinkedInIcon({ className }: { className?: string }) {
         </svg>
     );
 }
-import { useState, useEffect } from "react";
 import type { Locale } from "../lib/locale";
 import { withLocale } from "../lib/locale";
 import type { SiteDictionary } from "../lib/i18n";
 
 export function SiteFooter({ dict, locale }: { dict: SiteDictionary; locale: Locale }) {
-    const [currentYear, setCurrentYear] = useState<number | null>(null);
-
-    // Get year on client-side only to avoid hydration mismatch
-    useEffect(() => {
-        setCurrentYear(new Date().getFullYear());
-    }, []);
+    const currentYear = new Date().getFullYear();
 
     const footerLinks = {
         product: [
@@ -138,8 +132,8 @@ export function SiteFooter({ dict, locale }: { dict: SiteDictionary; locale: Loc
 
                 {/* Bottom Bar */}
                 <div className="py-6 border-t border-black/5 dark:border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <p className="text-sm text-zinc-500 dark:text-zinc-600" suppressHydrationWarning>
-                        &copy; {currentYear || "2026"} Guardian Project. {dict.footer.rights}
+                    <p className="text-sm text-zinc-500 dark:text-zinc-600">
+                        &copy; {currentYear} Guardian Project. {dict.footer.rights}
                     </p>
 
                     {/* Designed & Developed by Credit */}

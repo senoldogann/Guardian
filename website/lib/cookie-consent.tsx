@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 
 export interface CookiePreferences {
     necessary: boolean;
@@ -27,41 +27,65 @@ const DEFAULT_PREFERENCES: CookiePreferences = {
     necessary: true,
 };
 
-export function CookieConsentProvider({ children }: { children: React.ReactNode }) {
-    const [preferences, setPreferences] = useState<CookiePreferences>(DEFAULT_PREFERENCES);
-    const [showBanner, setShowBanner] = useState(false);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [hasConsented, setHasConsented] = useState(false);
+type CookieConsentState = {
+    hasConsented: boolean;
+    isSettingsOpen: boolean;
+    preferences: CookiePreferences;
+    showBanner: boolean;
+};
 
-    useEffect(() => {
-        // Check for existing consent
-        const stored = localStorage.getItem(COOKIE_KEY);
-        if (stored) {
-            try {
-                const parsed = JSON.parse(stored);
-                setPreferences({ ...DEFAULT_PREFERENCES, ...parsed, necessary: true });
-                setShowBanner(false);
-                setHasConsented(true);
-            } catch {
-                // Invalid JSON, treat as no consent
-                setShowBanner(true);
-                setHasConsented(false);
-            }
-        } else {
-            // No consent found, show banner
-            setShowBanner(true);
-            setHasConsented(false);
-        }
-    }, []);
+function readStoredConsentState(): CookieConsentState {
+    if (typeof window === "undefined") {
+        return {
+            hasConsented: false,
+            isSettingsOpen: false,
+            preferences: DEFAULT_PREFERENCES,
+            showBanner: false,
+        };
+    }
+
+    const stored = localStorage.getItem(COOKIE_KEY);
+    if (!stored) {
+        return {
+            hasConsented: false,
+            isSettingsOpen: false,
+            preferences: DEFAULT_PREFERENCES,
+            showBanner: true,
+        };
+    }
+
+    try {
+        const parsed = JSON.parse(stored);
+
+        return {
+            hasConsented: true,
+            isSettingsOpen: false,
+            preferences: { ...DEFAULT_PREFERENCES, ...parsed, necessary: true },
+            showBanner: false,
+        };
+    } catch {
+        return {
+            hasConsented: false,
+            isSettingsOpen: false,
+            preferences: DEFAULT_PREFERENCES,
+            showBanner: true,
+        };
+    }
+}
+
+export function CookieConsentProvider({ children }: { children: React.ReactNode }) {
+    const [consentState, setConsentState] = useState<CookieConsentState>(() => readStoredConsentState());
+    const { hasConsented, isSettingsOpen, preferences, showBanner } = consentState;
 
     const saveToStorage = (prefs: CookiePreferences) => {
         localStorage.setItem(COOKIE_KEY, JSON.stringify(prefs));
-        setPreferences(prefs);
-        setShowBanner(false);
-        setIsSettingsOpen(false);
-        setHasConsented(true);
-
-        // Trigger GTM/Analytics update here if needed (e.g. window.gtag('consent', ...))
+        setConsentState((currentState) => ({
+            ...currentState,
+            hasConsented: true,
+            isSettingsOpen: false,
+            preferences: prefs,
+            showBanner: false,
+        }));
     };
 
     const acceptAll = () => {
@@ -79,15 +103,16 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
 
     const resetConsent = () => {
         localStorage.removeItem(COOKIE_KEY);
-        setPreferences(DEFAULT_PREFERENCES);
-        setShowBanner(true);
-        setHasConsented(false);
+        setConsentState((currentState) => ({
+            ...currentState,
+            hasConsented: false,
+            preferences: DEFAULT_PREFERENCES,
+            showBanner: true,
+        }));
     };
 
-    const openSettings = () => setIsSettingsOpen(true);
-    const closeSettings = () => setIsSettingsOpen(false);
-
-    // if (!isInitialized) return null; // Removed to prevent blocking app render
+    const openSettings = () => setConsentState((currentState) => ({ ...currentState, isSettingsOpen: true }));
+    const closeSettings = () => setConsentState((currentState) => ({ ...currentState, isSettingsOpen: false }));
 
     return (
         <CookieConsentContext.Provider

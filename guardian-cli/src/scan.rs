@@ -276,7 +276,7 @@ pub fn run_scan(cfg: ScanConfig) -> Result<i32> {
             let preview = content_by_path
                 .get(finding.file_path.as_str())
                 .map(|s| truncate_preview(s))
-                .unwrap_or_else(|| "".to_string());
+                .unwrap_or_default();
 
             evidence_findings.push(EvidenceFinding {
                 finding_id: finding.finding_id.clone(),
