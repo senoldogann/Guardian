@@ -149,3 +149,33 @@ The website reads:
 
 Publishing a new distribution release automatically updates what the website shows without needing
 to redeploy.
+
+## 7) Publish IDE Tools
+
+After the primary distribution release exists for `vX.Y.Z`, run the dedicated GitHub Actions workflow:
+
+- Workflow: `.github/workflows/publish-ide-tools.yml`
+- Inputs:
+  - `tag`: the same release tag, for example `v1.3.0`
+  - `publish_marketplace`: keep `true` for public Marketplace publish
+  - `dist_repo`: normally `senoldogann/guardian-distribution`
+
+This workflow:
+- validates `guardian-vscode/package.json` and `guardian-mcp/Cargo.toml` against the tag
+- packages `guardian-vscode` as `.vsix`
+- builds prebuilt `guardian-mcp` archives for Linux, macOS, and Windows
+- uploads the `.vsix`, MCP archives, and `checksums.txt` to the existing distribution release
+- publishes the `.vsix` to the VS Code Marketplace
+
+Required one-time setup:
+
+- `guardian-vscode/package.json` publisher must match your real Marketplace publisher ID
+- GitHub secret `VSCE_PAT` must exist
+- `VSCE_PAT` must be created with Azure DevOps `Marketplace (Manage)` scope and `All accessible organizations`
+- `PUBLIC_DIST_REPO_TOKEN` must already be configured for the distribution repo upload steps
+
+Recommended release order:
+
+1. Run the normal Guardian release flow first so the distribution release tag already exists.
+2. Dispatch `publish-ide-tools.yml` with the same tag.
+3. Verify the extension appears in Marketplace and the distribution release contains the MCP archives plus `.vsix`.

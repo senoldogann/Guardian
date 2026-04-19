@@ -7,7 +7,6 @@ type ReleaseSnapshot = {
   releases?: GithubRelease[];
 };
 
-const SNAPSHOT_REVALIDATE_SECONDS = 30;
 const FALLBACK_TTL_MS = 60 * 1000;
 const SNAPSHOT_URL = "https://github.com/senoldogann/guardian-distribution/releases/latest/download/releases.json";
 const CACHE_RELEASE_LIMIT = 60;
@@ -33,16 +32,12 @@ function isSnapshotUsable(releases: GithubRelease[]): boolean {
 }
 
 export async function fetchReleaseSnapshot(limit = 40): Promise<GithubRelease[]> {
-  if (fallbackCache && fallbackCache.expiresAt > Date.now()) {
-    return fallbackCache.releases.slice(0, limit);
-  }
-
   const desiredLimit = Math.max(limit, CACHE_RELEASE_LIMIT);
 
   // Prefer the public snapshot file first to avoid GitHub API rate limits on client traffic.
   try {
     const response = await fetch(getSnapshotUrl(), {
-      next: { revalidate: SNAPSHOT_REVALIDATE_SECONDS }
+      cache: "no-store"
     });
 
     if (response.ok) {
@@ -70,6 +65,12 @@ export async function fetchReleaseSnapshot(limit = 40): Promise<GithubRelease[]>
       expiresAt: Date.now() + FALLBACK_TTL_MS,
       releases,
     };
+    return releases.slice(0, limit);
   }
+
+  if (fallbackCache && fallbackCache.expiresAt > Date.now()) {
+    return fallbackCache.releases.slice(0, limit);
+  }
+
   return releases.slice(0, limit);
 }

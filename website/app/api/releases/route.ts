@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { fetchReleaseSnapshot } from "../../../lib/releases-source";
 import { toReleaseViewModel } from "../../../lib/changelog";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const releases = await fetchReleaseSnapshot(30);

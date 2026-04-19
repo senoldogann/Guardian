@@ -41,6 +41,7 @@ export type ApiRequestConfig = {
   timeout?: number;
   retry?: Partial<RetryConfig>;
   skipCircuitBreaker?: boolean;
+  cache?: RequestCache;
   next?: {
     revalidate?: number;
   };
@@ -84,13 +85,13 @@ function calculateRetryDelay(
 ): number {
   // Exponential backoff: baseDelay * (multiplier ^ attempt)
   const exponentialDelay = config.baseDelay * Math.pow(config.backoffMultiplier, attempt);
-  
+
   // Apply max delay cap
   const cappedDelay = Math.min(exponentialDelay, config.maxDelay);
-  
+
   // Add jitter (±25%) to prevent thundering herd
   const jitter = cappedDelay * 0.25 * (Math.random() * 2 - 1);
-  
+
   return Math.floor(cappedDelay + jitter);
 }
 
@@ -110,13 +111,13 @@ function isRetryableError(error: unknown, config: RetryConfig): boolean {
       return true;
     }
   }
-  
+
   // HTTP status codes
   if (typeof error === "object" && error !== null && "status" in error) {
     const status = (error as { status: number }).status;
     return config.retryableStatuses.includes(status);
   }
-  
+
   return false;
 }
 
@@ -170,8 +171,8 @@ export class ApiClient {
     const startTime = Date.now();
     const method = requestConfig.method || "GET";
     const fullURL = this.config.baseURL + url;
-    
-      // Merge configs with defaults
+
+    // Merge configs with defaults
     const retryConfig: RetryConfig = {
       ...DEFAULT_RETRY_CONFIG,
       ...this.config.retry,
@@ -224,6 +225,10 @@ export class ApiClient {
         signal: controller.signal,
       };
 
+      if (requestConfig.cache) {
+        fetchOptions.cache = requestConfig.cache;
+      }
+
       if (requestConfig.next) {
         fetchOptions.next = requestConfig.next;
       }
@@ -250,11 +255,11 @@ export class ApiClient {
         // Retry if applicable
         if (attempt < retryConfig.maxRetries && error.isRetryable) {
           const delay = calculateRetryDelay(attempt, retryConfig);
-          
+
           if (process.env.NODE_ENV === "development") {
             console.info(`[ApiClient] Retrying ${method} ${url} after ${delay}ms (attempt ${attempt + 1}/${retryConfig.maxRetries})`);
           }
-          
+
           await sleep(delay);
           return this.executeRequest(url, method, requestConfig, retryConfig, timeout, startTime, attempt + 1);
         }
@@ -313,11 +318,11 @@ export class ApiClient {
       if (isRetryableError(error, retryConfig)) {
         if (attempt < retryConfig.maxRetries) {
           const delay = calculateRetryDelay(attempt, retryConfig);
-          
+
           if (process.env.NODE_ENV === "development") {
             console.info(`[ApiClient] Retrying ${method} ${url} after network error (attempt ${attempt + 1}/${retryConfig.maxRetries})`);
           }
-          
+
           await sleep(delay);
           return this.executeRequest(url, method, requestConfig, retryConfig, timeout, startTime, attempt + 1);
         }
@@ -340,11 +345,11 @@ export class ApiClient {
    */
   private async parseResponse<T>(response: Response): Promise<T> {
     const contentType = response.headers.get("content-type") || "";
-    
+
     if (contentType.includes("application/json")) {
       return response.json() as Promise<T>;
     }
-    
+
     return response.text() as unknown as T;
   }
 
@@ -354,7 +359,7 @@ export class ApiClient {
   private async parseErrorResponse(response: Response): Promise<{ message?: string; data?: unknown }> {
     try {
       const contentType = response.headers.get("content-type") || "";
-      
+
       if (contentType.includes("application/json")) {
         const data = await response.json();
         return {
@@ -362,7 +367,7 @@ export class ApiClient {
           data,
         };
       }
-      
+
       const text = await response.text();
       return { message: text };
     } catch {

@@ -38,12 +38,13 @@ if [[ $# -lt 1 ]]; then
 fi
 
 TAG="$1"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Local release mode: if arg2 is a directory, publish from local artifacts.
 if [[ -n "${2:-}" && -d "$2" ]]; then
   ARTIFACTS_DIR="$2"
   DIST_REPO="${3:-senoldogann/guardian-distribution}"
-  exec "$(cd "$(dirname "$0")" && pwd)/publish_distribution_local.sh" "$TAG" "$ARTIFACTS_DIR" "$DIST_REPO"
+  exec "$SCRIPT_DIR/publish_distribution_local.sh" "$TAG" "$ARTIFACTS_DIR" "$DIST_REPO"
 fi
 
 SOURCE_REPO="${2:-senoldogann/Guardian}"
@@ -164,35 +165,8 @@ echo "Uploading assets to $DIST_REPO:$TAG ..."
 rm -f "$WORK_DIR/assets/releases.json" || true
 gh release upload "$TAG" "$WORK_DIR"/assets/* -R "$DIST_REPO" --clobber
 
-echo "Generating releases.json snapshot (post-upload) ..."
-GENERATED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-gh api "repos/${DIST_REPO}/releases?per_page=60" > "$WORK_DIR/dist-releases.raw.json"
-jq --arg generated_at "$GENERATED_AT" --arg repo "$DIST_REPO" '{
-  generated_at: $generated_at,
-  repo: $repo,
-  releases: (map({
-    id,
-    tag_name,
-    name,
-    body,
-    html_url,
-    published_at,
-    prerelease,
-    draft,
-    assets: ((.assets // []) | map({
-      id,
-      name,
-      browser_download_url,
-      size,
-      updated_at,
-      download_count,
-      content_type
-    }))
-  }) // [])
-}' "$WORK_DIR/dist-releases.raw.json" > "$WORK_DIR/assets/releases.json"
-
 echo "Uploading releases.json snapshot ..."
-gh release upload "$TAG" "$WORK_DIR/assets/releases.json" -R "$DIST_REPO" --clobber >/dev/null
+bash "$SCRIPT_DIR/upload_release_snapshot.sh" "$TAG" "$DIST_REPO"
 
 if gh release download "$TAG" -R "$DIST_REPO" -p latest.json -D "$WORK_DIR" >/dev/null 2>&1; then
   if grep -q "https://github.com/${SOURCE_REPO}/releases/download/${TAG}/" "$WORK_DIR/latest.json"; then

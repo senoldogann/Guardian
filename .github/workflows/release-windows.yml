@@ -642,6 +642,15 @@ jobs:
           GH_TOKEN: ${{ secrets.PUBLIC_DIST_REPO_TOKEN }}
           PUBLIC_DIST_REPO: ${{ secrets.PUBLIC_DIST_REPO }}
 
+      - name: 🧾 Upload releases.json snapshot
+        run: |
+          set -euo pipefail
+          DIST_REPO="${PUBLIC_DIST_REPO:-senoldogann/guardian-distribution}"
+          bash scripts/upload_release_snapshot.sh "${{ inputs.tag }}" "$DIST_REPO"
+        env:
+          GH_TOKEN: ${{ secrets.PUBLIC_DIST_REPO_TOKEN }}
+          PUBLIC_DIST_REPO: ${{ secrets.PUBLIC_DIST_REPO }}
+
       - name: 📝 Sync Release Notes from CHANGELOG
         run: |
           DIST_REPO="${PUBLIC_DIST_REPO:-senoldogann/guardian-distribution}"

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { pickInstallers, releaseTagToVersion } from "../../../../lib/github";
 import { fetchReleaseSnapshot } from "../../../../lib/releases-source";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const releases = await fetchReleaseSnapshot(1);

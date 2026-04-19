@@ -127,6 +127,7 @@
     "lint": "eslint src --ext ts",
     "test": "npm run compile:test && node --test out-test/*.test.js",
     "package": "vsce package",
+    "publish:marketplace": "vsce publish",
     "validate": "npm run lint && npm run test && npm run compile && npm run package"
   },
   "devDependencies": {

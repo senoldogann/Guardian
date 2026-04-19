@@ -34,6 +34,7 @@ fi
 TAG="$1"
 ARTIFACTS_DIR="$2"
 DIST_REPO="${3:-senoldogann/guardian-distribution}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 if ! command -v gh >/dev/null 2>&1; then
   echo "Error: gh CLI is not installed."
@@ -65,7 +66,7 @@ echo "Collecting assets from: $ARTIFACTS_DIR"
 # We accept either a flat dir (already curated) or raw bundle output dirs.
 # Include .tar.gz (Tauri updater bundles) and .sig (signatures)
 find "$ARTIFACTS_DIR" -maxdepth 5 -type f \( \
-  -name "*.dmg" -o -name "*.msi" -o -name "*-setup.exe" -o -name "*.tar.gz" -o -name "*.sig" -o -name "latest.json" -o -name "releases.json" \
+  -name "*.dmg" -o -name "*.msi" -o -name "*-setup.exe" -o -name "*.tar.gz" -o -name "*.zip" -o -name "*.sig" -o -name "*.vsix" -o -name "checksums.txt" -o -name "latest.json" -o -name "releases.json" \
   \) -print0 | while IFS= read -r -d '' file; do
   cp -f "$file" "$WORK_DIR/assets/"
 done
@@ -138,35 +139,8 @@ echo "Uploading assets to ${DIST_REPO}:${TAG} ..."
 rm -f "$WORK_DIR/assets/releases.json" || true
 gh release upload "$TAG" "$WORK_DIR"/assets/* -R "$DIST_REPO" --clobber
 
-echo "Generating releases.json snapshot (post-upload) ..."
-GENERATED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-gh api "repos/${DIST_REPO}/releases?per_page=60" > "$WORK_DIR/dist-releases.raw.json"
-jq --arg generated_at "$GENERATED_AT" --arg repo "$DIST_REPO" '{
-  generated_at: $generated_at,
-  repo: $repo,
-  releases: (map({
-    id,
-    tag_name,
-    name,
-    body,
-    html_url,
-    published_at,
-    prerelease,
-    draft,
-    assets: ((.assets // []) | map({
-      id,
-      name,
-      browser_download_url,
-      size,
-      updated_at,
-      download_count,
-      content_type
-    }))
-  }) // [])
-}' "$WORK_DIR/dist-releases.raw.json" > "$WORK_DIR/assets/releases.json"
-
 echo "Uploading releases.json snapshot ..."
-gh release upload "$TAG" "$WORK_DIR/assets/releases.json" -R "$DIST_REPO" --clobber >/dev/null
+bash "$SCRIPT_DIR/upload_release_snapshot.sh" "$TAG" "$DIST_REPO"
 
 echo "Done."
 echo "Distribution release: $(gh release view "$TAG" -R "$DIST_REPO" --json url -q '.url')"

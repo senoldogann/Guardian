@@ -16,9 +16,25 @@ VS Code extension that connects to the [Guardian](https://github.com/senoldogann
 - **MCP stdio transport** — communicates with `guardian-mcp` over JSON-RPC 2.0
 - **Explicit failure handling** — empty results, snapshot warnings, parse failures, and transport failures surface as different editor states
 
+## Install
+
+Recommended end-user path:
+
+1. Install the extension from the VS Code Marketplace.
+2. Download the matching `guardian-mcp` archive from the Guardian distribution release.
+3. Extract the binary, place it on your `PATH`, or set `guardian.serverPath` to the extracted binary path.
+
+Private/fallback path:
+
+```bash
+code --install-extension guardian-code-governance-1.3.0.vsix
+```
+
+The Marketplace package and the release `.vsix` both require a local `guardian-mcp` binary. End users do not need Rust if they use the prebuilt release archives.
+
 ## Prerequisites
 
-1. **Guardian MCP server** — build the server from the repository root:
+1. **Guardian MCP server** — for development builds, build the server from the repository root:
    ```bash
    cargo build --release -p guardian-mcp
    ```
@@ -71,6 +87,7 @@ npm run lint    # Run ESLint
 npm run test    # Run parser + feedback unit tests
 npm run validate # Lint + test + compile + package
 npm run package # Build .vsix for distribution
+npm run publish:marketplace # Publish to the configured VS Code Marketplace publisher
 ```
 
 ## License

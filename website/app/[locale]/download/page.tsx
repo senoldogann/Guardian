@@ -4,6 +4,8 @@ import { getDictionary } from "../../../lib/i18n";
 import { buildPageMetadata } from "../../../lib/seo";
 import { normalizeLocale, withLocale } from "../../../lib/locale";
 
+export const dynamic = "force-dynamic";
+
 type Props = {
   params: Promise<{ locale: string }>;
 };

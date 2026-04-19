@@ -84,7 +84,7 @@ cp -f "$MERGED_LATEST" "$WORK_DIR/assets/latest.json"
 
 echo "Collecting release assets from $ARTIFACTS_DIR ..."
 find "$ARTIFACTS_DIR" -maxdepth 5 -type f \( \
-  -name "*.dmg" -o -name "*.msi" -o -name "*-setup.exe" -o -name "*.tar.gz" -o -name "*.sig" \
+  -name "*.dmg" -o -name "*.msi" -o -name "*-setup.exe" -o -name "*.tar.gz" -o -name "*.zip" -o -name "*.sig" -o -name "*.vsix" -o -name "checksums.txt" \
 \) -print0 | while IFS= read -r -d '' file; do
   cp -f "$file" "$WORK_DIR/assets/"
 done
