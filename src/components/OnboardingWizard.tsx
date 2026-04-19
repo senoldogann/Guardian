@@ -51,14 +51,13 @@ function SlideIcon({ icon }: { icon: Slide["icon"] }): ReactElement {
       transition={{ duration: 0.4, ease: "easeOut" }}
       className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center"
       style={{
-        backgroundColor: "var(--surface)",
-        border: "1px solid var(--border-main)",
+        backgroundColor: "var(--accent-500)",
         boxShadow: "0 4px 24px var(--guardian-shadow)",
       }}
     >
       <Icon
         className="w-7 h-7"
-        style={{ color: "var(--accent-500)" }}
+        style={{ color: "var(--on-accent)" }}
       />
     </motion.div>
   );
