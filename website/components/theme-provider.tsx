@@ -31,7 +31,7 @@ function getResolvedTheme(theme: Theme): "light" | "dark" {
 
 function subscribeToSystemTheme(onStoreChange: () => void): () => void {
   if (typeof window === "undefined") {
-    return () => {};
+    return () => { };
   }
 
   const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");

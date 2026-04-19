@@ -181,12 +181,7 @@ export function useThemeManager(
       );
       root.style.setProperty("--guide-bg-raw", palette.panel);
       root.style.setProperty("--panel-bg", palette.panel);
-      root.style.setProperty(
-        "--topbar-bg",
-        mode === "light" && panelIsNearWhite
-          ? `color-mix(in oklab, ${palette.panel} 96%, var(--surface) 4%)`
-          : `color-mix(in oklab, ${palette.panel} ${mode === "light" ? 84 : 76}%, var(--surface) ${mode === "light" ? 16 : 24}%)`,
-      );
+      root.style.setProperty("--topbar-bg", dynamicSurface);
       root.style.setProperty(
         "--panel-muted",
         mode === "light" && panelIsNearWhite

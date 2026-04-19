@@ -2064,7 +2064,7 @@ dependencies = [
 
 [[package]]
 name = "guardian-mcp"
-version = "1.3.0"
+version = "1.3.1"
 dependencies = [
  "anyhow",
  "guardian-scan-policy",

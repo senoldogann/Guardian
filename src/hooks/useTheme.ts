@@ -27,6 +27,7 @@ export const normalizeFontFamily = (value: unknown): string => {
   const allowList = new Set([
     "space-grotesk",
     "inter",
+    "poppins",
     "system-ui",
     "source-sans-3",
     "ibm-plex-sans",

@@ -69,10 +69,10 @@ export const exportAuditToPdf = async ({
   if (isTauriRuntime()) {
     const [{ downloadDir, join, BaseDirectory }, { writeFile }, { revealItemInDir, openPath }] =
       await Promise.all([
-      import("@tauri-apps/api/path"),
-      import("@tauri-apps/plugin-fs"),
-      import("@tauri-apps/plugin-opener"),
-    ]);
+        import("@tauri-apps/api/path"),
+        import("@tauri-apps/plugin-fs"),
+        import("@tauri-apps/plugin-opener"),
+      ]);
 
     const downloadsPath = await downloadDir();
     const filePath = await join(downloadsPath, fileName);

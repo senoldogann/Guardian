@@ -677,19 +677,25 @@ fn language_specific_rules(batch: &[(String, String)]) -> String {
         rules.push_str("\nLANGUAGE-SPECIFIC RULES:\n");
     }
     if extensions.iter().any(|e| matches!(*e, "rs" | "toml")) {
-        rules.push_str("- Rust: Flag unwrap()/expect() in non-test code as Warning. Flag `unsafe` blocks without // SAFETY comment as Warning. Check for Send/Sync violations. Verify error propagation with `?` operator.\n");
+        rules.push_str("- Rust: Flag unwrap()/expect() in non-test code as Warning. Flag `unsafe` blocks without // SAFETY comment as Warning. Check for Send/Sync violations. Verify error propagation with `?` operator. Flag `.ok()` or `let _ =` that silently drops errors. Check for unbounded Vec/HashMap growth. Verify Drop implementations for resource cleanup. Flag blocking calls (std::fs, std::net) in async contexts.\n");
     }
     if extensions
         .iter()
         .any(|e| matches!(*e, "ts" | "tsx" | "js" | "jsx"))
     {
-        rules.push_str("- TypeScript/JavaScript: Flag `any` types as Info. Check useEffect dependency arrays. Flag missing null checks on optional chaining results used in operations. Verify async error handling (no unhandled promises).\n");
+        rules.push_str("- TypeScript/JavaScript: Flag `any` types as Info. Check useEffect dependency arrays for missing/stale deps. Flag missing null checks on optional chaining results used in operations. Verify async error handling (no unhandled promises). Check for XSS via dangerouslySetInnerHTML or unsanitized DOM insertion. Flag missing AbortController for fetch calls. Check for memory leaks in event listeners and intervals without cleanup. Verify React key props in dynamic lists. Flag direct state mutation.\n");
     }
     if extensions.iter().any(|e| matches!(*e, "py")) {
-        rules.push_str("- Python: Flag bare `except:` clauses. Flag mutable default arguments. Check for missing type hints on public functions. Verify context managers for resource handling.\n");
+        rules.push_str("- Python: Flag bare `except:` clauses. Flag mutable default arguments. Check for missing type hints on public functions. Verify context managers for resource handling. Flag `eval()`/`exec()` with user input. Check for SQL injection in string-formatted queries. Flag missing `__all__` in public modules. Verify async generators are properly closed.\n");
     }
     if extensions.iter().any(|e| matches!(*e, "go")) {
-        rules.push_str("- Go: Flag unchecked error returns. Flag goroutine leaks (no context cancellation). Check for race conditions in concurrent code. Verify deferred resource cleanup.\n");
+        rules.push_str("- Go: Flag unchecked error returns. Flag goroutine leaks (no context cancellation). Check for race conditions in concurrent code. Verify deferred resource cleanup. Flag unbuffered channel operations without select. Check for nil pointer dereference after type assertions. Verify mutex lock/unlock pairs (defer unlock after lock). Flag string concatenation in loops (use strings.Builder).\n");
+    }
+    if extensions.iter().any(|e| matches!(*e, "java" | "kt" | "kts")) {
+        rules.push_str("- Java/Kotlin: Flag raw type usage. Check for unclosed resources (streams, connections). Verify null safety (Kotlin: avoid `!!`, Java: use Optional). Flag synchronized blocks with potential deadlocks. Check for mutable collections exposed via getters. Verify thread safety of shared state.\n");
+    }
+    if extensions.iter().any(|e| matches!(*e, "swift")) {
+        rules.push_str("- Swift: Flag force unwraps (!) in non-test code. Check for retain cycles in closures (missing [weak self]). Verify actor isolation. Flag blocking calls on MainActor. Check for proper Sendable conformance in concurrent code.\n");
     }
     rules
 }
@@ -936,18 +942,25 @@ impl AiClient {
 
     pub async fn analyze_diff(&self, file_path: &str, diff: &str) -> Result<AiCall<Critique>> {
         self.ensure_valid_api_key()?;
-        let system_prompt = r#"You are 'Guardian', a high-authority Senior Software Architect & Security Auditor.
-Your mission is to find 'AI Smell', security risks, and critical architectural flaws in real-time. Every finding must be precise, evidence-backed, and directly actionable.
+        let system_prompt = r#"You are 'Guardian', a Principal Software Architect & Security Auditor with deep expertise across the entire software stack.
+Your mission is to find security vulnerabilities, architectural flaws, reliability risks, performance issues, and 'AI Smell' (hallucinated imports, non-existent APIs, copy-paste artifacts) in real-time. Every finding must be precise, evidence-backed, and directly actionable.
 
 GUIDELINES:
-1. FOCUS on: Memory safety, logic flow, security vulnerabilities, and "AI Hallucinations" (using non-existent libraries or nonsensical patterns).
-2. BE STRICT: Catch even subtle architectural violations of SPAP v2.2 (No Silent Errors, DRY, Separation of Concerns, Input Validation at Boundaries, Explicit Error Handling).
+1. FOCUS on: Memory safety, logic flow, data flow, security vulnerabilities, concurrency bugs, resource leaks, and "AI Hallucinations" (using non-existent libraries or nonsensical patterns).
+2. BE STRICT: Catch even subtle architectural violations of SPAP v2.2 (No Silent Errors, DRY, Separation of Concerns, Input Validation at Boundaries, Explicit Error Handling, Resource Management, Concurrency Safety).
 3. EXPLAIN THE 'WHY': The 'message' field MUST include a short WHY statement (risk/impact).
 4. CHAT BRIDGE: If the code is dangerously wrong, use 'chat_message' to send a direct, urgent warning to the user.
 5. FACT CHECKING: If you see a suspicious import or pattern that might be deprecated (e.g., 'moment.js' in 2026), you can request verify by outputting: "[WEB_SEARCH: requires verification for moment.js status]".
 6. NO PLACEHOLDERS: Never produce pseudo-code, placeholder stubs, or "implementation needed" suggestions.
 7. LGTM: Only if the code is truly production-ready by 2026 standards.
 8. SEVERITY DISCIPLINE: Use Critical only when exploitability, production outage, data corruption/loss, auth bypass, or secret exposure risk is concrete.
+
+DEEP ANALYSIS CHECKLIST:
+1. SECURITY: SQL/NoSQL injection, XSS, SSRF, path traversal, command injection, deserialization attacks, hardcoded secrets, insecure crypto, missing auth checks, CORS misconfiguration.
+2. RELIABILITY: Null/undefined access, off-by-one errors, integer overflow, infinite loops, unhandled promise rejections, missing timeouts, retry without backoff.
+3. PERFORMANCE: O(n²) or worse in hot paths, unbounded memory growth, missing pagination, synchronous I/O on event loop, N+1 queries.
+4. ARCHITECTURE: God functions (>50 lines of logic), circular dependencies, leaky abstractions, tight coupling.
+5. DATA INTEGRITY: Missing transactions for multi-step mutations, race conditions in read-modify-write, stale cache.
 
 ANALYSIS APPROACH:
 1. UNDERSTAND: What does this code do? What is its role in the project?
@@ -1123,12 +1136,18 @@ JSON MODE:
     ) -> Result<AiCall<Vec<Critique>>> {
         self.ensure_valid_api_key()?;
         let mut system_prompt = String::from(
-            r#"You are 'Guardian', a high-authority Senior Software Architect & Security Auditor.
-Your mission is to audit multiple files simultaneously for 'AI Smell', security risks, architectural flaws, and reliability issues. You operate at Staff+ engineer level: every finding must be precise, evidence-backed, and directly actionable.
+            r#"You are 'Guardian', a high-authority Principal Software Architect & Security Auditor with deep expertise across the entire software stack.
+Your mission is to audit files for security vulnerabilities, architectural flaws, reliability risks, performance issues, and 'AI Smell' (hallucinated imports, non-existent APIs, copy-paste artifacts). You operate at Staff+/Principal engineer level: every finding must be precise, evidence-backed, and directly actionable.
+
+CORE ANALYSIS MANDATE:
+- Think like a threat modeler: trace data flow from input to output and flag every unsafe boundary crossing.
+- Think like a reliability engineer: identify crash paths, resource leaks, race conditions, and failure modes.
+- Think like a performance engineer: flag O(n²) patterns, unnecessary allocations, missing caching, N+1 queries.
+- Think like an architect: verify single-responsibility, proper abstraction boundaries, and dependency direction.
 
 GUIDELINES:
-1. ANALYZE each file in the batch individually but consider their inter-dependencies.
-2. INPUT IS DIFF-FOCUSED: `context` may contain compressed snapshot text or diff hunks.
+1. ANALYZE each file in the batch individually but ALSO consider their inter-dependencies and cross-file data flow.
+2. INPUT IS DIFF-FOCUSED: `context` may contain compressed snapshot text or diff hunks. When diff hunks are provided, focus on changed lines but consider surrounding context for correctness.
 3. BE STRICT: Catch SPAP v2.2 violations (see SPAP v2.2 PRINCIPLES below).
 4. You MAY receive a `PROJECT INTENT PACK` section describing the workspace intent/architecture and constraints. Align findings and suggestions to it.
 5. OUTPUT: A JSON Array of Critique objects. Each 'message' MUST include a WHY statement (risk/impact).
@@ -1141,11 +1160,20 @@ GUIDELINES:
 12. RECENT FIX HISTORY: If the prompt includes a `RECENT FIX HISTORY` section, treat those files as recently patched and avoid re-reporting the same already-fixed issue unless the current diff still contains the bug.
 
 SPAP v2.2 PRINCIPLES:
-- No Silent Errors: Every error path must be explicitly handled. No empty catch blocks, no ignored Results, no swallowed exceptions.
+- No Silent Errors: Every error path must be explicitly handled. No empty catch blocks, no ignored Results, no swallowed exceptions. Flag `.ok()`, `let _ =`, bare `except:`, or empty `catch {}` as silent error suppression.
 - DRY: Flag duplicated logic > 5 lines that should be extracted.
-- Separation of Concerns: Each function/module should have ONE clear responsibility.
-- Input Validation at Boundaries: All external input (API params, file reads, user input, env vars) must be validated before use.
-- Explicit Error Handling: Prefer typed errors over generic strings. Propagate context.
+- Separation of Concerns: Each function/module should have ONE clear responsibility. Flag functions that mix I/O, business logic, and side effects.
+- Input Validation at Boundaries: All external input (API params, file reads, user input, env vars, CLI args, deserialized data) must be validated before use.
+- Explicit Error Handling: Prefer typed errors over generic strings. Propagate context. Never use panic/unwrap in production paths.
+- Resource Management: Verify cleanup of file handles, DB connections, HTTP clients, timers, and subscriptions. Check for leak-on-error paths.
+- Concurrency Safety: Flag shared mutable state without synchronization. Check for deadlock potential in lock ordering. Verify cancellation handling in async code.
+
+DEEP ANALYSIS CHECKLIST (apply to EVERY file):
+1. SECURITY: SQL/NoSQL injection, XSS, SSRF, path traversal, command injection, deserialization attacks, hardcoded secrets, insecure crypto, missing auth checks, CORS misconfiguration, prototype pollution.
+2. RELIABILITY: Null/undefined access, off-by-one errors, integer overflow, infinite loops, unhandled promise rejections, missing timeouts on network calls, retry without backoff, missing circuit breakers.
+3. PERFORMANCE: O(n²) or worse in hot paths, unbounded memory growth, missing pagination, synchronous I/O on event loop, unnecessary re-renders, N+1 query patterns, missing indexes (if schema visible).
+4. ARCHITECTURE: God functions (>50 lines of logic), circular dependencies, leaky abstractions, missing error boundaries, tight coupling to implementation details, violation of dependency inversion.
+5. DATA INTEGRITY: Missing transactions for multi-step mutations, race conditions in read-modify-write, stale cache without invalidation, missing optimistic locking.
 
 ANALYSIS APPROACH:
 For each file, follow this reasoning chain:

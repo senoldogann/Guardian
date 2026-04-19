@@ -44,7 +44,7 @@ export class GuardianClient {
   constructor(
     private readonly serverPath: string,
     private readonly output: vscode.OutputChannel
-  ) {}
+  ) { }
 
   async initialize(): Promise<void> {
     if (this.initialized) {

@@ -2,3 +2,4 @@ node_modules/
 guardian-code-governance-*.vsix
 out/
 *.vsix
+out-test/

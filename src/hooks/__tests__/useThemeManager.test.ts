@@ -5,7 +5,7 @@ import { useThemeManager } from "../useThemeManager";
 vi.mock("../../lib/tauri", () => ({
   invoke: vi.fn().mockResolvedValue(undefined),
   isTauriRuntime: vi.fn(() => false),
-  listen: vi.fn(async () => () => {}),
+  listen: vi.fn(async () => () => { }),
   openDialog: vi.fn(),
 }));
 

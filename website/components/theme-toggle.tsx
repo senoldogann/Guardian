@@ -25,7 +25,7 @@ export function ThemeToggle({ className, dict }: ThemeToggleProps) {
   // Avoid hydration mismatch by rendering neutral state on server
   if (!mounted) {
     return (
-      <div 
+      <div
         className={cn("flex items-center gap-1 p-1 rounded-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10", className)}
         suppressHydrationWarning
       >
