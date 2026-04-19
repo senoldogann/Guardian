@@ -1,0 +1,113 @@
+name: 🔧 Marketplace Publisher Setup
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to perform"
+        required: true
+        default: "diagnose"
+        type: choice
+        options:
+          - diagnose
+          - create-publisher
+      publisher_name:
+        description: "Publisher ID (e.g. senoldogann)"
+        required: true
+        default: "senoldogann"
+        type: string
+      publisher_display_name:
+        description: "Display name for new publisher"
+        required: false
+        default: "Senol Dogan"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  marketplace-setup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v6
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: 🔍 Diagnose publisher status
+        if: ${{ inputs.action == 'diagnose' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PUBLISHER="${{ inputs.publisher_name }}"
+
+          echo "=== Checking publisher '$PUBLISHER' via public API ==="
+          RESULT=$(curl -s -X POST \
+            'https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery' \
+            -H 'Content-Type: application/json' \
+            -H 'Accept: application/json;api-version=7.2-preview.1' \
+            -d "{\"filters\":[{\"criteria\":[{\"filterType\":10,\"value\":\"$PUBLISHER\"}]}],\"flags\":950}")
+
+          COUNT=$(echo "$RESULT" | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          exts = d['results'][0]['extensions']
+          exact = [e for e in exts if e['publisher']['publisherName'].lower() == '$PUBLISHER'.lower()]
+          print(len(exact))
+          for e in exact:
+              print(f'  {e[\"publisher\"][\"publisherName\"]}.{e[\"extensionName\"]} v{e[\"versions\"][0][\"version\"]}')
+          ")
+          echo "Extensions from publisher '$PUBLISHER': $COUNT"
+
+          echo ""
+          echo "=== Checking authenticated publisher access ==="
+          npx --yes @vscode/vsce verify-pat "$PUBLISHER" -p "$VSCE_PAT" 2>&1 || true
+
+          echo ""
+          echo "=== Checking extension visibility ==="
+          npx --yes @vscode/vsce show "$PUBLISHER.guardian-code-governance" 2>&1 || echo "Extension not publicly visible"
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - name: 🆕 Create publisher
+        if: ${{ inputs.action == 'create-publisher' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PUBLISHER="${{ inputs.publisher_name }}"
+          DISPLAY_NAME="${{ inputs.publisher_display_name }}"
+
+          echo "=== Creating publisher '$PUBLISHER' ($DISPLAY_NAME) ==="
+
+          # First verify PAT is valid
+          echo "Verifying PAT..."
+          npx --yes @vscode/vsce verify-pat "$PUBLISHER" -p "$VSCE_PAT" 2>&1 && {
+            echo "Publisher '$PUBLISHER' already exists and PAT is valid."
+            echo "Skipping creation."
+            exit 0
+          } || true
+
+          echo ""
+          echo "=== Publisher does not exist or PAT mismatch. Attempting to publish extension directly ==="
+          echo "This will auto-create the publisher if the PAT has sufficient permissions."
+
+          cd guardian-vscode
+          npm ci
+          npm run compile
+
+          # Package first
+          npx --yes @vscode/vsce package
+
+          VSIX_PATH="$(find . -maxdepth 1 -name '*.vsix' | head -1)"
+          echo "Publishing $VSIX_PATH..."
+          npx --yes @vscode/vsce publish --packagePath "$VSIX_PATH" -p "$VSCE_PAT" 2>&1
+
+          echo ""
+          echo "=== Post-publish verification ==="
+          sleep 30
+          npx --yes @vscode/vsce show "$PUBLISHER.guardian-code-governance" 2>&1 || echo "Extension not yet visible (may take several minutes)"
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
