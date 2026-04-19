@@ -1031,6 +1031,155 @@ mod tests {
 
         cleanup_workspace(&root);
     }
+
+    // ── Pure function tests ─────────────────────────────────────
+
+    #[test]
+    fn normalize_snapshot_severity_maps_correctly() {
+        assert_eq!(normalize_snapshot_severity("critical"), "Critical");
+        assert_eq!(normalize_snapshot_severity("high"), "Critical");
+        assert_eq!(normalize_snapshot_severity("warning"), "Warning");
+        assert_eq!(normalize_snapshot_severity("medium"), "Warning");
+        assert_eq!(normalize_snapshot_severity("info"), "Info");
+        assert_eq!(normalize_snapshot_severity("low"), "Info");
+        assert_eq!(normalize_snapshot_severity("lgtm"), "LGTM");
+        assert_eq!(normalize_snapshot_severity(" Critical "), "Critical");
+        assert_eq!(normalize_snapshot_severity("unknown"), "unknown");
+    }
+
+    #[test]
+    fn parse_severity_filter_handles_all_levels() {
+        assert_eq!(parse_severity_filter(&json!({})).unwrap(), SeverityFilter::All);
+        assert_eq!(parse_severity_filter(&json!({"severity": "all"})).unwrap(), SeverityFilter::All);
+        assert_eq!(parse_severity_filter(&json!({"severity": "low"})).unwrap(), SeverityFilter::Low);
+        assert_eq!(parse_severity_filter(&json!({"severity": "info"})).unwrap(), SeverityFilter::Low);
+        assert_eq!(parse_severity_filter(&json!({"severity": "medium"})).unwrap(), SeverityFilter::Medium);
+        assert_eq!(parse_severity_filter(&json!({"severity": "warning"})).unwrap(), SeverityFilter::Medium);
+        assert_eq!(parse_severity_filter(&json!({"severity": "high"})).unwrap(), SeverityFilter::High);
+        assert_eq!(parse_severity_filter(&json!({"severity": "critical"})).unwrap(), SeverityFilter::Critical);
+        assert!(parse_severity_filter(&json!({"severity": "invalid"})).is_err());
+    }
+
+    #[test]
+    fn critique_matches_filter_logic() {
+        let make = |severity: &str| SnapshotCritique {
+            file_path: "f.rs".into(),
+            severity: severity.into(),
+            message: "msg".into(),
+            suggestion: None,
+            chat_message: None,
+            suggested_diff: None,
+            finding_id: None,
+            why: None,
+            line_start: None,
+            line_end: None,
+            evidence_snippet: None,
+            category: None,
+            confidence: None,
+        };
+
+        // LGTM never matches
+        assert!(!critique_matches_filter(&make("lgtm"), SeverityFilter::All));
+
+        // All/Low → Info, Warning, Critical
+        assert!(critique_matches_filter(&make("info"), SeverityFilter::All));
+        assert!(critique_matches_filter(&make("warning"), SeverityFilter::All));
+        assert!(critique_matches_filter(&make("critical"), SeverityFilter::All));
+
+        // Medium → Warning, Critical only
+        assert!(!critique_matches_filter(&make("info"), SeverityFilter::Medium));
+        assert!(critique_matches_filter(&make("warning"), SeverityFilter::Medium));
+        assert!(critique_matches_filter(&make("critical"), SeverityFilter::Medium));
+
+        // High/Critical → Critical only
+        assert!(!critique_matches_filter(&make("warning"), SeverityFilter::High));
+        assert!(critique_matches_filter(&make("critical"), SeverityFilter::High));
+    }
+
+    #[test]
+    fn language_from_extension_maps_common_types() {
+        assert_eq!(language_from_extension(Path::new("main.rs")), "rust");
+        assert_eq!(language_from_extension(Path::new("app.tsx")), "typescript");
+        assert_eq!(language_from_extension(Path::new("index.js")), "javascript");
+        assert_eq!(language_from_extension(Path::new("lib.py")), "python");
+        assert_eq!(language_from_extension(Path::new("Cargo.toml")), "toml");
+        assert_eq!(language_from_extension(Path::new("README.md")), "markdown");
+        assert_eq!(language_from_extension(Path::new("Dockerfile")), "unknown");
+    }
+
+    #[test]
+    fn parse_profile_defaults_to_standard() {
+        assert_eq!(parse_profile(&json!({})), ScanProfile::default());
+        assert_eq!(parse_profile(&json!({"profile": "source"})), ScanProfile::Source);
+    }
+
+    #[test]
+    fn dispatch_routes_methods_correctly() {
+        let init = JsonRpcRequest {
+            jsonrpc: "2.0".into(),
+            id: Some(json!(1)),
+            method: "initialize".into(),
+            params: json!({}),
+        };
+        assert!(dispatch(&init).unwrap().is_some());
+
+        let notif = JsonRpcRequest {
+            jsonrpc: "2.0".into(),
+            id: None,
+            method: "initialized".into(),
+            params: json!({}),
+        };
+        assert!(dispatch(&notif).unwrap().is_none());
+
+        let ping = JsonRpcRequest {
+            jsonrpc: "2.0".into(),
+            id: Some(json!(2)),
+            method: "ping".into(),
+            params: json!({}),
+        };
+        assert_eq!(dispatch(&ping).unwrap().unwrap(), json!({}));
+
+        let unknown = JsonRpcRequest {
+            jsonrpc: "2.0".into(),
+            id: Some(json!(3)),
+            method: "nonexistent".into(),
+            params: json!({}),
+        };
+        assert!(dispatch(&unknown).is_err());
+    }
+
+    #[test]
+    fn tool_definitions_lists_expected_tools() {
+        let defs = tool_definitions();
+        let names: Vec<&str> = defs
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| t["name"].as_str().unwrap())
+            .collect();
+        assert!(names.contains(&"scan_file"));
+        assert!(names.contains(&"list_critiques"));
+        assert!(names.contains(&"get_scan_policy"));
+    }
+
+    #[test]
+    fn absolutize_snapshot_path_handles_empty() {
+        assert_eq!(absolutize_snapshot_path(Path::new("/root"), ""), "");
+        assert_eq!(absolutize_snapshot_path(Path::new("/root"), "  "), "");
+    }
+
+    #[test]
+    fn mcp_text_and_json_response_shape() {
+        let text_resp = mcp_text_response("hello");
+        assert_eq!(text_resp["content"][0]["type"], "text");
+        assert_eq!(text_resp["content"][0]["text"], "hello");
+
+        let json_resp = mcp_json_response(&json!({"key": "val"}));
+        let parsed: Value = serde_json::from_str(
+            json_resp["content"][0]["text"].as_str().unwrap()
+        ).unwrap();
+        assert_eq!(parsed["key"], "val");
+    }
 }
 
 fn dispatch(req: &JsonRpcRequest) -> Result<Option<Value>> {
