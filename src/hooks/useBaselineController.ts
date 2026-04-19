@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "../lib/tauri";
+import { safeAsync } from "../lib/safeAsync";
 import type { Baseline, BaselineFinding, BaselineStatusView, Critique } from "../types";
 
 export interface BaselineControllerState {
@@ -61,7 +62,7 @@ export function useBaselineController(
   }, [path]);
 
   useEffect(() => {
-    void refreshBaseline();
+    safeAsync(refreshBaseline(), "refreshBaseline");
   }, [refreshBaseline]);
 
   const setBaselineNow = useCallback(async (): Promise<void> => {

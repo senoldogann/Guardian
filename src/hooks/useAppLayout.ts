@@ -128,7 +128,7 @@ export function useAppLayout(
         void context
           .resume()
           .then(schedule)
-          .catch(() => {});
+          .catch((e) => console.warn("Audio context:", e));
         return;
       }
       schedule();

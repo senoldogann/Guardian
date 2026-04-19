@@ -17,6 +17,7 @@ import { ControlSidebar } from "./components/layout/ControlSidebar";
 import { MainWorkspace } from "./components/layout/MainWorkspace";
 import { UpdateBanner } from "./components/layout/UpdateBanner";
 import { useI18n } from "./i18n";
+import { safeAsync } from "./lib/safeAsync";
 
 function normalizeVersionLabel(version: string | null | undefined): string {
   const trimmed = version?.trim() ?? "";
@@ -58,7 +59,7 @@ function App(): ReactElement {
         if (!disposed) document.title = "Guardian";
       }
     };
-    void syncWindowTitle();
+    safeAsync(syncWindowTitle(), "syncWindowTitle");
     return () => { disposed = true; };
   }, []);
 

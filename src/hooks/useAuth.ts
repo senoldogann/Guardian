@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke, isTauriRuntime } from "../lib/tauri";
+import { safeAsync } from "../lib/safeAsync";
 import type { GithubUser, DeviceCodeResponse, AuthSessionResponse, AuthLoginResult, AuthState } from "../types";
 
 const isPendingAuthorization = (message: string): boolean =>
@@ -270,7 +271,7 @@ export function useAuth(): UseAuthReturn {
       }
     };
 
-    void run();
+    safeAsync(run(), "authPolling");
     return () => {
       active = false;
     };

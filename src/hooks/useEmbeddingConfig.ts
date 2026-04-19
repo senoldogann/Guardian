@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke, isTauriRuntime } from "../lib/tauri";
+import { safeAsync } from "../lib/safeAsync";
 import { STORAGE_KEYS } from "../constants";
 import { useToast } from "./useToast";
 import { useI18n } from "../i18n";
@@ -167,7 +168,7 @@ export function useEmbeddingConfig(settingsOpen: boolean): UseEmbeddingConfigRet
       }
       await refreshEmbeddingSettings(false);
     };
-    void syncEmbeddingConfig();
+    safeAsync(syncEmbeddingConfig(), "syncEmbedding");
   }, [isDesktop]);
 
   // Load embedding OpenAI key status
@@ -181,7 +182,7 @@ export function useEmbeddingConfig(settingsOpen: boolean): UseEmbeddingConfigRet
         setEmbeddingOpenAiKeyError(e instanceof Error ? e.message : String(e));
       }
     };
-    void loadEmbeddingOpenAiKeyStatus();
+    safeAsync(loadEmbeddingOpenAiKeyStatus(), "loadEmbeddingKey");
   }, [isDesktop, settingsOpen]);
 
   const onEmbeddingModeChange = useCallback((mode: EmbeddingMode): void => {

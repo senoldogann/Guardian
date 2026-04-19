@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke, isTauriRuntime } from "../lib/tauri";
+import { safeAsync } from "../lib/safeAsync";
 import { useToast } from "./useToast";
 import { useI18n } from "../i18n";
 import type { ProviderConfig } from "../types";
@@ -120,7 +121,7 @@ export function useProviderConfig(settingsOpen: boolean): UseProviderConfigRetur
       base_url: defaults.baseUrl,
       model: "",
     } : prev);
-    void refreshProviderModels(true, true, snapshot, false);
+    safeAsync(refreshProviderModels(true, true, snapshot, false), "refreshModels");
   }, []);
 
   const onBaseUrlChange = useCallback((value: string): void => {

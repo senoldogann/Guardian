@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke, isTauriRuntime } from "../lib/tauri";
+import { safeAsync } from "../lib/safeAsync";
 import { useToast } from "./useToast";
 import { useI18n } from "../i18n";
 
@@ -40,7 +41,7 @@ export function useScanProfile(settingsOpen: boolean): UseScanProfileReturn {
         setScanProfileError(e instanceof Error ? e.message : String(e));
       }
     };
-    void loadScanProfile();
+    safeAsync(loadScanProfile(), "loadScanProfile");
   }, [isDesktop, settingsOpen]);
 
   const saveScanProfile = useCallback(async (): Promise<void> => {

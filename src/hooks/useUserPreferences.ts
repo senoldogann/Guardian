@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, startTransition } from "react";
 import { invoke, isTauriRuntime } from "../lib/tauri";
+import { safeAsync } from "../lib/safeAsync";
 import { STORAGE_KEYS } from "../constants";
 import type { ExportAuditPdfResult } from "../lib/exportAuditPdf";
 import { useToast } from "./useToast";
@@ -498,7 +499,7 @@ export function useUserPreferences(opts: {
       }
       userPreferencesSaveTimerRef.current = window.setTimeout(() => {
         userPreferencesSaveTimerRef.current = null;
-        void flushUserPreferencesSaveQueue();
+        safeAsync(flushUserPreferencesSaveQueue(), "flushPreferences");
       }, delayMs);
     },
     [flushUserPreferencesSaveQueue],
@@ -607,7 +608,7 @@ export function useUserPreferences(opts: {
       }
     };
 
-    void loadAndMigrate();
+    safeAsync(loadAndMigrate(), "loadPreferences");
     return () => {
       canceled = true;
     };
@@ -760,7 +761,7 @@ export function useUserPreferences(opts: {
         setUpdateInfo(prev => prev ?? buildFallbackUpdateInfo("Unknown", "unavailable", message));
       }
     };
-    void loadVersion();
+    safeAsync(loadVersion(), "loadVersion");
   }, [isDesktop]);
 
   const checkForUpdates = useCallback(async (): Promise<void> => {
@@ -800,7 +801,7 @@ export function useUserPreferences(opts: {
 
   useEffect(() => {
     if (!isDesktop) return;
-    void checkForUpdates();
+    safeAsync(checkForUpdates(), "checkUpdates");
   }, [isDesktop]);
 
   const installUpdate = useCallback(async (): Promise<void> => {
@@ -822,12 +823,12 @@ export function useUserPreferences(opts: {
 
     const onForeground = (): void => {
       if (document.visibilityState === "visible") {
-        void checkForUpdates();
+        safeAsync(checkForUpdates(), "checkUpdates");
       }
     };
 
     const interval = window.setInterval(() => {
-      void checkForUpdates();
+      safeAsync(checkForUpdates(), "checkUpdates");
     }, 15 * 60 * 1000);
 
     window.addEventListener("focus", onForeground);

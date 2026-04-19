@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { invoke, openDialog, isTauriRuntime } from "../lib/tauri";
+import { safeAsync } from "../lib/safeAsync";
 import { useLocalStorage } from "./useLocalStorage";
 import { useGuardianEvents } from "./useGuardianEvents";
 import { useBaselineController } from "./useBaselineController";
@@ -180,7 +181,7 @@ export function useWorkspace(): UseWorkspaceReturn {
   }, []);
 
   useEffect(() => {
-    void refreshScanProfile();
+    safeAsync(refreshScanProfile(), "refreshScanProfile");
   }, [refreshScanProfile]);
 
   // Guardian Events
@@ -396,11 +397,11 @@ export function useWorkspace(): UseWorkspaceReturn {
   // ── Proactive refreshes ──────────────────────────────────────
 
   useEffect(() => {
-    void refreshContext();
+    safeAsync(refreshContext(), "refreshContext");
   }, [refreshContext]);
 
   useEffect(() => {
-    void refreshMonitorCritiques();
+    safeAsync(refreshMonitorCritiques(), "refreshMonitorCritiques");
   }, [refreshMonitorCritiques]);
 
   useEffect(() => {
@@ -409,7 +410,7 @@ export function useWorkspace(): UseWorkspaceReturn {
 
   useEffect(() => {
     if (!path) return;
-    void refreshFixHistory();
+    safeAsync(refreshFixHistory(), "refreshFixHistory");
   }, [path, refreshFixHistory]);
 
   // ── Action callbacks ─────────────────────────────────────────
@@ -491,7 +492,7 @@ export function useWorkspace(): UseWorkspaceReturn {
       try {
         await invoke("undo_fix", { filePath, root: path });
         toast.showSuccess(t("app.undoComplete"), 3000);
-        void refreshFixHistory();
+        safeAsync(refreshFixHistory(), "refreshFixHistory");
       } catch (e) {
         toast.showError(
           t("app.undoFailed", { error: e instanceof Error ? e.message : String(e) }),
