@@ -332,5 +332,5 @@ jobs:
             sleep 15
           done
 
-          echo "Marketplace publish could not be verified for ${EXTENSION_ID} ${TARGET_VERSION}."
-          exit 1
+          echo "::warning::Marketplace publish could not be verified yet for ${EXTENSION_ID} ${TARGET_VERSION}."
+          echo "The publish step succeeded, but Marketplace indexing may still be in progress."
