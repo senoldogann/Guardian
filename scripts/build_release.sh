@@ -19,14 +19,18 @@ fi
 echo "Reading private key from $KEY_PATH..."
 export TAURI_SIGNING_PRIVATE_KEY=$(cat "$KEY_PATH")
 
-# 2. Şifre İsteme (Hidden Input)
-echo -n "Enter password for private key: "
-read -s TAURI_SIGNING_PRIVATE_KEY_PASSWORD
-echo ""
-export TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+# 2. Şifre Okuma (env var varsa kullan, yoksa interaktif sor)
+if [ -n "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ]; then
+    echo "Using password from TAURI_SIGNING_PRIVATE_KEY_PASSWORD env var..."
+else
+    echo -n "Enter password for private key: "
+    read -s TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+    echo ""
+    export TAURI_SIGNING_PRIVATE_KEY_PASSWORD
 
-if [ -z "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ]; then
-    echo -e "${RED}Warning: Password is empty. Proceeding anyway (might fail if key is encrypted).${NC}"
+    if [ -z "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ]; then
+        echo -e "${RED}Warning: Password is empty. Proceeding anyway (might fail if key is encrypted).${NC}"
+    fi
 fi
 
 # 3. Build Başlatma
