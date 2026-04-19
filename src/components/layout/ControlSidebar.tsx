@@ -489,8 +489,8 @@ export function ControlSidebar({
               className={clsx(
                 "h-11 w-11 rounded-xl font-bold flex items-center justify-center transition-all duration-300 transform active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed",
                 active
-                  ? "bg-[#ef4444]/15 text-[#ef4444] ring-1 ring-[#ef4444]/30 hover:bg-[#ef4444]/20"
-                  : "bg-gradient-to-br from-[var(--accent-500)] to-[color-mix(in_oklab,var(--accent-500)_70%,#6366f1_30%)] text-white shadow-lg shadow-[var(--accent-500)]/20 hover:shadow-[var(--accent-500)]/30",
+                  ? "bg-[var(--tone-critical-bg)] text-[var(--tone-critical-text)] ring-1 ring-[var(--tone-critical-border)] hover:opacity-80"
+                  : "bg-gradient-to-br from-[var(--accent-500)] to-[color-mix(in_oklab,var(--accent-500)_70%,#6366f1_30%)] text-[var(--background)] shadow-lg shadow-[var(--accent-500)]/20 hover:shadow-[var(--accent-500)]/30",
               )}
               title={
                 active
@@ -514,8 +514,8 @@ export function ControlSidebar({
               className={clsx(
                 "w-full py-3 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-[0.98] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed",
                 active
-                  ? "bg-[#ef4444]/12 text-[#ef4444] ring-1 ring-[#ef4444]/25 hover:bg-[#ef4444]/18"
-                  : "bg-gradient-to-r from-[var(--accent-500)] to-[color-mix(in_oklab,var(--accent-500)_70%,#6366f1_30%)] text-white shadow-lg shadow-[var(--accent-500)]/20 hover:shadow-[var(--accent-500)]/30",
+                  ? "bg-[var(--tone-critical-bg)] text-[var(--tone-critical-text)] ring-1 ring-[var(--tone-critical-border)] hover:opacity-80"
+                  : "bg-gradient-to-r from-[var(--accent-500)] to-[color-mix(in_oklab,var(--accent-500)_70%,#6366f1_30%)] text-[var(--background)] shadow-lg shadow-[var(--accent-500)]/20 hover:shadow-[var(--accent-500)]/30",
               )}
               title={active ? t("sidebar.killGuardian") : t("sidebar.launchGuardian")}
               aria-label={active ? t("sidebar.killGuardian") : t("sidebar.launchGuardian")}
@@ -567,7 +567,7 @@ function DockNavButton({
     >
       {icon}
       {badge && badge > 0 && (
-        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[#ef4444] text-white text-xs font-bold flex items-center justify-center leading-none tabular-nums shadow-lg">
+        <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--tone-critical-text)] text-[var(--background)] text-xs font-bold flex items-center justify-center leading-none tabular-nums shadow-lg">
           {Math.min(99, badge)}
         </span>
       )}

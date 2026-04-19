@@ -80,7 +80,7 @@ export function Header({
       {/* Brand */}
       <div className="flex items-center gap-3">
         <div className="h-8 w-8 rounded-lg bg-[var(--accent-500)] flex items-center justify-center">
-          <ShieldCheck className="h-4.5 w-4.5 text-white" />
+          <ShieldCheck className="h-4.5 w-4.5 text-[var(--background)]" />
         </div>
         <div className="min-w-0">
           <div className="text-sm font-bold text-text-main tracking-tight">

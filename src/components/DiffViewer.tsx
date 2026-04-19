@@ -23,15 +23,15 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ content, maxLines = 100 
 
   return (
     <div className="rounded-xl border border-border-main overflow-hidden">
-      <div className="overflow-x-auto max-h-[400px] overflow-y-auto bg-[#1e1e2e]">
+      <div className="overflow-x-auto max-h-[400px] overflow-y-auto bg-[var(--code-block-bg)]">
         <table className="w-full border-collapse font-mono text-xs leading-relaxed">
           <tbody>
             {lines.map((line, i) => (
-              <tr key={i} className="hover:bg-white/5">
-                <td className="text-right px-3 py-0 select-none text-text-muted opacity-30 border-r border-white/5 w-12 text-xs">
+              <tr key={i} className="hover:bg-[var(--edge-muted)]">
+                <td className="text-right px-3 py-0 select-none text-text-muted opacity-30 border-r border-[var(--border-main)] w-12 text-xs">
                   {i + 1}
                 </td>
-                <td className="px-4 py-0 whitespace-pre text-emerald-300/80">
+                <td className="px-4 py-0 whitespace-pre text-[var(--code-keyword)]">
                   {line}
                 </td>
               </tr>

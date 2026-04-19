@@ -296,8 +296,8 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="bg-[#1e1e2e] border border-border-main p-4 rounded-xl font-mono text-xs leading-relaxed overflow-x-auto">
-                                            <pre className="text-emerald-300/90 whitespace-pre-wrap">{log.evidence_snippet}</pre>
+                                        <div className="bg-[var(--code-block-bg)] border border-border-main p-4 rounded-xl font-mono text-xs leading-relaxed overflow-x-auto">
+                                            <pre className="text-[var(--code-block-text)] whitespace-pre-wrap">{log.evidence_snippet}</pre>
                                         </div>
                                     </div>
                                 )}
