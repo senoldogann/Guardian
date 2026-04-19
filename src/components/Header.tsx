@@ -76,9 +76,16 @@ export function Header({
 }: HeaderProps): ReactElement {
   const { t } = useI18n();
   return (
-    <header className="guardian-topbar z-20 justify-between gap-4" data-tauri-drag-region>
-      {/* Brand — pl-[76px] reserves space for macOS traffic-light buttons in Overlay title bar */}
-      <div className="flex items-center gap-3 pl-[76px]">
+    <header className="guardian-topbar z-20 justify-between gap-4 relative">
+      {/* Drag region – covers header but leaves a hole for macOS traffic-light buttons */}
+      <div
+        className="absolute inset-0 left-[76px]"
+        data-tauri-drag-region
+        style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+      />
+
+      {/* Brand */}
+      <div className="flex items-center gap-3 pl-[76px] relative z-[1]">
         <div className="h-8 w-8 rounded-lg bg-[var(--accent-500)] flex items-center justify-center">
           <ShieldCheck className="h-4.5 w-4.5 text-[var(--background)]" />
         </div>
@@ -101,7 +108,7 @@ export function Header({
       </div>
 
       {/* Stats + Controls */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 relative z-[1]">
         <div className="hidden xl:flex items-center gap-2">
           <StatPill
             icon={<AlertCircle className="h-3.5 w-3.5" />}

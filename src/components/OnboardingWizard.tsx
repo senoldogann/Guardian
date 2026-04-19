@@ -119,7 +119,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps): ReactEl
     const isLast = currentSlide === slides.length - 1;
 
     return (
-        <div ref={containerRef} className="fixed inset-0 z-[100] bg-background flex items-center justify-center p-6" data-tauri-drag-region>
+        <div ref={containerRef} className="fixed inset-0 z-[100] bg-background flex items-center justify-center p-6">
             {/* Decorative background lines — uses var(--border-main) for both themes */}
             <DecoLines />
 
