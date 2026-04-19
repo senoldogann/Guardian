@@ -318,28 +318,53 @@ copy_bundle_artifacts() {
   fi
 }
 
+resolve_bundle_dir() {
+  local dir
+  for dir in "$@"; do
+    if [[ -d "$dir" ]]; then
+      printf '%s\n' "$dir"
+      return 0
+    fi
+  done
+
+  echo "Error: bundle dir not found. Checked: $*" >&2
+  return 1
+}
+
 if [[ "$MAC_BOTH" == "1" ]]; then
   if [[ "$RUSTUP_AVAILABLE" == "1" ]]; then
     rustup target add aarch64-apple-darwin x86_64-apple-darwin >/dev/null 2>&1 || true
   fi
   build_target aarch64-apple-darwin
   build_target x86_64-apple-darwin
+  ARM_BUNDLE_DIR="$(resolve_bundle_dir \
+    "$ROOT_DIR/target/aarch64-apple-darwin/release/bundle" \
+    "$ROOT_DIR/src-tauri/target/aarch64-apple-darwin/release/bundle")"
+  INTEL_BUNDLE_DIR="$(resolve_bundle_dir \
+    "$ROOT_DIR/target/x86_64-apple-darwin/release/bundle" \
+    "$ROOT_DIR/src-tauri/target/x86_64-apple-darwin/release/bundle")"
   "$SCRIPT_DIR/collect_macos_artifacts.sh" "$TAG" "$ARTIFACTS_DIR" \
-    "$ROOT_DIR/src-tauri/target/aarch64-apple-darwin/release/bundle" \
-    "$ROOT_DIR/src-tauri/target/x86_64-apple-darwin/release/bundle"
+    "$ARM_BUNDLE_DIR" \
+    "$INTEL_BUNDLE_DIR"
 else
   if [[ "$(uname -m)" == "arm64" ]]; then
     if [[ "$RUSTUP_AVAILABLE" == "1" ]]; then
       rustup target add aarch64-apple-darwin >/dev/null 2>&1 || true
     fi
     build_target aarch64-apple-darwin
-    copy_bundle_artifacts "$ROOT_DIR/src-tauri/target/aarch64-apple-darwin/release/bundle" "darwin-aarch64"
+    ARM_BUNDLE_DIR="$(resolve_bundle_dir \
+      "$ROOT_DIR/target/aarch64-apple-darwin/release/bundle" \
+      "$ROOT_DIR/src-tauri/target/aarch64-apple-darwin/release/bundle")"
+    copy_bundle_artifacts "$ARM_BUNDLE_DIR" "darwin-aarch64"
   else
     if [[ "$RUSTUP_AVAILABLE" == "1" ]]; then
       rustup target add x86_64-apple-darwin >/dev/null 2>&1 || true
     fi
     build_target x86_64-apple-darwin
-    copy_bundle_artifacts "$ROOT_DIR/src-tauri/target/x86_64-apple-darwin/release/bundle" "darwin-x86_64"
+    INTEL_BUNDLE_DIR="$(resolve_bundle_dir \
+      "$ROOT_DIR/target/x86_64-apple-darwin/release/bundle" \
+      "$ROOT_DIR/src-tauri/target/x86_64-apple-darwin/release/bundle")"
+    copy_bundle_artifacts "$INTEL_BUNDLE_DIR" "darwin-x86_64"
   fi
 fi
 

@@ -199,9 +199,19 @@ jobs:
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
 
       - name: 📦 Collect Artifacts
+        shell: pwsh
         run: |
+          $bundleCandidates = @(
+            "target\release\bundle",
+            "src-tauri\target\release\bundle"
+          )
+          $bundleDir = $bundleCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $bundleDir) {
+            throw "No Tauri Windows bundle directory found. Checked: $($bundleCandidates -join ', ')"
+          }
+
           New-Item -ItemType Directory -Force -Path artifacts\win | Out-Null
-          Get-ChildItem -Recurse -Path "src-tauri\target\release\bundle" -Include *.msi, *-setup.exe, *.sig, *.tar.gz, latest.json | Copy-Item -Destination artifacts\win -Force
+          Get-ChildItem -Recurse -Path $bundleDir -Include *.msi, *-setup.exe, *.sig, *.tar.gz, latest.json | Copy-Item -Destination artifacts\win -Force
           if (-not (Get-ChildItem -Path artifacts\win -Filter *.sig | Select-Object -First 1)) {
             throw "No updater signature (*.sig) found in Windows artifacts."
           }
@@ -323,10 +333,21 @@ jobs:
             exit 1
           fi
 
+          SEARCH_ROOTS=()
+          for candidate in target src-tauri/target; do
+            if [[ -d "$candidate" ]]; then
+              SEARCH_ROOTS+=("$candidate")
+            fi
+          done
+          if [[ "${#SEARCH_ROOTS[@]}" -eq 0 ]]; then
+            echo "Error: no Tauri target directory found. Checked target and src-tauri/target."
+            exit 1
+          fi
+
           DMG_PATHS=()
           while IFS= read -r dmg_path; do
             DMG_PATHS+=("$dmg_path")
-          done < <(find src-tauri/target -type f -path '*/release/bundle/*.dmg')
+          done < <(find "${SEARCH_ROOTS[@]}" -type f -path '*/release/bundle/*.dmg')
           if [[ "${#DMG_PATHS[@]}" -eq 0 ]]; then
             echo "Error: no .dmg files found to notarize."
             exit 1
@@ -358,10 +379,34 @@ jobs:
 
       - name: 📦 Collect Artifacts
         run: |
+          resolve_bundle_dir() {
+            local dir
+            for dir in "$@"; do
+              if [[ -d "$dir" ]]; then
+                printf '%s\n' "$dir"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          ARM_BUNDLE_DIR="$(resolve_bundle_dir \
+            target/aarch64-apple-darwin/release/bundle \
+            src-tauri/target/aarch64-apple-darwin/release/bundle)" || {
+            echo "Error: no macOS arm64 bundle directory found."
+            exit 1
+          }
+          INTEL_BUNDLE_DIR="$(resolve_bundle_dir \
+            target/x86_64-apple-darwin/release/bundle \
+            src-tauri/target/x86_64-apple-darwin/release/bundle)" || {
+            echo "Error: no macOS x64 bundle directory found."
+            exit 1
+          }
+
           chmod +x scripts/collect_macos_artifacts.sh scripts/write_tauri_latest_json.sh
           scripts/collect_macos_artifacts.sh "${{ inputs.tag }}" artifacts/mac \
-            src-tauri/target/aarch64-apple-darwin/release/bundle \
-            src-tauri/target/x86_64-apple-darwin/release/bundle
+            "$ARM_BUNDLE_DIR" \
+            "$INTEL_BUNDLE_DIR"
 
       - name: 📤 Upload Artifacts
         uses: actions/upload-artifact@v6
