@@ -1,7 +1,8 @@
-import { useId, type MouseEvent, type ReactElement, type ReactNode } from "react";
+import { useId, useRef, type MouseEvent, type ReactElement, type ReactNode } from "react";
 import { X } from "lucide-react";
 import clsx from "clsx";
 import { twMerge } from "tailwind-merge";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 export interface DialogShellProps {
     open: boolean;
@@ -38,9 +39,16 @@ export function DialogShell({
 }: DialogShellProps): ReactElement | null {
     const titleId = useId();
     const descriptionId = useId();
+    const panelRef = useRef<HTMLDivElement>(null);
     const resolvedDismissOnBackdrop = dismissOnBackdrop ?? true;
     const resolvedShowCloseButton = showCloseButton ?? true;
     const resolvedCloseLabel = closeLabel ?? "Close";
+
+    useFocusTrap({
+        active: open,
+        containerRef: panelRef,
+        onEscape: onClose,
+    });
 
     if (!open) {
         return null;
@@ -61,6 +69,7 @@ export function DialogShell({
             onMouseDown={handleBackdropMouseDown}
         >
             <div
+                ref={panelRef}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={title ? titleId : undefined}

@@ -1,9 +1,10 @@
-import { useMemo, useState, type ReactElement } from "react";
+import { useMemo, useRef, useState, type ReactElement } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, Sparkles, Shield, Eye, Zap } from "lucide-react";
 import clsx from "clsx";
 import { STORAGE_KEYS } from "../constants";
 import { useI18n } from "../i18n";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 interface Slide {
   title: string;
@@ -66,6 +67,9 @@ function SlideIcon({ icon }: { icon: Slide["icon"] }): ReactElement {
 export function OnboardingWizard({ onComplete }: OnboardingWizardProps): ReactElement {
   const { t } = useI18n();
   const [currentSlide, setCurrentSlide] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap({ active: true, containerRef });
 
   const slides: Slide[] = useMemo(
     () => [
@@ -115,7 +119,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps): ReactEl
     const isLast = currentSlide === slides.length - 1;
 
     return (
-        <div className="fixed inset-0 z-[100] bg-background flex items-center justify-center p-6">
+        <div ref={containerRef} className="fixed inset-0 z-[100] bg-background flex items-center justify-center p-6">
             {/* Decorative background lines — uses var(--border-main) for both themes */}
             <DecoLines />
 
