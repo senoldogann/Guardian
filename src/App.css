@@ -72,6 +72,7 @@
     --tone-ai-border: rgba(16, 185, 129, 0.16);
     --tone-ai-text: #6ee7b7;
     --workspace-chrome: #111113;
+    --on-accent: #fafafa;
   }
 
   :root[data-theme="light"] {
@@ -125,6 +126,7 @@
     --tone-ai-border: rgba(5, 150, 105, 0.12);
     --tone-ai-text: #047857;
     --workspace-chrome: #f4f4f5;
+    --on-accent: #ffffff;
   }
 
   html {
@@ -181,10 +183,8 @@ button:disabled,
   cursor: not-allowed;
 }
 
-.guardian-shell .text-background,
-.guardian-shell [class*="text-background"] {
-  color: var(--text-main) !important;
-}
+/* Removed: blanket text-background override was breaking light mode contrast on accent buttons.
+   Use text-[var(--on-accent)] for text on accent-colored backgrounds instead. */
 
 .guardian-markdown {
   color: inherit;

@@ -14,7 +14,12 @@
       {
         "title": "Guardian",
         "width": 1400,
-        "height": 900
+        "height": 900,
+        "decorations": true,
+        "titleBarStyle": "visible",
+        "closable": true,
+        "minimizable": true,
+        "maximizable": true
       }
     ],
     "security": {

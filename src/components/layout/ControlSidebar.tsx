@@ -443,7 +443,7 @@ export function ControlSidebar({
                                   <button
                                     onClick={handleAsync(() => onVerifyAuth(), "Auth verification failed")}
                                     disabled={authLoading}
-                                    className="px-2 py-1 text-[11px] font-medium bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-2 py-1 text-[11px] font-medium bg-[var(--accent-500)] text-[var(--on-accent)] rounded-md hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     {t("sidebar.verifyNow")}
                                   </button>
@@ -463,7 +463,7 @@ export function ControlSidebar({
                               </div>
                               <button
                                 onClick={onOpenSettings}
-                                className="px-2 py-1 text-[11px] font-medium bg-[color:var(--tone-critical-text)] text-background rounded-md hover:opacity-90 transition-colors"
+                                className="px-2 py-1 text-[11px] font-medium bg-[color:var(--tone-critical-text)] text-[var(--on-accent)] rounded-md hover:opacity-90 transition-colors"
                               >
                                 {t("sidebar.openSettings")}
                               </button>

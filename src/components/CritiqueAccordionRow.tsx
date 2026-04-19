@@ -334,7 +334,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                                 "w-full py-2 font-bold rounded-lg text-xs transition-colors shadow-lg shadow-black/40 flex items-center justify-center gap-2 cursor-pointer",
                                                 undoReady
                                                     ? "bg-[var(--panel-muted)] hover:bg-[var(--panel-bg)] text-text-main border border-border-main"
-                                                    : "bg-[var(--accent-500)] hover:opacity-90 text-background"
+                                                    : "bg-[var(--accent-500)] hover:opacity-90 text-[var(--on-accent)]"
                                             )}
                                         >
                                             {undoReady ? (

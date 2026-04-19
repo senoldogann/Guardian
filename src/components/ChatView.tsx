@@ -761,15 +761,15 @@ export function ChatView({
                                     <h4 className="text-xs font-semibold text-text-muted">{t("chat.guide.stepsTitle")}</h4>
                                     <div className="grid grid-cols-1 gap-3">
                                         <div className="flex items-start gap-4 text-xs">
-                                            <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[11px] font-black shrink-0 shadow-lg shadow-black/20">1</div>
+                                            <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-[var(--on-accent)] flex items-center justify-center text-[11px] font-black shrink-0 shadow-lg shadow-black/20">1</div>
                                             <p className="font-medium text-text-muted">{t("chat.guide.step1")}</p>
                                         </div>
                                         <div className="flex items-start gap-4 text-xs">
-                                            <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[11px] font-black shrink-0 shadow-lg shadow-black/20">2</div>
+                                            <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-[var(--on-accent)] flex items-center justify-center text-[11px] font-black shrink-0 shadow-lg shadow-black/20">2</div>
                                             <p className="font-medium text-text-muted">{t("chat.guide.step2")}</p>
                                         </div>
                                         <div className="flex items-start gap-4 text-xs">
-                                            <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-background flex items-center justify-center text-[11px] font-black shrink-0 shadow-lg shadow-black/20">3</div>
+                                            <div className="w-5 h-5 rounded-full bg-[var(--accent-500)] text-[var(--on-accent)] flex items-center justify-center text-[11px] font-black shrink-0 shadow-lg shadow-black/20">3</div>
                                             <p className="font-medium text-text-muted">{t("chat.guide.step3")}</p>
                                         </div>
                                     </div>
@@ -777,7 +777,7 @@ export function ChatView({
 
                                 <button
                                     onClick={() => setGuideOpen(false)}
-                                    className="w-full py-4 bg-[var(--accent-500)] text-background text-sm font-black rounded-xl hover:opacity-90 transition-all active:scale-[0.98] shadow-2xl shadow-black/20 cursor-pointer"
+                                    className="w-full py-4 bg-[var(--accent-500)] text-[var(--on-accent)] text-sm font-black rounded-xl hover:opacity-90 transition-all active:scale-[0.98] shadow-2xl shadow-black/20 cursor-pointer"
                                 >
                                     {t("chat.guide.start")}
                                 </button>
@@ -843,7 +843,7 @@ export function ChatView({
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                         <button
                             onClick={chatLoading ? cancelPending : askGuru}
-                            className="guardian-focus-ring p-2 bg-[var(--accent-500)] hover:opacity-90 text-background rounded-xl transition-colors shadow-lg shadow-black/30 cursor-pointer icon-button"
+                            className="guardian-focus-ring p-2 bg-[var(--accent-500)] hover:opacity-90 text-[var(--on-accent)] rounded-xl transition-colors shadow-lg shadow-black/30 cursor-pointer icon-button"
                             disabled={!chatInput.trim() && !chatLoading}
                             aria-label={chatLoading ? t("chat.cancel") : t("chat.send")}
                         >
@@ -871,7 +871,7 @@ interface GuideOptionProps {
 
 function GuideOption({ icon: Icon, title, desc, color, onClick }: GuideOptionProps): ReactElement {
     const colorStyles = {
-        sky: "bg-[var(--accent-200)] text-[var(--accent-500)] group-hover:bg-[var(--accent-500)] group-hover:text-background",
+        sky: "bg-[var(--accent-200)] text-[var(--accent-500)] group-hover:bg-[var(--accent-500)] group-hover:text-[var(--on-accent)]",
         rose: "bg-[color:var(--tone-critical-bg)] text-[color:var(--tone-critical-text)] group-hover:opacity-90",
         amber: "bg-[color:var(--tone-warning-bg)] text-[color:var(--tone-warning-text)] group-hover:opacity-90",
     };
@@ -1019,7 +1019,7 @@ function ChatMessageRow({
                                     <>
                                         <button
                                             onClick={() => onConfirmFix(index, msg.action!.file_path, msg.action!.diff)}
-                                            className="guardian-focus-ring px-3 py-1.5 bg-[var(--accent-500)] hover:opacity-90 text-background text-xs rounded-md shadow-lg shadow-black/30 transition-colors flex items-center gap-1.5 cursor-pointer"
+                                            className="guardian-focus-ring px-3 py-1.5 bg-[var(--accent-500)] hover:opacity-90 text-[var(--on-accent)] text-xs rounded-md shadow-lg shadow-black/30 transition-colors flex items-center gap-1.5 cursor-pointer"
                                         >
                                             <CheckCircle className="w-3 h-3" /> {t("chat.fix.confirmAndApply")}
                                         </button>

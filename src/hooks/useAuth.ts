@@ -103,8 +103,8 @@ export function useAuth(): UseAuthReturn {
                 }
               }
             })
-            .catch(() => {
-              // Silently fail - user can manually refresh or re-login if needed
+            .catch((e) => {
+              console.warn("Auth session refresh failed:", e);
             });
         }
       } catch (e) {
