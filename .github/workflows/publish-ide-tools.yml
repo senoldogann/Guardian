@@ -115,7 +115,7 @@ jobs:
         run: cd guardian-vscode && npm run validate
 
       - name: 📤 Upload guardian-vscode package
-        uses: actions/upload-artifact@v8
+        uses: actions/upload-artifact@v6
         with:
           name: guardian-vscode-${{ inputs.tag }}
           path: guardian-vscode/*.vsix
@@ -141,7 +141,7 @@ jobs:
           tar -czf "guardian-mcp-linux-x64-${{ needs.validate.outputs.version }}.tar.gz" -C dist guardian-mcp
 
       - name: 📤 Upload guardian-mcp Linux package
-        uses: actions/upload-artifact@v8
+        uses: actions/upload-artifact@v6
         with:
           name: guardian-mcp-linux-${{ inputs.tag }}
           path: guardian-mcp-linux-x64-${{ needs.validate.outputs.version }}.tar.gz
@@ -174,7 +174,7 @@ jobs:
           tar -czf "guardian-mcp-darwin-universal-${{ needs.validate.outputs.version }}.tar.gz" -C dist guardian-mcp
 
       - name: 📤 Upload guardian-mcp macOS package
-        uses: actions/upload-artifact@v8
+        uses: actions/upload-artifact@v6
         with:
           name: guardian-mcp-macos-${{ inputs.tag }}
           path: guardian-mcp-darwin-universal-${{ needs.validate.outputs.version }}.tar.gz
@@ -199,7 +199,7 @@ jobs:
           Compress-Archive -Path dist/guardian-mcp.exe -DestinationPath "guardian-mcp-windows-x64-${{ needs.validate.outputs.version }}.zip" -Force
 
       - name: 📤 Upload guardian-mcp Windows package
-        uses: actions/upload-artifact@v8
+        uses: actions/upload-artifact@v6
         with:
           name: guardian-mcp-windows-${{ inputs.tag }}
           path: guardian-mcp-windows-x64-${{ needs.validate.outputs.version }}.zip
