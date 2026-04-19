@@ -46,17 +46,18 @@ jobs:
             -H 'Accept: application/json;api-version=7.2-preview.1' \
             -d "{\"filters\":[{\"criteria\":[{\"filterType\":10,\"value\":\"$PUBLISHER\"}]}],\"flags\":950}")
 
-          echo "$RESULT" | python3 -c "
-          import json, sys
-          d = json.load(sys.stdin)
-          exts = d['results'][0]['extensions']
-          exact = [e for e in exts if e['publisher']['publisherName'].lower() == '${PUBLISHER}'.lower()]
-          if exact:
+          echo "$RESULT" | PUBLISHER="$PUBLISHER" python3 -c "
+            import json, os, sys
+            publisher = os.environ.get('PUBLISHER', '').lower()
+            d = json.load(sys.stdin)
+            exts = d['results'][0]['extensions']
+            exact = [e for e in exts if e['publisher']['publisherName'].lower() == publisher]
+            if exact:
               print(f'Publisher EXISTS with {len(exact)} extension(s):')
               for e in exact:
-                  print(f'  {e[\"publisher\"][\"publisherName\"]}.{e[\"extensionName\"]} v{e[\"versions\"][0][\"version\"]}')
-          else:
-              print(f'Publisher \"{PUBLISHER}\" NOT FOUND in public API.')
+                print(f'  {e[\"publisher\"][\"publisherName\"]}.{e[\"extensionName\"]} v{e[\"versions\"][0][\"version\"]}')
+            else:
+              print(f'Publisher \"{publisher}\" NOT FOUND in public API.')
               print('You may need to create it at: https://marketplace.visualstudio.com/manage/createpublisher')
           " 2>&1 || true
 

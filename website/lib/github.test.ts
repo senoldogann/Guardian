@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
+  findLatestInstallableRelease,
   getReleases,
   getLatestRelease,
   pickInstallers,
@@ -279,6 +280,51 @@ describe("github - Asset Filtering", () => {
     const installers = pickInstallers(nonInstallers);
 
     expect(installers).toHaveLength(0);
+  });
+
+  it("should exclude MCP archives from website installers", () => {
+    const assetsWithMcpArchive: GithubAsset[] = [
+      {
+        id: 11,
+        name: "guardian-mcp-darwin-universal-1.3.1.tar.gz",
+        browser_download_url: "https://github.com/releases/guardian-mcp-darwin-universal-1.3.1.tar.gz",
+        size: 2048,
+        updated_at: "2024-01-01T00:00:00Z",
+        download_count: 0,
+      },
+      {
+        id: 12,
+        name: "guardian-mcp-windows-x64-1.3.1.zip",
+        browser_download_url: "https://github.com/releases/guardian-mcp-windows-x64-1.3.1.zip",
+        size: 2048,
+        updated_at: "2024-01-01T00:00:00Z",
+        download_count: 0,
+      },
+    ];
+
+    expect(pickInstallers(assetsWithMcpArchive)).toHaveLength(0);
+  });
+
+  it("should find the latest release that still has installers", () => {
+    const ideOnlyRelease: GithubRelease = {
+      ...mockRelease,
+      id: 2,
+      tag_name: "v1.3.1",
+      assets: [
+        {
+          id: 10,
+          name: "guardian-code-governance-1.3.1.vsix",
+          browser_download_url: "https://github.com/releases/guardian-code-governance-1.3.1.vsix",
+          size: 1024,
+          updated_at: "2024-01-02T00:00:00Z",
+          download_count: 0,
+        },
+      ],
+    };
+
+    const installable = findLatestInstallableRelease([ideOnlyRelease, mockRelease]);
+
+    expect(installable?.tag_name).toBe("v1.0.0");
   });
 });
 

@@ -28,7 +28,7 @@ export type AssetKind = "dmg" | "msi" | "exe" | "appimage" | "deb" | "rpm" | "ta
 const OWNER = process.env.GITHUB_RELEASE_OWNER ?? "senoldogann";
 const REPO = process.env.GITHUB_RELEASE_REPO ?? "guardian-distribution";
 const API_BASE = `https://api.github.com/repos/${OWNER}/${REPO}`;
-const INSTALLER_EXTENSIONS = [".dmg", ".msi", ".exe", ".appimage", ".deb", ".rpm", ".zip", ".tar.gz"] as const;
+const INSTALLER_EXTENSIONS = [".dmg", ".msi", ".exe", ".appimage", ".deb", ".rpm"] as const;
 
 // Import token security modules (will be available at runtime)
 let tokenAudit: typeof import("./token-audit") | null = null;
@@ -248,6 +248,14 @@ export function pickInstallers(assets: GithubAsset[]): GithubAsset[] {
     }
     return INSTALLER_EXTENSIONS.some((ext) => lower.endsWith(ext));
   });
+}
+
+export function hasInstallerAssets(assets: GithubAsset[]): boolean {
+  return pickInstallers(assets).length > 0;
+}
+
+export function findLatestInstallableRelease(releases: GithubRelease[]): GithubRelease | null {
+  return releases.find((release) => hasInstallerAssets(release.assets)) ?? null;
 }
 
 export async function getLatestRelease(): Promise<GithubRelease | null> {

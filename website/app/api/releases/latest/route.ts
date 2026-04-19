@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { pickInstallers, releaseTagToVersion } from "../../../../lib/github";
+import { findLatestInstallableRelease, getReleases, pickInstallers, releaseTagToVersion } from "../../../../lib/github";
 import { fetchReleaseSnapshot } from "../../../../lib/releases-source";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const releases = await fetchReleaseSnapshot(1);
-    const latest = releases[0];
+    const releases = await fetchReleaseSnapshot(60);
+    const latest = findLatestInstallableRelease(releases) ?? findLatestInstallableRelease(await getReleases(60));
     if (!latest) {
       return NextResponse.json(
         { error: "Release data temporarily unavailable. Please try again later." },

@@ -1,5 +1,5 @@
 import type { SiteDictionary } from "../../lib/i18n";
-import { getLatestRelease, pickInstallers, releaseTagToVersion } from "../../lib/github";
+import { findLatestInstallableRelease, getReleases, pickInstallers, releaseTagToVersion } from "../../lib/github";
 import { fetchReleaseSnapshot } from "../../lib/releases-source";
 import { DownloadClient } from "../../app/download/download-client";
 import type { Locale } from "../../lib/locale";
@@ -15,12 +15,11 @@ export async function DownloadPageView({ dict, locale }: Props) {
   let fetchError: string | null = null;
 
   try {
-    const releases = await fetchReleaseSnapshot(1);
-    let latest = releases.at(0) ?? null;
+    const releases = await fetchReleaseSnapshot(60);
+    let latest = findLatestInstallableRelease(releases);
 
-    // Fallback only if the snapshot is unavailable for any reason.
     if (!latest) {
-      latest = await getLatestRelease();
+      latest = findLatestInstallableRelease(await getReleases(60));
     }
 
     if (latest) {
