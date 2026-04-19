@@ -194,11 +194,10 @@ fn collect_file_structure(root: &Path, profile: ScanProfile) -> (Vec<String>, us
     let mut sample: Vec<String> = Vec::new();
 
     let walker = WalkBuilder::new(root)
-        // We want `.github/` and similar dot directories to be visible for infra context,
-        // but scan policy + redaction gate will still prevent leaking sensitive files.
+        // Keep gitignore-style filtering, but do not hide dot-prefixed roots or directories.
+        .standard_filters(true)
         .hidden(false)
         .follow_links(false)
-        .standard_filters(true)
         .build();
 
     for entry in walker.flatten() {
@@ -460,7 +459,7 @@ mod tests {
     #[test]
     fn index_respects_scan_profile_source() {
         let temp = TempDir::new().unwrap();
-        let root = temp.path();
+        let root = temp.path().join(".workspace");
         fs::create_dir_all(root.join("src")).unwrap();
         fs::create_dir_all(root.join("docs")).unwrap();
         fs::write(root.join("src").join("main.ts"), "export const x = 1;").unwrap();
