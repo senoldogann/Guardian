@@ -210,14 +210,15 @@ fn collect_file_structure(root: &Path, profile: ScanProfile) -> (Vec<String>, us
             continue;
         }
 
-        let decision = classify_path(path, false, profile);
+        let rel_path = rel_path_string(root, path);
+        let decision = classify_path(Path::new(&rel_path), false, profile);
         if !decision.include {
             continue;
         }
 
         included += 1;
         if sample.len() < 80 {
-            sample.push(rel_path_string(root, path));
+            sample.push(rel_path);
         }
     }
 
