@@ -10,16 +10,11 @@ on:
         type: choice
         options:
           - diagnose
-          - create-publisher
+          - create-and-publish
       publisher_name:
-        description: "Publisher ID (e.g. senoldogann)"
+        description: "Publisher ID (must match package.json publisher field)"
         required: true
         default: "senoldogann"
-        type: string
-      publisher_display_name:
-        description: "Display name for new publisher"
-        required: false
-        default: "Senol Dogan"
         type: string
 
 permissions:
@@ -44,70 +39,93 @@ jobs:
           set -euo pipefail
           PUBLISHER="${{ inputs.publisher_name }}"
 
-          echo "=== Checking publisher '$PUBLISHER' via public API ==="
+          echo "=== Step 1: Public API lookup ==="
           RESULT=$(curl -s -X POST \
             'https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery' \
             -H 'Content-Type: application/json' \
             -H 'Accept: application/json;api-version=7.2-preview.1' \
             -d "{\"filters\":[{\"criteria\":[{\"filterType\":10,\"value\":\"$PUBLISHER\"}]}],\"flags\":950}")
 
-          COUNT=$(echo "$RESULT" | python3 -c "
+          echo "$RESULT" | python3 -c "
           import json, sys
           d = json.load(sys.stdin)
           exts = d['results'][0]['extensions']
-          exact = [e for e in exts if e['publisher']['publisherName'].lower() == '$PUBLISHER'.lower()]
-          print(len(exact))
-          for e in exact:
-              print(f'  {e[\"publisher\"][\"publisherName\"]}.{e[\"extensionName\"]} v{e[\"versions\"][0][\"version\"]}')
-          ")
-          echo "Extensions from publisher '$PUBLISHER': $COUNT"
+          exact = [e for e in exts if e['publisher']['publisherName'].lower() == '${PUBLISHER}'.lower()]
+          if exact:
+              print(f'Publisher EXISTS with {len(exact)} extension(s):')
+              for e in exact:
+                  print(f'  {e[\"publisher\"][\"publisherName\"]}.{e[\"extensionName\"]} v{e[\"versions\"][0][\"version\"]}')
+          else:
+              print(f'Publisher \"{PUBLISHER}\" NOT FOUND in public API.')
+              print('You may need to create it at: https://marketplace.visualstudio.com/manage/createpublisher')
+          " 2>&1 || true
 
           echo ""
-          echo "=== Checking authenticated publisher access ==="
-          npx --yes @vscode/vsce verify-pat "$PUBLISHER" -p "$VSCE_PAT" 2>&1 || true
+          echo "=== Step 2: PAT verification ==="
+          npx --yes @vscode/vsce verify-pat "$PUBLISHER" -p "$VSCE_PAT" 2>&1 && {
+            echo "PAT is valid for publisher '$PUBLISHER'."
+          } || {
+            echo ""
+            echo "PAT verification FAILED."
+            echo ""
+            echo "FIX: Go to https://dev.azure.com/<your-org>/_usersSettings/tokens"
+            echo "  1. Edit or create a new PAT"
+            echo "  2. Set Organization to 'All accessible organizations'"
+            echo "  3. Under Scopes, check 'Marketplace > Manage'"
+            echo "  4. Save and update VSCE_PAT secret in GitHub"
+          }
 
           echo ""
-          echo "=== Checking extension visibility ==="
-          npx --yes @vscode/vsce show "$PUBLISHER.guardian-code-governance" 2>&1 || echo "Extension not publicly visible"
+          echo "=== Step 3: Extension lookup ==="
+          npx --yes @vscode/vsce show "$PUBLISHER.guardian-code-governance" 2>&1 || echo "Extension not publicly visible."
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
-      - name: 🆕 Create publisher
-        if: ${{ inputs.action == 'create-publisher' }}
+      - name: 🚀 Create publisher and publish extension
+        if: ${{ inputs.action == 'create-and-publish' }}
         shell: bash
         run: |
           set -euo pipefail
           PUBLISHER="${{ inputs.publisher_name }}"
-          DISPLAY_NAME="${{ inputs.publisher_display_name }}"
 
-          echo "=== Creating publisher '$PUBLISHER' ($DISPLAY_NAME) ==="
+          echo "=== Verifying PAT scope ==="
+          if ! npx --yes @vscode/vsce verify-pat "$PUBLISHER" -p "$VSCE_PAT" 2>&1; then
+            echo ""
+            echo "ERROR: PAT does not have Marketplace Manage scope."
+            echo ""
+            echo "Before running this workflow, you MUST:"
+            echo "  1. Go to https://dev.azure.com/<your-org>/_usersSettings/tokens"
+            echo "  2. Create a PAT with:"
+            echo "     - Organization: 'All accessible organizations'"
+            echo "     - Scopes: 'Marketplace > Manage'"
+            echo "  3. Update the VSCE_PAT secret in GitHub Settings > Secrets"
+            echo "  4. (If publisher doesn't exist) Create it at:"
+            echo "     https://marketplace.visualstudio.com/manage/createpublisher"
+            echo "     Use publisher ID: $PUBLISHER"
+            exit 1
+          fi
 
-          # First verify PAT is valid
-          echo "Verifying PAT..."
-          npx --yes @vscode/vsce verify-pat "$PUBLISHER" -p "$VSCE_PAT" 2>&1 && {
-            echo "Publisher '$PUBLISHER' already exists and PAT is valid."
-            echo "Skipping creation."
-            exit 0
-          } || true
-
+          echo "PAT verified for publisher '$PUBLISHER'."
           echo ""
-          echo "=== Publisher does not exist or PAT mismatch. Attempting to publish extension directly ==="
-          echo "This will auto-create the publisher if the PAT has sufficient permissions."
 
+          echo "=== Building and publishing extension ==="
           cd guardian-vscode
           npm ci
           npm run compile
-
-          # Package first
           npx --yes @vscode/vsce package
 
           VSIX_PATH="$(find . -maxdepth 1 -name '*.vsix' | head -1)"
           echo "Publishing $VSIX_PATH..."
-          npx --yes @vscode/vsce publish --packagePath "$VSIX_PATH" -p "$VSCE_PAT" 2>&1
+          npx --yes @vscode/vsce publish --packagePath "$VSIX_PATH" -p "$VSCE_PAT"
 
           echo ""
-          echo "=== Post-publish verification ==="
+          echo "=== Post-publish verification (waiting 30s) ==="
           sleep 30
-          npx --yes @vscode/vsce show "$PUBLISHER.guardian-code-governance" 2>&1 || echo "Extension not yet visible (may take several minutes)"
+
+          if npx --yes @vscode/vsce show "$PUBLISHER.guardian-code-governance" 2>&1; then
+            echo "Extension is publicly visible!"
+          else
+            echo "::warning::Extension not yet visible. Marketplace indexing may take a few minutes."
+          fi
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
