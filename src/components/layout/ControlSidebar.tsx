@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
+import { handleAsync } from "../../lib/safeAsync";
 import clsx from "clsx";
 import {
   Activity,
@@ -260,7 +261,7 @@ export function ControlSidebar({
                 <DockActionButton
                   label={t("sidebar.selectWorkspace")}
                   title={scopeLabel || t("sidebar.selectWorkspace")}
-                  onClick={() => void onSelectScope()}
+                  onClick={handleAsync(() => Promise.resolve(onSelectScope()), "Scope selection failed")}
                   icon={<Folder className="w-5 h-5" />}
                 />
                 <DockActionButton
@@ -367,7 +368,7 @@ export function ControlSidebar({
                     <Folder className="absolute left-3 top-3 w-4 h-4 text-text-muted group-focus-within:text-text-main transition-colors pointer-events-none" />
                     <input
                       readOnly
-                      onClick={() => void onSelectScope()}
+                      onClick={handleAsync(() => Promise.resolve(onSelectScope()), "Scope selection failed")}
                       className="w-full bg-[var(--panel-muted)] border border-border-main rounded-xl py-2.5 pl-10 pr-3 text-sm outline-none focus:border-[var(--focus-border)] transition-all placeholder:opacity-50 cursor-pointer hover:bg-[var(--panel-bg)]"
                       value={scopeLabel}
                       placeholder={t("sidebar.selectWorkspace")}
@@ -440,7 +441,7 @@ export function ControlSidebar({
                               <div className="flex gap-2">
                                 {!authShowGate && (
                                   <button
-                                    onClick={() => void onVerifyAuth()}
+                                    onClick={handleAsync(() => onVerifyAuth(), "Auth verification failed")}
                                     disabled={authLoading}
                                     className="px-2 py-1 text-[11px] font-medium bg-[var(--accent-500)] text-background rounded-md hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
@@ -483,7 +484,7 @@ export function ControlSidebar({
         {collapsed ? (
           <div className="flex items-center justify-center">
             <button
-              onClick={canToggleMonitoring ? () => void onToggleMonitoring() : undefined}
+              onClick={canToggleMonitoring ? handleAsync(() => onToggleMonitoring(), "Toggle failed") : undefined}
               disabled={!canToggleMonitoring}
               className={clsx(
                 "h-11 w-11 rounded-xl font-bold flex items-center justify-center transition-all duration-300 transform active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed",
@@ -508,7 +509,7 @@ export function ControlSidebar({
         ) : (
           <>
             <button
-              onClick={canToggleMonitoring ? () => void onToggleMonitoring() : undefined}
+              onClick={canToggleMonitoring ? handleAsync(() => onToggleMonitoring(), "Toggle failed") : undefined}
               disabled={!canToggleMonitoring}
               className={clsx(
                 "w-full py-3 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-[0.98] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed",
@@ -746,7 +747,7 @@ function BaselineSection({
 
       <div className="flex gap-2">
         <Button
-          onClick={() => void onSetBaselineNow()}
+          onClick={handleAsync(() => Promise.resolve(onSetBaselineNow()), "Baseline set failed")}
           disabled={!path || baselineLoading}
           variant="primary"
           size="sm"
@@ -756,7 +757,7 @@ function BaselineSection({
         </Button>
         {baselineStatus && (
           <Button
-            onClick={() => void onClearBaselineNow()}
+            onClick={handleAsync(() => Promise.resolve(onClearBaselineNow()), "Baseline clear failed")}
             disabled={!path || baselineLoading}
             variant="secondary"
             size="sm"

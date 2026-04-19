@@ -8,6 +8,7 @@ import { useToast } from "../hooks/useToast";
 import { useI18n } from "../i18n";
 import { Badge } from "./ui/Badge";
 import { Button } from "./ui/Button";
+import { handleAsync } from "../lib/safeAsync";
 import { Panel } from "./ui/Panel";
 
 export interface AIContextPreviewProps {
@@ -157,7 +158,7 @@ export function AIContextPreview({
 
         {onRefresh && (
           <Button
-            onClick={() => void onRefreshClick()}
+            onClick={handleAsync(() => onRefreshClick(), "Refresh failed")}
             disabled={loading}
             variant="secondary"
             size="md"

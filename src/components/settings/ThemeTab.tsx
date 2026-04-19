@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { Sun } from "lucide-react";
 import { useI18n } from "../../i18n";
+import { handleAsync } from "../../lib/safeAsync";
 import type { PersonalizationSettingsProps } from "./types";
 import {
   InfoPopover,
@@ -443,7 +444,7 @@ export function ThemeTab({
 
       <div className="flex flex-wrap gap-2">
         <Button
-          onClick={() => void onRefreshUserPreferences()}
+          onClick={handleAsync(() => onRefreshUserPreferences(), "Refresh failed")}
           disabled={!isDesktop || userPreferencesSaving}
           variant="secondary"
           size="md"
@@ -451,7 +452,7 @@ export function ThemeTab({
           {t("settings.general.refreshPreferences")}
         </Button>
         <Button
-          onClick={() => void onResetUserPreferences()}
+          onClick={handleAsync(() => onResetUserPreferences(), "Reset failed")}
           disabled={!isDesktop || userPreferencesSaving}
           variant="primary"
           size="md"

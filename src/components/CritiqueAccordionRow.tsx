@@ -1,5 +1,6 @@
 import React, { type ReactElement, MouseEvent } from "react";
 import { invoke } from "../lib/tauri";
+import { safeAsync } from "../lib/safeAsync";
 import clsx from "clsx";
 import { useToast } from "../hooks/useToast";
 import { useI18n } from "../i18n";
@@ -86,7 +87,7 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
         try {
             await invoke("undo_fix", { filePath: log.file_path, root: rootPath });
             setUndoReady(false);
-            void Promise.resolve(onFixHistoryRefresh?.()).catch(() => { });
+            safeAsync(Promise.resolve(onFixHistoryRefresh?.()), "undoFixRefresh");
             showSuccess(t("critique.undoCompleteToast", { file: fileName }), 3000);
         } catch (err) {
             showError(t("critique.undoFailedToast", { error: String(err) }), 6000);
@@ -102,14 +103,14 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
         try {
             await invoke("apply_fix_now", { filePath: log.file_path, newContent: log.suggested_diff, root: rootPath });
             setUndoReady(true);
-            void Promise.resolve(onFixHistoryRefresh?.()).catch(() => { });
+            safeAsync(Promise.resolve(onFixHistoryRefresh?.()), "applyFixRefresh");
             showSuccess(
                 t("critique.appliedFixToast", { file: fileName }),
                 6000,
                 {
                     label: t("common.undo"),
                     onClick: () => {
-                        void undoFixNow();
+                        safeAsync(undoFixNow(), "undoFix");
                     }
                 }
             );
@@ -324,9 +325,9 @@ export const CritiqueAccordionRow = React.memo(function CritiqueAccordionRow({
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 if (undoReady) {
-                                                    void undoFixNow();
+                                                    safeAsync(undoFixNow(), "undoFix");
                                                 } else {
-                                                    void applyFixNow();
+                                                    safeAsync(applyFixNow(), "applyFix");
                                                 }
                                             }}
                                             className={clsx(

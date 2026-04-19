@@ -5,6 +5,7 @@ import { useI18n } from "../i18n";
 import { Button } from "./ui/Button";
 import { Field, SelectControl, TextInput } from "./ui/Field";
 import { Panel } from "./ui/Panel";
+import { handleAsync } from "../lib/safeAsync";
 
 interface ReleaseDecisionPanelProps {
   decision: ReleaseDecisionView | null;
@@ -97,7 +98,7 @@ export function ReleaseDecisionPanel({
           )}
         </div>
         <Button
-          onClick={() => void onRefresh()}
+          onClick={handleAsync(() => onRefresh(), "Refresh failed")}
           disabled={loading || saving}
           variant="secondary"
           size="sm"
@@ -151,7 +152,7 @@ export function ReleaseDecisionPanel({
           </option>
         </SelectControl>
         <Button
-          onClick={() => void handleSetDecision()}
+          onClick={handleAsync(() => handleSetDecision(), "Decision failed")}
           disabled={saving || !approver.trim()}
           variant="secondary"
           size="md"
@@ -178,7 +179,7 @@ export function ReleaseDecisionPanel({
             className="border-[color:var(--tone-critical-border)]"
           />
           <Button
-            onClick={() => void handleOverride()}
+            onClick={handleAsync(() => handleOverride(), "Override failed")}
             disabled={saving || !approver.trim() || !overrideReason.trim()}
             variant="danger"
             size="md"

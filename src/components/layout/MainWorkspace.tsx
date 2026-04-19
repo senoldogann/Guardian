@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import clsx from "clsx";
+import { handleAsync } from "../../lib/safeAsync";
 import { VariableSizeList, type ListChildComponentProps } from "react-window";
 import { CheckCircle2, ClipboardList, EyeOff, Search, Shield } from "lucide-react";
 import { CritiqueAccordionRow } from "../CritiqueAccordionRow";
@@ -568,7 +569,7 @@ export function MainWorkspace({
               {t("reviews.selectWorkspaceHint")}
             </div>
             <Button
-              onClick={() => void onSelectScope()}
+              onClick={handleAsync(() => Promise.resolve(onSelectScope()), "Scope selection failed")}
               variant="secondary"
               size="sm"
               className="text-[var(--accent-500)]"
@@ -629,7 +630,7 @@ export function MainWorkspace({
                         </div>
                       </div>
                       <Button
-                        onClick={() => void onUndoFix(entry.file_path)}
+                        onClick={handleAsync(() => onUndoFix(entry.file_path), "Undo failed")}
                         variant="danger"
                         size="md"
                         title={t("reviews.undoTitle")}
@@ -671,7 +672,7 @@ export function MainWorkspace({
               {t("aiContext.noteEmpty")}
             </div>
             <Button
-              onClick={() => void onSelectScope()}
+              onClick={handleAsync(() => Promise.resolve(onSelectScope()), "Scope selection failed")}
               variant="secondary"
               size="sm"
               className="text-[var(--accent-500)]"
@@ -738,7 +739,7 @@ export function MainWorkspace({
               {t("diagram.emptyNote")}
             </div>
             <Button
-              onClick={() => void onSelectScope()}
+              onClick={handleAsync(() => Promise.resolve(onSelectScope()), "Scope selection failed")}
               variant="secondary"
               size="sm"
               className="text-[var(--accent-500)]"

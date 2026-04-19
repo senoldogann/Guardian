@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { KeyRound } from "lucide-react";
 import { useI18n } from "../../i18n";
 import { openExternal } from "../../lib/tauri";
+import { safeAsync } from "../../lib/safeAsync";
 import type { ProviderSettingsProps } from "./types";
 import { InfoPopover, getProviderDefaults } from "./shared";
 import { Button } from "../ui/Button";
@@ -34,7 +35,7 @@ export function KeyManagementTab({ isDesktop, providerProps }: KeyManagementTabP
 
   const openGithubModelsTokenPage = (): void => {
     if (!isDesktop) return;
-    void openExternal("https://github.com/settings/personal-access-tokens/new");
+    safeAsync(openExternal("https://github.com/settings/personal-access-tokens/new"), "openExternal");
   };
 
   return (

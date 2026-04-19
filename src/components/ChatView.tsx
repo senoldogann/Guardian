@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, type ReactElement, type ReactNode, isValidElement, useMemo } from "react";
 import { invoke, listen, isTauriRuntime, openExternal } from "../lib/tauri";
+import { safeAsync } from "../lib/safeAsync";
 import clsx from "clsx";
 import {
     Bot,
@@ -246,7 +247,7 @@ export function ChatView({
 
         if (isDesktop) {
             if (!path) return;
-            void invoke("append_chat_message", { path, message: normalized }).catch(() => { });
+            safeAsync(invoke("append_chat_message", { path, message: normalized }), "appendChat");
         } else {
             persistLocal(normalized);
         }
@@ -345,7 +346,7 @@ export function ChatView({
             } else {
                 fn();
             }
-        });
+        }).catch((e) => console.error("Failed to listen:", e));
 
         return () => {
             mounted = false;
@@ -448,7 +449,7 @@ export function ChatView({
         forceScrollRef.current = true;
 
         const webSearchOverride = typeof autoPrompt.useWebSearch === "boolean" ? autoPrompt.useWebSearch : undefined;
-        void submitPrompt(autoPrompt.prompt, webSearchOverride);
+        safeAsync(submitPrompt(autoPrompt.prompt, webSearchOverride), "autoPrompt");
     }, [autoPrompt, onAutoPromptConsumed, submitPrompt]);
 
     const confirmFix = useCallback(async (index: number, filePath: string, diff: string): Promise<void> => {
