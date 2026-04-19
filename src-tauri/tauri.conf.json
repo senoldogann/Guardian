@@ -16,7 +16,7 @@
         "width": 1400,
         "height": 900,
         "decorations": true,
-        "titleBarStyle": "visible",
+        "titleBarStyle": "Overlay",
         "closable": true,
         "minimizable": true,
         "maximizable": true

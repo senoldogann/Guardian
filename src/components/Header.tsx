@@ -76,9 +76,9 @@ export function Header({
 }: HeaderProps): ReactElement {
   const { t } = useI18n();
   return (
-    <header className="guardian-topbar z-20 justify-between gap-4">
-      {/* Brand */}
-      <div className="flex items-center gap-3">
+    <header className="guardian-topbar z-20 justify-between gap-4" data-tauri-drag-region>
+      {/* Brand — pl-[76px] reserves space for macOS traffic-light buttons in Overlay title bar */}
+      <div className="flex items-center gap-3 pl-[76px]">
         <div className="h-8 w-8 rounded-lg bg-[var(--accent-500)] flex items-center justify-center">
           <ShieldCheck className="h-4.5 w-4.5 text-[var(--background)]" />
         </div>
