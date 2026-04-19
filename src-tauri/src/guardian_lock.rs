@@ -1,3 +1,4 @@
+use crate::atomic_write;
 use anyhow::{Context, Result};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
@@ -150,7 +151,7 @@ pub fn sync_guardian_lock(root: &Path) -> Result<GuardianLockStatus> {
         };
         let encoded =
             serde_json::to_string_pretty(&payload).context("Failed to serialize guardian.lock")?;
-        fs::write(&path, encoded)
+        atomic_write::atomic_write(&path, encoded.as_bytes())
             .with_context(|| format!("Failed to write lock file: {}", path.display()))?;
     }
 

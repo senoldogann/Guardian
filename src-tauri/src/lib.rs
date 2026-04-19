@@ -1,4 +1,5 @@
 mod ai_client;
+mod atomic_write;
 mod guardian_lock;
 mod watcher;
 // V2 Modules
@@ -202,7 +203,7 @@ fn save_scan_profile_config(
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     let payload = serde_json::to_string(&normalized).map_err(|e| e.to_string())?;
-    fs::write(&path, payload).map_err(|e| e.to_string())?;
+    atomic_write::atomic_write(&path, payload.as_bytes()).map_err(|e| e.to_string())?;
     Ok(normalized)
 }
 
@@ -292,7 +293,7 @@ fn persist_auth_user(
         issued_at: Some(issued_at),
     };
     let payload = serde_json::to_string(&stored).map_err(|e| e.to_string())?;
-    fs::write(path, payload).map_err(|e| e.to_string())?;
+    atomic_write::atomic_write(&path, payload.as_bytes()).map_err(|e| e.to_string())?;
     Ok(())
 }
 

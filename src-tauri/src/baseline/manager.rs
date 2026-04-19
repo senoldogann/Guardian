@@ -1,4 +1,5 @@
 use crate::ai_client::Critique;
+use crate::atomic_write;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -73,7 +74,7 @@ impl BaselineManager {
         }
         let payload =
             serde_json::to_string_pretty(baseline).context("Failed to encode baseline")?;
-        fs::write(&path, payload)
+        atomic_write::atomic_write(&path, payload.as_bytes())
             .with_context(|| format!("Failed to write baseline file: {}", path.display()))?;
         Ok(())
     }

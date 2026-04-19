@@ -1,3 +1,4 @@
+use crate::atomic_write;
 use crate::history_logger::append_critique_event;
 use crate::storage::StorageManager;
 use chrono::Utc;
@@ -6,6 +7,7 @@ use once_cell::sync::Lazy;
 use serde::Deserialize;
 use serde_json::json;
 use std::collections::HashMap;
+use std::fmt::Write as _;
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -1045,53 +1047,51 @@ fn write_governance_summary(
         "findings": findings_payload
     });
 
-    if let Ok(mut json_file) = fs::File::create(&summary_json_path) {
-        let _ = writeln!(
-            json_file,
-            "{}",
-            serde_json::to_string_pretty(&payload).unwrap_or_default()
-        );
+    {
+        let content = serde_json::to_string_pretty(&payload).unwrap_or_default();
+        let _ = atomic_write::atomic_write(&summary_json_path, content.as_bytes());
     }
 
-    if let Ok(mut md_file) = fs::File::create(&summary_md_path) {
-        let _ = writeln!(md_file, "# Guardian Governance Summary");
-        let _ = writeln!(md_file, "Updated: {}", Utc::now().to_rfc3339());
-        let _ = writeln!(md_file);
-        let _ = writeln!(md_file, "- Root: `{}`", root_path.to_string_lossy());
-        let _ = writeln!(md_file, "- Workspace ID: `{}`", workspace_id);
-        let _ = writeln!(md_file, "- Rules Hash: `{}`", rules_hash);
+    {
+        let mut content = String::new();
+        let _ = writeln!(content, "# Guardian Governance Summary");
+        let _ = writeln!(content, "Updated: {}", Utc::now().to_rfc3339());
+        let _ = writeln!(content);
+        let _ = writeln!(content, "- Root: `{}`", root_path.to_string_lossy());
+        let _ = writeln!(content, "- Workspace ID: `{}`", workspace_id);
+        let _ = writeln!(content, "- Rules Hash: `{}`", rules_hash);
         let _ = writeln!(
-            md_file,
+            content,
             "- Release Recommendation: `{}`",
             release_recommendation
         );
         let _ = writeln!(
-            md_file,
+            content,
             "- Counts: critical=`{}` warning=`{}` info=`{}` total=`{}`",
             critical, warning, info, total
         );
-        let _ = writeln!(md_file);
-        let _ = writeln!(md_file, "## Agent Notes");
+        let _ = writeln!(content);
+        let _ = writeln!(content, "## Agent Notes");
         let _ = writeln!(
-            md_file,
+            content,
             "- IDE: show highest-severity findings first and link directly to file paths."
         );
         let _ = writeln!(
-            md_file,
+            content,
             "- CLI: prefer `guardian-cli scan --release-gate strict --format json` in CI."
         );
         let _ = writeln!(
-            md_file,
+            content,
             "- LLM Agents: do not auto-approve releases from suggestions; require explicit human decision."
         );
-        let _ = writeln!(md_file);
-        let _ = writeln!(md_file, "## Findings");
+        let _ = writeln!(content);
+        let _ = writeln!(content, "## Findings");
         if entries.is_empty() {
-            let _ = writeln!(md_file, "- No active findings.");
+            let _ = writeln!(content, "- No active findings.");
         } else {
             for (rel_path, critique) in entries.iter().take(50) {
                 let _ = writeln!(
-                    md_file,
+                    content,
                     "- [{}] `{}`: {}",
                     normalize_severity_token(&critique.severity),
                     rel_path,
@@ -1100,12 +1100,13 @@ fn write_governance_summary(
             }
             if entries.len() > 50 {
                 let _ = writeln!(
-                    md_file,
+                    content,
                     "- ... {} more findings in `governance_summary.json`",
                     entries.len().saturating_sub(50)
                 );
             }
         }
+        let _ = atomic_write::atomic_write(&summary_md_path, content.as_bytes());
     }
 }
 
@@ -1138,10 +1139,11 @@ pub(super) fn sync_guardian_logs(
         crate::baseline::manager::compute_workspace_id(root_path).unwrap_or_default();
 
     // Rewrite critiques.md
-    if let Ok(mut file) = fs::File::create(&critiques_path) {
-        let _ = writeln!(file, "# Guardian Active Critiques");
-        let _ = writeln!(file, "Updated: {}\n", Utc::now().to_rfc3339());
-        let _ = writeln!(file, "```json");
+    {
+        let mut content = String::new();
+        let _ = writeln!(content, "# Guardian Active Critiques");
+        let _ = writeln!(content, "Updated: {}\n", Utc::now().to_rfc3339());
+        let _ = writeln!(content, "```json");
         let mut entries: Vec<(String, &crate::ai_client::Critique)> = critiques
             .iter()
             .map(|(path, c)| (normalize_rel_file_path(root_path, path), c))
@@ -1169,13 +1171,14 @@ pub(super) fn sync_guardian_logs(
                 "chat_message": c.chat_message,
                 "suggested_diff": c.suggested_diff
             });
-            let _ = writeln!(file, "{}", json_line);
+            let _ = writeln!(content, "{}", json_line);
         }
-        let _ = writeln!(file, "```\n");
+        let _ = writeln!(content, "```\n");
+        let _ = atomic_write::atomic_write(&critiques_path, content.as_bytes());
     }
 
     // Rewrite critiques.json (machine readable snapshot)
-    if let Ok(mut file) = fs::File::create(&critiques_json_path) {
+    {
         let mut entries: Vec<(String, &crate::ai_client::Critique)> = critiques
             .iter()
             .map(|(path, c)| (normalize_rel_file_path(root_path, path), c))
@@ -1203,21 +1206,20 @@ pub(super) fn sync_guardian_logs(
             "rules_hash": rules_hash,
             "critiques": payload_critiques
         });
-        let _ = writeln!(
-            file,
-            "{}",
-            serde_json::to_string_pretty(&payload).unwrap_or_default()
-        );
+        let content = serde_json::to_string_pretty(&payload).unwrap_or_default();
+        let _ = atomic_write::atomic_write(&critiques_json_path, content.as_bytes());
     }
 
     // Rewrite chat_queue.md
-    if let Ok(mut file) = fs::File::create(&chat_path) {
-        let _ = writeln!(file, "# Guardian Chat Bridge\n");
+    {
+        let mut content = String::new();
+        let _ = writeln!(content, "# Guardian Chat Bridge\n");
         for c in critiques.values() {
             if let Some(msg) = &c.chat_message {
-                let _ = writeln!(file, "> {}\n", msg);
+                let _ = writeln!(content, "> {}\n", msg);
             }
         }
+        let _ = atomic_write::atomic_write(&chat_path, content.as_bytes());
     }
 
     write_governance_summary(
@@ -1230,15 +1232,14 @@ pub(super) fn sync_guardian_logs(
 
     let stall_path = guardian_dir.join("STALL");
     if let Some(info) = &critical_info {
-        if let Ok(mut file) = fs::File::create(&stall_path) {
-            let payload = json!({
-                "status": "stalled",
-                "file_path": info.file_path,
-                "reason": info.reason,
-                "updated_at": Utc::now().to_rfc3339()
-            });
-            let _ = writeln!(file, "{}", payload);
-        }
+        let payload = json!({
+            "status": "stalled",
+            "file_path": info.file_path,
+            "reason": info.reason,
+            "updated_at": Utc::now().to_rfc3339()
+        });
+        let content = format!("{}\n", payload);
+        let _ = atomic_write::atomic_write(&stall_path, content.as_bytes());
     } else {
         let _ = fs::remove_file(&stall_path);
     }

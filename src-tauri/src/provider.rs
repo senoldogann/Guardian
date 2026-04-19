@@ -1,3 +1,4 @@
+use crate::atomic_write;
 use crate::config;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -139,7 +140,7 @@ pub fn save_provider_config(
         fs::create_dir_all(parent).map_err(|e| e.to_string())?;
     }
     let payload = serde_json::to_string(&config).map_err(|e| e.to_string())?;
-    fs::write(path, payload).map_err(|e| e.to_string())?;
+    atomic_write::atomic_write(&path, payload.as_bytes()).map_err(|e| e.to_string())?;
     Ok(config)
 }
 
