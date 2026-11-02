@@ -43,7 +43,7 @@
     "tailwindcss": "^4.1.18",
     "tailwindcss-animate": "^1.0.7",
     "web-vitals": "^5.1.0",
-    "zod": "^4.3.6"
+    "zod": "^4.6.7"
   },
   "overrides": {
     "flatted": "3.4.2",
