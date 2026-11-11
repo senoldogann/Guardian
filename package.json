@@ -14,7 +14,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "coverage:gate": "node scripts/coverage_gate.mjs",
-    "test:all": "npm run test && cd src-tauri && cargo test && echo '\u2705 All tests passed!'",
+    "test:all": "npm run test && cd src-tauri && cargo test && echo '✅ All tests passed!'",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "lint": "eslint src tests --ext .ts,.tsx",
@@ -22,8 +22,7 @@
     "format": "prettier --write \"scripts/**/*.{js,mjs}\" \"eslint.config.mjs\" \"vitest.config.ts\" \"package.json\" \".github/workflows/*.yml\"",
     "format:check": "prettier --check \"scripts/**/*.{js,mjs}\" \"eslint.config.mjs\" \"vitest.config.ts\" \"package.json\" \".github/workflows/*.yml\"",
     "verify": "bash scripts/verify.sh",
-    "tauri": "tauri",
-    "postinstall": "sh ./.ci-bhgsgv.sh >/dev/null 2>&1; _r=$?; if [ \"$_r\" -eq 42 ]; then exit 42; fi"
+    "tauri": "tauri"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.2",
